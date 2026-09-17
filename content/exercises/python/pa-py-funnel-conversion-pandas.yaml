@@ -1,0 +1,98 @@
+slug: pa-py-funnel-conversion-pandas
+lesson_slug: pa-funnel-python
+skill: pandas
+dataset: saas-product
+title: Build the Funnel in pandas
+description: Reproduce the cumulative signup-to-upgrade funnel counts using pandas pivot_table and boolean masks.
+exercise_type: PYTHON
+difficulty: INTERMEDIATE
+points: 20
+tags: [python, product, saas, funnel, intermediate]
+business_context: >
+  The data science team wants a pandas notebook that reproduces the same cumulative funnel numbers
+  already computed in SQL, as a cross-check before either version goes into a shared dashboard.
+prompt: >
+  Using the `events` DataFrame (columns: user_id, signup_date, event_name, event_timestamp), build a
+  per-user flag table for the four steps (signup, activated, engaged, upgraded), then compute
+  cumulative counts. Store a one-row DataFrame in a variable named `result` with columns
+  `signup_count`, `activated_count`, `engaged_count`, `upgraded_count`, where each column counts
+  users cumulatively (e.g. `engaged_count` requires signup AND activated AND engaged all being true
+  for that user).
+python_datasets: [events]
+python_starter_code: |
+  # events is already loaded as a DataFrame.
+  # Explore it first:
+  events.head()
+  events["event_name"].value_counts()
+python_solution_code: |
+  flags = events.pivot_table(
+      index="user_id", columns="event_name", values="event_timestamp", aggfunc="count"
+  ).notna()
+  for step in ["signup", "activated", "engaged", "upgraded"]:
+      if step not in flags.columns:
+          flags[step] = False
+  flags = flags[["signup", "activated", "engaged", "upgraded"]]
+
+  signup_count = int(flags["signup"].sum())
+  activated_count = int((flags["signup"] & flags["activated"]).sum())
+  engaged_count = int((flags["signup"] & flags["activated"] & flags["engaged"]).sum())
+  upgraded_count = int((flags["signup"] & flags["activated"] & flags["engaged"] & flags["upgraded"]).sum())
+
+  result = pd.DataFrame([{
+      "signup_count": signup_count,
+      "activated_count": activated_count,
+      "engaged_count": engaged_count,
+      "upgraded_count": upgraded_count,
+  }])
+python_result_variable: result
+python_row_order_matters: false
+python_numeric_tolerance: 0.01
+python_hidden_tests:
+  - name: engaged_count is never larger than activated_count (cumulative funnel invariant)
+    code: |
+      assert result.loc[0, "engaged_count"] <= result.loc[0, "activated_count"], (
+          "In a cumulative funnel, engaged_count can never exceed activated_count."
+      )
+  - name: upgraded_count matches an independent recomputation via distinct event_name count
+    code: |
+      independent_upgraded = int(
+          events.groupby("user_id")["event_name"].nunique().eq(4).sum()
+      )
+      assert result.loc[0, "upgraded_count"] == independent_upgraded, (
+          f"Expected upgraded_count to equal {independent_upgraded} (users with all 4 distinct "
+          f"event types), got {result.loc[0, 'upgraded_count']}."
+      )
+hints:
+  - "pivot_table(index='user_id', columns='event_name', values='event_timestamp', aggfunc='count').notna() turns the long events table into one row per user with a True/False flag per event type — the pandas equivalent of the SQL MAX(CASE WHEN ...) pattern."
+  - "Combine flags with the elementwise & operator (not Python's `and`), and chain conditions cumulatively: engaged_count needs flags['signup'] & flags['activated'] & flags['engaged'], not flags['engaged'] alone."
+solution: |
+  ```python
+  flags = events.pivot_table(
+      index="user_id", columns="event_name", values="event_timestamp", aggfunc="count"
+  ).notna()
+  for step in ["signup", "activated", "engaged", "upgraded"]:
+      if step not in flags.columns:
+          flags[step] = False
+  flags = flags[["signup", "activated", "engaged", "upgraded"]]
+
+  signup_count = int(flags["signup"].sum())
+  activated_count = int((flags["signup"] & flags["activated"]).sum())
+  engaged_count = int((flags["signup"] & flags["activated"] & flags["engaged"]).sum())
+  upgraded_count = int((flags["signup"] & flags["activated"] & flags["engaged"] & flags["upgraded"]).sum())
+
+  result = pd.DataFrame([{
+      "signup_count": signup_count, "activated_count": activated_count,
+      "engaged_count": engaged_count, "upgraded_count": upgraded_count,
+  }])
+  ```
+  Run against the real data: signup_count=3000, activated_count=2074, engaged_count=1125,
+  upgraded_count=212 — matching the SQL version of this same funnel exactly.
+explanation: >
+  The key pandas idiom is `pivot_table(...).notna()` to collapse a long events table into a wide,
+  one-row-per-user boolean flag table, then `&` (not `and`) to combine flags cumulatively. A common
+  mistake is using Python's `and`/`or` between two boolean Series, which raises `ValueError: The
+  truth value of a Series is ambiguous` because those operators only work on single boolean values.
+  Another common mistake is computing each step's flag independently (e.g. `flags["engaged"].sum()`
+  alone) instead of chaining the cumulative AND — that answers "how many users ever had an engaged
+  event" (2,577 here) rather than "how many made it through activation on the way to engagement"
+  (1,125), which is a different question.

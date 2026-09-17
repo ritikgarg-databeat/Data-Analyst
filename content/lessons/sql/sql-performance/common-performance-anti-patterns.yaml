@@ -1,0 +1,165 @@
+slug: common-performance-anti-patterns
+module_slug: sql-performance
+title: Common Performance Anti-Patterns
+description: Three habits that quietly make queries slower and harder to maintain — SELECT *, reaching for a subquery when a JOIN would do, and filtering after aggregating instead of before.
+difficulty: ADVANCED
+estimated_minutes: 11
+display_order: 5
+objectives:
+  - Explain the concrete costs of SELECT * beyond "it's considered bad style"
+  - Identify when a correlated subquery should be rewritten as a JOIN, and when it shouldn't
+  - Move a filter from after an aggregation (HAVING on a raw column) to before it (WHERE) when it's semantically equivalent but cheaper
+prerequisites: [writing-sargable-filters]
+skills: [advanced-sql]
+datasets: [ecommerce]
+tags: [sql, advanced]
+key_takeaways:
+  - "SELECT * reads and transfers every column whether the query needs it or not — on a columnar engine like DuckDB that cost is especially direct, since reading fewer columns is exactly the advantage a column-store is built to give you."
+  - "A correlated subquery that just counts or sums related rows can usually be rewritten as a JOIN + GROUP BY, which often lets the database process the data in one pass instead of re-running a small query once per outer row."
+  - "A condition that only needs row-level information should go in WHERE, not HAVING — filtering before GROUP BY means the database aggregates less data in the first place, instead of aggregating everything and only then throwing rows away."
+common_mistakes:
+  - "Reaching for SELECT * during development and never trimming it down before the query ships — the query still works, so the cost is invisible until the table grows or the query runs often enough for the extra I/O to add up."
+  - "Writing WHERE-able conditions as HAVING out of habit (e.g. HAVING o.status = 'completed' instead of WHERE o.status = 'completed') — both eventually filter the same rows, but HAVING does it after aggregating over rows that never needed to be included."
+practical_applications:
+  - "Trimming a dashboard query's SELECT list to only the columns the chart actually renders, cutting data transfer with no logic changes."
+  - "Reviewing a slow report query and finding a correlated subquery computing a per-row count that a single JOIN + GROUP BY could compute for every row at once."
+blocks:
+  - type: heading
+    text: "Anti-pattern 1: SELECT * when you don't need every column"
+  - type: text
+    body: >
+      `SELECT *` is convenient while exploring a table, but shipping it in a real query means reading
+      and transferring every column the table has — including ones the query's caller never looks at.
+      On this platform's columnar engine, that cost is especially direct: DuckDB's whole storage
+      advantage comes from being able to read *only* the columns a query touches, and `SELECT *` throws
+      that advantage away by forcing every column to be read regardless.
+  - type: code
+    language: sql
+    caption: Costs more to read and transfer than necessary
+    code: |
+      SELECT * FROM order_items;
+  - type: code
+    language: sql
+    caption: Same logical need, naming only the columns actually used downstream
+    code: |
+      SELECT order_item_id, order_id, product_id, quantity, unit_price, discount
+      FROM order_items;
+  - type: text
+    body: >
+      There's a maintainability angle too: `SELECT *` output silently changes shape if a column is
+      later added to the table, which can break anything downstream that assumed a fixed column list
+      (a report, a pandas script, an API response). Naming columns explicitly makes a query's actual
+      data needs visible and stable.
+  - type: heading
+    text: "Anti-pattern 2: a correlated subquery where a JOIN would do"
+  - type: text
+    body: >
+      A correlated subquery — one that references the outer query's current row — re-runs conceptually
+      once per outer row. When all it's doing is counting or summing related rows, a JOIN followed by
+      GROUP BY usually expresses the exact same result while giving the database a single, set-based
+      plan to optimize instead of a per-row loop.
+  - type: code
+    language: sql
+    caption: Correlated subquery — computed per customer row
+    code: |
+      SELECT
+        c.customer_id,
+        (SELECT COUNT(*) FROM orders o WHERE o.customer_id = c.customer_id) AS order_count
+      FROM customers c
+      ORDER BY c.customer_id
+      LIMIT 5;
+  - type: code
+    language: sql
+    caption: Equivalent JOIN + GROUP BY — one set-based pass
+    code: |
+      SELECT
+        c.customer_id,
+        COUNT(o.order_id) AS order_count
+      FROM customers c
+      LEFT JOIN orders o ON o.customer_id = c.customer_id
+      GROUP BY c.customer_id
+      ORDER BY c.customer_id
+      LIMIT 5;
+  - type: output
+    caption: Both return identical results for the first five customers
+    body: |
+      customer_id | order_count
+      -------------+-------------
+                 1 |           2
+                 2 |           3
+                 3 |           8
+                 4 |           3
+                 5 |           1
+  - type: callout
+    variant: important
+    title: LEFT JOIN, not JOIN, to preserve the subquery's behavior
+    body: >
+      The correlated subquery returns 0 for a customer with no orders at all — it never fails to
+      produce a row. An INNER JOIN would drop that customer's row entirely, which is a different
+      result. LEFT JOIN plus COUNT(o.order_id) (counting the joined column, not COUNT(*)) reproduces
+      the subquery's "0 if none, otherwise the real count" behavior correctly.
+  - type: callout
+    variant: warning
+    title: Not every subquery should become a JOIN
+    body: >
+      This rewrite applies specifically to subqueries computing an aggregate per outer row. A subquery
+      used for existence checking (EXISTS / NOT EXISTS, covered in an earlier module and again in the
+      interview-patterns lesson ahead) is often the *clearest* way to express "has at least one
+      matching row" and doesn't need to become a JOIN at all — turning it into one risks accidentally
+      duplicating rows if the matched side has more than one match per outer row.
+  - type: heading
+    text: "Anti-pattern 3: filtering after aggregating instead of before"
+  - type: text
+    body: >
+      WHERE and HAVING can look interchangeable for a row-level condition, but they run at different
+      steps (recall the execution-order lesson): WHERE removes rows before GROUP BY aggregates them;
+      HAVING only removes groups after aggregation has already happened over everything, including rows
+      that were always going to be filtered out.
+  - type: code
+    language: sql
+    caption: Filtering after aggregating — status is aggregated over before it's checked
+    code: |
+      SELECT o.customer_id, SUM(oi.quantity * (oi.unit_price - oi.discount)) AS revenue
+      FROM orders o
+      JOIN order_items oi ON oi.order_id = o.order_id
+      GROUP BY o.customer_id, o.status
+      HAVING o.status = 'completed';
+  - type: code
+    language: sql
+    caption: Filtering before aggregating — cancelled/refunded/pending rows never reach GROUP BY
+    code: |
+      SELECT o.customer_id, SUM(oi.quantity * (oi.unit_price - oi.discount)) AS revenue
+      FROM orders o
+      JOIN order_items oi ON oi.order_id = o.order_id
+      WHERE o.status = 'completed'
+      GROUP BY o.customer_id;
+  - type: text
+    body: >
+      Both return the same completed-orders revenue, but the WHERE version aggregates strictly less
+      data — every cancelled, refunded, and pending row is removed before GROUP BY has to do anything
+      with it, instead of being grouped and only discarded afterward. The rule of thumb: if a condition
+      only needs information available at the row level (a status, a date, a flag), it belongs in
+      WHERE; only conditions that genuinely depend on an aggregated value (a SUM, a COUNT) belong in
+      HAVING.
+  - type: checklist
+    title: A quick pass before shipping a query
+    items:
+      - "Does the SELECT list name only the columns actually needed downstream, instead of *?"
+      - "Is any correlated subquery only computing a per-row aggregate that a JOIN + GROUP BY could compute in one pass?"
+      - "Is every row-level condition in WHERE, with HAVING reserved for conditions on aggregated values?"
+      - "Does any WHERE filter wrap a column in a function, when a sargable rewrite (previous lesson) is available?"
+  - type: question
+    prompt: >
+      A query groups orders by customer_id and status, then uses HAVING status = 'completed' to keep
+      only completed-order revenue. What's the main downside compared to filtering with WHERE status =
+      'completed' before grouping?
+    choices:
+      - "There is no downside — WHERE and HAVING always cost exactly the same"
+      - "The HAVING version aggregates every status (including cancelled, refunded, and pending rows) before discarding the ones that don't match, doing unnecessary aggregation work that WHERE would have avoided"
+      - "HAVING is not allowed to reference a GROUP BY column like status, so the query would fail"
+    correct_index: 1
+    explanation: >
+      GROUP BY runs before HAVING in the logical execution order, so the HAVING version has to group
+      and aggregate cancelled, refunded, and pending rows right alongside completed ones, only removing
+      the unwanted groups afterward. WHERE removes those rows before grouping ever happens, so less
+      data flows into GROUP BY in the first place — same final result, less work to get there.

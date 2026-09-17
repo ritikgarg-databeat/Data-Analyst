@@ -1,0 +1,60 @@
+slug: customer-segment-revenue
+lesson_slug: left-and-right-joins
+skill: sql-fundamentals
+dataset: ecommerce
+title: Revenue by Customer Segment
+description: Write a query that joins customers through orders to payments and totals successful-payment revenue by customer segment.
+exercise_type: SQL
+difficulty: BEGINNER
+points: 15
+tags: [sql, foundations, real-world, easy]
+business_context: >
+  Finance wants to understand how much of the company's realized revenue comes from business customers
+  versus everyday consumers, to help decide how much of next year's account-management budget should go
+  toward each segment.
+prompt: >
+  Using the `customers`, `orders`, and `payments` tables, write a query that returns each
+  `customer_segment` together with the total revenue collected from that segment's successful payments
+  (`total_revenue`, sum of `payments.amount` where `payments.status = 'success'`, rounded to 2 decimal
+  places). Return one row per segment; the order of the two rows does not matter.
+sql_tables: [customers, orders, payments]
+sql_starter_query: |
+  -- customer_segment lives on customers, but dollar amounts live on payments — you'll need to join through orders
+  SELECT * FROM customers LIMIT 20;
+sql_solution_query: |
+  SELECT c.customer_segment, ROUND(SUM(p.amount), 2) AS total_revenue
+  FROM customers c
+  JOIN orders o ON o.customer_id = c.customer_id
+  JOIN payments p ON p.order_id = o.order_id
+  WHERE p.status = 'success'
+  GROUP BY c.customer_segment;
+sql_row_order_matters: false
+sql_numeric_tolerance: 0.01
+sql_hidden_tests:
+  - name: "Business segment revenue is correct"
+    query: |
+      SELECT c.customer_segment, ROUND(SUM(p.amount), 2) AS total_revenue
+      FROM customers c
+      JOIN orders o ON o.customer_id = c.customer_id
+      JOIN payments p ON p.order_id = o.order_id
+      WHERE p.status = 'success' AND c.customer_segment = 'business'
+      GROUP BY c.customer_segment
+    key_columns: 1
+hints:
+  - "customer_segment lives on customers, and dollar amounts live on payments, but nothing directly connects those two tables — orders is the bridge in between, holding both a customer_id and an order_id."
+  - "Join customers to orders on customer_id, then orders to payments on order_id, filter to payments.status = 'success', and GROUP BY customer_segment before summing amount."
+solution: |
+  ```sql
+  SELECT c.customer_segment, ROUND(SUM(p.amount), 2) AS total_revenue
+  FROM customers c
+  JOIN orders o ON o.customer_id = c.customer_id
+  JOIN payments p ON p.order_id = o.order_id
+  WHERE p.status = 'success'
+  GROUP BY c.customer_segment;
+  ```
+explanation: >
+  A strong answer chains the join through orders — customers to orders on customer_id, then orders to
+  payments on order_id — since customer_segment and payment amounts never sit in the same table
+  directly. Filtering to payments.status = 'success' before grouping keeps the total honest by excluding
+  refunded payments. A common mistake is joining customers directly to payments (skipping orders
+  entirely), which simply fails since there's no shared key between those two tables to join on.

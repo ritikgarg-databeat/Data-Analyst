@@ -1,0 +1,191 @@
+# Seed data for the `skills` table. category must match app.models.enums.SkillCategory.
+- slug: sql-fundamentals
+  name: SQL Fundamentals
+  category: SQL
+  target_level: BEGINNER
+  description: SELECT, WHERE, JOIN, GROUP BY, and core relational querying.
+- slug: advanced-sql
+  name: Advanced SQL
+  category: SQL
+  target_level: ADVANCED
+  description: Window functions, CTEs, query optimization, and complex analytical SQL.
+- slug: python-fundamentals
+  name: Python Fundamentals
+  category: PYTHON
+  target_level: BEGINNER
+  description: Core Python syntax, data structures, and control flow.
+- slug: pandas
+  name: Pandas
+  category: PYTHON
+  target_level: INTERMEDIATE
+  description: DataFrame manipulation, cleaning, and transformation with pandas.
+- slug: statistics
+  name: Statistics
+  category: STATISTICS
+  target_level: INTERMEDIATE
+  description: Descriptive and inferential statistics for data analysis.
+- slug: data-cleaning
+  name: Data Cleaning
+  category: PYTHON
+  target_level: BEGINNER
+  description: Handling missing data, outliers, and inconsistent formats.
+- slug: exploratory-data-analysis
+  name: Exploratory Data Analysis
+  category: STATISTICS
+  target_level: INTERMEDIATE
+  description: Systematically profiling and understanding a new dataset.
+- slug: data-visualization
+  name: Data Visualization
+  category: DATA_VISUALIZATION
+  target_level: INTERMEDIATE
+  description: Choosing and building effective charts and dashboards.
+- slug: business-metrics
+  name: Business Metrics
+  category: BUSINESS_ANALYTICS
+  target_level: INTERMEDIATE
+  description: Defining and interpreting KPIs and business health metrics.
+- slug: product-metrics
+  name: Product Metrics
+  category: PRODUCT_ANALYTICS
+  target_level: INTERMEDIATE
+  description: Engagement, retention, and funnel metrics for digital products.
+- slug: experimentation
+  name: Experimentation
+  category: PRODUCT_ANALYTICS
+  target_level: ADVANCED
+  description: A/B testing design, analysis, and pitfalls.
+- slug: data-modeling
+  name: Data Modeling
+  category: DATA_MODELING
+  target_level: INTERMEDIATE
+  description: Dimensional modeling, normalization, and schema design.
+- slug: data-warehousing
+  name: Data Warehousing
+  category: DATA_WAREHOUSING
+  target_level: INTERMEDIATE
+  description: Warehouse architecture and modern cloud warehouse platforms.
+- slug: etl-elt
+  name: ETL/ELT
+  category: DATA_ENGINEERING
+  target_level: INTERMEDIATE
+  description: Building and reasoning about data pipelines.
+- slug: data-engineering-fundamentals
+  name: Data Engineering Fundamentals
+  category: DATA_ENGINEERING
+  target_level: BEGINNER
+  description: Core concepts behind moving and transforming data at scale.
+- slug: machine-learning-fundamentals
+  name: Machine Learning Fundamentals
+  category: MACHINE_LEARNING
+  target_level: BEGINNER
+  description: Core supervised/unsupervised learning concepts relevant to analysts.
+- slug: communication
+  name: Communication
+  category: BUSINESS_ANALYTICS
+  target_level: INTERMEDIATE
+  description: Presenting analytical findings clearly to non-technical stakeholders.
+- slug: business-problem-solving
+  name: Business Problem Solving
+  category: BUSINESS_ANALYTICS
+  target_level: INTERMEDIATE
+  description: Structuring ambiguous business problems into analyzable questions.
+- slug: interview-sql
+  name: Interview SQL
+  category: INTERVIEW_READINESS
+  target_level: ADVANCED
+  description: Timed, interview-style SQL problem solving.
+- slug: analytics-case-studies
+  name: Analytics Case Studies
+  category: INTERVIEW_READINESS
+  target_level: ADVANCED
+  description: Working analytics case interviews end to end.
+- slug: product-cases
+  name: Product Cases
+  category: INTERVIEW_READINESS
+  target_level: ADVANCED
+  description: Product sense and product-metrics interview cases.
+- slug: statistical-reasoning
+  name: Statistical Reasoning
+  category: STATISTICS
+  target_level: INTERMEDIATE
+  description: Choosing the right test, reading p-values/CIs correctly, and stating conclusions honestly.
+- slug: data-interpretation
+  name: Data Interpretation
+  category: STATISTICS
+  target_level: INTERMEDIATE
+  description: Reading a result (a table, a chart, a test output) and stating what it actually implies.
+- slug: business-analytics
+  name: Business Analytics
+  category: BUSINESS_ANALYTICS
+  target_level: INTERMEDIATE
+  description: Revenue, marketing, sales, and operations analytics for understanding how a business runs.
+- slug: product-analytics
+  name: Product Analytics
+  category: PRODUCT_ANALYTICS
+  target_level: INTERMEDIATE
+  description: Funnels, cohorts, retention, churn, and feature adoption for digital products.
+- slug: metric-definition
+  name: Metric Definition
+  category: BUSINESS_ANALYTICS
+  target_level: INTERMEDIATE
+  description: Precisely defining a metric (grain, filters, edge cases) before analyzing it.
+- slug: root-cause-analysis
+  name: Root Cause Analysis
+  category: BUSINESS_ANALYTICS
+  target_level: INTERMEDIATE
+  description: Methodically tracing a metric change back to its underlying driver.
+- slug: decision-making
+  name: Decision Making
+  category: BUSINESS_ANALYTICS
+  target_level: INTERMEDIATE
+  description: Turning analysis into a clear, well-justified recommendation.
+- slug: data-pipelines
+  name: Data Pipelines
+  category: DATA_ENGINEERING
+  target_level: INTERMEDIATE
+  description: Reasoning about batch/streaming pipelines, orchestration, and failure modes.
+- slug: data-quality-engineering
+  name: Data Quality
+  category: DATA_ENGINEERING
+  target_level: INTERMEDIATE
+  description: Defining and checking completeness, uniqueness, validity, and freshness rules.
+- slug: dimensional-modeling
+  name: Dimensional Modeling
+  category: DATA_MODELING
+  target_level: INTERMEDIATE
+  description: Grain, facts, dimensions, keys, and slowly changing dimensions.
+- slug: dbt
+  name: dbt
+  category: DATA_ENGINEERING
+  target_level: INTERMEDIATE
+  description: Building, testing, and documenting transformations with dbt.
+- slug: data-lineage
+  name: Data Lineage
+  category: DATA_ENGINEERING
+  target_level: INTERMEDIATE
+  description: Tracing how data flows and transforms from source to consumption.
+- slug: cloud-data-warehouses
+  name: Cloud Data Warehouses
+  category: DATA_WAREHOUSING
+  target_level: INTERMEDIATE
+  description: BigQuery, Snowflake, Databricks, and cloud storage concepts.
+- slug: modern-data-stack
+  name: Modern Data Stack
+  category: DATA_ENGINEERING
+  target_level: INTERMEDIATE
+  description: How ingestion, transformation, warehousing, and BI tools fit together.
+- slug: pipeline-troubleshooting
+  name: Pipeline Troubleshooting
+  category: DATA_ENGINEERING
+  target_level: ADVANCED
+  description: Diagnosing why a pipeline or dashboard produced wrong or stale data.
+- slug: excel-fundamentals
+  name: Excel Fundamentals
+  category: EXCEL
+  target_level: BEGINNER
+  description: Formulas, lookups, pivot tables, conditional formatting, and data cleaning in spreadsheets.
+- slug: behavioral-interviewing
+  name: Behavioral Interviewing
+  category: INTERVIEW_READINESS
+  target_level: INTERMEDIATE
+  description: Structuring analyst-specific behavioral answers (e.g. with STAR) about ownership, conflict, and ambiguity.

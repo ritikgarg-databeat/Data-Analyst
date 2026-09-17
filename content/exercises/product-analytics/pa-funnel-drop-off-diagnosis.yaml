@@ -1,0 +1,25 @@
+slug: pa-funnel-drop-off-diagnosis
+skill: product-metrics
+title: Diagnosing a Funnel Drop-Off Step
+description: In a 4-step signup funnel, step-to-step conversion is 80%, 75%, 70%, and then only 20% at the final
+  step (payment). What should you investigate first?
+exercise_type: MULTIPLE_CHOICE
+difficulty: INTERMEDIATE
+points: 5
+tags:
+- funnel
+- product-analytics
+prompt: In a 4-step signup funnel, step-to-step conversion is 80%, 75%, 70%, and then only 20% at the final step
+  (payment). What should you investigate first?
+choices:
+- The payment step specifically -- its unusually sharp drop suggests a step-specific problem (e.g. a broken payment
+  method, unclear pricing, or a technical error) rather than gradually declining interest
+- All four steps equally, since funnel drop-off is always evenly distributed
+- Nothing -- some drop-off at every step is normal and doesn't need investigation
+- Only the very first step, since that's where the most total users are lost in absolute terms
+correct_answer: The payment step specifically -- its unusually sharp drop suggests a step-specific problem (e.g.
+  a broken payment method, unclear pricing, or a technical error) rather than gradually declining interest
+explanation: The first three steps show a gradual, plausible decline in interest/effort, but the payment step's
+  much sharper drop (70%->20%) stands out as anomalous relative to that pattern -- pointing at something SPECIFIC
+  to that step (a broken payment integration, confusing pricing display, or unexpected fees) rather than generic
+  funnel attrition.

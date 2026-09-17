@@ -1,0 +1,122 @@
+slug: ecommerce-analytics-platform
+title: E-commerce Analytics Platform
+category: BUSINESS_ANALYTICS
+business_context: >
+  You've just joined the analytics team at a mid-sized online retailer as their first dedicated
+  data analyst. The company has been operating for a few years across web, mobile, and marketplace
+  channels, and has accumulated orders, product, customer, payment, session, and marketing-campaign
+  data — but nobody has ever assembled it into a coherent analytics layer. Reporting today is a
+  patchwork of one-off spreadsheets pulled by whoever needs a number that week. Your VP of Operations
+  has asked you to build the company's first real analytics platform: a proper data model, a set of
+  core business analyses, and a dashboard leadership can actually rely on.
+objective: >
+  Design and build an end-to-end analytics platform on top of the company's raw order, product,
+  customer, payment, session, and marketing data: a dimensional data model, a transformation layer
+  that populates it, an analysis of revenue and margin trends, a marketing-attribution view of what's
+  driving conversions, a KPI dashboard, and a final executive readout of what you found and what you
+  recommend doing next.
+requirements:
+  - "A documented data discovery summary covering each raw table's grain, key fields, and any data-quality issues found (nulls, duplicates, orphaned foreign keys, status inconsistencies)"
+  - "A dimensional data model with one fact table (e.g. fact_orders or fact_order_items) with a clearly documented grain, plus at least two dimension tables (e.g. dim_customer, dim_product, dim_date)"
+  - "A working transformation layer (SQL or dbt-style models) that populates the fact and dimension tables from the raw source tables"
+  - "A revenue and margin analysis covering trends over time, breakdowns by category and channel, and gross margin using product cost vs. unit price"
+  - "A marketing-attribution view connecting sessions and marketing_campaigns to downstream orders, with at least one metric of campaign effectiveness (e.g. conversion rate or revenue per campaign)"
+  - "A KPI dashboard with at least 4 charts covering revenue, margin, order volume, and channel/campaign performance"
+  - "A written executive summary covering your top 3 findings and at least 2 concrete recommendations"
+suggested_datasets:
+  - ecommerce
+milestones:
+  - title: Understand the Business
+    description: Clarify the business model, the channels the company sells through, and what questions leadership actually needs answered before touching any data.
+  - title: Data Discovery
+    description: Profile the raw orders, order_items, products, categories, customers, payments, sessions, and marketing_campaigns tables and document their grain, relationships, and quality issues.
+  - title: Data Model Design
+    description: Design a dimensional model — a fact table at a clearly defined grain plus supporting dimension tables — that will support the analyses ahead.
+  - title: Build the Transformation Layer
+    description: Write the SQL that transforms raw source tables into your fact and dimension tables, and validate row counts and totals reconcile against the source.
+  - title: Revenue and Margin Analysis
+    description: Analyze revenue and gross margin trends over time and by category and channel using your new data model.
+  - title: Marketing Attribution Analysis
+    description: Trace sessions and campaigns through to orders to evaluate which channels and campaigns are actually driving revenue.
+  - title: Build the KPI Dashboard
+    description: Design and build a dashboard that surfaces the core revenue, margin, and marketing metrics for ongoing use by the business.
+  - title: Insights and Recommendations
+    description: Synthesize your analyses into a ranked set of findings and concrete, actionable recommendations for the VP of Operations.
+  - title: Final Presentation
+    description: Package your data model, analysis, and dashboard into an executive-ready presentation of what you found and what should happen next.
+required_skills:
+  - sql-fundamentals
+  - advanced-sql
+  - data-modeling
+  - dimensional-modeling
+  - data-warehousing
+  - exploratory-data-analysis
+  - business-metrics
+  - data-visualization
+  - communication
+rubric:
+  - category: Business Understanding
+    weight: 15
+    criteria:
+      - criterion: Correctly identifies the business model, channels, and key stakeholder questions before diving into data
+        points: 10
+      - criterion: Frames the project scope around decisions leadership actually needs to make
+        points: 10
+  - category: Data Quality Awareness
+    weight: 10
+    criteria:
+      - criterion: Identifies and documents real data-quality issues in the raw tables (nulls, orphaned keys, status inconsistencies)
+        points: 10
+      - criterion: Explains how each issue was handled in the transformation layer
+        points: 10
+  - category: Technical Execution
+    weight: 25
+    is_technical: true
+    criteria:
+      - criterion: Fact table has a clearly documented, correctly implemented grain
+        points: 10
+      - criterion: Dimension tables are correctly structured and populated
+        points: 10
+      - criterion: Transformation SQL correctly reconciles against source data (row counts, totals)
+        points: 10
+  - category: Analytical Reasoning
+    weight: 20
+    criteria:
+      - criterion: Revenue and margin analysis is correct and covers trend, category, and channel breakdowns
+        points: 10
+      - criterion: Marketing attribution logic correctly connects sessions, campaigns, and orders
+        points: 10
+  - category: Visualization
+    weight: 15
+    criteria:
+      - criterion: Dashboard covers revenue, margin, volume, and marketing performance with at least 4 charts
+        points: 10
+      - criterion: Chart types and layout are appropriate for the metrics shown
+        points: 10
+  - category: Communication
+    weight: 15
+    criteria:
+      - criterion: Executive summary clearly states the top 3 findings in business language
+        points: 10
+      - criterion: Recommendations are specific, actionable, and tied back to the analysis
+        points: 10
+learning_objectives:
+  - Design a dimensional data model with a documented grain from a set of raw operational tables
+  - Build a transformation layer that reconciles a fact/dimension model against its raw sources
+  - Analyze revenue and margin trends by time, category, and channel
+  - Build a marketing-attribution view connecting session and campaign data to order outcomes
+  - Design a KPI dashboard for ongoing business use
+  - Communicate a full analytics project to a non-technical executive stakeholder
+estimated_hours: 9.0
+tags:
+  - sql
+  - business-analytics
+  - e-commerce
+  - data-modeling
+  - star-schema
+  - fact-table
+  - dimension-table
+  - marketing
+  - real-world
+  - advanced
+version: 1

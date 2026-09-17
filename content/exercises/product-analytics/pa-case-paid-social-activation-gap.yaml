@@ -1,0 +1,75 @@
+slug: pa-case-paid-social-activation-gap
+lesson_slug: pa-product-case-walkthrough
+skill: product-analytics
+dataset: saas-product
+title: "Case: Why Is Paid-Social Activation Lagging?"
+description: Diagnose a real 23-point activation gap for the paid_social channel and recommend where to focus.
+exercise_type: BUSINESS_REASONING
+difficulty: ADVANCED
+points: 25
+tags: [case-study, product-analytics, real-world, funnel]
+business_context: >
+  Growth's paid media budget is under review this quarter. The Head of Growth has noticed paid_social
+  spend keeps growing but wants proof that the users it brings in are actually turning into real
+  product users before asking for more budget. She's asked you to look at activation specifically,
+  since that's the earliest point where a channel's quality shows up in the data.
+stakeholder: "Head of Growth"
+constraints:
+  - "You only have the events and users tables (signup, activated, engaged, upgraded events; acquisition_channel, country, signup_date) — no ad platform data, no landing page analytics, no session recordings."
+  - "The Head of Growth needs a recommendation in one page, with numbers, not a request for more instrumentation before you can say anything."
+expected_deliverables:
+  - "Activation rate segmented by acquisition_channel, built from the real data"
+  - "A check of at least one plausible confound before concluding the channel itself is the cause"
+  - "A specific, testable hypothesis for the gap"
+  - "A quantified estimate of the opportunity if the gap were closed"
+prompt: >
+  Using the `events` and `users` tables, compute activation rate segmented by acquisition_channel.
+  Identify which channel underperforms and by how much. Check whether a confound (like country mix)
+  could explain the gap before concluding the channel itself is the cause. Propose a specific,
+  testable hypothesis for why the gap exists, and quantify what closing it would be worth in
+  additional activated users. Write your answer as you would present it to the Head of Growth.
+hints:
+  - "Build the segmented funnel first — don't skip straight to a hypothesis. Compare each channel's signups to its activated count and compute a rate for each."
+  - "Before concluding the channel itself is the cause, check whether that channel's users differ on another available dimension (like country) that could be the real driver instead."
+rubric:
+  - criterion: "Builds activation rate segmented by acquisition_channel from the real data, correctly using cumulative signup→activated logic"
+    points: 30
+  - criterion: "Correctly identifies which channel underperforms and quantifies the gap (paid_social at roughly 55.9% vs. organic's roughly 78.9%, a ~23-point spread)"
+    points: 25
+  - criterion: "Checks at least one plausible confound (e.g. country/geography mix) before concluding the channel itself is the cause, and states what a clean vs. dirty result would mean"
+    points: 20
+  - criterion: "Proposes a specific, testable hypothesis for the gap and quantifies the opportunity (additional activated users) if it were closed"
+    points: 25
+solution: >
+  Activation rate by acquisition_channel (signups → activated, cumulative): organic 78.9% (720 of
+  913), referral 78.2% (340 of 435), content 72.0% (216 of 300), paid_search 61.7% (449 of 728),
+  paid_social 55.9% (349 of 624). paid_social is the clear laggard — a 23-point gap versus organic,
+  the best channel, on a sample of 624 users, far too large to be sampling noise.
+
+  Checking the obvious confound: paid_social's country mix (35.7% US, 223 of 624) is nearly identical
+  to organic's (36.5% US, 333 of 913) and the overall base (35.2% US) — geography does not explain
+  the gap. That rules out "paid_social just happens to reach a worse-fit country mix" as the cause
+  and points the investigation toward something channel-specific instead: the ad creative, the
+  landing page paid_social traffic lands on, or an expectation mismatch between what the ad promises
+  and what onboarding delivers.
+
+  Specific, testable hypothesis: paid_social's ad creative sets an expectation about the product that
+  doesn't match the actual first-run experience, causing a higher share of users to abandon before
+  attempting the core action at all — checked by comparing bounce/drop-off in the first session for
+  paid_social-referred users against organic-referred users on the same onboarding flow, and by
+  reviewing the actual ad creative against what the onboarding flow actually shows.
+
+  Quantified opportunity: 624 paid_social signups × (78.9% − 55.9%) ≈ 624 × 0.23 ≈ 143 additional
+  activated users if paid_social could be brought up to organic's activation rate. Given paid_social's
+  own downstream rates (53.3% of activated users go on to engage, and a strong 20.4% of engaged users
+  upgrade — actually the best upgrade rate of any channel), those additional activations would very
+  plausibly flow through to real, monetizing users, not just a vanity-metric improvement — the
+  recommendation is worth prioritizing on that basis.
+explanation: >
+  A strong case answer builds the real segmented number before proposing any explanation, checks a
+  confound before blaming the channel outright, proposes a hypothesis specific enough to name a
+  mechanism and a concrete next check, and converts the finding into a quantified number a
+  budget-holder can weigh against other priorities. A weaker answer jumps straight to "paid_social
+  traffic is low quality" without checking country mix or any other confound, proposes a vague
+  hypothesis with no next step ("the users just aren't as good"), or stops at describing the gap
+  without estimating what fixing it would be worth.

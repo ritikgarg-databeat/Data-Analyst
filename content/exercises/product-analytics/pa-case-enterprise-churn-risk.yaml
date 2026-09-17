@@ -1,0 +1,79 @@
+slug: pa-case-enterprise-churn-risk
+lesson_slug: pa-product-case-walkthrough
+skill: product-analytics
+dataset: saas-product
+title: "Case: Why Is Enterprise Churning More Than Cheaper Plans?"
+description: Diagnose a real, counter-intuitive pattern — the highest-priced plan tier churns at the highest rate — and recommend a Q3 action.
+exercise_type: BUSINESS_REASONING
+difficulty: ADVANCED
+points: 25
+tags: [case-study, product-analytics, real-world, churn]
+business_context: >
+  The Head of Customer Success expected enterprise accounts to be the "stickiest" segment — they pay
+  the most and, in theory, get the most white-glove attention. Looking at this quarter's churn
+  numbers, that assumption doesn't hold, and she wants a data-backed explanation and a concrete
+  recommendation before the next leadership review.
+stakeholder: "Head of Customer Success"
+constraints:
+  - "You only have the subscriptions table (subscription_id, user_id, plan, mrr, start_date, end_date, status) — no cancellation-reason field, no support-ticket history, no NPS or usage data joined in yet."
+  - "Leadership wants a one-page brief: what's happening, why it might be happening, and what to check next — not a request to instrument more fields before saying anything."
+expected_deliverables:
+  - "Churn rate by plan tier, and MRR-weighted churn share, built from the real data"
+  - "An explicit read on tenure of churned accounts and what timeframe it does or doesn't point to"
+  - "A specific, testable hypothesis for why enterprise churns more, distinguishing voluntary from involuntary causes"
+  - "A recommended next step, with the revenue stakes quantified"
+prompt: >
+  Using the `subscriptions` table, compute churn rate by plan tier and the overall MRR-weighted
+  churn share. Compute the average tenure (in days) of churned subscriptions. Using both, explain why
+  enterprise's churn rate is a bigger problem than its raw percentage suggests, propose a specific,
+  testable hypothesis for the cause (distinguishing voluntary from involuntary churn), and recommend
+  what Customer Success should do next, with the revenue at stake quantified.
+hints:
+  - "Combine churn rate with each plan's price — a percentage alone doesn't tell you the dollar impact of losing an account on that plan."
+  - "170 days is a specific number — think about what root causes it rules out (something in the first days or weeks) versus what it's consistent with (something later in the relationship)."
+rubric:
+  - criterion: "Builds churn rate by plan and MRR-weighted churn share from the real data, correctly using status and mrr"
+    points: 25
+  - criterion: "Correctly identifies enterprise as the highest-churning, highest-value tier and explains why that combination matters more than churn rate alone (churned MRR share running above logo churn rate)"
+    points: 25
+  - criterion: "Uses the average tenure of churned accounts (~170.6 days) to rule in/out a timeframe, and proposes a specific, testable hypothesis distinguishing voluntary from involuntary churn"
+    points: 25
+  - criterion: "Recommends a concrete next step and quantifies the revenue at stake"
+    points: 25
+solution: >
+  Churn rate by plan: enterprise 38.46% (10 of 26, at $299/mo), pro 35.21% (25 of 71, at $99/mo),
+  starter 32.17% (37 of 115, at $29/mo). Overall logo churn is 33.96%, but MRR-weighted churn share is
+  36.05% ($6,538 of $18,138 total contracted MRR) — revenue churn running above logo churn confirms
+  churn is concentrated somewhat more heavily on higher-value accounts, with enterprise the clearest
+  driver: it's both the highest-churning tier by rate and the highest-priced, so each lost account
+  costs roughly 10x what a lost starter account costs ($299 vs. $29 monthly).
+
+  Average tenure of a churned subscription is 170.6 days (~5.6 months) — long enough to rule out a
+  first-week or first-month onboarding failure as the primary cause (that would show churned tenure
+  clustered under 30 days). This is a mid-lifecycle pattern, more consistent with fading engagement, a
+  competitor's offer surfacing at renewal, or a value gap that only becomes visible once initial
+  excitement wears off.
+
+  Specific, testable hypothesis: enterprise churn is concentrated around contract renewal points
+  rather than being spread evenly across the subscription's life, and a meaningful share of it is
+  involuntary (a renewal payment or procurement step failing) rather than an active decision to leave
+  — checked by adding a cancellation-reason or payment-failure flag to the subscriptions data and
+  re-running this same churn-by-plan analysis split by voluntary vs. involuntary. If most enterprise
+  churn is involuntary, the fix is a billing/renewal-process fix (easier and cheaper); if it's
+  voluntary, it's a relationship/value fix requiring CS outreach ahead of renewal dates.
+
+  Recommended next step: instrument a cancellation-reason field before investing further, since the
+  right fix is completely different depending on the answer, and quantify the stakes to justify the
+  investment — the 10 currently-churned enterprise accounts alone represent roughly $2,990/month
+  ($299 × 10) in lost MRR, and at the current 38.46% enterprise churn rate, retaining even a third of
+  future enterprise churners would be worth meaningfully more than the same retention-rate
+  improvement applied to starter, given the per-account revenue difference.
+explanation: >
+  A strong answer connects churn rate to dollar value rather than reading raw percentages, correctly
+  interprets the tenure number as ruling out an early-onboarding explanation, and proposes a
+  hypothesis specific enough to imply a concrete instrumentation step (a cancellation-reason field)
+  and names the two very different fixes each answer would imply. A weaker answer treats churn rate
+  alone as the whole story (missing that enterprise's price makes its churn disproportionately
+  costly), ignores what the tenure number rules out, or recommends "improve customer success outreach"
+  without acknowledging that a billing/involuntary-churn explanation would call for a completely
+  different fix.

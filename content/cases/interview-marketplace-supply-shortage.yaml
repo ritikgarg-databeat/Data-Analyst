@@ -1,0 +1,125 @@
+slug: interview-marketplace-supply-shortage
+title: Why Are Fulfillment Times Rising in the Marketplace Channel?
+category: OPERATIONS
+difficulty: INTERMEDIATE
+estimated_minutes: 30
+company_context: Bramwell & Co. sells through its own web/mobile storefront and also lists products on a third-party
+  marketplace channel (both captured in the ecommerce schema's `channel` field on orders).
+stakeholder_name: Casey Adeyemi
+stakeholder_role: Operations Director
+problem_statement: '"Orders placed through our marketplace channel are taking noticeably longer to fulfill than
+  our own site''s orders. Is this a supply problem, a process problem, or something else?"'
+business_context: Casey needs to know whether this is a genuine capacity/supply issue or a process gap specific
+  to the marketplace channel, before escalating to the marketplace partner.
+objective: Determine whether the marketplace channel's slower fulfillment is a supply-side capacity issue or a process-specific
+  issue, and recommend next steps.
+initial_information: You have access to orders (including channel and status) and order_items.
+constraints:
+- Casey needs to know if this is worth escalating to the marketplace partner, so the diagnosis needs to be specific.
+available_datasets:
+- ecommerce
+expected_deliverables:
+- A comparison of fulfillment-related timing between marketplace and other channels
+- A hypothesis-testing plan distinguishing a capacity/supply cause from a process cause
+- A recommendation
+learning_objectives:
+- Compare an operational metric across channels/segments before diagnosing a cause
+- Distinguish a supply/capacity constraint from a process/handoff problem
+- Recommend an action appropriately scoped to the audience (an external partner vs. internal process)
+stages:
+- CLARIFY
+- ANALYZE
+- INSIGHTS
+- RECOMMEND
+- SUBMIT
+tags:
+- interview
+- operations
+- marketplace
+- case-study
+skills:
+- root-cause-analysis
+- business-problem-solving
+- communication
+clarification_guidance:
+- A good clarifying question asks exactly which timing metric is elevated (order-to-ship, ship-to-delivery, or both).
+- A good clarifying question asks whether specific product categories or order volumes are involved, which would
+  point toward a capacity constraint.
+rubric:
+- category: Problem Framing & Clarification
+  weight: 20
+  criteria:
+  - criterion: Clarifies exactly which stage of fulfillment is elevated before analyzing
+    points: 20
+- category: Technical Analysis
+  weight: 35
+  is_technical: true
+  criteria:
+  - criterion: Compares the relevant timing metric between the marketplace channel and other channels
+    points: 20
+  - criterion: Checks whether the gap correlates with order volume/category (supply signal) or is constant regardless
+      (process signal)
+    points: 15
+- category: Insight Quality
+  weight: 20
+  criteria:
+  - criterion: Correctly distinguishes a capacity/supply-side explanation from a process/handoff explanation
+    points: 20
+- category: Recommendation & Business Judgment
+  weight: 15
+  criteria:
+  - criterion: Recommends an action appropriately scoped (internal process fix vs. escalation to the marketplace
+      partner)
+    points: 15
+- category: Communication
+  weight: 10
+  criteria:
+  - criterion: Explains the finding in terms Casey could use in a conversation with the marketplace partner
+    points: 10
+hints:
+- Compare the SAME timing metric across channels apples-to-apples before concluding the marketplace channel is genuinely
+  slower.
+- If the gap grows with order volume, that points to a capacity constraint; if it's roughly constant regardless
+  of volume, that points to a process/handoff issue instead.
+reference_solution:
+  summary: As with delivery timing generally, this schema has no fulfillment-duration data at all -- no ship date,
+    delivered date, or order-to-ship/ship-to-delivery interval exists anywhere in orders or order_items, so whether
+    the marketplace channel's fulfillment time is elevated cannot be measured directly, regardless of methodology.
+    The closest available proxies -- order status mix by channel -- show marketplace performing at least as well
+    as, and on most measures better than, the company's own web and mobile channels -- marketplace has the HIGHEST
+    completed-order rate (84.41%) of the three channels (web 82.39%, mobile 80.25%), the LOWEST pending rate (1.92%
+    vs. mobile 3.21% and web 3.10%), and the LOWEST refund rate (4.56% vs. mobile 6.76% and web 6.02%); only its
+    cancellation rate (9.11%) sits in the middle (mobile highest at 9.77%, web lowest at 8.50%). Marketplace's
+    order volume has also grown in line with the rest of the business, not disproportionately (from 2.5% of total
+    orders in Q1 2024 to 10.6% in Q4 2025, tracking overall order growth), which doesn't support a volume-driven
+    capacity-strain story either. In short, nothing in the order-status data available corroborates a
+    marketplace-specific fulfillment problem, let alone lets us tell whether one, if real, is a supply/capacity
+    issue or a process issue, since the underlying timing data needed to make that distinction doesn't exist in
+    this schema.
+  key_insights:
+  - No ship date, delivered date, or any fulfillment-duration field exists anywhere in this schema
+    (orders.order_date is the only date on the orders table) -- so whether marketplace fulfillment is slower cannot
+    be measured directly, no matter how the data is sliced.
+  - The closest proxies (order status mix) show marketplace performing as well as or better than web/mobile --
+    highest completed rate (84.41% vs. 82.39% web, 80.25% mobile), lowest pending rate (1.92% vs. 3.10% web, 3.21%
+    mobile), and lowest refund rate (4.56% vs. 6.02% web, 6.76% mobile); only cancellation rate (9.11%) sits
+    mid-pack.
+  - Marketplace's share of total order volume has grown roughly in proportion to the whole business (2.5% of orders
+    in Q1 2024 to 10.6% in Q4 2025), not disproportionately -- so nothing here points to marketplace outgrowing its
+    own fulfillment capacity either.
+  recommendation: Recommend against escalating to the marketplace partner based on this data -- none of the proxies
+    available (completion rate, pending rate, refund rate, order-volume growth) show marketplace underperforming
+    the company's own channels -- if anything, several show it performing better. The real first step is to get
+    actual fulfillment timestamps -- either by instrumenting an internal ship/delivery event, or by requesting the
+    marketplace partner's own fulfillment-time reporting, since they likely track this even though it isn't
+    captured in this internal schema -- before making any claim, in either direction, about whether marketplace
+    fulfillment is genuinely slower. Escalating to the partner on the strength of data that doesn't actually show a
+    problem risks damaging that relationship unnecessarily.
+  acceptable_alternatives:
+  - A learner who notes that Casey's premise (elevated marketplace fulfillment time) may simply be anecdotal or
+    based on a data source outside this schema, and recommends verifying the premise itself with Casey before
+    analyzing further, should receive full credit.
+  - A learner who proposes cancellation rate specifically as the closest, if imperfect, proxy for a
+    fulfillment-capacity problem, and notes it doesn't show marketplace as an outlier either, should receive credit
+    for a reasonable secondary check.
+version: 1

@@ -1,0 +1,71 @@
+slug: pa-py-churn-rate-by-plan
+lesson_slug: pa-churn-definitions
+skill: pandas
+dataset: saas-product
+title: Churn Rate by Plan in pandas
+description: Compute logo (account-count) churn rate for each subscription plan tier using pandas groupby.
+exercise_type: PYTHON
+difficulty: INTERMEDIATE
+points: 15
+tags: [python, product, saas, churn, intermediate]
+business_context: >
+  Customer Success wants the plan-tier churn breakdown available in a pandas notebook so it can be
+  combined with other customer-health signals already being analyzed there in Python.
+prompt: >
+  Using the `subscriptions` DataFrame (columns include `plan`, `status`), store a DataFrame in a
+  variable named `result` with columns `plan`, `n_subscriptions` (count of subscriptions on that
+  plan), `n_churned` (count with `status == 'churned'`), and `churn_rate` (n_churned /
+  n_subscriptions, rounded to 4 decimals), sorted descending by `churn_rate`.
+python_datasets: [subscriptions]
+python_starter_code: |
+  # subscriptions is already loaded as a DataFrame.
+  subscriptions["status"].value_counts()
+python_solution_code: |
+  subscriptions["is_churned"] = (subscriptions["status"] == "churned").astype(int)
+
+  grp = subscriptions.groupby("plan").agg(
+      n_subscriptions=("subscription_id", "count"),
+      n_churned=("is_churned", "sum"),
+  ).reset_index()
+  grp["churn_rate"] = (grp["n_churned"] / grp["n_subscriptions"]).round(4)
+
+  result = grp.sort_values("churn_rate", ascending=False).reset_index(drop=True)
+python_result_variable: result
+python_row_order_matters: true
+python_numeric_tolerance: 0.001
+python_hidden_tests:
+  - name: n_subscriptions sums to the total row count of subscriptions
+    code: |
+      assert result["n_subscriptions"].sum() == len(subscriptions), (
+          "The n_subscriptions column across all plans should sum to the total number of rows in "
+          "the subscriptions table."
+      )
+  - name: enterprise plan's churn_rate matches an independent recomputation
+    code: |
+      enterprise = subscriptions[subscriptions["plan"] == "enterprise"]
+      independent_rate = round((enterprise["status"] == "churned").mean(), 4)
+      row = result[result["plan"] == "enterprise"].iloc[0]
+      assert abs(row["churn_rate"] - independent_rate) < 0.001, (
+          f"Expected enterprise's churn_rate to be close to {independent_rate}, got {row['churn_rate']}."
+      )
+hints:
+  - "Create a 0/1 helper column first (subscriptions['status'] == 'churned').astype(int)), then groupby('plan') and aggregate it with 'sum' (churned count) alongside a plain 'count' for the total."
+  - "Divide n_churned by n_subscriptions elementwise on the grouped DataFrame, round to 4 decimals, and sort by churn_rate descending at the end."
+solution: |
+  ```python
+  subscriptions["is_churned"] = (subscriptions["status"] == "churned").astype(int)
+  grp = subscriptions.groupby("plan").agg(
+      n_subscriptions=("subscription_id", "count"), n_churned=("is_churned", "sum")
+  ).reset_index()
+  grp["churn_rate"] = (grp["n_churned"] / grp["n_subscriptions"]).round(4)
+  result = grp.sort_values("churn_rate", ascending=False).reset_index(drop=True)
+  ```
+  Run against the real data: enterprise 38.46% (10 of 26), pro 35.21% (25 of 71), starter 32.17% (37 of
+  115) — matching the SQL version of this exercise exactly.
+explanation: >
+  Creating an explicit 0/1 `is_churned` helper column before grouping makes the aggregation
+  unambiguous — `.agg(n_churned=("is_churned", "sum"))` sums that column within each plan group,
+  which is the same idea as SQL's `SUM(CASE WHEN status = 'churned' THEN 1 ELSE 0 END)`. A common
+  mistake is aggregating the raw `status` string column with `"sum"` directly, which raises a type
+  error (or produces string concatenation, depending on pandas version) instead of a count — the
+  helper column avoids that entirely.

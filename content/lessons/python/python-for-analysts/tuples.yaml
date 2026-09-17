@@ -1,0 +1,105 @@
+slug: tuples
+module_slug: python-for-analysts
+title: Tuples
+description: Immutable, ordered sequences — when a tuple beats a list, and how to unpack one into named variables.
+difficulty: BEGINNER
+estimated_minutes: 10
+display_order: 10
+objectives:
+  - Create tuples and explain how immutability distinguishes them from lists
+  - Recognize situations where a tuple is the better fit — fixed-size records, function returns, dict keys
+  - Unpack a tuple into individually named variables
+prerequisites: [strings]
+skills: [python-fundamentals]
+datasets: []
+tags: [python, beginner, foundations]
+key_takeaways:
+  - "A tuple is an ordered, immutable sequence — it looks and indexes like a list, but once created its contents can never be changed, added to, or removed."
+  - "Reach for a tuple when a value is a fixed-size, fixed-meaning record (a coordinate, an (id, name) pair) or when a function needs to return more than one value at once."
+  - "Unpacking (a, b = pair) assigns each element of a tuple to a named variable in one line — Python matches by position, and the number of names must match the number of elements."
+common_mistakes:
+  - "Trying to modify a tuple in place (my_tuple[0] = 5) and being surprised by a TypeError — if the values genuinely need to change after creation, a list is the right type instead."
+  - "Forgetting the trailing comma on a single-element tuple — (5) is just the integer 5 in parentheses, not a tuple; you need (5,) with the comma."
+  - "Unpacking a tuple into the wrong number of variables (a, b = (1, 2, 3)) — Python raises a ValueError rather than silently dropping or ignoring the extra value."
+blocks:
+  - type: text
+    body: >
+      A **tuple** is an ordered sequence, just like a list — but unlike a list, it's **immutable**: once
+      created, you can't add, remove, or reassign its elements. That single difference shapes when to
+      reach for one instead of a list.
+  - type: heading
+    text: Creating and indexing tuples
+  - type: code
+    language: python
+    code: |
+      point = (3, 4)
+      customer = ("C001", "Ada", "Lovelace")
+
+      point[0]         # 3
+      customer[1]      # "Ada"
+      len(customer)     # 3
+    caption: Parentheses (conventionally) create a tuple; indexing works exactly like a list
+  - type: callout
+    variant: important
+    title: Tuples can't be changed after creation
+    body: >
+      `customer[0] = "C002"` raises `TypeError: 'tuple' object does not support item assignment`. There's
+      no `.append()`, `.remove()`, or `.sort()` on a tuple either — those all mutate in place, and tuples
+      don't support mutation at all. If you need to add, remove, or reorder elements later, use a list
+      instead.
+  - type: code
+    language: python
+    code: |
+      point = (3, 4)
+      point[0] = 99
+      # TypeError: 'tuple' object does not support item assignment
+    caption: Verified — attempting to assign into a tuple raises TypeError
+  - type: heading
+    text: When to use a tuple over a list
+  - type: comparison
+    title: tuple vs. list
+    columns: ["Situation", "Better fit", "Why"]
+    rows:
+      - ["A coordinate or fixed-size record, e.g. (customer_id, first_name, last_name)", "tuple", "Fixed number of fields with fixed meaning by position — nothing should ever be added or removed"]
+      - ["A function that needs to return more than one value", "tuple", "Python functions naturally return multiple values as a tuple — the standard pattern"]
+      - ["A key in a dictionary made of more than one value, e.g. {(2026, 'APAC'): total}", "tuple", "Dict keys must be immutable — a list can't be used as a key at all, a tuple can"]
+      - ["A column of order totals you'll filter, sort, or append to", "list", "The collection grows, shrinks, and gets reordered — mutability is the point"]
+  - type: heading
+    text: Unpacking
+  - type: text
+    body: >
+      **Unpacking** assigns each element of a tuple to its own named variable in a single line — instead
+      of accessing elements one at a time by index, you name them all at once.
+  - type: code
+    language: python
+    code: |
+      customer = ("C001", "Ada", "Lovelace")
+      cust_id, first, last = customer
+
+      print(cust_id, first, last)   # C001 Ada Lovelace
+    caption: Unpacking matches variables to tuple elements by position
+  - type: example
+    title: Returning multiple values from a function
+    body: >
+      A function can only formally `return` one thing — but that "one thing" is often a tuple bundling
+      several values, which the caller then unpacks. This is the standard way Python functions hand back
+      more than one result.
+    code: |
+      def min_max(values):
+          return min(values), max(values)   # returns a tuple: (min, max)
+
+      lo, hi = min_max([5, 2, 9, 1])
+      print(lo, hi)   # 1 9
+    language: python
+  - type: question
+    prompt: "What is the type of x in x = (5)?"
+    choices:
+      - "tuple, containing a single integer 5"
+      - "int — parentheses alone don't make a tuple, you need a trailing comma: (5,)"
+      - "A syntax error"
+    correct_index: 1
+    explanation: >
+      Parentheses around a single value are just grouping, the same as in a math expression — they don't
+      create a tuple on their own. Python only treats it as a one-element tuple if there's a trailing
+      comma: (5,). This is a common source of confusion since every other tuple you write has commas
+      separating multiple elements already.

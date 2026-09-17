@@ -1,0 +1,37 @@
+slug: company-style-product-analytics
+title: "Company-Style Assessment — Product Analytics Archetype"
+target_profile: "Data Analyst — ~2 Years Experience (product-focused team)"
+description: >
+  A generic PRODUCT ANALYTICS interview archetype: the loop shape commonly used by consumer product
+  and growth teams, where SQL is a screening gate and the real signal comes from metric sense,
+  experiment interpretation and product judgement. This is an archetype for practice — it is not a
+  description of any specific company's current hiring process.
+sections:
+  - interview_type: SQL
+    title: "SQL Screen"
+    duration_minutes: 20
+    question_count: 3
+  - interview_type: PRODUCT_ANALYTICS
+    title: "Product Metrics & Funnels"
+    duration_minutes: 20
+    question_count: 3
+  - interview_type: AB_TESTING
+    title: "Experiment Interpretation"
+    duration_minutes: 15
+    question_count: 2
+  - interview_type: CASE_STUDY
+    title: "Product Case"
+    duration_minutes: 30
+    question_count: 1
+  - interview_type: BEHAVIORAL
+    title: "Behavioural"
+    duration_minutes: 10
+    question_count: 2
+rubric_weights:
+  Technical Correctness: 25
+  Analytical Reasoning: 25
+  Business Understanding: 20
+  Communication: 15
+  Problem Solving: 10
+  Efficiency: 5
+tags: [company-style, product-analytics, sql, ab-testing, case-study, behavioral]

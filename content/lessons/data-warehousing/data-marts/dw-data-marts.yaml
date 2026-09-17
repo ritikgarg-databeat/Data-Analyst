@@ -1,0 +1,89 @@
+slug: dw-data-marts
+module_slug: data-marts
+title: "Data Marts: When a Narrower Layer Earns Its Cost"
+description: What a data mart is, how it differs from the marts schema this project already builds, and when a department- or domain-scoped subset is actually worth the extra layer.
+difficulty: INTERMEDIATE
+estimated_minutes: 30
+display_order: 1
+objectives:
+  - Define a data mart as a focused, usually department- or domain-scoped subset of a warehouse's data, built for a narrower audience than the full warehouse.
+  - Distinguish this project's marts schema (a general-purpose dimensional layer) from a true data mart (a further, narrower cut built on top of a shared warehouse for one team).
+  - Reason about when building a dedicated mart is worth the added maintenance cost, versus when a team should just query the shared warehouse layer directly.
+skills: [data-warehousing, dimensional-modeling]
+datasets: [ecommerce]
+tags: [data-marts, data-warehouse, architecture, intermediate]
+prerequisites: [dw-facts-and-dimensions-basics]
+key_takeaways:
+  - "A data mart is a focused subset of a data warehouse's data, scoped to one department, team, or business domain (finance, marketing, product) — smaller, narrower, and usually simpler to query than the full warehouse, because it's pre-filtered and pre-joined for one audience's specific questions."
+  - "\"Marts\" as a schema name in this project's dbt build (dim_customers, dim_products, fct_orders, fct_daily_revenue) is the general-purpose, business-ready dimensional layer everyone draws from — a true data mart would be a further, narrower cut on top of that layer, built for one specific team (e.g., a marketing_mart with just the campaign/session/conversion-relevant columns and a pre-built CAC calculation, so marketing analysts don't need to know the whole star schema)."
+  - "A mart earns its cost when a specific audience repeatedly needs the same narrow slice, joined and pre-aggregated the same way, often enough that maintaining a dedicated layer beats every analyst re-deriving that slice from the general warehouse each time — the fewer people who need a given cut, or the more it changes, the harder it is to justify a dedicated mart for it."
+common_mistakes:
+  - "Calling any dimensionally modeled warehouse layer a \"data mart\" regardless of scope. The term specifically implies a narrower audience/domain than the full warehouse — this project's marts schema is dimensionally modeled and business-ready, but it's general-purpose (every team can use it), which makes it closer to \"the warehouse's presentation layer\" than a true, department-scoped mart."
+  - "Building a dedicated mart for a one-off, rarely-asked question. If finance needs a specific cut of the data once a quarter, maintaining a permanent, pre-aggregated mart for it is usually more overhead than it's worth — a well-modeled shared warehouse layer (like this project's fct_orders/dim_customers) that a finance analyst can query directly, occasionally, is often the better tradeoff."
+blocks:
+  - type: heading
+    text: A mart is a warehouse, scoped down for one audience
+  - type: text
+    body: >
+      A **data mart** is a subset of a warehouse's data, focused on the needs of one department, team,
+      or business domain — marketing, finance, product. Where a warehouse aims to serve the whole
+      organization's analytical needs, a mart deliberately narrows scope: fewer tables, pre-filtered
+      to what one audience cares about, often pre-joined and pre-aggregated around that audience's
+      most common questions, so they don't need to understand (or repeatedly re-derive) the full star
+      schema to get their answer.
+  - type: example
+    title: "This project's marts schema vs. a true data mart"
+    body: >
+      It's easy to see the schema name `marts` in this project's dbt build and assume it already *is*
+      a set of data marts. It isn't — not quite. `dim_customers`, `dim_products`, `fct_orders`, and
+      `fct_daily_revenue` form a general-purpose, business-ready dimensional layer that any team could
+      query: finance, marketing, product, ops. A true data mart would be a further, narrower cut built
+      *on top of* this layer for one specific audience. A `marketing_mart`, for instance, might join
+      `fct_orders` to `dim_customers` and a hypothetical campaign-attribution model, pre-computing
+      exactly the columns a marketing analyst needs (channel, campaign, acquisition cost, conversion),
+      and nothing else — so that team never has to touch `fct_daily_revenue` or think about order
+      fulfillment at all.
+  - type: table
+    headers: ["", "This project's marts schema", "A true data mart (e.g., marketing_mart)"]
+    rows:
+      - ["Audience", "Everyone — general-purpose warehouse layer", "One team/domain — e.g., marketing only"]
+      - ["Scope", "The full business (orders, customers, products, revenue)", "Narrowed to one domain's relevant slice"]
+      - ["Built from", "Staging + intermediate models", "Usually built on top of the shared warehouse/marts layer itself"]
+      - ["Goal", "Correct, reusable, business-ready building blocks", "Convenience and speed for one specific audience's recurring questions"]
+  - type: heading
+    text: When the extra layer is worth it
+  - type: text
+    body: >
+      A dedicated mart costs something real: another layer of models to build, test, and keep in sync
+      as the underlying warehouse evolves. It earns that cost when a specific audience repeatedly asks
+      the same narrow set of questions, joined and shaped the same way, often enough that the
+      alternative (each analyst on that team re-deriving the same join and filter logic from the
+      shared warehouse, independently, every time) becomes real, duplicated, drift-prone work — the
+      same argument the staging/intermediate layering module made, one level up the stack. If a team
+      only needs a specific cut occasionally, or the "narrow slice" keeps changing shape, a dedicated
+      mart is often more maintenance than it saves; querying the shared warehouse layer directly is
+      usually the better call until that changes.
+  - type: callout
+    variant: tip
+    title: "A useful test before building a dedicated mart"
+    body: >
+      Ask: would at least a few people, asking the same shape of question repeatedly, otherwise be
+      re-deriving the same join/filter/aggregation logic independently, with real risk of drifting out
+      of sync with each other? If yes, a mart centralizes that logic the same way an intermediate
+      model centralizes shared business logic one layer down. If the honest answer is "one person,
+      once a quarter," a saved query or a well-documented shared warehouse table is very likely
+      enough.
+  - type: question
+    prompt: >
+      What's the most accurate way to describe the difference between this project's general-purpose
+      "marts" schema and a true, department-scoped data mart?
+    choices:
+      - "There is no real difference — any dimensionally modeled, business-ready warehouse layer is automatically a data mart"
+      - "The marts schema is a general-purpose layer usable by any team; a true data mart is a further, narrower cut on top of that layer, scoped to one specific team or domain's recurring questions"
+      - "A data mart must always be a completely separate physical database, never just another schema"
+    correct_index: 1
+    explanation: >
+      The defining feature of a data mart is audience scope, not physical location or naming. This
+      project's marts schema is dimensionally modeled and business-ready, but it's built for any team
+      to use — a true mart narrows that further, pre-shaping data for one specific audience's
+      recurring needs, which is what actually earns it the extra maintenance layer.

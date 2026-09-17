@@ -1,0 +1,169 @@
+slug: box-plots
+module_slug: visualization-with-python
+title: "Box Plots: Reading Quartiles, Whiskers, and Outliers Precisely"
+description: What every line and point on a box plot actually means, computed by hand against real data, and comparing distributions across several categories side by side with sns.boxplot.
+difficulty: BEGINNER
+estimated_minutes: 11
+display_order: 6
+objectives:
+  - Read a box plot's box, median line, whiskers, and outlier points as precise numbers, not just a general shape
+  - Compute the quartiles and whisker boundaries a box plot draws, by hand, from real data
+  - Build a box plot comparing a distribution across several categories with sns.boxplot
+prerequisites: [histograms-and-distributions-viz]
+skills: [data-visualization]
+datasets: [ecommerce]
+tags: [python, beginner, foundations]
+key_takeaways:
+  - "Every part of a box plot is a specific, computable number: the box spans Q1 to Q3 (the middle 50% of the data), the line inside it is the median, the whiskers extend to the most extreme point still within 1.5x the interquartile range (IQR) of the box, and individual dots beyond the whiskers are flagged outliers by that same 1.5x IQR rule — not drawn freehand."
+  - "On this dataset's real order-value data, web orders have 16 points flagged as outliers beyond the whisker (up to $6,370.39) and marketplace has just 1 (at $4,735.07) — that's a precise, countable difference a box plot surfaces at a glance that a bar chart of channel averages would completely hide."
+  - "A box plot's real strength is comparing many groups side by side on one axis — the same three-channel or ten-category comparison that starts to strain overlapping histograms stays perfectly readable as a row of boxes."
+  - "A box plot deliberately hides shape detail a histogram would show — it can't tell you whether a distribution is bimodal (two humps) inside its box, since the box only encodes quartiles. Use both together when the exact shape genuinely matters, not just the summary."
+common_mistakes:
+  - "Assuming the whiskers mark the true minimum and maximum of the data — they don't; a whisker stops at the most extreme point still within 1.5x IQR of the box, and everything beyond that is drawn as a separate outlier point, not extended whisker."
+  - "Reading 'more outlier points' as 'more extreme values in absolute terms' without checking the actual numbers — a group with a wider IQR can have zero flagged outliers even with a large true range, while a tightly clustered group can flag several points that aren't dramatically far off in absolute dollars."
+  - "Using a box plot when the exact shape of the distribution (is it bimodal? where exactly is the peak?) is the point of the analysis — a box plot's five-number summary can't show that; a histogram can."
+practical_applications:
+  - "Comparing order value, session duration, or another key metric across many categories (channel, segment, device) in one compact chart instead of many separate histograms."
+  - "Flagging genuinely unusual transactions — the specific orders a box plot marks as outliers — as a starting point for a deeper look at fraud, data entry errors, or a real but rare customer behavior."
+  - "Explaining to a stakeholder exactly what 'the middle 50% of orders' means, using the box's edges as the precise, quotable numbers rather than a vague description."
+interview_questions:
+  - question: "Walk me through exactly what each part of a box plot represents."
+    answer: "The box itself spans the first quartile (Q1, the 25th percentile) to the third quartile (Q3, the 75th percentile) — so the box always contains the middle 50% of the data. The line inside the box is the median (Q2, the 50th percentile). The whiskers extend from the box out to the most extreme data point that's still within 1.5 times the interquartile range (Q3 minus Q1) of the box edge. Any individual points beyond that are plotted separately as dots and flagged as outliers by that same rule — they're not just 'unusually high,' they're specifically more than 1.5x IQR beyond the box."
+  - question: "A box plot shows one group with several outlier points and another group with none. Does that mean the first group has more extreme values in absolute terms?"
+    answer: "Not necessarily — it depends on each group's own IQR, since the 1.5x IQR outlier threshold is relative to that group's own spread, not a shared absolute cutoff. A group with a wide IQR can have a genuinely large range of values and still flag zero outliers, because even its extreme values fall within 1.5x its (wide) IQR. A tightly clustered group can flag several outlier points that aren't dramatically far off in absolute terms, simply because its IQR is narrow. I'd always check the actual values, not just the outlier count, before concluding anything about which group has more extreme behavior."
+resources:
+  - title: "Seaborn documentation — boxplot()"
+    url: "https://seaborn.pydata.org/generated/seaborn.boxplot.html"
+blocks:
+  - type: text
+    body: >
+      The previous lesson introduced the box plot as the tool that scales better than overlapping
+      histograms once there's more than a couple of groups to compare. This lesson does what that one
+      didn't: read every part of a box plot precisely, as an exact number computed from the data — not a
+      shape you eyeball.
+  - type: heading
+    text: "The five numbers, computed by hand"
+  - type: code
+    language: python
+    code: |
+      import pandas as pd
+
+      order_items = pd.read_csv("data/sample/ecommerce/order_items.csv")
+      order_items["line_revenue"] = (
+          (order_items["unit_price"] - order_items["discount"]) * order_items["quantity"]
+      )
+      order_value = order_items.groupby("order_id")["line_revenue"].sum().rename("order_value")
+
+      orders = pd.read_csv("data/sample/ecommerce/orders.csv").merge(order_value, on="order_id", how="left")
+      completed = orders[orders["status"] == "completed"]
+
+      for channel, group in completed.groupby("channel")["order_value"]:
+          q1, median, q3 = group.quantile([0.25, 0.5, 0.75])
+          iqr = q3 - q1
+          lower_fence, upper_fence = q1 - 1.5 * iqr, q3 + 1.5 * iqr
+          outliers = group[(group < lower_fence) | (group > upper_fence)]
+          whisker_lo = group[group >= lower_fence].min()
+          whisker_hi = group[group <= upper_fence].max()
+          print(
+              f"{channel:12s} n={len(group):4d}  Q1=${q1:8.2f}  median=${median:8.2f}  Q3=${q3:8.2f}  "
+              f"whiskers=[{whisker_lo:.2f}, {whisker_hi:.2f}]  outliers={len(outliers)} (max=${outliers.max() if len(outliers) else 0:.2f})"
+          )
+    caption: The exact math sns.boxplot runs internally, done by hand against real order data
+  - type: output
+    body: |
+      marketplace  n= 352  Q1=$  824.49  median=$ 1453.12  Q3=$ 2262.02  whiskers=[20.02, 4321.29]  outliers=1 (max=$4735.07)
+      mobile       n=1199  Q1=$  828.16  median=$ 1617.89  Q3=$ 2335.97  whiskers=[9.45, 4580.01]   outliers=14 (max=$5789.28)
+      web          n=1890  Q1=$  839.72  median=$ 1558.10  Q3=$ 2408.85  whiskers=[10.91, 4730.91]  outliers=16 (max=$6370.39)
+    caption: "Real, computed output — every number a box plot draws for these three channels"
+  - type: text
+    body: >
+      This is what sns.boxplot renders as a picture: for `web`, the box runs from \$839.72 to \$2,408.85
+      (the middle 50% of completed web orders), the median line sits at \$1,558.10, the whiskers stretch
+      down to \$10.91 and up to \$4,730.91, and — separately — 16 individual orders above \$4,730.91 (up
+      to the largest, \$6,370.39) are drawn as individual dots because they're more than 1.5x the IQR
+      (\$1,569.13) beyond the box. `marketplace` has only 1 such point, at \$4,735.07.
+  - type: callout
+    variant: important
+    title: "The whisker is not the minimum or maximum"
+    body: >
+      This is the single most common misreading of a box plot. The whisker's endpoint is the most extreme
+      data point that's still within 1.5x IQR of the box — not the true min or max of the group. Above,
+      web's true maximum order value is \$6,370.39, but the whisker stops at \$4,730.91; everything above
+      that is drawn as a separate outlier dot, precisely because it's far enough from the bulk of the data
+      to be flagged, not because the whisker calculation ran out of room.
+  - type: heading
+    text: "The same numbers, as a chart"
+  - type: code
+    language: python
+    code: |
+      import seaborn as sns
+      import matplotlib.pyplot as plt
+
+      fig, ax = plt.subplots()
+      sns.boxplot(data=completed, x="channel", y="order_value", ax=ax)
+      ax.set_ylabel("Order value ($)")
+      ax.set_title("Completed order value by channel")
+    caption: sns.boxplot draws exactly the box/median/whisker/outlier numbers computed above, per channel
+  - type: callout
+    variant: common_mistake
+    title: "More outlier dots doesn't automatically mean 'more extreme'"
+    body: >
+      web has 16 flagged outliers and marketplace has 1 — but that's partly a sample-size effect (web has
+      1,890 completed orders, marketplace only 352) and partly about each channel's own IQR, since the
+      1.5x IQR rule is relative to each group's own spread, not a shared dollar threshold. Before telling
+      a stakeholder "web has way more extreme orders," check the actual values, not just the outlier
+      count — here the three channels' outlier thresholds and maximums are all fairly close in real
+      dollar terms.
+  - type: heading
+    text: "Scaling up: comparing across several categories at once"
+  - type: code
+    language: python
+    code: |
+      products = pd.read_csv("data/sample/ecommerce/products.csv")
+      categories = pd.read_csv("data/sample/ecommerce/categories.csv")
+      products = products.merge(categories, on="category_id", how="left")
+
+      order_by_median = (
+          products.groupby("category_name")["unit_price"].median().sort_values(ascending=False).index
+      )
+
+      fig, ax = plt.subplots(figsize=(10, 5))
+      sns.boxplot(data=products, x="category_name", y="unit_price", order=order_by_median, ax=ax)
+      ax.tick_params(axis="x", rotation=45)
+      ax.set_ylabel("Unit price ($)")
+    caption: "10 categories, sorted by median unit price — this is where a box plot clearly outperforms overlapping histograms"
+  - type: output
+    body: |
+      category            n    min     Q1      median   Q3      max
+      Pet Supplies         15   98.97  211.10   328.57   457.13  495.36
+      Electronics          15  104.02  138.38   283.38   374.54  490.37
+      Home & Kitchen        7  104.00  123.05   142.21   197.97  341.27
+    caption: "Real output for a few of the ten categories — Pet Supplies runs both higher and wider than Home & Kitchen"
+  - type: text
+    body: >
+      Ten categories as ten overlapping histograms would already be unreadable (the previous lesson
+      called three the strain point). As ten box plots side by side, it's still a single readable chart:
+      Pet Supplies products are typically priced noticeably higher (median \$328.57) and span a wider
+      range than Home & Kitchen (median \$142.21, tighter IQR), and that comparison is legible for all ten
+      categories at once, sorted by median so the ranking reads left to right.
+  - type: checklist
+    title: "Reading any box plot"
+    items:
+      - "Box edges = Q1 and Q3 — the middle 50% of the data lives inside the box"
+      - "Line inside the box = median (Q2), not the mean — a box plot doesn't show the mean at all by default"
+      - "Whisker endpoints = most extreme points still within 1.5x IQR of the box — not the true min/max"
+      - "Dots beyond the whiskers = individually flagged outliers by that same 1.5x IQR rule"
+      - "A taller box or wider whisker span = more spread in that group; boxes at different heights = different typical values"
+  - type: question
+    prompt: "A box plot's upper whisker for a group stops well below that group's actual maximum value. What does that tell you?"
+    choices:
+      - "There are one or more individual data points beyond 1.5x the IQR above the box, which are plotted separately as outlier dots rather than extending the whisker to the true maximum"
+      - "The chart was drawn incorrectly, since whiskers should always reach the true minimum and maximum"
+      - "That group has no outliers, since outliers would make the whisker longer, not shorter"
+    correct_index: 0
+    explanation: >
+      A whisker only extends to the most extreme point still within 1.5x IQR of the box — any values
+      beyond that boundary are deliberately excluded from the whisker and drawn as separate outlier
+      points instead. A whisker stopping short of the true max is the expected, correct behavior whenever
+      outliers are present above it, exactly as seen with web's $6,370.39 maximum sitting well above its
+      $4,730.91 whisker.

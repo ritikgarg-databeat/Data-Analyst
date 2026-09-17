@@ -1,0 +1,28 @@
+slug: marketing-analyst
+title: Marketing Analyst
+category: MARKETING_ANALYST
+description: >
+  Analyzes campaign performance, channel attribution, and customer
+  segments to guide marketing spend and strategy. A generic shape based on
+  common postings, not any single employer's exact requirements.
+core_skills:
+  - sql-fundamentals
+  - business-metrics
+  - data-visualization
+  - communication
+  - business-analytics
+preferred_skills:
+  - statistics
+  - experimentation
+  - metric-definition
+  - root-cause-analysis
+nice_to_have_skills:
+  - pandas
+  - product-metrics
+typical_responsibilities:
+  - Analyze campaign performance and channel attribution
+  - Report on marketing funnel and conversion metrics
+  - Support A/B testing of campaigns and creative
+  - Segment and analyze customer cohorts
+  - Partner with marketing stakeholders on ROI
+version: 1

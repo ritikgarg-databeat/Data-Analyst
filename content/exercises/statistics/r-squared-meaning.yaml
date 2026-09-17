@@ -1,0 +1,29 @@
+slug: r-squared-meaning
+lesson_slug: corr-interpreting-regression-coefficients
+skill: statistics
+title: What R-Squared Actually Measures
+description: State what R-squared means in a simple linear regression, and what it does not tell you.
+exercise_type: SHORT_ANSWER
+difficulty: ADVANCED
+points: 10
+tags: [statistics, advanced]
+prompt: >
+  A regression has R-squared = 0.694. What does that number mean, and what common misconception
+  about it should you avoid when a coefficient in that same model is also statistically significant?
+correct_answer: "R-squared is the share of variation in the outcome explained by the predictor(s); it does not measure whether the relationship is causal or how large any single coefficient is"
+hints:
+  - "R-squared is a statement about explained variation in the outcome — think about what fraction of '0.694' is left over, and what that leftover portion implies."
+  - "Consider whether a high R-squared and a statistically significant coefficient are actually telling you the same thing, or two separate things."
+solution: >
+  R-squared = 0.694 means the model's predictor(s) explain about 69.4% of the total variation in the
+  outcome variable — the remaining 30.6% is driven by factors outside the model (or by pure
+  randomness). The common misconception to avoid: a high R-squared (or a statistically significant
+  coefficient within the model) does not establish that the relationship is causal, and R-squared
+  itself says nothing about how large or actionable any individual coefficient is — a model can have
+  a high R-squared while a specific coefficient's real-world size is still too small to be practically
+  meaningful, and conversely a low R-squared doesn't mean a significant coefficient is unreliable, just
+  that it isn't the whole explanation.
+explanation: >
+  R-squared and coefficient significance answer different questions — one is about overall
+  explanatory power of the model, the other is about whether one specific predictor's relationship is
+  distinguishable from zero — and neither one, on its own or together, establishes causation.

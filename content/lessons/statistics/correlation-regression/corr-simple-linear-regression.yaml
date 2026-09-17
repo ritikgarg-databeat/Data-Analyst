@@ -1,0 +1,90 @@
+slug: corr-simple-linear-regression
+module_slug: correlation-regression
+title: Simple Linear Regression
+description: Fitting a line through real order data to answer "how much does the outcome change per unit of the input," and reading every number the fit produces.
+difficulty: ADVANCED
+estimated_minutes: 15
+display_order: 3
+objectives:
+  - Fit a simple linear regression and interpret the slope, intercept, and R-squared in business terms.
+  - Explain the relationship between R-squared and the correlation coefficient for a simple (one-predictor) regression.
+skills: [statistics, statistical-reasoning]
+datasets: [ecommerce]
+tags: [statistics, advanced, e-commerce]
+prerequisites: [corr-correlation-coefficient]
+key_takeaways:
+  - "Simple linear regression fits a line, revenue = intercept + slope * predictor, chosen to minimize the total squared distance between the line and the actual data points."
+  - "The slope is the most business-actionable number: 'for each additional unit of the predictor, the outcome changes by this much, on average.' The intercept is the predicted outcome when the predictor is zero — often not a meaningful real scenario on its own."
+  - "R-squared is the share of the outcome's variation explained by the predictor, from 0 (none) to 1 (all). For a simple (single-predictor) regression, R-squared is exactly the correlation coefficient squared."
+common_mistakes:
+  - Interpreting the intercept as if it's always a meaningful real-world quantity, even when a predictor value of zero doesn't correspond to a realistic scenario (e.g., an order with zero items isn't a real order).
+  - Reporting only R-squared as "how good the model is" without also reporting the slope — R-squared says how much variation is explained, not how large or actionable the underlying relationship is.
+interview_questions:
+  - question: "A regression of order revenue on total item quantity gives slope = 224.17, intercept = 6.55, R-squared = 0.694. Explain each number in plain business language."
+    answer: >
+      Slope (224.17): each additional item in an order is associated with about $224 more in
+      revenue, on average. Intercept (6.55): the model's predicted revenue for an order with zero
+      items — not a meaningful real scenario, and its p-value here (0.74) confirms it's not
+      statistically distinguishable from zero anyway, so it shouldn't be over-interpreted. R-squared
+      (0.694): total item quantity explains about 69.4% of the variation in order revenue across
+      these orders — a substantial but not complete share, since price also varies across items and
+      isn't captured by quantity alone.
+blocks:
+  - type: heading
+    text: Fitting a line through the data
+  - type: text
+    body: >
+      **Simple linear regression** fits a straight line, `y = intercept + slope * x`, chosen so that
+      the sum of squared vertical distances between the line and the actual data points is as small
+      as possible. It answers a specific business question: "for each one-unit increase in x, how
+      much does y change, on average?"
+  - type: formula
+    expression: "revenue = intercept + slope * total_qty"
+    description: The slope is the average revenue change per additional unit of quantity; the intercept is the predicted revenue at total_qty = 0.
+  - type: example
+    title: Predicting order revenue from total item quantity
+    body: >
+      Fitting this regression across the ecommerce dataset's 4,205 orders gives intercept = 6.55
+      (p = 0.737, not significant) and slope = 224.17 (p < 0.001, highly significant), with
+      R-squared = 0.694.
+  - type: code
+    language: python
+    code: |
+      import statsmodels.api as sm
+
+      X = sm.add_constant(order_agg["total_qty"])
+      model = sm.OLS(order_agg["revenue"], X).fit()
+      print(round(model.params["const"], 2))       # 6.55  (intercept)
+      print(round(model.params["total_qty"], 2))    # 224.17 (slope)
+      print(round(model.rsquared, 3))               # 0.694
+    caption: "Each additional item in an order predicts about $224 more revenue on average; total quantity explains 69.4% of revenue's variation across orders."
+  - type: table
+    caption: Reading the three numbers this fit produces
+    headers: ["Term", "Value", "Business meaning"]
+    rows:
+      - ["Slope", "224.17", "Each extra item in an order predicts ~$224 more revenue, on average"]
+      - ["Intercept", "6.55 (not significant, p=0.74)", "Predicted revenue at zero items — not a realistic order, and not distinguishable from $0 anyway"]
+      - ["R-squared", "0.694", "Total quantity explains 69.4% of the variation in order revenue; the rest comes from varying item prices"]
+  - type: callout
+    variant: tip
+    title: "R-squared and correlation, connected"
+    body: >
+      For a simple (single-predictor) regression, R-squared is exactly the correlation coefficient
+      squared: the previous lesson found r = 0.833 between total_qty and revenue, and
+      0.833² = 0.694 — matching this regression's R-squared exactly. This only holds for one
+      predictor; with multiple predictors (next lesson), R-squared and any single correlation
+      diverge.
+  - type: question
+    prompt: >
+      A regression of monthly revenue on ad spend gives an intercept of $50,000 with a very small
+      p-value. What's the most defensible interpretation?
+    choices:
+      - "The business would earn exactly $50,000 with zero ad spend, guaranteed"
+      - "The model's fitted line predicts about $50,000 in revenue when ad spend is zero, within the range the data actually covers — it's a mathematical property of the fitted line, not a guarantee, and is only meaningful if zero ad spend is a realistic scenario the data actually contains"
+      - "The intercept should be ignored entirely in every regression"
+    correct_index: 1
+    explanation: >
+      An intercept is a real output of the fitted line and can be statistically significant, but
+      it's only a meaningful real-world prediction if the predictor's zero value falls within (or
+      near) the range of data the model was actually fit on — extrapolating far outside the observed
+      data is risky regardless of the intercept's own significance.

@@ -1,0 +1,66 @@
+slug: biz-sql-churn-rate-by-plan
+lesson_slug: biz-churn-and-ltv
+skill: business-metrics
+dataset: saas-product
+title: Compute Churn Rate by Plan
+description: Compute subscription churn rate segmented by plan tier, rather than as one blended company-wide number.
+exercise_type: SQL
+difficulty: BEGINNER
+points: 15
+tags: [sql, business-analytics, beginner, churn, saas]
+business_context: >
+  Customer Success wants to know whether churn risk is evenly spread across plan tiers or
+  concentrated in one segment, before deciding where to focus limited proactive-outreach
+  capacity.
+prompt: >
+  Using `subscriptions`, write a query that computes churn rate by plan. For each `plan`, return
+  `total_subscriptions` (count of all subscriptions on that plan), `churned_subscriptions`
+  (count where `status = 'churned'`), and `churn_rate_pct`
+  (`ROUND(100.0 * churned_subscriptions / total_subscriptions, 1)`). Order the result by
+  `churn_rate_pct` descending. Row order matters.
+sql_tables: [subscriptions]
+sql_starter_query: |
+  -- Explore the table first
+  SELECT * FROM subscriptions LIMIT 20;
+sql_solution_query: |
+  SELECT
+    plan,
+    COUNT(*) AS total_subscriptions,
+    SUM(CASE WHEN status = 'churned' THEN 1 ELSE 0 END) AS churned_subscriptions,
+    ROUND(100.0 * SUM(CASE WHEN status = 'churned' THEN 1 ELSE 0 END) / COUNT(*), 1) AS churn_rate_pct
+  FROM subscriptions
+  GROUP BY plan
+  ORDER BY churn_rate_pct DESC;
+sql_row_order_matters: true
+sql_numeric_tolerance: 0.1
+sql_hidden_tests:
+  - name: "Enterprise plan's churn_rate_pct matches an independent recomputation"
+    query: |
+      SELECT plan, ROUND(100.0 * SUM(CASE WHEN status = 'churned' THEN 1 ELSE 0 END) / COUNT(*), 1)
+        AS churn_rate_pct
+      FROM subscriptions
+      WHERE plan = 'enterprise'
+      GROUP BY plan
+    key_columns: 1
+hints:
+  - "GROUP BY plan and use a CASE expression inside SUM() to count only the rows where status = 'churned', alongside a plain COUNT(*) for the plan's total subscription count."
+  - "Use 100.0 (a float literal), not 100, in the percentage calculation to avoid integer-division truncation to a whole number."
+solution: >
+  ```sql
+  SELECT
+    plan,
+    COUNT(*) AS total_subscriptions,
+    SUM(CASE WHEN status = 'churned' THEN 1 ELSE 0 END) AS churned_subscriptions,
+    ROUND(100.0 * SUM(CASE WHEN status = 'churned' THEN 1 ELSE 0 END) / COUNT(*), 1) AS churn_rate_pct
+  FROM subscriptions
+  GROUP BY plan
+  ORDER BY churn_rate_pct DESC;
+  ```
+explanation: >
+  Segmenting by `plan` before computing churn rate is the entire point of the exercise — a single
+  company-wide churn rate would blend together tiers that can carry very different risk (and very
+  different dollar value per lost customer). `SUM(CASE WHEN status = 'churned' THEN 1 ELSE 0 END)` counts
+  churned rows within each plan group without a second query or self-join. A common mistake is filtering
+  with `WHERE status = 'churned'` before grouping, which would compute churned counts correctly but lose
+  every non-churned subscription from `COUNT(*)`, making `total_subscriptions` equal to
+  `churned_subscriptions` for every plan and the resulting rate a meaningless 100%.

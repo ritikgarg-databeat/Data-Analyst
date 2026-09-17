@@ -1,0 +1,157 @@
+slug: period-over-period-growth
+module_slug: sql-analytical-sql
+title: Period-over-Period Growth
+description: Computing month-over-month and year-over-year revenue growth with LAG() and percent-change math, and knowing when a huge growth percentage is misleading.
+difficulty: ADVANCED
+estimated_minutes: 12
+display_order: 5
+objectives:
+  - Build a monthly revenue time series and compute month-over-month percent change with LAG()
+  - Compute year-over-year percent change using an offset LAG() and explain why the offset differs
+  - Recognize when a small denominator makes a percent-change figure technically correct but misleading
+prerequisites: [rfm-segmentation]
+skills: [advanced-sql]
+datasets: [ecommerce]
+tags: [sql, advanced, business-analytics]
+key_takeaways:
+  - "Percent change is (current - previous) / previous — LAG() fetches 'previous' from the row before the current one in whatever order you specify, no self-join required."
+  - "Month-over-month growth uses LAG(revenue) with a default offset of 1 row; year-over-year growth on the same monthly series uses LAG(revenue, 12) — 12 rows back, since each row is one month."
+  - "A percent-change figure is only as meaningful as its denominator — growth off a tiny prior-period base can look explosive (or a small absolute drop off a tiny base can look catastrophic) without reflecting a proportionally large real-world change."
+common_mistakes:
+  - "Computing YoY growth as LAG(revenue, 12) on a table that isn't actually one row per month (e.g. one row per day) — the offset only means '12 periods back' when every row truly represents one period of the intended granularity."
+  - "Not handling the first row(s), where LAG() returns NULL and percent-change math divides by NULL — that's usually correct behavior (there's no prior period to compare against) but needs to be handled deliberately in a report, not left as a stray blank or error."
+practical_applications:
+  - "A monthly business review slide showing 'revenue is up 12% MoM and 340% YoY' computed from one query instead of two spreadsheets."
+  - "Flagging which specific month broke a growth trend, by scanning a MoM growth column for the first negative or unusually small value."
+blocks:
+  - type: heading
+    text: Building the revenue time series
+  - type: text
+    body: >
+      Period-over-period growth starts from a simple time series — one row per period with a revenue
+      total — and then compares each row to an earlier one. Revenue for a period comes from joining
+      completed orders to their line items and remembering that line revenue is
+      `(unit_price - discount) * quantity`, not just `unit_price * quantity`.
+  - type: code
+    language: sql
+    caption: Monthly revenue from completed orders
+    code: |
+      WITH monthly_revenue AS (
+        SELECT
+          DATE_TRUNC('month', o.order_date) AS month,
+          SUM(oi.quantity * (oi.unit_price - oi.discount)) AS revenue
+        FROM orders o
+        JOIN order_items oi ON oi.order_id = o.order_id
+        WHERE o.status = 'completed'
+        GROUP BY 1
+      )
+      SELECT month, ROUND(revenue, 2) AS revenue
+      FROM monthly_revenue
+      ORDER BY month;
+  - type: heading
+    text: Month-over-month growth with LAG()
+  - type: text
+    body: >
+      `LAG(revenue) OVER (ORDER BY month)` returns the revenue value from the row immediately before
+      the current one in month order — exactly "last month's revenue," computed without a self-join.
+      Percent change is then just `(current - previous) / previous`.
+  - type: code
+    language: sql
+    caption: MoM revenue growth
+    code: |
+      WITH monthly_revenue AS (
+        SELECT
+          DATE_TRUNC('month', o.order_date) AS month,
+          SUM(oi.quantity * (oi.unit_price - oi.discount)) AS revenue
+        FROM orders o
+        JOIN order_items oi ON oi.order_id = o.order_id
+        WHERE o.status = 'completed'
+        GROUP BY 1
+      )
+      SELECT
+        month,
+        ROUND(revenue, 2) AS revenue,
+        ROUND(LAG(revenue) OVER (ORDER BY month), 2) AS prev_month_revenue,
+        ROUND(
+          100.0 * (revenue - LAG(revenue) OVER (ORDER BY month))
+                / LAG(revenue) OVER (ORDER BY month),
+          1
+        ) AS mom_growth_pct
+      FROM monthly_revenue
+      ORDER BY month;
+  - type: output
+    body: |
+      month      | revenue   | prev_month_revenue | mom_growth_pct
+      -----------+-----------+---------------------+-----------------
+      2024-01-01 |   7016.67 |                NULL |            NULL
+      2024-02-01 |  14378.93 |             7016.67 |           104.9
+      2024-03-01 |  33317.44 |            14378.93 |           131.7
+      2024-04-01 |  20703.96 |            33317.44 |           -37.9
+      2024-05-01 |  75060.66 |            20703.96 |           262.5
+  - type: text
+    body: >
+      The first month is NULL by construction — there's no prior month in the data to compare against,
+      and dividing by NULL correctly produces NULL rather than a fabricated number.
+  - type: heading
+    text: Year-over-year growth — same pattern, different offset
+  - type: text
+    body: >
+      LAG() takes an optional second argument for how many rows back to look; the default is 1. Since
+      this series is already one row per month, looking back exactly 12 rows lands on the same
+      calendar month one year earlier — that's a year-over-year comparison, using the identical
+      percent-change formula.
+  - type: code
+    language: sql
+    caption: YoY revenue growth using LAG(revenue, 12)
+    code: |
+      WITH monthly_revenue AS (
+        SELECT
+          DATE_TRUNC('month', o.order_date) AS month,
+          SUM(oi.quantity * (oi.unit_price - oi.discount)) AS revenue
+        FROM orders o
+        JOIN order_items oi ON oi.order_id = o.order_id
+        WHERE o.status = 'completed'
+        GROUP BY 1
+      )
+      SELECT
+        month,
+        ROUND(revenue, 2) AS revenue,
+        ROUND(LAG(revenue, 12) OVER (ORDER BY month), 2) AS revenue_year_ago,
+        ROUND(
+          100.0 * (revenue - LAG(revenue, 12) OVER (ORDER BY month))
+                / LAG(revenue, 12) OVER (ORDER BY month),
+          1
+        ) AS yoy_growth_pct
+      FROM monthly_revenue
+      ORDER BY month;
+  - type: output
+    body: |
+      month      | revenue    | revenue_year_ago | yoy_growth_pct
+      -----------+------------+-------------------+-----------------
+      2025-01-01 |  218580.89 |           7016.67 |          3015.2
+      2025-02-01 |  240126.81 |          14378.93 |          1570.0
+      2025-03-01 |  230661.28 |          33317.44 |           592.3
+  - type: callout
+    variant: warning
+    title: A huge growth percentage isn't automatically a huge deal
+    body: >
+      Those YoY numbers — 3015%, 1570% — are mathematically correct, but they're inflated by a tiny
+      denominator: this sample store had barely any revenue in its first month (January 2024). Growth
+      percentages computed off a small or noisy base period can look dramatic without representing a
+      proportionally dramatic real-world change. Always check the absolute base value alongside the
+      percentage before reacting to it — "up 3000%" off $7,000 is a very different story than "up 3000%"
+      off $7 million.
+  - type: question
+    prompt: >
+      A monthly revenue table has 18 rows (one per month). To compute this month's revenue as a percent
+      of the same month one year earlier, which window function call is correct?
+    choices:
+      - "LAG(revenue, 1) OVER (ORDER BY month)"
+      - "LAG(revenue, 12) OVER (ORDER BY month)"
+      - "LEAD(revenue, 12) OVER (ORDER BY month)"
+    correct_index: 1
+    explanation: >
+      Since the series has exactly one row per month, going back 12 rows lands on the same calendar
+      month a year earlier — that's LAG(revenue, 12). LAG(revenue, 1) is the month-over-month case
+      (one row back), and LEAD() looks forward rather than backward, which would pull a *future*
+      period's revenue instead of the prior year's.

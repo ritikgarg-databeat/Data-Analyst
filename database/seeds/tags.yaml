@@ -1,0 +1,246 @@
+# Seed data for the `tags` table — used for filtering/search across lessons and exercises.
+- slug: sql
+  name: SQL
+- slug: python
+  name: Python
+- slug: statistics
+  name: Statistics
+- slug: business-analytics
+  name: Business Analytics
+- slug: product-analytics
+  name: Product Analytics
+- slug: interview
+  name: Interview
+- slug: beginner
+  name: Beginner
+- slug: intermediate
+  name: Intermediate
+- slug: advanced
+  name: Advanced
+- slug: real-world
+  name: Real World
+- slug: case-study
+  name: Case Study
+- slug: foundations
+  name: Foundations
+- slug: window-functions
+  name: Window Functions
+- slug: ranking
+  name: Ranking
+- slug: subqueries
+  name: Subqueries
+- slug: easy
+  name: Easy
+# --- Dataset Hub domain/topic tags (Phase 5) ---
+- slug: e-commerce
+  name: E-commerce
+- slug: saas
+  name: SaaS
+- slug: marketing
+  name: Marketing
+- slug: product
+  name: Product
+- slug: finance
+  name: Finance
+- slug: customer-analytics
+  name: Customer Analytics
+- slug: retention
+  name: Retention
+- slug: churn
+  name: Churn
+- slug: healthcare
+  name: Healthcare
+- slug: operations
+  name: Operations
+- slug: eda
+  name: EDA
+- slug: cross-training
+  name: Cross Training
+- slug: experimentation
+  name: Experimentation
+- slug: ab-testing
+  name: A/B Testing
+- slug: funnel
+  name: Funnel
+- slug: cohort
+  name: Cohort
+- slug: root-cause
+  name: Root Cause
+# --- Data Engineering / Warehousing / Modeling / dbt Lab domain tags (Phase 7) ---
+- slug: dbt
+  name: dbt
+- slug: models
+  name: Models
+- slug: ref
+  name: ref()
+- slug: tests
+  name: Tests
+- slug: relationships
+  name: Relationships
+- slug: data-quality
+  name: Data Quality
+- slug: aggregation
+  name: Aggregation
+- slug: grain
+  name: Grain
+- slug: macros
+  name: Macros
+- slug: jinja
+  name: Jinja
+- slug: lineage
+  name: Lineage
+- slug: snapshots
+  name: Snapshots
+- slug: scd
+  name: Slowly Changing Dimensions
+- slug: incremental
+  name: Incremental Models
+- slug: real-execution
+  name: Real Execution
+- slug: data-engineering
+  name: Data Engineering
+- slug: etl
+  name: ETL
+- slug: elt
+  name: ELT
+- slug: pipelines
+  name: Pipelines
+- slug: orchestration
+  name: Orchestration
+- slug: streaming
+  name: Streaming
+- slug: batch-processing
+  name: Batch Processing
+- slug: ingestion
+  name: Ingestion
+- slug: cloud
+  name: Cloud
+- slug: data-warehouse
+  name: Data Warehouse
+- slug: data-lake
+  name: Data Lake
+- slug: lakehouse
+  name: Lakehouse
+- slug: star-schema
+  name: Star Schema
+- slug: fact-table
+  name: Fact Table
+- slug: dimension-table
+  name: Dimension Table
+- slug: olap
+  name: OLAP
+- slug: oltp
+  name: OLTP
+- slug: architecture
+  name: Architecture
+- slug: validation
+  name: Validation
+- slug: data-modeling
+  name: Data Modeling
+- slug: data-marts
+  name: Data Marts
+- slug: modern-data-stack
+  name: Modern Data Stack
+- slug: kafka
+  name: Kafka
+- slug: spark
+  name: Spark
+- slug: airflow
+  name: Airflow
+- slug: analyst-boundary
+  name: Analyst/Engineer Boundary
+# --- Interview & Assessment Engine domain tags (Phase 9) ---
+- slug: dau
+  name: DAU
+- slug: cac
+  name: CAC
+- slug: ltv
+  name: LTV
+- slug: conversion
+  name: Conversion
+- slug: segmentation
+  name: Segmentation
+- slug: campaign
+  name: Campaign Performance
+- slug: marketplace
+  name: Marketplace
+- slug: behavioral
+  name: Behavioral
+- slug: star-method
+  name: STAR Method
+- slug: excel
+  name: Excel
+- slug: pivot-tables
+  name: Pivot Tables
+- slug: lookups
+  name: Lookups
+- slug: sumifs
+  name: SUMIFS/COUNTIFS
+- slug: mock-interview
+  name: Mock Interview
+- slug: company-style
+  name: Company-Style Assessment
+- slug: gaps-and-islands
+  name: Gaps and Islands
+- slug: data-interpretation
+  name: Data Interpretation
+- slug: hypothesis-testing
+  name: Hypothesis Testing
+- slug: experiment-design
+  name: Experiment Design
+- slug: sample-size
+  name: Sample Size
+- slug: ownership
+  name: Ownership
+- slug: conflict
+  name: Conflict
+- slug: ambiguity
+  name: Ambiguity
+- slug: stakeholder-management
+  name: Stakeholder Management
+- slug: failure
+  name: Failure & Lessons Learned
+- slug: prioritization
+  name: Prioritization
+- slug: influencing
+  name: Influencing Without Authority
+- slug: incomplete-data
+  name: Incomplete Data
+- slug: disagreement
+  name: Disagreement
+- slug: deadlines
+  name: Deadlines & Time Pressure
+- slug: working-with-engineers
+  name: Working With Engineers
+- slug: communication
+  name: Communication
+- slug: regression
+  name: Regression
+- slug: correlation
+  name: Correlation
+- slug: probability
+  name: Probability
+- slug: sampling
+  name: Sampling
+- slug: confidence-interval
+  name: Confidence Interval
+- slug: north-star-metric
+  name: North Star Metric
+- slug: activation
+  name: Activation
+- slug: revenue
+  name: Revenue
+- slug: margin
+  name: Margin
+- slug: pricing
+  name: Pricing
+- slug: unit-economics
+  name: Unit Economics
+- slug: sales
+  name: Sales
+- slug: profitability
+  name: Profitability
+- slug: distributions
+  name: Distributions
+- slug: statistical-power
+  name: Statistical Power

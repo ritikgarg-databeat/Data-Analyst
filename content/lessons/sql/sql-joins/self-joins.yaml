@@ -1,0 +1,106 @@
+slug: self-joins
+module_slug: sql-joins
+title: Self Joins
+description: Joining a table to itself to compare rows within the same table, like two orders from one customer.
+difficulty: INTERMEDIATE
+estimated_minutes: 12
+display_order: 5
+objectives:
+  - Write a self join using two aliases for the same table
+  - Use a self join to compare pairs of rows that share some attribute, like two orders from the same customer
+  - Explain why a self join needs an inequality (or similar) condition to avoid matching every row to itself and double-counting every pair
+prerequisites: [cross-joins]
+skills: [sql-fundamentals]
+datasets: [ecommerce]
+tags: [sql, intermediate]
+key_takeaways:
+  - "A self join is an ordinary join where both sides happen to be the same table — the trick is entirely in aliasing it twice (o1, o2) so each side can be referred to separately."
+  - "Comparing rows within a table (two orders from the same customer, two sessions from the same device) is the situation a self join is for — a plain JOIN can't do this because it needs a second, distinct table to join against."
+  - "A join condition like o1.order_id < o2.order_id (not just != or no condition at all) is what keeps each pair appearing exactly once and stops a row from ever pairing with itself."
+common_mistakes:
+  - "Using o1.order_id != o2.order_id instead of a directional inequality like o1.order_id < o2.order_id — != correctly excludes a row pairing with itself, but every real pair still shows up twice (once as (A, B), once as (B, A)), silently doubling any downstream count."
+  - "Forgetting the join condition entirely and getting every row paired with every other row of the same table, including itself — a self join with no restricting condition is a cartesian product with an extra dose of confusion, since every column name exists on both sides."
+blocks:
+  - type: heading
+    text: Joining a table to itself
+  - type: text
+    body: >
+      Every join so far has connected two different tables. Some questions need to compare rows
+      within one table instead — "did this customer place two orders close together?" is a question
+      about orders compared to other rows of orders, not orders compared to some other table. SQL
+      handles this by joining a table to itself: the same table is listed twice in FROM, each with
+      its own alias, so the two "copies" can be referred to separately even though they're really the
+      same underlying data.
+  - type: code
+    language: sql
+    caption: Every pair of orders from the same customer, no more than once
+    code: |
+      SELECT
+        o1.customer_id,
+        o1.order_id AS order_a,
+        o1.order_date AS date_a,
+        o2.order_id AS order_b,
+        o2.order_date AS date_b
+      FROM orders o1
+      JOIN orders o2
+        ON o1.customer_id = o2.customer_id
+        AND o1.order_id < o2.order_id;
+  - type: text
+    body: >
+      o1 and o2 are two aliases pointing at the same orders table. o1.customer_id = o2.customer_id
+      restricts the match to pairs belonging to the same customer — without it, every order would pair
+      with every other order regardless of who placed them, a cartesian product in disguise.
+      o1.order_id < o2.order_id does the second, easy-to-miss job: it picks one consistent direction
+      for each pair, so order 8 paired with order 13 shows up exactly once, not once as (8, 13) and
+      again as (13, 8).
+  - type: callout
+    variant: warning
+    title: "!= isn't enough — it excludes self-pairs but not duplicate pairs"
+    body: >
+      Swapping the condition to o1.order_id != o2.order_id still correctly stops an order from
+      pairing with itself, but it does nothing to stop each real pair from appearing twice, once in
+      each direction. On this dataset, o1.order_id != o2.order_id produces exactly 20,840 pairs,
+      while o1.order_id < o2.order_id produces exactly half that, 10,420 — the true number of distinct
+      pairs. Any COUNT or SUM run on top of the != version would be silently doubled.
+  - type: heading
+    text: A concrete use — flagging orders placed close together
+  - type: example
+    title: Same-customer order pairs within 7 days of each other
+    body: >
+      Building on the join above, adding DATE_DIFF and a WHERE filter turns "every pair of orders from
+      the same customer" into something more specific and useful: pairs placed within a week of each
+      other, which might warrant a look for duplicate orders, or might simply reflect a genuinely
+      active repeat customer — the query surfaces the candidates either way.
+    code: |
+      SELECT
+        o1.customer_id,
+        o1.order_id AS order_a,
+        o2.order_id AS order_b,
+        DATE_DIFF('day', o1.order_date, o2.order_date) AS days_apart
+      FROM orders o1
+      JOIN orders o2
+        ON o1.customer_id = o2.customer_id
+        AND o1.order_id < o2.order_id
+      WHERE DATE_DIFF('day', o1.order_date, o2.order_date) BETWEEN 0 AND 7
+      ORDER BY o1.customer_id;
+    language: sql
+  - type: callout
+    variant: tip
+    title: Aliases aren't optional here
+    body: >
+      In an ordinary join between two different tables, aliases are a convenience. In a self join
+      they're required — without two distinct aliases for the same table, SQL has no way to tell
+      o1.order_date apart from o2.order_date, since as far as the table definition is concerned
+      they're just "order_date" on two rows of the same table.
+  - type: question
+    prompt: "A self join on orders uses ON o1.customer_id = o2.customer_id with no further condition. What's wrong with this, if the goal is to find distinct pairs of orders from the same customer?"
+    choices:
+      - "Nothing — this correctly returns every distinct pair exactly once"
+      - "It will pair every order with itself, and pair every real pair twice (once in each direction), inflating the result"
+      - "It will only return customers who have exactly two orders"
+    correct_index: 1
+    explanation: >
+      With no restriction on order_id, every row matches itself (o1.order_id = o2.order_id, same
+      customer_id trivially), and every genuine pair of two different orders from the same customer
+      appears twice — once with order A as o1 and B as o2, and again with them swapped. An inequality
+      like o1.order_id < o2.order_id is what excludes self-matches and picks one direction per pair.

@@ -1,0 +1,66 @@
+slug: variance
+module_slug: statistical-foundations
+title: Variance
+description: Measuring the spread of data around its mean, and why the deviations get squared.
+difficulty: BEGINNER
+estimated_minutes: 10
+display_order: 4
+objectives:
+  - Compute variance from a small dataset and explain what it measures
+  - Explain why deviations from the mean are squared rather than simply averaged
+prerequisites: [percentiles]
+skills: [statistics]
+tags: [statistics, beginner, foundations]
+key_takeaways:
+  - Variance measures how far, on average, values are spread from the mean — the mean alone says nothing about spread.
+  - Deviations from the mean are squared, not just averaged, because raw deviations always sum to (about) zero and squaring plays well with further statistical math.
+  - Variance is expressed in squared units, which makes it hard to interpret directly — that's exactly the motivation for standard deviation.
+common_mistakes:
+  - Averaging the raw deviations from the mean instead of squaring them first — they always sum to roughly zero, so that "average" always comes out near 0 and tells you nothing.
+  - Comparing a variance number directly to the original data values (e.g., "variance of 370 dollars") — variance is in squared units, which isn't directly interpretable in the original scale.
+blocks:
+  - type: heading
+    text: Measuring spread, not just center
+  - type: text
+    body: >
+      The mean and median both describe the *center* of a dataset, but they say nothing about how
+      spread out the values are around that center. Two datasets can share the exact same mean while
+      looking completely different — one tightly clustered, one wildly scattered. **Variance** is the
+      standard way of quantifying that spread.
+  - type: formula
+    expression: variance = sum((x - mean)^2) / n
+    description: >
+      For each value, subtract the mean and square the result; average those squared deviations. (A
+      sample, as opposed to a full population, typically divides by n - 1 instead of n.)
+  - type: example
+    title: Computing variance by hand
+    body: >
+      Take the values 10, 12, 14, 16, 18. The mean is 14. The deviations from the mean are -4, -2, 0,
+      2, 4. Squaring each gives 16, 4, 0, 4, 16, which sum to 40. Dividing by 5 gives a variance of
+      **8**. Note that the raw (unsquared) deviations sum to exactly 0 — that's true of any dataset's
+      deviations from its own mean, which is why squaring is necessary before averaging them.
+  - type: table
+    caption: Two teams with an identical mean but very different spread
+    headers: ["Team", "Daily orders", "Mean", "Variance"]
+    rows:
+      - ["Team A", "48, 50, 52, 49, 51", "50", "2.0"]
+      - ["Team B", "20, 80, 45, 55, 50", "50", "370.0"]
+  - type: code
+    language: sql
+    code: |
+      SELECT VAR_SAMP(order_total) AS order_total_variance
+      FROM orders;
+    caption: VAR_SAMP divides by n - 1 (sample variance); VAR_POP divides by n (population variance).
+  - type: question
+    prompt: >
+      Two datasets have the same mean. Dataset A has a variance of 2. Dataset B has a variance of 370.
+      What does this tell you?
+    choices:
+      - Dataset B's values are, on average, further from its mean than Dataset A's values are from theirs
+      - Dataset B contains more data points than Dataset A
+      - Dataset B's mean must have been calculated incorrectly
+    correct_index: 0
+    explanation: >
+      Variance quantifies how far values typically sit from the mean, regardless of how many data
+      points there are or whether the mean itself was computed correctly. A variance of 370 versus 2
+      means Team B's daily counts swing much further from their shared average of 50 than Team A's do.

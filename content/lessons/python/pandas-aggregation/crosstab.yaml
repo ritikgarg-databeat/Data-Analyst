@@ -1,0 +1,117 @@
+slug: crosstab
+module_slug: pandas-aggregation
+title: Crosstabs
+description: pd.crosstab() for frequency counts between two categorical columns, the normalize parameter for percentages, and when to reach for crosstab vs. pivot_table.
+content_type: READING
+difficulty: INTERMEDIATE
+estimated_minutes: 10
+display_order: 5
+objectives:
+  - Build a frequency table between two categorical columns with pd.crosstab()
+  - Convert raw counts to row, column, or overall percentages with the normalize parameter
+  - Decide when to reach for crosstab versus pivot_table
+prerequisites: [pivot-table]
+skills: [pandas]
+datasets: [ecommerce]
+tags: [python, intermediate, real-world]
+key_takeaways:
+  - "pd.crosstab(a, b) counts how often every combination of two categorical columns' values occurs together — a pure frequency table, with counting as the built-in aggregation."
+  - "normalize='index' converts each row to percentages of that row's total; normalize='columns' does the same per column; normalize=True (or 'all') gives percentages of the grand total."
+  - "Reach for crosstab when the question is just 'how many/what % of rows fall into each combination' — reach for pivot_table when you need to aggregate a third, numeric column (sum, mean, etc.) rather than count rows."
+common_mistakes:
+  - "Using pivot_table with aggfunc='count' when crosstab(a, b) does the exact same thing more directly, with no values or aggfunc arguments needed."
+  - "Misreading normalize='index' vs normalize='columns' — 'index' normalizes across each row (so each row sums to 100%), 'columns' normalizes down each column (so each column sums to 100%). It's easy to get these backwards."
+  - "Forgetting that crosstab counts rows, not sums a numeric column — if the real question involves revenue or another measure rather than a plain count, pivot_table is the right tool."
+practical_applications:
+  - "Quickly checking how order status breaks down by channel as both raw counts and as a percentage of each channel's volume."
+  - "Spotting an imbalanced categorical relationship — e.g. one device type converting at a very different rate than others — before building a full model or dashboard around it."
+interview_questions:
+  - question: "When would you use pd.crosstab() instead of pd.pivot_table()?"
+    answer: "When the question is purely 'how many rows fall into each combination of two categorical variables' — crosstab(a, b) is a dedicated, more concise shortcut for exactly that: a frequency count with no separate values/aggfunc arguments needed. Once you need to aggregate a numeric column with something other than count (sum revenue, average price, etc.), pivot_table is the more general and appropriate tool."
+  - question: "What does normalize='index' do in pd.crosstab()?"
+    answer: "It converts each row of the crosstab from raw counts into percentages of that row's own total, so every row sums to 1.0 (100%). This is useful for answering 'within this category, how is the other variable distributed' — e.g. within each order status, what percentage of orders came from each channel."
+blocks:
+  - type: text
+    body: >
+      **`pd.crosstab()`** builds a frequency table showing how often every combination of two
+      categorical columns' values occurs together. It's closely related to pivot_table but
+      specialized: crosstab's whole job is counting rows, with no `values` or `aggfunc` arguments
+      needed for the common case.
+  - type: heading
+    text: Basic counts
+  - type: code
+    language: python
+    code: |2
+      import pandas as pd
+
+      orders = pd.read_csv("data/sample/ecommerce/orders.csv")
+
+      pd.crosstab(orders["status"], orders["channel"])
+    caption: How many orders fall into every (status, channel) combination?
+  - type: output
+    body: |2
+      channel    marketplace  mobile   web
+      status
+      cancelled           38     146   195
+      completed          352    1199  1890
+      pending               8      48    71
+      refunded             19     101   138
+  - type: text
+    body: >
+      This is exactly the same information you'd get from
+      `pd.pivot_table(orders, index='status', columns='channel', values='order_id', aggfunc='count')`
+      — crosstab is just the more direct way to write "count rows by these two categories."
+  - type: heading
+    text: normalize — turning counts into percentages
+  - type: text
+    body: >
+      Pass `normalize='index'` to convert each **row** into percentages of that row's total (each row
+      sums to 100%), `normalize='columns'` to do the same down each **column**, or `normalize=True`
+      to express every cell as a percentage of the grand total.
+  - type: code
+    language: python
+    code: |2
+      pd.crosstab(orders["status"], orders["channel"], normalize="index").round(3)
+    caption: "Within each status, what share of orders came from each channel?"
+  - type: output
+    body: |2
+      channel    marketplace  mobile    web
+      status
+      cancelled        0.100   0.385  0.515
+      completed         0.102   0.348  0.549
+      pending          0.063   0.378  0.559
+      refunded         0.074   0.391  0.535
+  - type: text
+    body: >
+      Read row-by-row: of cancelled orders, 51.5% came through web, 38.5% through mobile, 10.0%
+      through marketplace — and that row's three percentages sum to 100%. Notice the channel mix is
+      fairly similar across every status (roughly half web, a third mobile, a tenth marketplace) — a
+      useful sanity check that cancellations aren't concentrated in one particular channel.
+  - type: callout
+    variant: tip
+    title: "index vs. columns vs. True"
+    body: >
+      normalize='index' → each *row* sums to 100% (percentages within each status).
+      normalize='columns' → each *column* sums to 100% (percentages within each channel).
+      normalize=True → every cell is a percentage of the grand total across the whole table.
+  - type: heading
+    text: crosstab vs. pivot_table — when to use which
+  - type: comparison
+    title: Choosing between crosstab and pivot_table
+    columns: ["Situation", "Use"]
+    rows:
+      - ["You just want counts of how often two categorical values co-occur", "crosstab — it's a purpose-built shortcut for exactly this"]
+      - ["You need percentages of row/column/overall totals for a frequency table", "crosstab, with normalize='index'/'columns'/True"]
+      - ["You need to aggregate a numeric column (sum revenue, average price, etc.)", "pivot_table — crosstab has no equivalent of the values argument for anything other than counting"]
+      - ["You want more than two dimensions, or a mix of row/column grouping keys", "pivot_table — it accepts lists for index and columns"]
+  - type: question
+    prompt: "pd.crosstab(df['device'], df['converted'], normalize='columns') is computed. What does each column of the result sum to?"
+    choices:
+      - "1.0 (100%) — normalize='columns' makes every column sum to its own total"
+      - "1.0 (100%) — normalize='columns' makes every row sum to its own total"
+      - "The grand total of the whole table"
+    correct_index: 0
+    explanation: >
+      normalize='columns' normalizes down each column, so within each value of the 'converted'
+      column, the device percentages sum to 100%. (normalize='index' would instead make each row —
+      each device — sum to 100%.)

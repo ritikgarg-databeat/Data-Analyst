@@ -1,0 +1,126 @@
+slug: strings
+module_slug: python-for-analysts
+title: Strings
+description: Creating and slicing strings, the common string methods you'll use constantly, and why f-strings are the modern default for building text.
+difficulty: BEGINNER
+estimated_minutes: 13
+display_order: 9
+objectives:
+  - Create strings and index/slice them using the same rules as list slicing
+  - Use common string methods (.strip(), .split(), .join(), .replace(), .lower()/.upper()) to clean and reshape text
+  - Build formatted strings with f-strings, and explain why they've replaced .format() as the default
+prerequisites: [exceptions]
+skills: [python-fundamentals]
+datasets: []
+tags: [python, beginner, foundations]
+key_takeaways:
+  - "A string is an ordered, immutable sequence of characters — indexing and slicing work exactly like they do on a list (0-based, negative indices count from the end, slice stop is exclusive)."
+  - "Strings are immutable: .replace(), .strip(), .upper(), and similar methods all return a *new* string rather than modifying the original in place."
+  - "f-strings (f\"...{expr}...\") are the modern, preferred way to build text from variables — more readable than .format() and faster than manual string concatenation."
+common_mistakes:
+  - "Calling a string method like .strip() or .replace() and expecting it to modify the original variable — since strings are immutable, you must reassign the result (name = name.strip()), not just call the method and move on."
+  - "Mixing up .join() syntax — it's separator.join(list_of_strings), not list_of_strings.join(separator). The separator is what you call the method on."
+  - "Forgetting to convert non-string values before concatenating with +, e.g. \"Total: \" + 42.50, which raises a TypeError — f-strings sidestep this entirely since they stringify values automatically."
+blocks:
+  - type: text
+    body: >
+      A **string** is Python's text type — an ordered, *immutable* sequence of characters. You'll use
+      strings for everything from cleaning messy column values to building the SQL queries and file
+      paths your scripts depend on. Because a string is a sequence, much of what you already know from
+      lists carries over directly.
+  - type: heading
+    text: Creating strings
+  - type: code
+    language: python
+    code: |
+      product = "Wireless Mouse"
+      note = 'Back-ordered until Friday'
+      description = """
+      Multi-line strings use triple quotes —
+      useful for longer blocks of text.
+      """
+    caption: Single, double, and triple quotes all create strings — pick one convention and stay consistent
+  - type: heading
+    text: Indexing and slicing — the same rules as lists
+  - type: code
+    language: python
+    code: |
+      region = "apac"
+
+      region[0]      # "a"   — indexing starts at 0
+      region[-1]     # "c"   — negative indices count from the end
+      region[1:3]    # "pa"  — slice stop is exclusive, same as list slicing
+      len(region)    # 4
+    caption: "Indexing and slicing a string works identically to a list — same zero-based rules"
+  - type: callout
+    variant: tip
+    title: Same semantics as list slicing
+    body: >
+      If the Lists lesson's slicing rules (start:stop, stop exclusive, negative indices) made sense,
+      strings work exactly the same way — a string is just a sequence of characters instead of a
+      sequence of arbitrary values. The one difference: you can't assign into a string slice the way you
+      can with a list, because strings are immutable (see below).
+  - type: callout
+    variant: important
+    title: Strings are immutable
+    body: >
+      Once created, a string's characters can't be changed in place — there's no such thing as
+      `region[0] = "b"` in Python (it raises a `TypeError`). Every method that appears to "modify" a
+      string — `.strip()`, `.replace()`, `.upper()` — actually builds and returns a brand-new string,
+      leaving the original untouched. That's why you have to reassign: `name = name.strip()`, not just
+      `name.strip()` on its own line.
+  - type: heading
+    text: Common string methods
+  - type: table
+    headers: ["Method", "What it does", "Example"]
+    rows:
+      - [".strip()", "Removes leading/trailing whitespace (or given characters)", '"  Ada  ".strip()  →  "Ada"']
+      - [".split(sep)", "Splits into a list on the separator (whitespace by default)", '"a,b,c".split(",")  →  ["a", "b", "c"]']
+      - ["sep.join(list)", "Joins a list of strings into one, using sep between elements", '"-".join(["2026","09","02"])  →  "2026-09-02"']
+      - [".replace(old, new)", "Returns a new string with every old replaced by new", '"Order-42".replace("-", " ")  →  "Order 42"']
+      - [".lower() / .upper()", "Returns a lowercase / uppercase copy", '"PYTHON".lower()  →  "python"']
+  - type: example
+    title: Splitting and cleaning a raw text field
+    body: >
+      This is a common shape for real cleaning code — strip whitespace first, then split on a delimiter
+      to pull out individual fields.
+    code: |
+      raw_row = "  1001, Ada Lovelace , 2026-09-02  "
+
+      cleaned_fields = [field.strip() for field in raw_row.strip().split(",")]
+      print(cleaned_fields)
+      # ['1001', 'Ada Lovelace', '2026-09-02']
+    language: python
+  - type: heading
+    text: f-strings — the modern default
+  - type: text
+    body: >
+      Older Python code builds formatted text with `.format()`. Modern Python code uses **f-strings**
+      instead: prefix the string with `f` and drop variables (or any expression) directly inside `{}`.
+      They're more readable — you see the variable right where it's used, instead of matching it up with
+      a placeholder — and they're the standard choice in new code.
+  - type: code
+    language: python
+    code: |
+      customer, total = "Ada", 1234.5
+
+      # Older style
+      message = "{} spent {:.2f}".format(customer, total)
+
+      # f-string — same result, more readable
+      message = f"{customer} spent {total:.2f}"
+
+      print(message)   # Ada spent 1234.50
+    caption: "f-strings support the same format specs (like :.2f for two decimal places) as .format()"
+  - type: question
+    prompt: "What does \"  Total: 42  \".strip().split(\":\") return?"
+    choices:
+      - "['Total', ' 42']"
+      - "['  Total', ' 42  ']"
+      - "'Total: 42'"
+    correct_index: 0
+    explanation: >
+      .strip() first removes the leading/trailing whitespace from the whole string, giving "Total: 42".
+      .split(":") then splits that on the colon, producing ["Total", " 42"] — note the space before "42"
+      is still there, since .split() only splits on the exact character given, it doesn't strip each
+      resulting piece.

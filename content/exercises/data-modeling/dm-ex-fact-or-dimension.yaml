@@ -1,0 +1,26 @@
+slug: dm-ex-fact-or-dimension
+lesson_slug: dm-facts-and-dimensions
+skill: dimensional-modeling
+dataset: ecommerce
+title: "Fact or Dimension: dim_products"
+description: Classifying dim_products as a dimension rather than a fact table, despite having numeric columns like unit_price and cost.
+exercise_type: MULTIPLE_CHOICE
+difficulty: BEGINNER
+points: 10
+tags: [fact-table, dimension-table, star-schema, beginner]
+prompt: >
+  dim_products has columns like product_name, category_name, unit_price, cost, and is_active — all describing
+  one product each. Why is this a DIMENSION table rather than a FACT table, even though unit_price and cost are
+  numbers?
+choices:
+  - "Because it has fewer columns than fct_orders"
+  - "Because its columns describe an entity (a product) that you'd group or filter a report by, rather than measuring an event at a stated transactional grain"
+  - "Because table names starting with 'dim_' are always dimensions by definition, regardless of their columns"
+correct_answer: "Because its columns describe an entity (a product) that you'd group or filter a report by, rather than measuring an event at a stated transactional grain"
+hints:
+  - "Ask whether unit_price and cost describe something you'd SUM across many rows to get a meaningful total, or a static fact about one specific product."
+explanation: >
+  Being typed DIMENSION is about the table's role in the model — attributes of an entity you'd GROUP BY or
+  filter on — not about naming convention or column count. unit_price and cost here describe a single product's
+  static attributes; you'd never meaningfully SUM unit_price across many different products the way you'd SUM
+  gross_revenue across many orders on a fact table.

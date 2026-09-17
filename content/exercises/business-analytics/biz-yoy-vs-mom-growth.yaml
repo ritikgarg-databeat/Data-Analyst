@@ -1,0 +1,23 @@
+slug: biz-yoy-vs-mom-growth
+skill: business-metrics
+title: YoY vs. MoM Growth Rate
+description: A retailer's revenue is highly seasonal, spiking every December. Why would month-over-month (MoM) growth
+  be a misleading way to evaluate November-to-December performance?
+exercise_type: MULTIPLE_CHOICE
+difficulty: BEGINNER
+points: 5
+tags:
+- revenue
+prompt: A retailer's revenue is highly seasonal, spiking every December. Why would month-over-month (MoM) growth
+  be a misleading way to evaluate November-to-December performance?
+correct_answer: MoM would show a huge spike driven purely by seasonality, not by any real underlying improvement
+  -- year-over-year (comparing this December to last December) controls for that
+explanation: For a seasonal business, MoM comparisons conflate the seasonal pattern itself with real growth or decline
+  -- comparing December to the PRIOR December (YoY) holds the seasonal effect roughly constant and isolates whether
+  the business is actually growing.
+choices:
+- MoM would show a huge spike driven purely by seasonality, not by any real underlying improvement -- year-over-year
+  (comparing this December to last December) controls for that
+- MoM and YoY always give identical results
+- MoM is always more accurate than YoY regardless of seasonality
+- Seasonality only affects YoY, not MoM

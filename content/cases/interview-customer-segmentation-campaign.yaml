@@ -1,0 +1,121 @@
+slug: interview-customer-segmentation-campaign
+title: Segmenting Customers for a Win-Back Campaign
+category: CUSTOMER_ANALYTICS
+difficulty: BEGINNER
+estimated_minutes: 25
+company_context: An online retailer tracked via the ecommerce schema.
+stakeholder_name: Taylor Wong
+stakeholder_role: CRM Marketing Manager
+problem_statement: '"We want to run a win-back email campaign for customers who''ve gone quiet, but marketing budget
+  is limited. Help me figure out who to target."'
+business_context: Taylor needs a data-driven segment definition, not a guess, to keep the campaign cost-effective.
+objective: Define and size a specific, high-value 'lapsed but recoverable' customer segment for the campaign.
+initial_information: You have access to customers, orders, order_items, and payments.
+constraints:
+- Budget only covers reaching a limited number of customers -- the segment must be prioritized, not everyone who's
+  ever lapsed.
+available_datasets:
+- ecommerce
+expected_deliverables:
+- A specific, defensible definition of 'lapsed but recoverable'
+- The resulting segment's size and estimated value
+- A recommendation for how to prioritize within budget
+learning_objectives:
+- Translate a vague targeting request into a specific, measurable segment definition
+- Balance segment size against expected value when budget is constrained
+- Communicate a segmentation choice and its tradeoffs clearly
+stages:
+- CLARIFY
+- ANALYZE
+- INSIGHTS
+- RECOMMEND
+- SUBMIT
+tags:
+- interview
+- customer-analytics
+- segmentation
+- case-study
+skills:
+- product-metrics
+- communication
+- business-problem-solving
+clarification_guidance:
+- A good clarifying question asks how 'gone quiet' should be defined -- how many days/months since last order.
+- A good clarifying question asks what the budget can afford (how many customers can actually be reached).
+rubric:
+- category: Problem Framing & Clarification
+  weight: 25
+  criteria:
+  - criterion: Clarifies a specific, measurable definition of 'lapsed' before segmenting
+    points: 15
+  - criterion: Asks about the budget constraint's actual reach limit
+    points: 10
+- category: Technical Analysis
+  weight: 30
+  is_technical: true
+  criteria:
+  - criterion: Correctly computes the size of the defined lapsed segment
+    points: 15
+  - criterion: Prioritizes within the segment using a value signal (e.g. historical order value/frequency)
+    points: 15
+- category: Insight Quality
+  weight: 20
+  criteria:
+  - criterion: Explains the tradeoff between a broader vs. narrower segment definition given the budget constraint
+    points: 20
+- category: Recommendation & Business Judgment
+  weight: 15
+  criteria:
+  - criterion: Gives a specific, budget-aware targeting recommendation
+    points: 15
+- category: Communication
+  weight: 10
+  criteria:
+  - criterion: Explains the segment definition and rationale in plain terms Taylor could approve
+    points: 10
+hints:
+- '''Gone quiet'' needs a specific threshold (e.g. no completed order in the last 90 days) before it can be measured.'
+- Within the lapsed segment, prioritize by historical value (e.g. past total spend or order frequency) since budget
+  is limited.
+reference_solution:
+  summary: Defining 'lapsed but recoverable' as a customer with at least one completed order historically but no
+    completed order in the trailing 90 days (relative to 2025-12-31, the most recent date in the data) produces a
+    segment of 569 customers -- 45.1% of the 1,261 customers who have ever completed an order, and 37.9% of all
+    1,500 customers in the file. For reference, 692 customers have completed an order within the last 90 days and
+    are still active, and 239 customers have never completed an order at all, split between 101 with only
+    cancelled/pending/refunded orders and 138 with no orders whatsoever -- neither group belongs in a win-back
+    segment aimed at people who used to buy. The lapsed segment's historical completed-order value totals
+    $1,829,662.10 (net of order_items discounts), averaging $3,215.57 per customer with a median of $2,602.26 --
+    meaningfully below the still-active segment's average of $5,741.28, which is expected since lapsed customers by
+    definition stopped ordering. Prioritizing within the lapsed segment by historical value concentrates spend
+    efficiently -- the top 100 lapsed customers by historical value (of the 569) account for $779,204.60, or 42.6% of
+    the entire lapsed segment's value, with the 100th-ranked customer alone worth $5,046.54 historically.
+  key_insights:
+  - A 90-day no-completed-order threshold (against the data's own most recent date, 2025-12-31) defines a lapsed
+    segment of 569 customers -- 45.1% of the 1,261 customers who have ever completed an order, and 37.9% of the
+    full 1,500-customer base.
+  - 692 customers completed an order within the last 90 days and are still active, and 239 customers have never
+    completed an order at all (101 with only cancelled/pending/refunded orders, 138 with no orders whatsoever) --
+    both groups are excluded from a win-back segment, since only the 569 lapsed customers previously purchased and
+    then stopped.
+  - The lapsed segment's total historical value is $1,829,662.10 (avg $3,215.57/customer, median $2,602.26),
+    noticeably below active customers' average of $5,741.28 -- consistent with lapsed customers having been
+    lower-value or less frequent buyers even before they lapsed.
+  - Prioritizing by historical value works well for a limited budget -- the top 100 of the 569 lapsed customers
+    account for $779,204.60 (42.6%) of the segment's total historical value, so a budget reaching only a fraction
+    of the segment still captures a disproportionate share of its recoverable value.
+  recommendation: Recommend targeting the top N lapsed customers ranked by historical completed-order value, where
+    N is set by the campaign budget's actual reach -- for example, the top 100 alone represent 42.6% of the full
+    lapsed segment's historical value, so a budget covering well under a fifth of the 569 lapsed customers (100 of
+    569 is 17.6%) still captures a disproportionate share of the recoverable value. Recommend excluding the 138
+    customers with no order history at all and the 101 with only non-completed orders from this specific win-back
+    campaign, since they were never actually retained customers to begin with and need a different acquisition or
+    first-purchase treatment.
+  acceptable_alternatives:
+  - A learner who uses a different reasonable lapsed threshold (e.g. 60 or 120 days instead of 90) and recomputes a
+    correspondingly different segment size and value, while still prioritizing by historical value within it,
+    should receive full credit as long as the threshold is explicit and consistently applied.
+  - A learner who also weights prioritization by order frequency (not just total historical value), or by
+    recency-within-lapsed (e.g. 90-180 days lapsed prioritized over 180+ days lapsed as more recoverable), should
+    receive credit for a defensible refinement.
+version: 1

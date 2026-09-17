@@ -1,0 +1,48 @@
+slug: campaign-spend-versus-effectiveness
+lesson_slug: welcome-to-the-challenge-library
+skill: business-problem-solving
+dataset: ecommerce
+title: "Is the Highest-Spend Campaign Actually the Most Effective?"
+description: Compare all 15 marketing campaigns on budget versus cost per conversion, and decide what the negative relationship between spend and efficiency actually implies for budget planning.
+exercise_type: DATA_INTERPRETATION
+difficulty: ADVANCED
+points: 25
+tags: [eda, real-world, advanced, case-study]
+prompt: >
+  Using `marketing_campaigns` and `sessions` (joined on `marketing_campaign_id`, with `converted` marking a
+  conversion), compute cost per conversion (budget / conversions) for all 15 campaigns. The lowest-budget
+  campaign, Email Campaign 7 ($2,146.67 budget), converts at $44.72 per conversion — the best in the
+  dataset. The highest-budget campaign, Display Campaign 1 ($19,829.92 budget), converts at $483.66 per
+  conversion — the worst, roughly 10.8x less efficient. Across all 15 campaigns, budget and resulting
+  session count are actually negatively correlated (r = -0.65). What do you tell whoever sets next
+  quarter's campaign budgets, and what's the responsible way to interpret this pattern rather than jumping
+  straight to "just spend less on everything"?
+hints:
+  - "The finding directly answers the question 'is the highest-spend campaign the most effective per dollar' — but 'don't reward high spend with more budget' and 'therefore cut all spend' are two very different recommendations. Think about what data you'd need to justify the second one that you don't have from this comparison alone."
+  - "Consider what's confounded with 'budget' here besides pure dollar amount — channel (search vs. display vs. email vs. social), audience size/reach the budget is meant to cover, and campaign objective could all differ systematically between the high- and low-budget campaigns in ways that aren't really about 'spend' itself."
+solution: >
+  The direct answer to the stakeholder's question: no, the highest-spend campaign is clearly not the most
+  effective per dollar — it's the LEAST efficient of all 15, at $483.66 per conversion versus $44.72 for the
+  cheapest campaign, a roughly 10.8x gap. I would NOT jump from this to "cut all marketing spend," though —
+  that's a much bigger claim than the data supports. What I'd actually recommend: reallocate budget within
+  the existing campaign mix based on demonstrated cost-per-conversion efficiency, starting by examining what
+  Email Campaign 7 and Social Campaign 12 (both low-budget, both efficient) are doing differently from
+  Display Campaign 1 and Display Campaign 8 (both high-budget, both inefficient) — is it the channel itself
+  (email/social vs. display), the audience being targeted, or something about how conversions are being
+  measured for each? I would also flag the small sample size directly — 15 campaigns is not a lot of data
+  points to draw a firm budget-allocation policy from, and I'd want to see whether this pattern holds if a
+  low-budget campaign's budget were deliberately increased (a genuine test), rather than assuming the
+  negative correlation would necessarily continue in that direction. The responsible framing for whoever
+  sets next quarter's budgets: "spend and efficiency are inversely related in this data — don't assume more
+  budget on a similar campaign produces proportionally more results, and prioritize channel/campaign design
+  over campaign size — but don't over-read a 15-campaign sample into a company-wide policy of spending
+  less everywhere."
+explanation: >
+  A strong answer directly confronts the stakeholder's actual question (highest spend is NOT most
+  effective, with the specific numbers) while explicitly resisting the overcorrection of recommending
+  across-the-board cuts, which the data doesn't actually support. It proposes investigating WHY the
+  efficient campaigns are efficient (channel, targeting, measurement) rather than treating "spend less" as
+  the conclusion, and flags the small sample size as a real limitation on how far the finding should be
+  generalized. A weaker answer either accepts spend as automatically effective (missing the actual finding),
+  or overgeneralizes the finding into "cut all marketing budgets" without acknowledging what that claim
+  would actually require.

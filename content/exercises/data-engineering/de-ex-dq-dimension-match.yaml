@@ -1,0 +1,24 @@
+slug: de-ex-dq-dimension-match
+lesson_slug: de-data-quality-dimensions
+skill: data-quality-engineering
+title: "Name the Data Quality Dimension"
+description: Match a concrete data quality symptom to the specific dimension it violates.
+exercise_type: MULTIPLE_CHOICE
+difficulty: INTERMEDIATE
+points: 10
+tags: [data-quality, validation, data-engineering, intermediate]
+prompt: >
+  A customer's country is recorded as "US" in the `customers` table and as "United States" in a
+  separate CRM export of the same underlying customer records. Both values are individually
+  well-formed strings. Which data quality dimension does this discrepancy most directly violate?
+choices:
+  - "Completeness — a value is missing"
+  - "Consistency — the same real-world fact is represented two different ways across two systems, even though neither value is individually invalid"
+  - "Freshness — the data is out of date"
+correct_answer: "Consistency — the same real-world fact is represented two different ways across two systems, even though neither value is individually invalid"
+explanation: >
+  Consistency asks whether the same fact agrees with itself everywhere it's recorded — not whether
+  any single value is well-formed on its own. "US" and "United States" could each individually pass
+  a validity check (they're reasonable, well-formed strings), but they disagree with each other as
+  representations of the same customer's country, which is exactly a consistency problem, not a
+  completeness or freshness one.

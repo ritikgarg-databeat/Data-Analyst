@@ -1,0 +1,109 @@
+slug: biz-cac-by-channel
+module_slug: marketing-analytics
+title: "CAC by Channel: What It Actually Costs to Win a Customer"
+description: How to compute Customer Acquisition Cost per marketing channel from campaign spend and attributed conversions, and why a single blended CAC hides where budget is working.
+difficulty: INTERMEDIATE
+estimated_minutes: 14
+display_order: 1
+objectives:
+  - Compute Customer Acquisition Cost (CAC) for a marketing channel from spend and attributed customers
+  - Explain why CAC must be computed per channel rather than as one company-wide average
+  - Identify the specific attribution steps required to compute CAC correctly
+skills: [business-analytics, business-metrics, metric-definition]
+datasets: [ecommerce]
+tags: [business-analytics, marketing, intermediate, e-commerce]
+key_takeaways:
+  - "CAC = total spend on a channel / number of customers acquired via that channel, over the same period."
+  - Computing CAC correctly requires joining spend (by campaign/channel) to attributed conversions (which customers actually came from that channel) — skipping either half produces a meaningless number.
+  - In this platform's real ecommerce data, CAC ranges from $194.44 (email) to $342.03 (display) across four paid channels — a 76% gap that a single blended "average CAC" would completely hide.
+common_mistakes:
+  - Dividing total marketing spend by total new customers company-wide, which blends channels with very different efficiency into one uninformative number.
+  - Attributing a converted customer to the wrong campaign/channel (or double-counting them across channels) by not carefully joining session-level attribution data before aggregating.
+blocks:
+  - type: heading
+    text: CAC only means something per channel
+  - type: formula
+    expression: "CAC (per channel) = Total spend on that channel / Number of customers acquired via that channel"
+    description: >
+      Both the numerator (spend) and denominator (acquired customers) must be scoped to the *same* channel
+      and the *same* period — mixing a channel's spend with a different channel's conversions (or with
+      company-wide conversions) produces a number that isn't CAC for anything real.
+  - type: example
+    title: Computing CAC end-to-end on real campaign and session data
+    body: >
+      This platform's ecommerce dataset separates the two halves of CAC across two tables: `marketing_campaigns`
+      (spend, by channel) and `sessions` (which customers converted, and via which campaign). Joining them
+      — summing each channel's total campaign budget, and counting the distinct customers whose converted
+      session was attributed to a campaign of that channel — produces real, differentiated CAC: email at
+      $194.44, social at $252.56, search at $265.80, and display at $342.03. Display is the most expensive
+      channel to acquire a customer through, at nearly double email's cost.
+    code: |
+      WITH channel_budget AS (
+        SELECT channel, SUM(budget) AS channel_budget
+        FROM marketing_campaigns
+        GROUP BY 1
+      ),
+      channel_acquisitions AS (
+        SELECT camp.channel, COUNT(DISTINCT s.customer_id) AS acquired_customers
+        FROM sessions s
+        JOIN marketing_campaigns camp ON s.marketing_campaign_id = camp.campaign_id
+        WHERE s.converted = true
+        GROUP BY 1
+      )
+      SELECT
+        b.channel,
+        ROUND(b.channel_budget, 2) AS channel_budget,
+        a.acquired_customers,
+        ROUND(b.channel_budget / a.acquired_customers, 2) AS cac
+      FROM channel_budget b
+      JOIN channel_acquisitions a USING (channel)
+      ORDER BY cac;
+    language: sql
+  - type: output
+    body: |
+      channel  channel_budget  acquired_customers  cac
+      email    21776.99        112                 194.44
+      social   54300.54        215                 252.56
+      search   12226.66        46                  265.80
+      display  76614.79        224                 342.03
+    caption: Real CAC by marketing channel, computed from campaign budgets and attributed session conversions.
+  - type: callout
+    variant: warning
+    title: Two joins have to be exactly right
+    body: >
+      This calculation depends on two attribution steps that are each easy to get subtly wrong: (1) a
+      session only counts toward a channel if it's tied to a campaign of that channel via
+      `marketing_campaign_id`, not just "any session where the customer eventually bought something," and
+      (2) a customer should be counted once per channel even if they had multiple converting sessions —
+      `COUNT(DISTINCT customer_id)`, not `COUNT(*)`, is what keeps the denominator honest.
+  - type: heading
+    text: A blended CAC would have hidden all of this
+    level: 3
+  - type: text
+    body: >
+      If this analysis had stopped at "total marketing spend ($164,919) / total acquired customers (224 +
+      215 + 112 + 46, with some overlap complexity glossed over)," the resulting single number would sit
+      somewhere in the middle of the real range and describe no actual channel well. It would be equally
+      wrong whether used to judge email (understating its real efficiency) or display (understating its
+      real cost) — which is exactly why CAC belongs on a per-channel basis by default, not as a company-wide
+      summary statistic.
+  - type: checklist
+    title: Before reporting CAC, confirm
+    items:
+      - Spend and acquired-customer counts are both scoped to the same channel and the same period
+      - Attribution logic (which conversion counts toward which channel) is documented and consistent
+      - A customer acquired through multiple touchpoints isn't silently double-counted across channels
+  - type: question
+    prompt: >
+      A marketing lead reports "our average CAC across all channels is $265" and wants to keep budget
+      allocation unchanged next quarter. What's the strongest objection to that plan?
+    choices:
+      - "A single average CAC is always calculated incorrectly and shouldn't be trusted at all."
+      - "The average could mask a wide per-channel spread, meaning some channels are far more efficient than $265 and others far less — a case for reallocating budget, not holding it flat."
+      - "CAC should never be averaged across more than one campaign, even within the same channel."
+    correct_index: 1
+    explanation: >
+      A blended CAC of $265 is a mathematically valid average, but it obscures exactly the information a
+      budget-allocation decision needs. This lesson's own data shows per-channel CAC ranging from $194.44
+      to $342.03 — a spread wide enough that "keep allocation unchanged" is very likely leaving efficiency
+      on the table by continuing to fund the most expensive channel at the same rate as the cheapest one.

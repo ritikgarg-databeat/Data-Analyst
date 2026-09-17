@@ -1,0 +1,71 @@
+slug: dw-ex-sql-fanout-detection
+lesson_slug: dw-declaring-grain
+skill: dimensional-modeling
+dataset: ecommerce
+title: "Detect Which Orders Would Fan Out"
+description: Identify which orders would appear as duplicate rows (a grain violation) if a fact table meant to be one-row-per-order joined directly to order_items without aggregating first.
+exercise_type: SQL
+difficulty: INTERMEDIATE
+points: 15
+tags: [grain, fact-table, validation]
+business_context: >
+  fct_orders is documented at the grain "1 row = 1 order," and it achieves this by pre-aggregating
+  order_items into one row per order before joining. Before trusting that any order-grain query
+  actually holds that grain, it's worth being able to identify exactly which orders would break it if
+  the pre-aggregation step were skipped.
+prompt: >
+  Using the `order_items` table, write a query that returns every `order_id` that has more than one
+  order_item row, along with its `item_count` (the number of order_item rows for that order). This
+  identifies which orders would appear as duplicated rows — a grain violation — if a table meant to
+  be one-row-per-order joined directly to order_items without aggregating first. Order the result by
+  `item_count` descending, then `order_id` ascending.
+sql_tables: [order_items]
+sql_starter_query: |
+  -- Explore the order_items table first
+  SELECT * FROM order_items LIMIT 20;
+sql_solution_query: |
+  SELECT
+    order_id,
+    COUNT(*) AS item_count
+  FROM order_items
+  GROUP BY order_id
+  HAVING COUNT(*) > 1
+  ORDER BY item_count DESC, order_id ASC;
+sql_row_order_matters: true
+sql_numeric_tolerance: 0.01
+sql_hidden_tests:
+  - name: "The maximum item_count for any single order is correct"
+    query: |
+      SELECT
+        order_id,
+        COUNT(*) AS item_count
+      FROM order_items
+      GROUP BY order_id
+      HAVING COUNT(*) > 1
+      ORDER BY item_count DESC, order_id ASC
+      LIMIT 1
+    key_columns: 1
+hints:
+  - "Group order_items by order_id and count the rows in each group — any group with more than one row represents an order that would be duplicated if joined to an order-grain table without pre-aggregating first."
+  - "Filter groups (not rows) using HAVING COUNT(*) > 1, since the condition depends on the aggregate, and add order_id ASC as a tiebreaker after the primary item_count DESC sort."
+solution: >
+  ```sql
+  SELECT
+    order_id,
+    COUNT(*) AS item_count
+  FROM order_items
+  GROUP BY order_id
+  HAVING COUNT(*) > 1
+  ORDER BY item_count DESC, order_id ASC;
+  ```
+  3,374 of the dataset's orders have more than one order_item row, with a maximum of 5 items on any
+  single order (order_id=4 is the first result: item_count=5).
+explanation: >
+  A strong answer isolates exactly the condition that causes a fan-out: any order_id with more than
+  one order_item row would appear duplicated that many times if joined directly to an order-grain
+  fact table, with every order-level column (like a payment total) repeated once per duplicate row —
+  inflating any downstream SUM() or COUNT() over the result. This is precisely why fct_orders.sql
+  pre-aggregates order_items into `order_items_agg` (one row per order) before joining, instead of
+  joining order_items directly to stg_orders. A common mistake is checking only whether any order_id
+  repeats at all, without also confirming the fact table's actual join logic pre-aggregates before
+  joining — the grain violation only exists if a join skips that step.

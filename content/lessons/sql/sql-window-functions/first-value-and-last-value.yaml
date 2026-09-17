@@ -1,0 +1,144 @@
+slug: first-value-and-last-value
+module_slug: sql-window-functions
+title: FIRST_VALUE and LAST_VALUE
+description: Pulling the first or last value within a window — and the default-frame trap that makes LAST_VALUE surprise almost everyone the first time.
+difficulty: ADVANCED
+estimated_minutes: 13
+display_order: 6
+objectives:
+  - Use FIRST_VALUE to attach the earliest row's value to every row in a partition
+  - Explain why LAST_VALUE with no explicit frame returns the current row's own value instead of the partition's true last value
+  - Write the explicit frame clause that makes LAST_VALUE behave as expected
+prerequisites: [ntile-and-percentiles]
+skills: [advanced-sql]
+datasets: [ecommerce]
+tags: [sql, advanced]
+key_takeaways:
+  - "FIRST_VALUE(column) OVER (PARTITION BY ... ORDER BY ...) returns the column's value from the first row of the window — e.g. a customer's first-ever order channel, repeated on every one of their order rows."
+  - "LAST_VALUE inherits the same default frame every other ordered window function does — UNBOUNDED PRECEDING to CURRENT ROW — which means, by default, it returns the current row's own value, not the partition's true last row. This is one of the most common window function bugs in real SQL."
+  - "Fixing LAST_VALUE requires an explicit frame that extends to the end of the partition: ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING."
+common_mistakes:
+  - "Using LAST_VALUE(column) OVER (PARTITION BY ... ORDER BY ...) with no frame clause and expecting the partition's actual last row's value — without an explicit frame, LAST_VALUE just returns whatever the current row's own value is, making it look like it 'did nothing.'"
+  - "Fixing the frame but forgetting FIRST_VALUE never had this problem in the first place — FIRST_VALUE only ever needs to look backward to UNBOUNDED PRECEDING, which the default frame already covers, so no frame change is needed there."
+blocks:
+  - type: heading
+    text: FIRST_VALUE — straightforward and safe by default
+  - type: text
+    body: >
+      `FIRST_VALUE(column) OVER (PARTITION BY ... ORDER BY ...)` returns whatever value that column
+      holds on the *first* row of the window, repeated across every row in the partition. A common use
+      is attaching each customer's very first order's channel to every one of their orders, so you can
+      ask questions like "did customers who first ordered via mobile behave differently later?"
+  - type: code
+    language: sql
+    caption: Each order alongside the customer's first-ever order channel
+    code: |
+      SELECT
+        customer_id,
+        order_id,
+        order_date,
+        channel,
+        FIRST_VALUE(channel) OVER (
+          PARTITION BY customer_id ORDER BY order_date
+        ) AS first_order_channel
+      FROM orders
+      WHERE customer_id = 18
+      ORDER BY order_date;
+  - type: output
+    body: |
+      customer_id | order_id | order_date | channel | first_order_channel
+      -------------+----------+------------+---------+----------------------
+                18 |       45 | 2025-07-26 | mobile  | mobile
+                18 |       47 | 2025-08-01 | mobile  | mobile
+                18 |       46 | 2025-10-10 | web     | mobile
+  - type: text
+    body: >
+      This works correctly with no extra effort, because FIRST_VALUE only ever needs to see backward
+      to the start of the partition — and the default frame that ORDER BY implies (UNBOUNDED
+      PRECEDING through CURRENT ROW) already includes the first row on every single output row.
+  - type: heading
+    text: "LAST_VALUE's trap: the default frame betrays it"
+  - type: text
+    body: >
+      LAST_VALUE looks like it should be FIRST_VALUE's mirror image — but try it with the exact same
+      pattern, and something looks wrong.
+  - type: code
+    language: sql
+    caption: "LAST_VALUE with no explicit frame — this does NOT do what it looks like it should"
+    code: |
+      SELECT
+        customer_id,
+        order_id,
+        order_date,
+        channel,
+        LAST_VALUE(channel) OVER (
+          PARTITION BY customer_id ORDER BY order_date
+        ) AS naive_last_channel
+      FROM orders
+      WHERE customer_id = 18
+      ORDER BY order_date;
+  - type: output
+    caption: "naive_last_channel just matches each row's OWN channel — it never reaches the true last row"
+    body: |
+      customer_id | order_id | order_date | channel | naive_last_channel
+      -------------+----------+------------+---------+----------------------
+                18 |       45 | 2025-07-26 | mobile  | mobile
+                18 |       47 | 2025-08-01 | mobile  | mobile
+                18 |       46 | 2025-10-10 | web     | web
+  - type: callout
+    variant: warning
+    title: Why this happens
+    body: >
+      Every ordered window function shares the same default frame — UNBOUNDED PRECEDING through
+      CURRENT ROW — regardless of which function it's attached to. For FIRST_VALUE that default is
+      harmless, because the first row is always inside that range. But for LAST_VALUE, "the last row
+      of the frame" under that default is always just... the current row itself, since the frame ends
+      at CURRENT ROW. The result isn't wrong or random — it's doing exactly what was asked — but what
+      was asked doesn't match what "last value in the partition" sounds like it should mean.
+  - type: code
+    language: sql
+    caption: "The fix — extend the frame to cover the whole partition"
+    code: |
+      SELECT
+        customer_id,
+        order_id,
+        order_date,
+        channel,
+        LAST_VALUE(channel) OVER (
+          PARTITION BY customer_id
+          ORDER BY order_date
+          ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+        ) AS correct_last_channel
+      FROM orders
+      WHERE customer_id = 18
+      ORDER BY order_date;
+  - type: table
+    headers: ["order_id", "order_date", "channel", "naive_last_channel (default frame)", "correct_last_channel (explicit frame)"]
+    rows:
+      - ["45", "2025-07-26", "mobile", "mobile", "web"]
+      - ["47", "2025-08-01", "mobile", "mobile", "web"]
+      - ["46", "2025-10-10", "web", "web", "web"]
+  - type: text
+    body: >
+      With `ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING`, the frame now covers the entire
+      partition on every row, so LAST_VALUE correctly returns "web" — this customer's actual final
+      order's channel — consistently across all three rows, exactly mirroring how FIRST_VALUE behaved
+      from the start.
+  - type: checklist
+    title: Whenever you reach for LAST_VALUE
+    items:
+      - "Ask: does this need the default frame (current-row-relative), or the true last row of the partition?"
+      - "If it's the true last row, add ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING explicitly"
+      - "Sanity-check on a partition with more than one distinct value, the way the mobile/web example above does — a partition where every row shares one value can hide this bug completely"
+  - type: question
+    prompt: "LAST_VALUE(channel) OVER (PARTITION BY customer_id ORDER BY order_date) is used with no explicit ROWS BETWEEN clause. What does it actually return on each row?"
+    choices:
+      - "The channel from that customer's true last order, on every row"
+      - "The channel from that row's own position — effectively just echoing the current row's channel back"
+      - NULL, because LAST_VALUE requires an explicit frame to run at all
+    correct_index: 1
+    explanation: >
+      Without an explicit frame, ORDER BY implies UNBOUNDED PRECEDING through CURRENT ROW as the
+      default frame. Since that frame's last row is always the current row itself, LAST_VALUE ends up
+      returning the current row's own value rather than the partition's true final row — the classic
+      LAST_VALUE trap, fixed only by writing an explicit frame that extends to UNBOUNDED FOLLOWING.

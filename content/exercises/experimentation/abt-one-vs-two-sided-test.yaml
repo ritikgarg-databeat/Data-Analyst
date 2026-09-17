@@ -1,0 +1,22 @@
+slug: abt-one-vs-two-sided-test
+skill: experimentation
+title: One-Sided vs. Two-Sided Tests
+description: You only care about detecting whether a change INCREASES conversion (a decrease would be treated the
+  same as no effect for the ship decision). Which test framing matches this?
+exercise_type: MULTIPLE_CHOICE
+difficulty: INTERMEDIATE
+points: 5
+tags:
+- ab-testing
+- hypothesis-testing
+prompt: You only care about detecting whether a change INCREASES conversion (a decrease would be treated the same
+  as no effect for the ship decision). Which test framing matches this?
+correct_answer: A one-sided (one-tailed) test
+explanation: A one-sided test puts all the rejection region on the direction you actually care about (an increase),
+  giving slightly more power to detect that specific direction -- appropriate only when a decrease genuinely wouldn't
+  change the decision, which should be decided BEFORE seeing the data, not after.
+choices:
+- A one-sided (one-tailed) test
+- A two-sided (two-tailed) test
+- Neither framing matters for the ship decision
+- A paired t-test specifically

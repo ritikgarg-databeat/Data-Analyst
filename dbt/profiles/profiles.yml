@@ -1,0 +1,16 @@
+# Kept inside the repo (not ~/.dbt/profiles.yml) so the dbt Lab needs zero
+# machine-level setup — every dbt invocation passes --profiles-dir pointing
+# here explicitly (see app/dbt_lab/service.py). DuckDB needs no credentials,
+# so there's nothing secret to keep out of version control.
+#
+# `path` is resolved via the DBT_WAREHOUSE_PATH env var (set by the API
+# process to an absolute, dynamically-resolved path — see
+# app/dbt_lab/paths.py) rather than hardcoded, so the project stays portable
+# across machines/checkouts.
+personal_data_analyst_lab:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: "{{ env_var('DBT_WAREHOUSE_PATH') }}"
+      threads: 4

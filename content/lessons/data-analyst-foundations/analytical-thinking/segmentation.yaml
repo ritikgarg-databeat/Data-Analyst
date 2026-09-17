@@ -1,0 +1,77 @@
+slug: segmentation
+module_slug: analytical-thinking
+title: Segmentation
+description: Breaking an aggregate metric down by a dimension to find where an effect is actually concentrated.
+difficulty: BEGINNER
+estimated_minutes: 14
+display_order: 4
+objectives:
+  - Explain why an aggregate metric can hide an effect that segmentation reveals
+  - Choose reasonable dimensions to segment by when investigating a metric change
+prerequisites: [metrics]
+skills: [exploratory-data-analysis, business-metrics]
+tags: [foundations, beginner, business-analytics, real-world]
+key_takeaways:
+  - An aggregate number can look flat while opposite effects in two segments are canceling each other out.
+  - Useful segmentation dimensions are usually time, geography, platform or device, acquisition channel, and cohort or tenure — pick dimensions with a plausible mechanism, not every column available.
+  - Segmenting is a search for where an effect concentrates, not an excuse to slice data until something looks significant by chance.
+common_mistakes:
+  - Slicing by dozens of dimensions until one shows a "significant" difference, then treating that as the explanation with no plausible mechanism behind it.
+  - Stopping at the first segment that shows a difference instead of checking whether that segment is large enough to actually explain the aggregate move.
+blocks:
+  - type: heading
+    text: The aggregate number lies by omission
+  - type: text
+    body: >
+      An overall metric can look completely flat while something real is happening underneath it, if two
+      segments are moving in opposite directions and canceling out. Segmentation is the only way this
+      shows up.
+  - type: table
+    headers: ["Segment", "Conversion rate — Aug", "Conversion rate — Sep", "Change"]
+    rows:
+      - ["Overall", "3.10%", "3.05%", "-0.05 pts (looks flat)"]
+      - ["Desktop", "2.80%", "3.40%", "+0.60 pts"]
+      - ["Mobile", "3.60%", "2.60%", "-1.00 pts"]
+  - type: text
+    body: >
+      The overall rate barely moved because desktop's improvement offset mobile's decline almost
+      exactly. Anyone looking only at the top-line number would conclude nothing changed.
+  - type: code
+    language: sql
+    code: |
+      SELECT
+        device_type,
+        DATE_TRUNC('month', order_date) AS month,
+        COUNT(*) FILTER (WHERE converted) * 1.0 / COUNT(*) AS conversion_rate
+      FROM sessions
+      WHERE order_date >= '2026-08-01'
+      GROUP BY device_type, DATE_TRUNC('month', order_date)
+      ORDER BY device_type, month;
+    caption: Segmenting the same conversion metric by device instead of looking at it in aggregate
+  - type: heading
+    text: Which dimensions to check
+  - type: checklist
+    title: Dimensions worth checking first
+    items:
+      - Time — day of week, time of day, before/after a specific date
+      - Geography — country, region, market
+      - Platform or device — mobile vs. desktop, iOS vs. Android
+      - Acquisition channel — paid, organic, referral, email
+      - Customer cohort or tenure — new vs. returning, signup cohort
+  - type: callout
+    variant: common_mistake
+    title: Data dredging
+    body: >
+      Testing 40 dimensions until one shows a "significant" difference will produce a false positive by
+      chance alone. Segment where you have a plausible mechanism, like a mobile app release or a
+      regional promotion, not everywhere the data happens to allow.
+  - type: question
+    prompt: Overall week-over-week conversion rate is flat. Which situation is a real reason to still segment the data?
+    choices:
+      - Never — if the aggregate is flat, there's nothing to find underneath it
+      - When you have a specific reason to suspect an effect is concentrated in one segment, like a platform-specific release or a regional promotion
+      - Only after segmenting by every available dimension, to check all of them equally
+    correct_index: 1
+    explanation: >
+      A flat aggregate can hide offsetting effects in different segments. It's worth segmenting when you
+      have a plausible mechanism to check, not as an unguided search across every column in the table.

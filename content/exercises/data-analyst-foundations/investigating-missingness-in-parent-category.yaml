@@ -1,0 +1,42 @@
+slug: investigating-missingness-in-parent-category
+lesson_slug: welcome-to-the-challenge-library
+skill: exploratory-data-analysis
+dataset: ecommerce
+title: "A Column That's 100% Missing: Broken, or Just Unused?"
+description: Investigate a column that's null on every single row of a small table, and decide whether that's a data quality failure or a feature that was simply never populated.
+exercise_type: DATA_INTERPRETATION
+difficulty: INTERMEDIATE
+points: 15
+tags: [eda, real-world, intermediate]
+prompt: >
+  The `categories` table (10 rows: Electronics, Home & Kitchen, Sports & Outdoors, Books, Toys & Games,
+  Beauty, Apparel, Office Supplies, Pet Supplies, Garden & Outdoor) has a `parent_category` column that is
+  NULL on all 10 rows — 100% missing. This is a much more extreme case than the usual "some rows are
+  missing" pattern. What does 100% missingness on a column, rather than a partial rate, tell you about how
+  to investigate it, and what would you conclude here?
+hints:
+  - "Compare this to the platform's usual missing-values check: a PARTIAL null rate (like 35% or 60%) is usually investigated by comparing rows with and without the value present. That comparison is impossible here — there ARE no rows with a value present. Think about what kind of check remains available when every row is missing."
+  - "Look at the column name and the actual category list itself: are any of the 10 categories names that plausibly SHOULD have a parent (e.g. is 'Garden & Outdoor' a child of something else that's just not showing up), or does the list read as 10 genuinely independent top-level categories with no natural hierarchy?"
+solution: >
+  100% missingness changes the investigation entirely — the usual "compare rows with vs. without the value"
+  check (used elsewhere in this dataset, like sessions.marketing_campaign_id) is impossible here, since
+  there's no populated subset to compare against. The only available checks are: does the column's EXISTENCE
+  make business sense (is a category hierarchy a real feature of this business, or was the column added
+  speculatively and never wired up), and does the actual category list suggest a natural hierarchy that's
+  failing to show. Looking at the 10 categories directly — Electronics, Home & Kitchen, Sports & Outdoors,
+  Books, Toys & Games, Beauty, Apparel, Office Supplies, Pet Supplies, Garden & Outdoor — none of these
+  reads as an obvious child of another one in the list; they look like 10 independent, flat, top-level
+  categories, not a two-level hierarchy with a broken link. Combined with the schema having a
+  parent_category field at all, my read: this looks like a column added for a category-hierarchy feature
+  that either isn't implemented yet or isn't needed for this catalog's actual (flat) structure, rather than
+  a broken import that silently dropped real parent values. I'd flag it to whoever owns the schema as "this
+  field exists but is entirely unused — confirm whether it's planned for future use or safe to ignore,"
+  rather than treating it as an urgent data-quality bug to fix.
+explanation: >
+  A strong answer recognizes that 100% missingness forecloses the standard "compare present vs. missing"
+  check and reasons instead about the column's purpose and whether the surrounding data (the actual category
+  names) supports the idea that a hierarchy SHOULD exist but is broken, versus the catalog genuinely being
+  flat by design. It reaches a specific, defensible conclusion (likely an unused/unimplemented field, not a
+  broken import) rather than a generic "this needs more data to know." A weaker answer either treats 100%
+  missing identically to a partial missing rate (proposing a present-vs-missing comparison that isn't
+  actually possible here), or assumes without checking that it must be a pipeline bug.

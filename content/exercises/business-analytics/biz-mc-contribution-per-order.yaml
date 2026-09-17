@@ -1,0 +1,27 @@
+slug: biz-mc-contribution-per-order
+lesson_slug: biz-unit-economics-fundamentals
+skill: business-metrics
+title: A Discount Request and Unit Economics
+description: Decide whether a bulk discount request still leaves an order profitable at the unit level.
+exercise_type: MULTIPLE_CHOICE
+difficulty: BEGINNER
+points: 10
+tags: [business-analytics, beginner, finance]
+prompt: >
+  A wholesale customer wants to buy a product in bulk at a 30% discount off its normal $100 unit
+  price. The product costs $65 to source. The sales team argues "we should say yes — any revenue
+  is better than no revenue." Evaluating this purely on unit economics, what's the correct
+  assessment?
+choices:
+  - "Approve it — $70 in discounted revenue is still positive revenue, so the deal is profitable."
+  - "The deal loses money at the unit level: the discounted price ($70) is less than the product's cost ($65) plus this specific buyer's likely added handling costs, so the true contribution needs to be checked before assuming any revenue is good revenue."
+  - "Unit economics don't apply to bulk or wholesale deals, only to normal retail-price orders."
+correct_answer: "The deal loses money at the unit level: the discounted price ($70) is less than the product's cost ($65) plus this specific buyer's likely added handling costs, so the true contribution needs to be checked before assuming any revenue is good revenue."
+explanation: >
+  A 30% discount off $100 brings the price to $70, against a $65 sourcing cost — a razor-thin $5 gross
+  contribution before accounting for anything else that scales with this specific order (payment
+  processing fees, any bulk-specific shipping or handling cost). "Any revenue is better than no revenue"
+  is only true if that revenue exceeds what it costs to deliver it — a discount deep enough to approach
+  cost turns a seemingly attractive deal into a marginal or even money-losing one at the unit level. The
+  correct move is computing the actual contribution margin on the discounted price before approving,
+  not assuming a lower price is automatically fine because it's still a positive number.

@@ -1,0 +1,64 @@
+slug: dataset-health-check
+lesson_slug: inspecting-a-new-dataset
+skill: exploratory-data-analysis
+dataset: ecommerce
+title: Dataset Health Check
+description: Produce a one-shot column-level health-check summary of the sessions table.
+exercise_type: PYTHON
+difficulty: INTERMEDIATE
+points: 20
+tags: [python, intermediate, real-world]
+business_context: >
+  Before building anything on top of the `sessions` table, data engineering wants a quick,
+  repeatable health-check summary of every column — its data type, how many values are missing,
+  and how many distinct values it holds — to catch data quality surprises early.
+prompt: >
+  Using `sessions`, build a one-row-per-column health-check summary. Store your answer in a
+  variable named `result`: a DataFrame with one row for every column in `sessions`, and columns
+  `column_name` (the column's name), `dtype` (the column's pandas dtype, as a string),
+  `null_count` (number of missing values in that column), and `unique_count` (number of distinct
+  non-null values in that column).
+python_datasets: [sessions]
+python_starter_code: |
+  # sessions is already loaded as a DataFrame.
+  # Explore it first:
+  sessions.info()
+python_solution_code: |
+  result = pd.DataFrame({
+      "column_name": sessions.columns,
+      "dtype": [str(sessions[c].dtype) for c in sessions.columns],
+      "null_count": [int(sessions[c].isna().sum()) for c in sessions.columns],
+      "unique_count": [int(sessions[c].nunique()) for c in sessions.columns],
+  })
+python_result_variable: result
+python_row_order_matters: false
+python_numeric_tolerance: 0.01
+python_hidden_tests:
+  - name: "One row per column, customer_id has missing values"
+    code: |
+      assert len(result) == 8, f"Expected 8 rows (one per sessions column), got {len(result)}"
+      customer_id_row = result[result["column_name"] == "customer_id"]
+      assert customer_id_row["null_count"].iloc[0] > 0, (
+          "Expected customer_id to have at least one missing value in this dataset"
+      )
+hints:
+  - "sessions.columns gives you the list of column names to iterate over. For each column, sessions[col].dtype gives its type, .isna().sum() gives the null count, and .nunique() gives the count of distinct non-null values."
+  - "Build the four lists (one per column of your health-check summary) in the same order as sessions.columns, then pass them all to pd.DataFrame({...}) as a dict of columns — that keeps everything aligned by position without needing a loop that appends rows one at a time."
+solution: |
+  ```python
+  result = pd.DataFrame({
+      "column_name": sessions.columns,
+      "dtype": [str(sessions[c].dtype) for c in sessions.columns],
+      "null_count": [int(sessions[c].isna().sum()) for c in sessions.columns],
+      "unique_count": [int(sessions[c].nunique()) for c in sessions.columns],
+  })
+  ```
+explanation: >
+  This kind of column-by-column profile is usually the very first thing worth running against any
+  new table — it surfaces two things fast: which columns have missing data (here, `customer_id`
+  and `marketing_campaign_id` both have real gaps, which matters a lot if you're about to join on
+  either of them) and whether a column's dtype matches what you'd expect (a date column showing up
+  as `object`/`str` instead of a datetime type is a common early warning that it needs parsing
+  before use). `nunique()` defaults to excluding NaN when counting distinct values, which is the
+  right behavior for a "how many distinct real values does this column have" question — a missing
+  value isn't a meaningfully distinct category.

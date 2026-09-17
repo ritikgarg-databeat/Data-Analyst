@@ -1,0 +1,216 @@
+slug: scatter-plots
+module_slug: visualization-with-python
+title: "Scatter Plots: Relationships Between Two Variables"
+description: plt.scatter and adding a third dimension with color and size, plus overplotting — what it looks like with real data and how to fix it with alpha and sampling.
+difficulty: BEGINNER
+estimated_minutes: 12
+display_order: 4
+objectives:
+  - Build a scatter plot to show the relationship between two continuous variables, and read what its shape says about that relationship
+  - Encode a third and fourth dimension onto a scatter plot using point color and point size
+  - Recognize overplotting and fix it with alpha transparency or sampling
+prerequisites: [line-charts]
+skills: [data-visualization]
+datasets: [ecommerce]
+tags: [python, beginner, foundations]
+key_takeaways:
+  - "A scatter plot answers 'is there a relationship between these two numeric variables' — per the framework from lesson 1, that's a different question from a trend over time (line chart) or a comparison across categories (bar chart), and it's the only one of the three where neither axis needs to be time or a category."
+  - "Product cost and unit_price in this dataset correlate at 0.94 — close to a straight line — which a scatter plot shows instantly and a correlation coefficient alone doesn't: you can also see the one or two products that break the pattern, which the number hides."
+  - "Color and size can each carry one more variable on the same chart, but stacking both plus the two axes onto one scatter plot (four dimensions) gets hard to read fast — use a second encoding only when it adds a genuinely useful comparison, not just because the option exists."
+  - "Overplotting — so many points stacked on each other that the plot just looks like a solid blob or a few dense bars — hides the actual density of the data. Two fixes: lower alpha (transparency) so overlapping points visibly darken, or plot a random sample instead of all the points."
+common_mistakes:
+  - "Treating a scatter plot's visual pattern as proof of causation — a relationship between two variables (like price and cost) shows correlation, not that one causes the other."
+  - "Adding a color or size encoding just because the data has a third column available, when it doesn't help answer any real question and just adds visual clutter."
+  - "Plotting thousands of points at full opacity and concluding 'the data is just a solid cloud' or 'everything is evenly spread,' when the real shape of the density is hidden behind total overlap — this is overplotting, and it's fixable, not a dead end."
+practical_applications:
+  - "Checking whether a product's price and its cost move together as expected, and spotting the specific products that don't (unusually high or low margin) directly on the chart."
+  - "Plotting order value against total items per order to see whether bigger orders (by item count) are reliably higher-value orders, or whether that relationship is looser than expected."
+  - "Reducing a dense scatter plot of thousands of transaction-level rows to something actually readable with alpha transparency or a sample, before dropping it into a stakeholder-facing chart."
+interview_questions:
+  - question: "You plot 12,000 points on a scatter plot and it just looks like a solid smear with no visible pattern. What's going on, and what would you do?"
+    answer: "That's overplotting — so many points are stacked on top of each other that the plot can't show where the data is actually dense versus sparse; every region just looks equally solid. I'd lower the alpha (opacity) of each point, often quite a lot for a dataset that size, so that overlapping points visibly darken and reveal the real density, or I'd plot a random sample of a few hundred to a couple thousand points instead of the full dataset, which usually reveals the same overall shape with much less rendering cost and visual noise."
+  - question: "When would you add a color or size encoding to a scatter plot instead of just plotting two variables?"
+    answer: "When a third variable meaningfully changes how I'd interpret the relationship between the first two — for example, coloring a price-vs-cost scatter plot by product category to see whether the relationship holds within every category or only some. I wouldn't add it by default, though: each extra encoding is another thing the viewer has to decode, and past a color and a size, a scatter plot usually gets harder to read rather than more informative."
+resources:
+  - title: "Matplotlib documentation — scatter()"
+    url: "https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.scatter.html"
+  - title: "Data-to-Viz — scatter plot guidance and pitfalls"
+    url: "https://www.data-to-viz.com/graph/scatter.html"
+blocks:
+  - type: text
+    body: >
+      A scatter plot answers a question the last three lessons didn't cover: **is there a relationship
+      between two numeric variables?** Not a trend over time, not a comparison across categories — a
+      relationship between two continuous measurements, where each point is one row of data placed
+      according to its value on both axes at once.
+  - type: heading
+    text: "A basic relationship: does cost predict price?"
+  - type: code
+    language: python
+    code: |
+      import matplotlib.pyplot as plt
+      import pandas as pd
+
+      products = pd.read_csv("data/sample/ecommerce/products.csv")
+
+      fig, ax = plt.subplots()
+      ax.scatter(products["cost"], products["unit_price"], alpha=0.6)
+      ax.set_xlabel("Cost ($)")
+      ax.set_ylabel("Unit price ($)")
+      ax.set_title("Product cost vs. unit price")
+
+      print(products[["cost", "unit_price"]].corr().round(2))
+    caption: 150 products — few enough that alpha=0.6 is a stylistic choice here, not yet a necessity
+  - type: output
+    body: |
+      cost  unit_price
+      cost        1.00        0.94
+      unit_price  0.94        1.00
+    caption: "Real output — a strong 0.94 correlation between cost and unit price"
+  - type: text
+    body: >
+      With 150 products, the scatter plot shows what the correlation number alone can't: a clear, tight
+      upward relationship — expensive-to-make products are priced higher, cheap ones lower — plus, by
+      eye, roughly how tight that relationship is and whether any individual products sit noticeably off
+      the main pattern (unusually high or low markup for their cost). The single number 0.94 tells you
+      *how* related the two variables are; the chart shows you *where* the relationship holds and where
+      it doesn't.
+  - type: callout
+    variant: warning
+    title: "Correlation shown on a chart is still not causation"
+    body: >
+      This scatter plot makes it visually tempting to say "higher cost causes higher price." That's not
+      what the chart shows — it shows that the two move together, which here is really just a business
+      practice (pricing as a markup over cost) rather than one variable mechanically driving the other.
+      A scatter plot is evidence of association, never proof of a causal mechanism, no matter how clean
+      the pattern looks.
+  - type: heading
+    text: "Adding a third dimension: color"
+  - type: code
+    language: python
+    code: |
+      categories = pd.read_csv("data/sample/ecommerce/categories.csv")
+      products = products.merge(categories, on="category_id", how="left")
+
+      fig, ax = plt.subplots(figsize=(7, 5))
+      scatter = ax.scatter(
+          products["cost"], products["unit_price"],
+          c=products["category_id"], cmap="tab10", alpha=0.7,
+      )
+      ax.set_xlabel("Cost ($)")
+      ax.set_ylabel("Unit price ($)")
+      ax.set_title("Cost vs. price, colored by category")
+    caption: Same relationship, now split visually by product category via point color
+  - type: text
+    body: >
+      Coloring by category_id turns one question ("does cost predict price?") into a sharper one: "does
+      that relationship hold *within* every category, or only in some?" That's a genuinely new piece of
+      information the plain two-variable version couldn't show — it's a legitimate reason to add a third
+      encoding, not decoration for its own sake.
+  - type: heading
+    text: "Adding a fourth dimension: size"
+  - type: code
+    language: python
+    code: |
+      products["margin"] = products["unit_price"] - products["cost"]
+
+      fig, ax = plt.subplots(figsize=(7, 5))
+      ax.scatter(
+          products["cost"], products["unit_price"],
+          s=products["margin"], c=products["category_id"], cmap="tab10", alpha=0.6,
+      )
+      ax.set_xlabel("Cost ($)")
+      ax.set_ylabel("Unit price ($)")
+      ax.set_title("Cost vs. price, colored by category, sized by margin")
+    caption: "Now four variables on one chart: cost (x), price (y), category (color), margin (size) — this is close to the practical limit"
+  - type: callout
+    variant: tip
+    title: "Two encodings is usually the ceiling"
+    body: >
+      Position (the two axes) is the encoding people read most accurately; color and size are useful but
+      noticeably harder to decode precisely, and stacking both on top of the two axes is already asking a
+      lot of a viewer. Past four dimensions on one scatter plot (x, y, color, size), most audiences stop
+      gaining information and start losing it — that's a signal to split into a small multiple (several
+      smaller charts, one per category) instead of adding a fifth encoding.
+  - type: heading
+    text: "Overplotting: when there are too many points to read"
+  - type: text
+    body: >
+      The products table has only 150 rows, so overlap was never a real problem above. `order_items` has
+      12,627 — plotting all of them at full opacity produces a very different, much less readable result.
+  - type: code
+    language: python
+    code: |
+      order_items = pd.read_csv("data/sample/ecommerce/order_items.csv")
+
+      # Overplotted: 12,627 points at full opacity
+      fig, ax = plt.subplots()
+      ax.scatter(order_items["quantity"], order_items["unit_price"], alpha=1.0)
+      ax.set_xlabel("Quantity")
+      ax.set_ylabel("Unit price ($)")
+    caption: "quantity only takes the values 1-4 in this data, so every point stacks into one of four solid vertical bars"
+  - type: output
+    body: |
+      order_items["quantity"].value_counts().sort_index()
+      1    3159
+      2    3162
+      3    3172
+      4    3134
+    caption: "Real output — roughly 3,100-3,200 line items at each of only 4 quantity values"
+  - type: text
+    body: >
+      At full opacity, this renders as four solid vertical smears — every one of the ~3,150 points at
+      quantity=1 draws directly on top of every other one, so the chart can't show whether unit prices in
+      that column are evenly spread or clustered somewhere specific. This is overplotting: the chart
+      technically contains all the data, but visually it's lost.
+  - type: heading
+    text: "Fix 1: lower the alpha"
+  - type: code
+    language: python
+    code: |
+      fig, ax = plt.subplots()
+      ax.scatter(order_items["quantity"], order_items["unit_price"], alpha=0.05)
+      ax.set_xlabel("Quantity")
+      ax.set_ylabel("Unit price ($)")
+    caption: "alpha=0.05 means it takes ~20 overlapping points to look fully opaque — density becomes visible as shading"
+  - type: text
+    body: >
+      With alpha dropped to 0.05, each individual point is nearly invisible, but regions where many points
+      overlap darken visibly while sparser regions stay light. The four columns are still there (quantity
+      really does only take 4 values in this data), but now the *within-column* density is legible — you
+      can see that unit prices are roughly evenly spread across the full \$10-\$500 range at every
+      quantity level, which the solid-block version couldn't tell you.
+  - type: heading
+    text: "Fix 2: plot a sample instead of everything"
+  - type: code
+    language: python
+    code: |
+      sample = order_items.sample(n=500, random_state=42)
+
+      fig, ax = plt.subplots()
+      ax.scatter(sample["quantity"], sample["unit_price"], alpha=0.5)
+      ax.set_xlabel("Quantity")
+      ax.set_ylabel("Unit price ($)")
+    caption: "500 randomly sampled rows out of 12,627 — a fixed random_state makes the sample reproducible"
+  - type: callout
+    variant: tip
+    title: "Alpha vs. sampling — when to reach for each"
+    body: >
+      Alpha transparency keeps every data point in the plot and is usually the first thing to try — it's
+      one keyword argument and costs nothing in accuracy. Sampling is worth adding on top when the
+      dataset is large enough that rendering every point is genuinely slow, or when you specifically want
+      to reason about "what does a typical subset look like" rather than "what's the exact density
+      everywhere." For a chart going into a report, alpha alone is usually enough; for exploratory work
+      on a very large dataset, sampling first (then alpha on the sample) is often faster to iterate on.
+  - type: question
+    prompt: "You scatter-plot 50,000 rows and the chart looks like a single solid rectangle with no visible structure. What's the most likely explanation, and what's the first thing to try?"
+    choices:
+      - "Overplotting — so many points overlap that the chart can't show density variation; lowering alpha (or plotting a random sample) is the first thing to try"
+      - "The two variables are perfectly uncorrelated, which always renders as a solid rectangle"
+      - "matplotlib has a hard limit on how many points it can render, so the chart is showing an error state"
+    correct_index: 0
+    explanation: >
+      A solid, structureless block from a large number of points is the classic signature of
+      overplotting — every point is drawn at full opacity on top of many others, so dense and sparse
+      regions look identical. Lowering alpha so overlapping points visibly darken, or plotting a
+      representative random sample, are both quick, reliable fixes.

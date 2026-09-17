@@ -1,0 +1,117 @@
+slug: pa-churn-definitions
+module_slug: product-churn
+title: "Churn Definitions: Logo, Revenue, and Why They Disagree"
+description: >
+  Computing logo (customer-count) churn and revenue (MRR) churn on the same real subscription book,
+  and seeing exactly why the two numbers don't have to match.
+difficulty: INTERMEDIATE
+estimated_minutes: 20
+display_order: 1
+objectives:
+  - Compute logo churn rate and MRR-based revenue churn on the same subscription data and state the difference in words
+  - Explain why logo churn and revenue churn can diverge, and in which direction each one is more likely to mislead
+  - Distinguish voluntary from involuntary churn conceptually, and know which one this dataset's status field can and can't tell you
+prerequisites: [product-retention]
+skills: [product-analytics, product-metrics, metric-definition]
+datasets: [saas-product]
+tags: [product, saas, churn, intermediate]
+key_takeaways:
+  - "Logo churn counts accounts (72 of 212 subscriptions in this dataset are 'churned' — 33.96%); revenue churn weights by dollars ($6,538 of $18,138 total contracted MRR sits on now-churned accounts — 36.05%) — both are real, both are computed from the same 212-row table, and they don't have to agree."
+  - Logo churn and revenue churn diverge whenever churn isn't evenly spread across price tiers — in this dataset, the highest-priced tier (enterprise, $299/mo) churns at the highest rate (38.46%) of any plan, which pulls revenue churn slightly above logo churn.
+  - "Voluntary churn (a customer decided to leave) and involuntary churn (a payment failed silently) require different fixes entirely — a status of 'churned' in a subscriptions table usually can't tell you which one happened without an additional signal, like a failed-payment or cancellation-reason field."
+common_mistakes:
+  - Reporting a single "churn rate" without saying whether it's logo (account-count) or revenue (dollar-weighted) churn — the two can differ enough to change a stakeholder's read of the business's health.
+  - Assuming every "churned" status represents a customer who actively decided to leave, when involuntary churn (an expired card, a failed charge) can produce the identical status field value with a completely different root cause and fix.
+blocks:
+  - type: text
+    body: >
+      The saas-product `subscriptions` table has 212 rows — one per subscription, each with a `plan`
+      (starter/pro/enterprise, at fixed prices of $29/$99/$299), an `mrr` amount, and a `status` of
+      either `active` or `churned`. That's enough to compute both of the two churn definitions every
+      SaaS business needs to track.
+  - type: heading
+    text: "Logo churn: what fraction of accounts left?"
+  - type: code
+    language: sql
+    caption: Logo churn rate — count-based, ignores dollar value entirely
+    code: |
+      SELECT
+        COUNT(*)                                                    AS total_subscriptions,
+        SUM(CASE WHEN status = 'churned' THEN 1 ELSE 0 END)         AS churned_subscriptions,
+        ROUND(SUM(CASE WHEN status = 'churned' THEN 1.0 ELSE 0 END)
+              / COUNT(*), 4)                                         AS logo_churn_rate
+      FROM subscriptions;
+  - type: output
+    body: "total_subscriptions=212, churned_subscriptions=72, logo_churn_rate=0.3396"
+  - type: heading
+    text: "Revenue churn: what fraction of MRR sits on churned accounts?"
+  - type: code
+    language: sql
+    caption: Revenue (MRR) churn — dollar-weighted, treats a $299 account and a $29 account very differently
+    code: |
+      SELECT
+        SUM(CASE WHEN status = 'active'  THEN mrr ELSE 0 END)  AS active_mrr,
+        SUM(CASE WHEN status = 'churned' THEN mrr ELSE 0 END)  AS churned_mrr,
+        ROUND(
+          SUM(CASE WHEN status = 'churned' THEN mrr ELSE 0 END) * 1.0
+          / SUM(mrr), 4
+        )                                                       AS churned_mrr_share
+      FROM subscriptions;
+  - type: output
+    body: "active_mrr=$11,600, churned_mrr=$6,538, churned_mrr_share=0.3605"
+  - type: table
+    headers: ["Metric", "Definition", "Value in this data"]
+    rows:
+      - ["Logo churn rate", "churned accounts ÷ all accounts", "33.96%"]
+      - ["Revenue (MRR) churn share", "MRR on churned accounts ÷ total contracted MRR", "36.05%"]
+  - type: callout
+    variant: important
+    title: Why the two numbers don't match — churn isn't evenly spread by plan
+    body: >
+      If churn hit every price tier at exactly the same rate, logo and revenue churn would be
+      identical. They aren't here, because churn is *not* evenly spread across plans — the
+      highest-priced enterprise plan actually churns at the highest rate of the three tiers, pulling
+      revenue churn slightly above logo churn.
+  - type: table
+    headers: ["Plan", "Monthly price", "Subscriptions", "Churned", "Churn rate"]
+    rows:
+      - ["enterprise", "$299", "26", "10", "38.46%"]
+      - ["pro", "$99", "71", "25", "35.21%"]
+      - ["starter", "$29", "115", "37", "32.17%"]
+  - type: callout
+    variant: warning
+    title: This is the opposite of the usual worry, and worth flagging clearly
+    body: >
+      A common assumption is that expensive enterprise accounts are "stickier" and churn less than
+      cheap self-serve accounts. In this data, the reverse is true: enterprise churns *more* than
+      starter (38.46% vs. 32.17%). That's a specific, surprising, and important finding for a
+      revenue-focused stakeholder — losing enterprise accounts costs far more per account lost than
+      losing starter accounts, so a churn rate that's merely "similar" across tiers can still hide a
+      much larger revenue problem concentrated in the highest tier.
+  - type: heading
+    text: What "status = churned" doesn't tell you
+  - type: callout
+    variant: tip
+    title: Voluntary vs. involuntary churn need different fixes
+    body: >
+      A subscription's `status` field going to `churned` could mean a customer actively canceled
+      (voluntary churn — needs a retention offer, a win-back campaign, or a product fix) or that a
+      renewal payment silently failed (involuntary churn — needs better card-retry logic or dunning
+      emails, not a retention conversation at all). This dataset's `subscriptions` table has no
+      cancellation-reason or payment-failure field, so it cannot distinguish the two — a real
+      churn-reduction project would need that additional signal before deciding which fix to build.
+  - type: question
+    prompt: >
+      Logo churn rate is 33.96% and revenue (MRR) churn is 36.05% on the same subscription book. What
+      does the fact that these two numbers differ most directly tell you?
+    choices:
+      - "One of the two calculations must contain an error, since they should always be equal"
+      - "Churn is not spread evenly across price tiers — in this case, the highest-priced plan (enterprise) churns at a higher rate than cheaper plans, pulling revenue churn above logo churn"
+      - "The subscriptions table must have duplicate rows"
+      - "MRR churn is always higher than logo churn in every SaaS business"
+    correct_index: 1
+    explanation: >
+      Logo and revenue churn are mathematically identical only when churn hits every price tier at
+      the same rate. Here, enterprise (the highest-priced plan) churns at 38.46%, notably above
+      starter's 32.17% — that imbalance is exactly what pulls the dollar-weighted revenue churn rate
+      above the simple account-count logo churn rate.

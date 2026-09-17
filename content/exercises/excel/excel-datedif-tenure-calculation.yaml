@@ -1,0 +1,47 @@
+slug: excel-datedif-tenure-calculation
+skill: excel-fundamentals
+title: Computing Tenure with DATEDIF
+description: On `Data`, `A2` is a `StartDate` and `B2` is an `EndDate`. On `Answer`, fill in `C2` with `=DATEDIF(Data!A2,Data!B2,"Y")`
+  (whole years) and `D2` with `=DATEDIF(Data!A2,Data!B2,"M")` (whole months).
+exercise_type: EXCEL
+difficulty: INTERMEDIATE
+points: 10
+tags:
+- excel
+business_context: HR wants each employee's tenure in both whole years and whole months as of a fixed reference date.
+prompt: On `Data`, `A2` is a `StartDate` and `B2` is an `EndDate`. On `Answer`, fill in `C2` with `=DATEDIF(Data!A2,Data!B2,"Y")`
+  (whole years) and `D2` with `=DATEDIF(Data!A2,Data!B2,"M")` (whole months).
+excel_starter_sheets:
+- name: Data
+  cells:
+    A1: StartDate
+    B1: EndDate
+    A2: =DATE(2019,1,15)
+    B2: =DATE(2024,6,15)
+- name: Answer
+  cells:
+    A1: Years
+    B1: Months
+excel_solution_sheets:
+- name: Data
+  cells:
+    A1: StartDate
+    B1: EndDate
+    A2: =DATE(2019,1,15)
+    B2: =DATE(2024,6,15)
+- name: Answer
+  cells:
+    A1: Years
+    B1: Months
+    C2: =DATEDIF(Data!A2,Data!B2,"Y")
+    D2: =DATEDIF(Data!A2,Data!B2,"M")
+excel_check_cells:
+- Answer!C2
+- Answer!D2
+hints:
+- DATEDIF(start, end, unit) -- "Y" for whole years, "M" for whole months, "D" for whole days.
+- From January 15, 2019 to June 15, 2024 is exactly 5 years and 5 months, i.e. 65 months total.
+solution: '`=DATEDIF(Data!A2,Data!B2,"Y")`=5; `=DATEDIF(Data!A2,Data!B2,"M")`=65.'
+explanation: DATEDIF computes the whole-unit difference between two dates. From 2019-01-15 to 2024-06-15 is exactly
+  5 years (since the month/day of the end date, June 15, is not earlier in the year than January 15) and 65 whole
+  months (5 years * 12 + 5 extra months).

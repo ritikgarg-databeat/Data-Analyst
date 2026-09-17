@@ -1,0 +1,145 @@
+slug: polars-reading-parquet
+module_slug: polars-for-analysts
+title: "Parquet: The File Format Polars Was Built For"
+description: pl.read_parquet() and pl.scan_parquet() — and why a columnar, typed, compressed format like Parquet is a better fit for Polars than CSV, even though every example so far has used CSV.
+difficulty: INTERMEDIATE
+estimated_minutes: 10
+display_order: 6
+objectives:
+  - Read and lazily scan a Parquet file with pl.read_parquet() and pl.scan_parquet()
+  - Explain why Parquet's columnar, typed, compressed structure suits analytical workloads better than row-based CSV
+  - Recognize when you have Parquet available and should prefer it over CSV, even from pandas
+prerequisites: [polars-expressions]
+skills: [pandas]
+datasets: [ecommerce]
+tags: [python, intermediate, real-world]
+key_takeaways:
+  - "CSV is a row-based, untyped, uncompressed text format — every reader has to parse every field from scratch and guess types. Parquet is a columnar, typed, compressed binary format designed specifically for analytical (read-lots-of-rows, few-columns-at-a-time) workloads."
+  - "Because Parquet stores data column-by-column, a query that only needs 3 of a table's 20 columns can skip reading the other 17 entirely — CSV can't do this, since fields for one row are interleaved with every other field of that row."
+  - "Parquet stores each column's type in the file itself, so pl.scan_parquet() doesn't need to guess types the way pl.scan_csv() does — one fewer source of subtle bugs from a misinferred dtype."
+  - "This dataset ships as CSV for simplicity, so every other lesson in this module uses pl.read_csv()/pl.scan_csv() — but in real analytical work, especially anything Polars-shaped (large, repeated reads, a pipeline step), converting to Parquet once and reading Parquet from then on is the standard move."
+common_mistakes:
+  - "Assuming Parquet-vs-CSV only matters for Polars — pandas' pd.read_parquet() gets faster reads and smaller files too; the choice of file format and the choice of DataFrame library are two separate decisions."
+  - "Re-reading and re-parsing a large CSV repeatedly (e.g. once per script run, once per notebook restart) instead of converting it to Parquet once with .write_parquet() and reading the much smaller, pre-typed file from then on."
+  - "Forgetting that Parquet is a binary format — you can't open it in a text editor or eyeball it with a quick cat/head the way you can a CSV; use pl.scan_parquet(path).head(5).collect() or a dedicated viewer instead."
+practical_applications:
+  - "Converting a large exported CSV to Parquet once, as a preprocessing step, so every subsequent script that reads it — in pandas or Polars — is both faster and smaller on disk."
+  - "Choosing Parquet as the storage format for an intermediate table in a data pipeline (e.g. a nightly aggregated snapshot) specifically because downstream jobs will only need a handful of its columns at a time."
+interview_questions:
+  - question: "Why is Parquet generally a better fit than CSV for analytical workloads?"
+    answer: "Parquet is columnar (values for one column are stored contiguously, so a query needing only a few columns can skip the rest entirely), typed (the schema is embedded in the file, so no type-guessing on read), and compressed (smaller on disk and often faster to read despite the decompression cost, because there's less to move off storage). CSV is row-based, untyped text — every reader has to parse and infer types from scratch, and there's no way to skip unneeded columns without reading the whole row anyway."
+  - question: "If your data currently lives in CSV, does it matter whether you plan to use pandas or Polars?"
+    answer: "The file-format decision (CSV vs. Parquet) and the library decision (pandas vs. Polars) are independent. Converting a large CSV to Parquet speeds up and shrinks reads in pandas too (pd.read_parquet()), not just in Polars. Polars simply tends to make the benefits of Parquet's columnar layout more visible, because its lazy scan_parquet() can push projection and predicate pushdown all the way into the columnar read."
+resources:
+  - title: "Polars User Guide — Parquet"
+    url: "https://docs.pola.rs/user-guide/io/parquet/"
+  - title: "Apache Parquet — Documentation"
+    url: "https://parquet.apache.org/docs/"
+blocks:
+  - type: text
+    body: >
+      Every lesson so far in this module has read `data/sample/ecommerce/*.csv` — that's the format
+      this course's dataset ships in, and CSV is genuinely fine for many small, one-off analyses. But
+      Polars' design (columnar, typed, built for the query optimizations you saw two lessons ago) is
+      really aimed at a file format that shares those same properties: **Parquet**. This lesson is more
+      conceptual than the others — frame it as "when you have Parquet available," since our dataset
+      here happens not to.
+  - type: heading
+    text: "CSV vs. Parquet: what's actually different"
+  - type: table
+    headers: ["Property", "CSV", "Parquet"]
+    rows:
+      - ["Layout", "Row-based — one row's fields are written together, one row after another", "Columnar — one column's values are written together, contiguously"]
+      - ["Types", "None embedded — every reader guesses types from the text", "Embedded in the file's schema — no guessing on read"]
+      - ["Compression", "None (plain text), unless you gzip it separately", "Built in, per column — often 2-5x smaller than the equivalent CSV"]
+      - ["Reading only some columns", "Not really possible — every row has to be scanned to find each field", "Read only the needed columns; the rest are never touched on disk"]
+      - ["Human-readable", "Yes — open it in any text editor", "No — binary format, needs a library to inspect"]
+  - type: heading
+    text: "Reading Parquet with Polars"
+  - type: code
+    language: python
+    code: |
+      import polars as pl
+
+      # Eager
+      df = pl.read_parquet("order_items.parquet")
+
+      # Lazy — same pushdown benefits as pl.scan_csv() from two lessons ago
+      lf = pl.scan_parquet("order_items.parquet")
+      result = lf.select(["order_item_id", "order_id"]).limit(2).collect()
+      print(result)
+    caption: "Both functions mirror their CSV counterparts exactly — read_parquet() is eager, scan_parquet() is lazy"
+  - type: output
+    body: |
+      shape: (2, 2)
+      ┌───────────────┬──────────┐
+      │ order_item_id ┆ order_id │
+      │ ---           ┆ ---      │
+      │ i64           ┆ i64      │
+      ╞═══════════════╪══════════╡
+      │ 1             ┆ 1        │
+      │ 2             ┆ 2        │
+      └───────────────┴──────────┘
+    caption: Real output — this was actually a Parquet copy of order_items.csv, converted for this demonstration
+  - type: heading
+    text: "A real size comparison, converting our own data"
+  - type: text
+    body: >
+      Converting `order_items.csv` (12,627 rows, 6 columns) to Parquet with pandas' `.to_parquet()`
+      and comparing the two files on disk:
+  - type: table
+    headers: ["File", "Size on disk"]
+    rows:
+      - ["order_items.csv", "350,083 bytes"]
+      - ["order_items.parquet", "158,153 bytes"]
+  - type: callout
+    variant: tip
+    title: "Real measured result: 2.2x smaller, from the same data"
+    body: >
+      Converting order_items.csv to Parquet, with no other changes, shrank it from 350,083 bytes to
+      158,153 bytes — about 2.2x smaller — purely from columnar layout and built-in compression, on a
+      table with only 12,627 rows. That ratio tends to grow with table size and with how repetitive
+      the data is (string columns with few distinct values compress especially well).
+  - type: heading
+    text: Why this specifically suits Polars
+  - type: text
+    body: >
+      Recall the lazy-execution lesson's `.explain()` output: Polars pushed a filter and a column
+      selection down into the CSV *scan* itself. That pushdown is far more powerful against Parquet,
+      because Parquet's columnar layout means "read only these 2 of 6 columns" is a real, physical
+      optimization — the untouched columns are never even read off disk — rather than something that
+      has to be simulated by parsing every field of every row and discarding what isn't needed, which
+      is the best CSV can do.
+  - type: callout
+    variant: important
+    title: This isn't a Polars-only benefit
+    body: >
+      pandas' `pd.read_parquet()` also reads a typed, compressed, columnar file faster and with less
+      memory than the equivalent `pd.read_csv()` — the file format and the DataFrame library are
+      separate choices. If your pipeline hands off data between steps (or you re-read the same large
+      file across multiple notebook sessions), converting it to Parquet once is worth doing regardless
+      of which library reads it downstream.
+  - type: example
+    title: "Converting an existing CSV to Parquet, once"
+    body: >
+      A one-time conversion step, worth doing for any file you'll read more than a couple of times.
+    language: python
+    code: |
+      import polars as pl
+
+      pl.read_csv("data/sample/ecommerce/order_items.csv").write_parquet("order_items.parquet")
+
+      # From now on, read the Parquet copy instead
+      order_items = pl.scan_parquet("order_items.parquet")
+  - type: question
+    prompt: "Why can Parquet's columnar layout let a query skip reading unneeded columns entirely, in a way CSV cannot?"
+    choices:
+      - "In Parquet, each column's values are stored contiguously, so unneeded columns can be skipped on disk; in CSV, one row's fields are interleaved, so every field of every row has to be scanned to reach any one of them"
+      - "CSV files are always larger than Parquet files, which is the only reason column-skipping isn't possible"
+      - "Polars can only skip columns for files that are also compressed, and CSV cannot be compressed"
+    correct_index: 0
+    explanation: >
+      The key structural difference is layout: Parquet groups each column's values together on disk, so
+      a reader can seek straight to the columns it needs. CSV interleaves every row's fields together
+      (name1,age1,city1\nname2,age2,city2\n...), so reaching any single column still requires reading
+      through each full row.

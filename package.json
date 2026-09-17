@@ -1,0 +1,24 @@
+{
+  "name": "data-analyst-lab",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Personal Data Analyst Lab — a local-first, single-user platform for becoming and staying job-ready as a modern Data Analyst.",
+  "workspaces": [
+    "apps/web",
+    "packages/shared"
+  ],
+  "scripts": {
+    "dev:web": "npm run dev --workspace=apps/web",
+    "build:web": "npm run build --workspace=apps/web",
+    "lint:web": "npm run lint --workspace=apps/web",
+    "test:web": "npm run test --workspace=apps/web",
+    "typecheck:web": "npm run typecheck --workspace=apps/web",
+    "e2e": "playwright test -c tests/e2e/playwright.config.ts"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.48.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

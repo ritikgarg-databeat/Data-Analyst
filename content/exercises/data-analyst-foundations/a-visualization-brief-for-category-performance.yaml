@@ -1,0 +1,41 @@
+slug: a-visualization-brief-for-category-performance
+lesson_slug: welcome-to-the-challenge-library
+skill: data-visualization
+dataset: ecommerce
+title: "A Visualization Brief: Category Revenue Performance"
+description: Given a business question about how product category revenue compares, specify the chart type you'd build, why, and what you'd expect to see before building it.
+exercise_type: DATA_INTERPRETATION
+difficulty: INTERMEDIATE
+points: 15
+tags: [eda, real-world, intermediate]
+prompt: >
+  A merchandising stakeholder asks: "How does revenue compare across our 10 product categories, and is it
+  concentrated in a few categories or spread evenly?" Using `categories`, `products`, and `order_items`,
+  write a visualization brief before building anything: what chart type would you use, why does it fit this
+  specific question better than the alternatives, and what would you expect the chart to show, roughly,
+  given there are 10 categories?
+hints:
+  - "Apply the decision framework directly: what are the two variable types here (one categorical, one numeric), and what does that pairing route to? Then separately think about why the 'is it concentrated or spread evenly' half of the question specifically argues against a pie chart despite this being a part-of-whole question."
+  - "You don't need the exact revenue numbers to write a strong brief — describing what pattern you'd expect to see (e.g. a gap between the top few categories and the rest, or a roughly even spread) and how the chart would make that pattern visible is the actual point of a visualization brief."
+solution: >
+  Chart type: a sorted horizontal bar chart, with category_name on the categorical axis and total line
+  revenue (unit_price minus discount, times quantity, summed per category via order_items joined through
+  products to categories) on the numeric axis, sorted descending by revenue. Why this fits: category vs.
+  revenue is a categorical-vs-numeric pairing, which routes to a bar chart under the standard framework —
+  not a pie chart, even though "concentrated vs. spread evenly" sounds like a part-of-whole question,
+  because with 10 categories a pie chart is already pushing past the range where slices stay easy to
+  compare, and specifically because the stakeholder's real question is a RANKING and COMPARISON question
+  ("how does revenue compare," "is it concentrated"), which a sorted bar chart answers far more precisely
+  than a pie chart's angle comparisons would. What I'd expect to see: with 10 categories, I would NOT expect
+  a dramatic 80/20-style concentration in just one or two categories — a more likely pattern, given how
+  broad a general ecommerce catalog like this tends to be, is a moderate, gradual decline from the top
+  category to the bottom rather than one dominant outlier and nine negligible ones. If the actual chart
+  instead showed one category radically outweighing the rest, that would itself be a notable, checkable
+  finding worth flagging rather than assuming it's simply "how categories work."
+explanation: >
+  A strong answer commits to a specific chart type and explains why it fits THIS question's shape
+  (comparison and ranking across a moderate number of categories) rather than defaulting to whatever chart
+  type feels intuitive for "concentrated vs. spread." It also states an expectation for what the chart would
+  show before building it — a genuine prediction, specific enough to be right or wrong — rather than a vague
+  "I'd look at the chart and see what it says." A weaker answer either defaults to a pie chart because the
+  question mentions "concentrated," or skips the expectation-setting step entirely.

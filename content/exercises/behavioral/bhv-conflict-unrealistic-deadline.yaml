@@ -1,0 +1,35 @@
+slug: bhv-conflict-unrealistic-deadline
+skill: behavioral-interviewing
+title: Pushing Back on an Unrealistic Deadline
+description: Tell me about a time you had to push back on a deadline or scope that you believed was unrealistic.
+exercise_type: INTERVIEW_RESPONSE
+difficulty: INTERMEDIATE
+points: 10
+tags:
+- behavioral
+- star-method
+- conflict
+prompt: Tell me about a time you had to push back on a deadline or scope that you believed was unrealistic.
+hints:
+- The STAR framework (Situation, Task, Action, Result) is a useful structure, not a script -- use it to
+  make sure you cover what actually happened, in what context, what you personally did, and what came
+  of it.
+- Interviewers are listening for a specific, real example -- a vague 'sometimes this happens on my team'
+  answer is much weaker than one concrete story with real details.
+rubric:
+- criterion: Describes one specific, real situation rather than a hypothetical or a generic pattern
+  points: 25
+- criterion: Clearly states the task or goal and the person's own specific role in it
+  points: 20
+- criterion: Explains concrete actions the person personally took, not just what the team did
+  points: 30
+- criterion: States a clear, ideally measurable outcome and what was learned from it
+  points: 25
+solution: 'I was asked to deliver a full customer lifetime value model with cohort-level breakdowns in
+  two days for an executive review. I knew a rushed version would likely have real errors given how messy
+  the underlying subscription data was. Rather than just saying no, I proposed a scoped alternative: a
+  directionally-correct, clearly-labeled preliminary estimate in two days, with the fully validated model
+  the following week. The stakeholder accepted the tradeoff once I framed it as protecting the credibility
+  of the number they''d be presenting.'
+explanation: This answer avoids a flat refusal and instead negotiates scope, which is usually what interviewers
+  are actually testing for -- can the candidate protect quality without simply blocking the business.

@@ -1,0 +1,100 @@
+slug: data-types-for-analysts
+module_slug: dataset-fundamentals
+title: "Data Types for Analysts: What Each One Does and Doesn't Support"
+description: The five practical data types analysts work with — numeric, categorical, datetime, text, and boolean — what statistics and operations each one supports, and how the Dataset Hub's profiler classifies columns into them automatically.
+difficulty: BEGINNER
+estimated_minutes: 10
+display_order: 3
+objectives:
+  - "Classify any column into one of five practical analyst data types: numeric, categorical, datetime, text, or boolean"
+  - State which summary statistics and operations are meaningful for each type, and which are nonsense
+  - Explain how a column's data type changes what a "quality issue" even means for that column
+prerequisites: [rows-columns-and-grain]
+skills: [exploratory-data-analysis]
+datasets: [ecommerce]
+tags: [foundations, beginner]
+key_takeaways:
+  - "Five practical types cover almost everything an analyst touches: numeric (measurable quantities), categorical (a value from a limited set of labels), datetime (a point or interval in time), text (free-form, high-cardinality strings), and boolean (true/false)."
+  - "Each type supports a different set of meaningful operations — a mean is meaningful for order_total (numeric) and meaningless for customer_segment (categorical), even though both might be stored in a column that looks similar in a spreadsheet."
+  - "This platform's Dataset Hub profiler classifies every column into exactly these five types automatically, based on the underlying SQL type plus a look at cardinality — a VARCHAR column with only a handful of distinct repeated values gets classified as categorical, not text, because that's what actually determines which stats are useful for it."
+  - "Getting the type wrong at the start cascades into every later mistake: averaging a categorical column encoded as numbers, or treating a truly continuous column as categorical and losing the ability to compute a meaningful distribution."
+common_mistakes:
+  - "Computing a mean or standard deviation on a numeric-looking column that's actually categorical under the hood — e.g. a `category_id` column of small integers, where the ID values themselves carry no quantitative meaning and averaging them produces a number with no real interpretation."
+  - "Treating a high-cardinality text column (like `email` or free-text product reviews) as categorical and trying to build a frequency table out of it — with thousands of nearly-unique values, that table is as long as the dataset and tells you nothing useful."
+  - "Assuming a column called something like `is_active` or `converted` is safe to average directly without first confirming it's actually boolean (True/False) rather than a string like 'yes'/'no', which averages to an error, not a proportion."
+practical_applications:
+  - "Deciding, within the first minute of opening a new dataset, which columns are safe to run distribution/outlier statistics on (numeric) versus which need a frequency table instead (categorical)."
+  - "Recognizing when a column's SQL/pandas storage type (e.g. integer) doesn't match its analytical type (e.g. categorical), which changes what checks and charts make sense for it."
+interview_questions:
+  - question: "Why does it matter whether a column is 'numeric' versus 'categorical' if they're both stored as numbers in the database?"
+    answer: "Storage type and analytical meaning aren't the same thing. A column of small integers might be a genuinely numeric quantity (quantity ordered, where 2 is twice 1) or a categorical code (category_id, where 2 isn't 'twice' anything — it's just a different label). The distinction determines which statistics are meaningful: a mean and standard deviation make sense for a true numeric quantity, but computing the 'average category_id' produces a number with no real business interpretation. I always check what the values actually represent, not just what type the database column is stored as."
+resources:
+  - title: "Pandas documentation — dtypes"
+    url: "https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.dtypes.html"
+blocks:
+  - type: text
+    body: >
+      A dataset's columns aren't all the same kind of thing, even when they're all sitting in the same
+      table. Before you compute a single statistic, you need to know which of five practical types you're
+      looking at — because the type determines which operations are meaningful and which are nonsense.
+  - type: heading
+    text: "The five types"
+  - type: table
+    headers: ["Type", "What it is", "Example from this course's ecommerce dataset", "Meaningful stats/operations"]
+    rows:
+      - ["Numeric", "A measurable quantity where arithmetic is meaningful", "orders.order_total, products.unit_price, order_items.quantity", "Mean, median, standard deviation, sum, correlation, histogram"]
+      - ["Categorical", "A value from a limited, known set of labels", "customers.customer_segment (business/consumer), orders.status, sessions.device", "Frequency count, mode, proportion, bar chart"]
+      - ["Datetime", "A point or interval in time", "orders.order_date, sessions.session_start, customers.signup_date", "Min/max (earliest/latest), time-bucketed trends, gaps/durations between dates"]
+      - ["Text", "Free-form, typically high-cardinality strings", "customers.email, product review text (where present)", "Length distribution, pattern/format checks — NOT a frequency table over near-unique values"]
+      - ["Boolean", "True/false, yes/no, a binary flag", "sessions.converted, products.is_active", "Proportion true (a rate), count of each value"]
+  - type: callout
+    variant: important
+    title: "Storage type and analytical type are not the same thing"
+    body: >
+      A database or CSV only knows a handful of storage types (integer, float, string, date, boolean). A
+      column's *analytical* type — which of the five categories above it actually behaves like — depends on
+      what the values mean, not just how they're stored. `category_id` is stored as an integer, but
+      analytically it's categorical: category 3 isn't "more" than category 1 in any numeric sense, it's
+      just a different label that happens to be written as a number.
+  - type: heading
+    text: "Why the wrong type produces a nonsense statistic"
+  - type: comparison
+    title: "Same shape of question, right type vs. wrong type"
+    columns: ["Question asked", "On the right type", "On the wrong type"]
+    rows:
+      - ["What's the average?", "Mean of order_items.quantity: a genuinely meaningful 'typical items per line' figure", "Mean of products.category_id: a number like 5.4 that maps to no real category and means nothing"]
+      - ["What's the most common value?", "Mode of orders.status ('completed'): a real, useful business fact", "Mode of customers.email: whichever email happens to repeat least-meaningfully, not informative"]
+      - ["What's the distribution shape?", "Histogram of payments.amount: reveals right-skew, typical range, outliers", "Histogram of sessions.device: three bars (desktop/mobile/tablet) — technically works, but a bar chart with counts communicates it better"]
+  - type: heading
+    text: "How this platform's Dataset Hub classifies columns automatically"
+  - type: text
+    body: >
+      When you import a dataset into the Dataset Hub, its profiling engine inspects every column and
+      assigns it exactly one of these five types — numeric, categorical, datetime, text, or boolean —
+      shown right in the schema viewer. It doesn't just trust the underlying SQL type: a text-storage
+      column with only a handful of distinct, repeated values (like a `status` or `device` column) gets
+      classified as categorical, not text, specifically because a frequency table is the useful summary for
+      it, not a length distribution. A text-storage column with thousands of nearly-unique values (like
+      `email`) gets classified as text instead, because a frequency table over it would be as long as the
+      dataset and equally useless.
+  - type: callout
+    variant: tip
+    title: "This classification isn't just a label — it decides what the profiler shows you"
+    body: >
+      Open a numeric column's profile and you'll see mean, median, standard deviation, min/max, and outlier
+      flags. Open a categorical column's profile and you'll see a frequency table of its distinct values
+      instead. The type isn't cosmetic — it's what determines which summary is actually useful for that
+      column, and it's exactly the same reasoning you'll use manually in the next module when you read a
+      schema for the first time.
+  - type: question
+    prompt: "A column named `campaign_id` is stored as an integer in the database. Which analytical type should you treat it as, and why?"
+    choices:
+      - "Categorical — the integer values are labels identifying distinct campaigns, not quantities where arithmetic like a mean would mean anything"
+      - "Numeric — any column stored as an integer should be summarized with a mean and standard deviation"
+      - "Text — because it could theoretically be exported as a string"
+    correct_index: 0
+    explanation: >
+      An ID column's numeric storage is incidental — the values are labels, not quantities. Averaging
+      campaign_id values would produce a number that doesn't correspond to any real campaign or have any
+      business meaning, which is the whole reason analytical type has to be judged by what the values mean,
+      not just how they happen to be stored.

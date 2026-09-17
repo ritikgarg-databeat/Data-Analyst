@@ -1,0 +1,45 @@
+slug: duplicate-or-near-duplicate-session-records
+lesson_slug: welcome-to-the-challenge-library
+skill: exploratory-data-analysis
+dataset: ecommerce
+title: "Two Sessions, Five Minutes Apart: Tracking Bug or Device Switch?"
+description: Investigate real pairs of near-duplicate session records from the same customer and decide whether they represent a tracking error or legitimate cross-device behavior.
+exercise_type: DATA_INTERPRETATION
+difficulty: INTERMEDIATE
+points: 15
+tags: [eda, real-world, intermediate]
+prompt: >
+  `sessions` has zero exact duplicate rows and zero duplicated session_id values. But checking for
+  NEAR-duplicates — the same customer_id with two different sessions starting within 5 minutes of each
+  other — turns up exactly 2 such pairs in the whole 12,000-row table: customer_id 409 has a tablet session
+  at 2025-12-15 09:01:57 and a desktop session at 09:06:10 (about 4 minutes 13 seconds apart), and
+  customer_id 10 has two desktop sessions exactly 5 minutes apart on 2025-12-26. What would you check about
+  each of these two specific pairs before deciding whether either one is a tracking error to flag, or
+  legitimate behavior to leave alone?
+hints:
+  - "The two pairs differ in one obvious way already stated in the prompt — one changes device (tablet to desktop), the other doesn't (desktop to desktop). Think about what that difference alone suggests about which explanation is more plausible for each pair, before checking anything else."
+  - "For the same-device pair, what would distinguish 'the same real browsing session got logged twice by a tracking bug' from 'the customer genuinely closed the tab and came back 5 minutes later to start over'? Landing_page and converted are both available on each session row — do they match or differ between the two sessions in the pair?"
+solution: >
+  The customer 409 pair (tablet then desktop, ~4 minutes apart) is the more plausible legitimate case at
+  face value: a device change between the two sessions is a strong, specific signal of someone starting to
+  browse on one device and picking back up on another shortly after — genuinely common real behavior (start
+  on a tablet on the couch, move to a desktop to check out), not something a single tracking pipeline bug
+  would typically produce, since a bug usually double-fires the SAME session on the SAME device rather than
+  fabricating a second device. The customer 10 pair (desktop, desktop, exactly 5 minutes apart) deserves more
+  scrutiny precisely because same-device is what a double-fired tracking event would actually look like.
+  Before concluding either way on this pair, I'd check landing_page and converted on both rows: if they're
+  identical (same landing page, same conversion outcome) and 5 minutes is suspiciously close to a specific
+  round number tied to some client-side session-timeout setting, that combination would push me toward
+  "likely the same real visit logged twice." If landing_page differs between the two rows (e.g. one lands on
+  /home and the other on /category/electronics), that's much more consistent with a genuine second visit —
+  the customer left and came back to browse something different. Either way, with only 2 pairs found across
+  12,000 sessions, this isn't a systemic pipeline problem regardless of the answer — it's worth resolving
+  these two specific cases, not launching a broad investigation.
+explanation: >
+  A strong answer treats the two pairs differently based on the concrete evidence already available (device
+  match vs. mismatch) rather than applying one blanket rule to both, and names a specific additional check
+  (landing_page and converted agreement) that would resolve the ambiguous same-device case rather than
+  guessing. It also correctly scales the response to the actual scale of the finding — 2 pairs out of 12,000
+  sessions is worth resolving individually, not treating as evidence of a systemic tracking failure. A
+  weaker answer applies the exact same verdict to both pairs without using the device-match distinction
+  already visible in the data, or treats 2 occurrences as proof of a widespread pipeline bug.

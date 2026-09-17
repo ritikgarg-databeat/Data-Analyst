@@ -1,0 +1,161 @@
+slug: rca-mrr-stall-walkthrough
+module_slug: root-cause-analysis
+title: "Root Cause Walkthrough: Diagnosing a Real MRR Growth Stall"
+description: A full, real-data walkthrough of the eleven-step root cause framework, diagnosing an actual near-stall in monthly recurring revenue growth.
+difficulty: ADVANCED
+estimated_minutes: 18
+display_order: 2
+objectives:
+  - Apply every step of the root cause analysis framework to a real, verified metric change
+  - Distinguish an acquisition-side explanation from a retention-side explanation using actual new-vs-churned MRR data
+  - Quantify how much of a metric change one specific segment explains, using real subscription-level data
+prerequisites: [rca-root-cause-framework]
+skills: [root-cause-analysis, business-analytics]
+datasets: [saas-product]
+tags: [business-analytics, root-cause, advanced, saas, case-study, churn]
+key_takeaways:
+  - "MRR growth nearly stalled in October 2025 in this platform's real saas-product data (+$117 net, versus +$584 in September and +$953 in November) — and the cause was not a new-business slowdown (October actually had the highest new-MRR of any month, $1,598) but a churn spike ($1,481 churned, more than double most surrounding months)."
+  - Segmenting October's churned MRR by plan shows it was heavily concentrated in the enterprise tier — 4 of 9 churned subscriptions, but $1,196 of the $1,481 total churned MRR (80.8%), from four distinct customers with unrelated start dates.
+  - A metric change's root cause and its quantified impact are two different deliverables — finding that enterprise churn is concentrated in one month isn't complete until it's tied back to exactly how much of the stall that segment explains.
+common_mistakes:
+  - Concluding "growth slowed because new business slowed" without checking new and churned MRR separately — in this real case, that conclusion would have been backwards.
+  - Stopping at "enterprise churn was high in October" without checking whether that was a handful of unrelated cancellations (a genuine anomaly) or one duplicated/erroneous record (a data issue) — the walkthrough below explicitly rules out the latter.
+blocks:
+  - type: heading
+    text: "Step 1-2: Problem and metric definition"
+  - type: text
+    body: >
+      **Problem**: Monthly Recurring Revenue (MRR), summed across all active subscriptions in this
+      platform's saas-product dataset, grew steadily for most of 2025 but nearly flattened in one specific
+      month. **Metric definition**: MRR for a given month = SUM(mrr) across every subscription where
+      `start_date` is on or before the month's last day and (`end_date` is null or after the month's last
+      day) — an active-subscription snapshot, not a cash-collected total.
+  - type: heading
+    text: "Step 3-4: Validate the metric and check the time trend"
+    level: 3
+  - type: code
+    language: sql
+    caption: Recomputing MRR by month directly from subscription-level data (validates the number, and reveals the trend at the same time)
+    code: |
+      WITH months AS (
+        SELECT UNNEST(generate_series(DATE '2025-06-01', DATE '2025-12-01', INTERVAL 1 MONTH)) AS month_start
+      )
+      SELECT
+        m.month_start,
+        ROUND(SUM(CASE
+          WHEN s.start_date <= (m.month_start + INTERVAL 1 MONTH - INTERVAL 1 DAY)
+           AND (s.end_date IS NULL OR s.end_date > (m.month_start + INTERVAL 1 MONTH - INTERVAL 1 DAY))
+          THEN s.mrr ELSE 0 END), 2) AS active_mrr
+      FROM months m
+      LEFT JOIN subscriptions s ON true
+      GROUP BY m.month_start
+      ORDER BY m.month_start;
+  - type: output
+    body: |
+      month_start  active_mrr
+      2025-06-01   7216.0
+      2025-07-01   8183.0
+      2025-08-01   8749.0
+      2025-09-01   9333.0
+      2025-10-01   9450.0
+      2025-11-01   10403.0
+      2025-12-01   11103.0
+    caption: "MRR grew by $566-$967 in five of the six month-over-month steps shown, but only $117 from September to October — a real, isolated near-stall, not a sustained slowdown (growth resumed strongly in November)."
+  - type: text
+    body: >
+      The metric is validated (recomputed directly from subscription rows, not just trusted from a
+      dashboard) and the trend confirms this is a specific, one-month anomaly rather than gradual
+      deceleration — November's growth (+$953) recovered to above September's level.
+  - type: heading
+    text: "Step 5-6: Segment and identify the anomaly"
+    level: 3
+  - type: text
+    body: >
+      October's near-stall could come from weaker new business, stronger churn, or both. Computing new
+      MRR (subscriptions starting that month) and churned MRR (subscriptions ending that month)
+      separately answers which one it was.
+  - type: code
+    language: sql
+    caption: New MRR and churned MRR, computed independently
+    code: |
+      SELECT DATE_TRUNC('month', start_date) AS month, SUM(mrr) AS new_mrr
+      FROM subscriptions GROUP BY 1 ORDER BY 1;
+
+      SELECT DATE_TRUNC('month', end_date) AS month, SUM(mrr) AS churned_mrr
+      FROM subscriptions WHERE end_date IS NOT NULL GROUP BY 1 ORDER BY 1;
+  - type: table
+    headers: ["Month", "New MRR", "Churned MRR", "Net change"]
+    rows:
+      - ["2025-09", "$1,337", "$753", "+$584"]
+      - ["2025-10", "$1,598", "$1,481", "+$117"]
+      - ["2025-11", "$1,139", "$186", "+$953"]
+    caption: "October actually had the strongest new-business month of the three ($1,598) — the stall is entirely a churn story: churned MRR nearly doubled September's level."
+  - type: callout
+    variant: warning
+    title: The anomaly is churn, not acquisition — the opposite of the obvious guess
+    body: >
+      A team reacting to "growth stalled" by scrutinizing the sales or marketing funnel would have been
+      looking in the wrong place. New MRR was fine — better than fine, it was October's strongest month.
+      The entire stall traces to a churn spike, which points toward Customer Success and retention, not
+      acquisition.
+  - type: heading
+    text: "Step 7-9: Hypotheses, testing, and root cause"
+    level: 3
+  - type: text
+    body: >
+      With churn identified as the driver, the next question is *which customers* churned in October.
+      Segmenting October's churned subscriptions by plan tests the hypothesis that the spike is broad-based
+      versus concentrated in one segment.
+  - type: code
+    language: sql
+    caption: Segmenting October 2025's churned MRR by plan
+    code: |
+      SELECT plan, COUNT(*) AS churned_subs, SUM(mrr) AS churned_mrr
+      FROM subscriptions
+      WHERE DATE_TRUNC('month', end_date) = DATE '2025-10-01'
+      GROUP BY plan;
+  - type: output
+    body: |
+      plan        churned_subs  churned_mrr
+      starter     3             87.0
+      pro         2             198.0
+      enterprise  4             1196.0
+    caption: "4 of October's 9 churned subscriptions were enterprise ($299/month each) — 44% of churned subscriptions by headcount, but $1,196 of $1,481 (80.8%) of churned MRR."
+  - type: text
+    body: >
+      Checking the four enterprise cancellations individually rules out a data artifact (e.g. one
+      subscription erroneously counted four times): they are four distinct subscription IDs, four
+      distinct customers, with start dates spread from October 2024 to July 2025 — genuinely independent
+      cancellations, not a duplicated record. **Root cause**: October's MRR stall was driven by an
+      unusually concentrated cluster of enterprise-tier cancellations, not by any slowdown in new
+      subscriptions or by churn broadly across all plan tiers.
+  - type: heading
+    text: "Step 10-11: Quantify impact and recommend"
+    level: 3
+  - type: text
+    body: >
+      Comparing October's enterprise churned MRR ($1,196) to the typical enterprise-churn month
+      elsewhere in the dataset (e.g. August 2025's $598, itself the next-highest) shows October ran at
+      roughly 2x a typical bad month for enterprise churn, and about 4x a typical *normal* month. Had
+      enterprise churn stayed at its recent average instead, October's net MRR growth would have looked
+      much closer to $600-900 — in line with the surrounding months — rather than $117. **Recommendation**:
+      investigate the four enterprise accounts' cancellation reasons directly (contract terms, support
+      history, competitive displacement) before concluding this is a one-off cluster versus the start of a
+      segment-specific retention problem, and consider a proactive enterprise renewal-risk review given
+      how disproportionate this segment's dollar impact is relative to its headcount share of the base.
+  - type: question
+    prompt: >
+      Given this walkthrough, which team should receive the finding first: Marketing (which owns new
+      customer acquisition) or Customer Success (which owns retention of existing accounts)?
+    choices:
+      - "Marketing, since MRR is fundamentally a revenue-growth metric and growth problems default to Marketing."
+      - "Customer Success, since the quantified root cause is a concentrated cluster of enterprise cancellations — an acquisition-side team has no lever to pull on a churn-driven problem."
+      - "Neither — the finding only matters to Finance, since MRR is a financial reporting metric."
+    correct_index: 1
+    explanation: >
+      The entire point of decomposing the stall into new vs. churned MRR was to correctly route the
+      finding — and it clearly points at retention, not acquisition. New MRR in October was the strongest
+      of the three months examined; the stall exists entirely because churned MRR spiked, concentrated in
+      the enterprise segment. Sending this finding to Marketing would send the right team looking in the
+      wrong place; Customer Success is the team with an actual lever (renewal outreach, at-risk account
+      review) to pull on the specific root cause found.

@@ -1,0 +1,78 @@
+slug: conversion-rate
+module_slug: business-metrics
+title: Conversion Rate
+description: How conversion rate is defined at each funnel stage, and how the choice of denominator can inflate or deflate the same underlying performance.
+difficulty: BEGINNER
+estimated_minutes: 12
+display_order: 3
+objectives:
+  - Define conversion rate and identify its numerator and denominator at a given funnel stage
+  - Explain how the choice of denominator can inflate or deflate a reported conversion rate
+  - Spot denominator traps when comparing conversion rates across teams or tools
+prerequisites: [revenue-growth]
+skills: [business-metrics]
+datasets: [orders-sample]
+tags: [business-analytics, beginner]
+key_takeaways:
+  - Conversion rate is only meaningful once you know exactly what's in the denominator — "of what" matters as much as "how many."
+  - Changing the denominator (all visitors vs. qualified leads vs. carts started) can make identical underlying performance look wildly different.
+  - Always state both the numerator and denominator definitions when reporting a conversion rate, not just the percentage.
+common_mistakes:
+  - Comparing conversion rates across teams or tools that silently use different denominators (e.g., "sessions" vs. "unique visitors").
+  - Narrowing the denominator to only "engaged" or "qualified" users to make a conversion rate look better, without disclosing the filter.
+blocks:
+  - type: heading
+    text: Conversion rate is a fraction — the denominator is where the fight happens
+  - type: text
+    body: >
+      Conversion rate measures the share of people who took a desired action at some stage of a
+      funnel. The numerator (people who converted) is usually uncontroversial. The denominator —
+      converted out of *what population* — is where two honest analysts can report very different
+      numbers for the same underlying behavior.
+  - type: formula
+    expression: "Conversion Rate = (Number who completed the step) / (Number who started or were eligible for the step) × 100"
+    description: "The step and the eligible population both need to be defined explicitly before the percentage means anything."
+  - type: table
+    headers: ["Funnel stage", "Numerator", "Denominator"]
+    rows:
+      - ["Visit → Signup", "Signups", "Site visitors"]
+      - ["Signup → Trial started", "Trials started", "Signups"]
+      - ["Trial → Paid", "Paid conversions", "Trials started"]
+      - ["Cart → Purchase", "Completed purchases", "Carts created"]
+  - type: example
+    title: Two stores, two "conversion rates," same underlying store
+    body: >
+      Store A reports "25% checkout conversion," measured as purchases divided by carts that reached
+      the payment page. Store B reports "8% conversion" for what is operationally the same
+      store, measured as purchases divided by all site visitors. Neither number is wrong — but a
+      leadership team comparing "25%" to a competitor's "8%" without checking the denominators would
+      draw a completely false conclusion about relative performance.
+    code: |
+      -- "Conversion rate" using orders created as the denominator (a late-funnel view)
+      SELECT
+        COUNT(*) FILTER (WHERE status = 'completed') AS completed_orders,
+        COUNT(*) AS total_orders,
+        ROUND(100.0 * COUNT(*) FILTER (WHERE status = 'completed') / COUNT(*), 1) AS conversion_rate_pct
+      FROM orders;
+    language: sql
+  - type: callout
+    variant: warning
+    title: A narrower denominator always looks better
+    body: >
+      If a team is under pressure to hit a conversion target, the denominator is the easiest place to
+      quietly manipulate the number — excluding bounced sessions, bot traffic, or "unqualified" leads
+      all shrink the denominator and inflate the rate without any real change in behavior.
+  - type: question
+    prompt: >
+      Two teams both report "signup conversion rate." Team A gets 40%; Team B gets 12%. Before
+      concluding Team A's funnel performs better, what should you check first?
+    choices:
+      - Whether both teams are using the same denominator (e.g., all visitors vs. only visitors who viewed the signup page)
+      - Whether Team A's marketing budget is larger
+      - Nothing — a higher percentage always means better performance
+    correct_index: 0
+    explanation: >
+      A 40% vs. 12% gap is far more likely to come from Team A measuring conversion from a
+      later, narrower starting point (e.g., "visitors who viewed the signup page") than Team B's
+      broader denominator (e.g., "all site visitors"). Comparing conversion rates across teams is only
+      valid once both denominators are defined identically.

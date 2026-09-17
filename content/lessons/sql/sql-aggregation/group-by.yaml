@@ -1,0 +1,83 @@
+slug: group-by
+module_slug: sql-aggregation
+title: GROUP BY
+description: Collapsing rows into groups so aggregate functions can summarize each one, and the rule for which columns can appear in SELECT.
+difficulty: BEGINNER
+estimated_minutes: 12
+display_order: 1
+objectives:
+  - Explain what GROUP BY does to a result set before aggregate functions are applied
+  - Write a GROUP BY query that summarizes one metric per group
+  - State the rule for which columns are allowed in SELECT alongside GROUP BY
+prerequisites: [combining-expressions]
+skills: [sql-fundamentals]
+datasets: [orders-sample]
+tags: [sql, beginner]
+key_takeaways:
+  - GROUP BY collapses rows sharing the same value(s) in the grouping column(s) into a single output row per group.
+  - Every column in SELECT must either be listed in GROUP BY or wrapped in an aggregate function — there's no third option.
+  - GROUP BY runs after WHERE and before HAVING and ORDER BY in the logical order SQL evaluates a query.
+common_mistakes:
+  - "Adding a column to SELECT (like order_date) without adding it to GROUP BY or wrapping it in an aggregate — most databases reject this outright, and the ones that don't will pick an arbitrary value from the group."
+  - Expecting GROUP BY to preserve row order — it only defines what counts as one group; ORDER BY is still needed to control the order groups appear in.
+blocks:
+  - type: heading
+    text: Collapsing rows into groups, and what SELECT can show
+  - type: text
+    body: >
+      Every lesson so far has worked one row at a time. GROUP BY changes that: it collapses all rows
+      that share the same value in the grouping column(s) into a single output row, so that aggregate
+      functions like COUNT, SUM, and AVG (covered later in this module) can summarize each group
+      instead of the whole table at once.
+  - type: code
+    language: sql
+    caption: Total spend per customer
+    code: |
+      SELECT customer_id, SUM(order_total) AS total_spend
+      FROM orders
+      GROUP BY customer_id;
+  - type: text
+    body: >
+      Here, every row for customer_id 'C1' — no matter how many orders they placed — collapses into
+      one output row, and SUM(order_total) adds up order_total across just that customer's rows.
+      Repeat for every distinct customer_id, and you get one row per customer.
+  - type: text
+    body: >
+      That collapsing behavior is exactly why GROUP BY comes with a strict rule for what can appear
+      in SELECT: every column has to fall into one of two buckets — a column
+      you're grouping by, or a column wrapped in an aggregate function. There's no third option. The
+      reason is mechanical: after grouping, a single output row can represent many input rows, so a
+      plain (non-aggregated, non-grouped) column has no single value to show — which row's value
+      would it even be?
+  - type: table
+    headers: ["In SELECT", "Allowed with GROUP BY customer_id?", "Why"]
+    rows:
+      - ["customer_id", "Yes", "It's the grouping column — one value per group, unambiguous"]
+      - ["SUM(order_total)", "Yes", "Aggregates collapse many rows into one number, exactly what a group needs"]
+      - ["order_date", "No", "A group can span many different order_dates — there's no single one to return"]
+  - type: example
+    title: Order count and total spend per customer, together
+    body: >
+      A single GROUP BY query can compute more than one aggregate at once. Here, COUNT(*) counts how
+      many orders each customer placed while SUM(order_total) adds up how much they spent — both
+      computed per customer_id in the same pass over the data.
+    code: |
+      SELECT
+        customer_id,
+        COUNT(*) AS order_count,
+        SUM(order_total) AS total_spend
+      FROM orders
+      GROUP BY customer_id;
+    language: sql
+  - type: question
+    prompt: "A query is written as: SELECT customer_id, order_date, SUM(order_total) FROM orders GROUP BY customer_id. What happens?"
+    choices:
+      - It runs fine and returns one representative order_date per customer
+      - Most databases reject it, because order_date is neither in GROUP BY nor wrapped in an aggregate function
+      - It runs fine and returns every order_date for each customer on separate lines
+    correct_index: 1
+    explanation: >
+      order_date is a plain column that isn't part of the GROUP BY list and isn't aggregated, so once
+      rows are collapsed by customer_id there's no single well-defined order_date to show. Standard
+      SQL requires every SELECT column to be either grouped or aggregated, and most databases enforce
+      this with an error rather than silently picking one.

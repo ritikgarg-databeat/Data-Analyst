@@ -1,0 +1,58 @@
+slug: pa-di-repeat-usage-flat-across-channels
+lesson_slug: pa-feature-adoption-decision
+skill: data-interpretation
+dataset: saas-product
+title: "Trial vs. Repeat Usage: A Flat Metric Across Channels"
+description: Given trial rate, repeat-usage rate overall, and repeat-usage rate by channel, decide where to invest.
+exercise_type: DATA_INTERPRETATION
+difficulty: INTERMEDIATE
+points: 15
+tags: [product, saas, intermediate, real-world]
+business_context: >
+  A VP of Product has budget for exactly one initiative next quarter: either a channel-specific
+  onboarding fix, or a broader product change to the core experience. They want your read on the
+  data before committing.
+prompt: >
+  Real data on this dataset's core action:
+
+  - Trial rate (users who ever attempt the core action): 69.1% of all 3,000 signups
+  - Repeat-usage rate (of those who tried it, % who come back and use it again): 54.2% overall
+
+  Repeat-usage rate broken out by acquisition channel:
+
+  | Channel | Repeat-usage rate |
+  |---|---|
+  | referral | 55.29% |
+  | paid_search | 54.79% |
+  | organic | 54.03% |
+  | content | 53.70% |
+  | paid_social | 53.30% |
+
+  Given both the overall gap (69.1% try it, only 54.2% of those come back) and the channel breakdown,
+  which of the two initiatives would you recommend the VP fund, and why? What would the data need to
+  look like for you to recommend the other one instead?
+hints:
+  - "Compare the size of the spread in the channel table (highest minus lowest) to the size of the overall trial-to-repeat-usage gap (69.1% vs. 54.2%) — which one is actually large?"
+  - "A metric that's roughly the same number across every segment is a clue about where its cause lives — think about what that implies versus a metric that varies a lot by segment."
+solution: >
+  The repeat-usage rate barely moves across channels — a roughly 2-point spread (53.30% to 55.29%) —
+  while the gap between trying the core action (69.1%) and coming back to use it again (54.2%) is a
+  much larger, ~15-point drop. A metric that's nearly flat across every acquisition channel, on the
+  same underlying population, is a strong signal that its cause is something uniform in the product
+  itself (what happens during and right after the first use) rather than something channel-specific
+  (how each channel's users arrive or what they expect). That argues for funding the broader
+  product-wide initiative — improving what happens in and immediately after a user's first attempt at
+  the core action — over a channel-specific onboarding fix, since a channel-specific fix would only
+  ever address a difference that isn't actually showing up in this metric. The data that would flip
+  this recommendation: if repeat-usage rate instead showed a spread comparable to (or larger than)
+  activation rate's 23-point channel spread — e.g. one channel repeating at 40% and another at 70% —
+  that would point at a channel-specific cause instead, and the channel-specific initiative would be
+  the better bet.
+explanation: >
+  A strong answer explicitly compares the *size* of the channel spread (small) against the size of the
+  overall trial-to-repeat gap (large), and draws the correct inference from a flat cross-segment
+  metric: the cause is more likely shared/product-wide rather than tied to any one segment. It also
+  states a concrete condition that would reverse the recommendation, showing the conclusion is
+  falsifiable rather than a foregone one. A weaker answer either recommends the channel-specific fix
+  without noticing the channel breakdown is nearly flat, or notices the flatness but doesn't connect
+  it to what kind of initiative it implies.

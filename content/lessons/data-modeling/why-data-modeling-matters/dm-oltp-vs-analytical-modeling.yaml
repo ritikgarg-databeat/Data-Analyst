@@ -1,0 +1,99 @@
+slug: dm-oltp-vs-analytical-modeling
+module_slug: why-data-modeling-matters
+title: "Why We Re-Model Data At All"
+description: The tables an application writes to are optimized for a different job than the tables an analyst queries — and that gap is exactly what deliberate data modeling closes.
+difficulty: BEGINNER
+estimated_minutes: 16
+display_order: 2
+objectives:
+  - "Explain why the raw tables an application writes to (OLTP-style: orders, order_items, payments, products, categories) are optimized for a different goal than the tables an analyst wants to query."
+  - Describe, using this project's real dbt marts, how an analytical model re-shapes those normalized source tables into a form built to answer business questions directly.
+skills: [data-modeling, data-warehousing]
+datasets: [ecommerce]
+tags: [data-modeling, data-warehouse, beginner, foundations]
+prerequisites: [dm-cost-of-a-bad-model]
+key_takeaways:
+  - "OLTP-style source tables (like this project's raw orders/order_items/payments/products/categories) are optimized for the application: fast single-row writes and minimal duplication. Being easy to query in aggregate was never the design goal."
+  - "An analytical model is optimized for the opposite job — fast, correct answers to 'how much / how many / trending how' — which sometimes means deliberately duplicating data a normalized schema would keep separate, exactly like dim_products copying category_name straight from categories."
+  - "Building the analytical layer isn't 'fixing' a broken OLTP schema. Both shapes are correct for their own job; the actual mistake is skipping the analytical layer and re-deriving it from raw tables in every single query."
+common_mistakes:
+  - "Treating the raw source tables as if they were already an analytical model, and re-deriving the same fact/dimension logic from scratch inside every query instead of building it once."
+  - "Assuming denormalization — like dim_products storing category_name and parent_category directly instead of making every query join to categories — is sloppy. In an analytical model that's a deliberate, correct tradeoff, not a shortcut."
+blocks:
+  - type: heading
+    text: Two schemas, two different jobs
+  - type: text
+    body: >
+      The ecommerce dataset's raw tables — `orders`, `order_items`, `payments`, `customers`, `products`,
+      `categories` — are shaped the way an operational, OLTP-style application database is shaped: each fact
+      lives in exactly one place. A product's category lives only in `categories`, referenced from `products`
+      by `category_id`. That's normalization, and it's the right call for a system that's constantly writing
+      new rows: it keeps writes cheap and avoids a category rename ever going out of sync across thousands of
+      product rows.
+  - type: text
+    body: >
+      But normalization has a cost the moment you switch from *writing* data to *asking questions of* it. "What's
+      our revenue by category?" now requires joining `order_items` to `products` to `categories` — every single
+      time, in every single query, for every single analyst who asks a category question. That repeated,
+      easy-to-get-slightly-wrong join is exactly the gap an analytical model exists to close.
+  - type: table
+    caption: "The same ecommerce data, shaped for two different jobs"
+    headers: ["Aspect", "OLTP-style source tables", "Analytical model (star schema)"]
+    rows:
+      - ["Optimized for", "Fast, correct single-row writes", "Fast, correct aggregate reads"]
+      - ["Duplication", "Avoided (normalized) — category name lives only in categories", "Accepted where useful — dim_products copies category_name and parent_category directly"]
+      - ["Example table", "products (category_id only)", "dim_products (category_id, category_name, parent_category, unit_margin)"]
+      - ["Typical question answered", "Insert this new order", "What's gross margin by category this quarter?"]
+  - type: example
+    title: "dim_products: denormalization as a deliberate design choice"
+    body: >
+      This project's real `dim_products` mart joins `products` to `categories` once, at build time, and stores
+      `category_name` and `parent_category` directly on the product dimension — so every analyst who queries
+      `dim_products` gets category context for free, with no join required. This duplicates data that,
+      technically, "belongs" only in `categories` — and that's exactly the point. An analytical model is
+      allowed to trade normalization for query simplicity, because its job is answering questions fast and
+      correctly, not minimizing storage or write complexity.
+    language: sql
+    code: |
+      -- dbt/models/marts/dim_products.sql (real, working model in this project)
+      select
+          p.product_id,
+          p.product_name,
+          p.category_id,
+          c.category_name,
+          c.parent_category,
+          p.unit_price,
+          p.cost,
+          p.unit_price - p.cost as unit_margin,
+          p.is_active
+      from {{ ref('stg_products') }} as p
+      left join {{ ref('stg_categories') }} as c
+          on p.category_id = c.category_id
+  - type: callout
+    variant: important
+    title: "This isn't 'fixing' the OLTP schema"
+    body: >
+      The raw products/categories split is not a mistake to be corrected — it's correct for the job it does.
+      Building dim_products on top of it doesn't replace the source tables; it adds a second, purpose-built
+      shape for a different consumer (analysts) with different needs (aggregate correctness and query
+      simplicity over write efficiency). Most real data platforms keep both layers side by side, permanently.
+  - type: text
+    body: >
+      This is the throughline for this module's sibling modules: **grain** (module 2) is how you precisely
+      name what one row of each layer means, and **star schema design** (module 3) is the specific shape — one
+      fact table surrounded by its dimensions — that the analytical layer almost always takes once you've
+      decided to build it.
+  - type: question
+    prompt: >
+      A new analyst says "I don't understand why we need dim_products — products and categories are already
+      real tables, I can just join them myself." What's the strongest response?
+    choices:
+      - "They're right — building dim_products is unnecessary duplication of data that already exists in products and categories."
+      - "dim_products isn't wrong to build from products+categories — the point is doing that join once, correctly, and giving every analyst a single trusted table instead of everyone re-deriving the same join (and its edge cases) independently."
+      - "dim_products should replace products and categories entirely, since keeping both is redundant."
+    correct_index: 1
+    explanation: >
+      The raw tables and the dimension table serve different consumers. dim_products doesn't make products/
+      categories obsolete — it exists so the join between them (and any business logic layered on top, like
+      unit_margin) is computed once, correctly, and reused by everyone instead of being silently re-implemented,
+      slightly differently, in every analyst's own query.

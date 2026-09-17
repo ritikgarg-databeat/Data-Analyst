@@ -1,0 +1,22 @@
+slug: pa-activation-metric-definition
+skill: product-metrics
+title: Defining an Activation Metric
+description: For a project-management SaaS tool, which is the best example of an activation metric (versus a vanity
+  signup metric)?
+exercise_type: MULTIPLE_CHOICE
+difficulty: INTERMEDIATE
+points: 5
+tags:
+- activation
+- product-analytics
+prompt: For a project-management SaaS tool, which is the best example of an activation metric (versus a vanity signup
+  metric)?
+correct_answer: Percentage of new signups who create and share their first project within 7 days
+explanation: Activation is about reaching a first real value moment (the 'aha' action specific to the product),
+  not just signing up -- creating and sharing a first project is a meaningful usage milestone, while raw signup
+  counts or pricing-page visits say nothing about whether the user actually got value.
+choices:
+- Percentage of new signups who create and share their first project within 7 days
+- Total number of signups this month
+- Total marketing spend on acquisition
+- Number of visits to the pricing page

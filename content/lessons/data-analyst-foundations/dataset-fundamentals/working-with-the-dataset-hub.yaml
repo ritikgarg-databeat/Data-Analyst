@@ -1,0 +1,111 @@
+slug: working-with-the-dataset-hub
+module_slug: dataset-fundamentals
+title: "Working With the Dataset Hub"
+description: A practical orientation to this platform's own Dataset Hub — importing files or a collection, what a dataset's status means as it processes, and how it becomes queryable in SQL Lab and loadable in Python Lab with zero extra setup.
+difficulty: BEGINNER
+estimated_minutes: 10
+display_order: 5
+objectives:
+  - Import a CSV/Excel file, or a folder of related files as a collection, into the Dataset Hub
+  - Interpret a dataset's status (IMPORTING, PROFILING, READY, FAILED) and know what's happening at each stage
+  - Explain what the "SQL Ready" and "Python Ready" badges mean, and where an imported dataset becomes usable
+prerequisites: [structured-vs-semi-structured-data]
+skills: [exploratory-data-analysis]
+datasets: [ecommerce]
+tags: [foundations, beginner]
+key_takeaways:
+  - "The Dataset Hub is this platform's own data catalog: import a file (or a folder of related files as a 'collection'), and it handles storage, profiling, and quality scoring automatically — you never hand-write a CREATE TABLE statement to start working with your own data here."
+  - "A dataset moves through a small, predictable set of statuses as it's processed: IMPORTING (the file is being read and stored), PROFILING (columns are being classified and scored), READY (fully processed and usable), or FAILED (something went wrong — check the status message)."
+  - "'SQL Ready' and 'Python Ready' aren't marketing badges — they're a direct, literal statement that the dataset is immediately queryable in SQL Lab and immediately loadable as a DataFrame in Python Lab, with no separate import or setup step in either tool."
+  - "A handful of exercises across this platform are tagged 'cross-training' — the exact same business question, solved once in SQL and once in Python, so you can see how the same analytical thinking translates across tools."
+common_mistakes:
+  - "Assuming a dataset needs a separate import into SQL Lab or Python Lab after it's already in the Dataset Hub — the whole point of a READY, SQL Ready/Python Ready dataset is that both labs can already see it directly."
+  - "Not reading the status_message on a FAILED import — it's usually specific (a malformed row, an unreadable file encoding, a schema mismatch across files in a collection), not just a generic failure."
+  - "Treating a 'collection' as just a folder of unrelated files — a collection is most useful when the files genuinely relate to each other (e.g. multiple exports from the same source system), since the hub's relationship detection and cross-table profiling assume that."
+practical_applications:
+  - "Importing a CSV export from a real project into the Dataset Hub and using its automatic profiling as your first-five-minutes-on-a-new-dataset routine, instead of writing that inspection code by hand every time."
+  - "Choosing between SQL Lab and Python Lab for a specific task once a dataset is dual-ready in both, based on which tool the underlying question is a more natural fit for — the point the two cross-training exercises below are built to illustrate."
+interview_questions:
+  - question: "Walk me through what happens when you import a new dataset into a tool like this platform's Dataset Hub."
+    answer: "The file gets uploaded and stored, then the platform reads it, infers each column's type, computes profile statistics (null rates, unique counts, distributions), and runs a quality score — all before I write a single query. I'd expect a short IMPORTING/PROFILING processing state while that happens, and then a READY status once it's fully catalogued and immediately queryable, with a FAILED state and a specific error message if something in the file couldn't be parsed or profiled."
+resources:
+  - title: "Kaggle API documentation"
+    url: "https://www.kaggle.com/docs/api"
+blocks:
+  - type: heading
+    text: "Getting a dataset in"
+  - type: text
+    body: >
+      The Dataset Hub is where every dataset on this platform — including the ecommerce dataset you've
+      been reading about throughout this module — lives, gets profiled, and gets a quality score. You can
+      bring in your own data two main ways: uploading a single CSV/Excel file, or uploading a folder of
+      related files together as a **collection** (for example, several exports from the same source system
+      that are meant to be analyzed together, the way this course's own categories/products/customers/
+      orders/order_items/payments/sessions/marketing_campaigns files form one collection).
+  - type: callout
+    variant: tip
+    title: "A Kaggle import is available too, when configured"
+    body: >
+      If Kaggle API credentials are configured for this environment, you can import a public Kaggle dataset
+      directly by its identifier instead of downloading and re-uploading it by hand — it goes through the
+      exact same import → profile → ready pipeline as any uploaded file. This is optional and
+      environment-dependent, not required for anything else in this module.
+  - type: heading
+    text: "What a dataset's status tells you"
+  - type: table
+    headers: ["Status", "What's happening", "What you can do"]
+    rows:
+      - ["IMPORTING", "The file(s) are being read and stored", "Wait — nothing is queryable yet"]
+      - ["PROFILING", "Columns are being classified (numeric/categorical/datetime/text/boolean) and scored for quality", "Wait — almost there"]
+      - ["READY", "Fully processed: schema, profile, and quality score are all available", "Explore the schema viewer, open it in SQL Lab or Python Lab, run EDA, build charts"]
+      - ["FAILED", "Something went wrong during import or profiling", "Read the status message — it names the specific problem, don't just retry blindly"]
+  - type: heading
+    text: "\"SQL Ready\" and \"Python Ready\" — what they actually mean"
+  - type: text
+    body: >
+      Once a dataset reaches READY, you'll see two badges: SQL Ready and Python Ready. These are literal,
+      not aspirational — they mean the dataset's tables are immediately queryable with a SELECT statement
+      in SQL Lab, and immediately loadable as pandas DataFrames in Python Lab, the moment you open either
+      tool. There's no separate "now connect it to SQL Lab" step and no separate "now load it into Python"
+      step. Import once in the Dataset Hub, and both labs already see it.
+  - type: callout
+    variant: important
+    title: "This removes an entire category of real-world setup friction"
+    body: >
+      In a real job, getting a new dataset from "I have a file" to "I can query and script against it" is
+      often its own multi-step task — provisioning a table, writing a load script, handling type mismatches.
+      The Dataset Hub collapses that into one import step specifically so you can spend your time on the
+      analysis, not the plumbing, while you're still learning the analysis itself.
+  - type: heading
+    text: "Where to go once a dataset is READY"
+  - type: checklist
+    title: "What's available on a READY, dual-ready dataset"
+    items:
+      - "Schema viewer — column names, types, null%, unique counts (the next module's first lesson goes deep on reading this)"
+      - "Quality score — completeness, uniqueness, validity, and consistency, with specific flagged issues"
+      - "EDA Workspace — a guided exploration space for building up structured findings"
+      - "Chart Builder — a point-and-click charting tool with type recommendations and mistake warnings"
+      - "SQL Lab — write and run real SQL directly against the dataset's tables"
+      - "Python Lab — the dataset's tables are pre-loaded as DataFrames, ready for pandas/NumPy/etc."
+  - type: callout
+    variant: tip
+    title: "Practice the same question in both tools: cross-training exercises"
+    body: >
+      A few exercises on this platform are tagged **cross-training** — the identical underlying business
+      question, solved once in SQL and once in Python, against this same ecommerce dataset. "Find
+      Customers With No Completed Orders" (SQL) and "Customer Order Frequency" (Python) are one such pair —
+      both built for a retention team deciding who's overdue for a win-back email, one answered with a
+      NOT EXISTS subquery, the other with a pandas groupby. Working both is a good way to see how the same
+      analytical thinking translates across tools, and to notice which tool felt like the natural fit for
+      which kind of question.
+  - type: question
+    prompt: "A dataset in the Dataset Hub shows status READY with both SQL Ready and Python Ready badges. What's the correct next step to start querying it in SQL Lab?"
+    choices:
+      - "Open SQL Lab and query it directly — READY plus SQL Ready means no further import or setup step is needed"
+      - "Export it from the Dataset Hub as a CSV and re-upload it inside SQL Lab"
+      - "Wait for a separate 'SQL Lab sync' status before it can be queried there"
+    correct_index: 0
+    explanation: >
+      SQL Ready is a literal statement that the dataset's tables are already queryable in SQL Lab — the
+      import → profile → ready pipeline is the only setup step, and both SQL Lab and Python Lab pick up a
+      READY, dual-ready dataset with no separate connection or re-upload step.

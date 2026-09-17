@@ -1,0 +1,73 @@
+slug: churn
+module_slug: business-metrics
+title: Churn
+description: How churn rate relates directly to retention rate, and why customer churn and revenue churn can tell very different stories.
+difficulty: BEGINNER
+estimated_minutes: 12
+display_order: 6
+objectives:
+  - Define churn rate and calculate it for a cohort
+  - Explain the mathematical relationship between churn rate and retention rate
+  - Distinguish customer churn from revenue churn, and explain why they can diverge
+prerequisites: [customer-retention]
+skills: [business-metrics]
+tags: [business-analytics, beginner]
+key_takeaways:
+  - "Churn and retention are complementary: Churn Rate = 1 − Retention Rate, so improving one always improves the other."
+  - Customer churn (headcount) and revenue churn (dollars) can tell very different stories when the customers who leave aren't representative of average customer value.
+  - "Negative net revenue churn — where expansion revenue from existing customers outpaces losses from churned ones — is possible, and is a strong signal of business health."
+common_mistakes:
+  - Reporting only customer churn when the real business question is how much revenue is actually at risk.
+  - Ignoring expansion revenue when calculating net revenue churn, which overstates how much revenue the business is truly losing.
+blocks:
+  - type: heading
+    text: "Churn: the mirror image of retention"
+  - type: formula
+    expression: "Churn Rate = 1 − Retention Rate = (Customers lost during period) / (Customers at start of period) × 100"
+    description: "Churn and retention describe the exact same underlying fact from opposite directions — analysts report whichever framing makes the story clearer for the audience."
+  - type: text
+    body: >
+      Because churn and retention are mathematical complements, a lesson on churn isn't really new
+      math — it's a new lens. Churn puts the emphasis on loss, which is often the more actionable
+      framing for a team trying to fix a specific leak in the business.
+  - type: heading
+    text: Customer churn vs. revenue churn
+    level: 3
+  - type: comparison
+    title: Customer Churn vs. Revenue Churn
+    columns: ["Type", "What it measures", "The trap"]
+    rows:
+      - ["Customer churn", "The percentage of customers who left", "Can look fine even while revenue is shrinking, if the customers who left were low-value"]
+      - ["Revenue churn", "The percentage of recurring revenue lost", "Can be masked by expansion revenue from the customers who stayed"]
+  - type: formula
+    expression: "Net Revenue Churn = (Churned Revenue − Expansion Revenue) / Starting Revenue × 100"
+    description: "Net revenue churn can go negative — often called \"negative churn\" — when expansion revenue from remaining customers outpaces the revenue lost from churned ones."
+  - type: example
+    title: Low customer churn, low revenue impact — but not for the reason it looks like
+    body: >
+      A company starts the quarter with 100 customers and $50,000 in recurring revenue. 8 customers
+      churn (8% customer churn), and they were all on the cheapest $50/month plan — $400/month lost.
+      Meanwhile, 5 of the remaining 92 customers upgrade, adding $900/month in expansion revenue. Net
+      revenue churn is negative: the business lost 8% of its customers by headcount but *grew*
+      recurring revenue over the same period.
+  - type: callout
+    variant: common_mistake
+    title: Headcount churn isn't the business risk — revenue churn is
+    body: >
+      A board update that only says "churn is 8% this quarter" doesn't say whether that's a real
+      revenue problem. Always pair customer churn with revenue churn before deciding how worried to
+      be.
+  - type: question
+    prompt: >
+      A subscription business has 5% customer churn and −2% net revenue churn in the same quarter.
+      What does this combination most likely mean?
+    choices:
+      - The data must be wrong, since churn can't be negative
+      - The customers who left were lower-value than average, and expansion revenue from remaining customers more than offset the loss
+      - Revenue churn and customer churn always have to match, so this is impossible
+    correct_index: 1
+    explanation: >
+      Customer churn (5%) and net revenue churn (−2%) measure different things — one counts people,
+      the other counts dollars, net of expansion. A negative net revenue churn alongside positive
+      customer churn is a strong, healthy signal: the customers who left were below-average value, and
+      the customers who stayed grew their spend enough to more than cover the loss.

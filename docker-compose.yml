@@ -1,0 +1,98 @@
+name: data-analyst-lab
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-data_analyst_lab}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-data_analyst_lab}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-data_analyst_lab}
+      CORS_ORIGINS: '["http://localhost:3000"]'
+      AI_PROVIDER: ${AI_PROVIDER:-local}
+      AI_MODEL: ${AI_MODEL:-}
+      AI_API_KEY: ${AI_API_KEY:-}
+      AI_OPENAI_API_KEY: ${AI_OPENAI_API_KEY:-}
+      AI_ANTHROPIC_API_KEY: ${AI_ANTHROPIC_API_KEY:-}
+      KAGGLE_USERNAME: ${KAGGLE_USERNAME:-}
+      KAGGLE_KEY: ${KAGGLE_KEY:-}
+      DATASET_MAX_UPLOAD_MB: ${DATASET_MAX_UPLOAD_MB:-500}
+      # Python Lab (Phase 4): the api container talks to the HOST's Docker
+      # daemon (Docker-out-of-Docker, via the socket mount below) to create
+      # sandbox containers as its siblings, not its children — so any
+      # volume-mount path it hands the daemon must be a HOST path, never a
+      # path inside this container. PYTHON_LAB_HOST_DATA_DIR is that host
+      # path; it must point at the SAME directory this compose file bind-mounts
+      # below. Override it in .env if ${PWD} doesn't resolve to your repo
+      # root on your platform (a known rough edge on some Windows setups —
+      # see docs/architecture.md#python-lab-phase-4).
+      PYTHON_LAB_HOST_DATA_DIR: ${PYTHON_LAB_HOST_DATA_DIR:-${PWD}/data/sample}
+      # Same concern, for Phase 5 user-imported datasets (data/datasets/),
+      # mounted read-only into the sandbox alongside the above at /data/datasets.
+      PYTHON_LAB_HOST_DATASETS_DIR: ${PYTHON_LAB_HOST_DATASETS_DIR:-${PWD}/data/datasets}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./data/sample:/app/data/sample:ro
+      # Phase 5 (Dataset Hub): read-write, unlike data/sample above — the api
+      # process itself writes uploaded/converted/profiled files here (see
+      # app/dataset_hub/paths.py).
+      - ./data/raw:/app/data/raw
+      - ./data/processed:/app/data/processed
+      - ./data/datasets:/app/data/datasets
+    ports:
+      - "${API_PORT:-8000}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # Never started by `docker compose up` (see `profiles`) — the api service
+  # creates/destroys containers *of* this image on demand, one per Python
+  # Lab runtime, via the Docker socket mount above. It just needs to be
+  # built once (and rebuilt after editing infrastructure/docker/python-sandbox/):
+  #   docker compose build python-sandbox
+  python-sandbox:
+    build:
+      context: infrastructure/docker/python-sandbox
+      dockerfile: Dockerfile
+    image: data-analyst-lab-python-sandbox:latest
+    profiles: ["build-only"]
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  pgdata:

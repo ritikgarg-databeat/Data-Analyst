@@ -1,0 +1,42 @@
+slug: company-style-analytics-bi
+title: "Company-Style Assessment — Analytics / BI Archetype"
+target_profile: "Data Analyst — ~2 Years Experience (analytics engineering / BI team)"
+description: >
+  A generic ANALYTICS / BI interview archetype: the loop shape commonly used by teams that sit close
+  to the warehouse, weighted toward SQL depth, modelling grain, warehouse concepts and pipeline
+  troubleshooting rather than product sense. This is an archetype for practice — it is not a
+  description of any specific company's current hiring process.
+sections:
+  - interview_type: SQL
+    title: "Advanced SQL"
+    duration_minutes: 25
+    question_count: 3
+    difficulty: ADVANCED
+  - interview_type: DATA_MODELING
+    title: "Data Modelling"
+    duration_minutes: 15
+    question_count: 2
+  - interview_type: DATA_WAREHOUSING
+    title: "Warehouse Concepts"
+    duration_minutes: 10
+    question_count: 2
+  - interview_type: DATA_ENGINEERING
+    title: "Pipelines & Data Quality"
+    duration_minutes: 15
+    question_count: 2
+  - interview_type: DATA_VISUALIZATION
+    title: "Dashboards & Communication"
+    duration_minutes: 10
+    question_count: 1
+  - interview_type: BEHAVIORAL
+    title: "Behavioural"
+    duration_minutes: 10
+    question_count: 2
+rubric_weights:
+  Technical Correctness: 40
+  Analytical Reasoning: 15
+  Business Understanding: 10
+  Communication: 15
+  Problem Solving: 15
+  Efficiency: 5
+tags: [company-style, sql, data-modeling, data-warehouse, data-engineering, data-visualization, behavioral]

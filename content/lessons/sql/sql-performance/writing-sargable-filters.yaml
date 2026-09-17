@@ -1,0 +1,128 @@
+slug: writing-sargable-filters
+module_slug: sql-performance
+title: Writing Sargable Filters
+description: Filters that can be evaluated efficiently against raw column values vs. filters that force the database to compute something on every row first — and how to write filters that keep scaling.
+difficulty: ADVANCED
+estimated_minutes: 10
+display_order: 4
+objectives:
+  - Define "sargable" and explain why wrapping a column in a function usually breaks it
+  - Rewrite a common non-sargable date filter into an equivalent, sargable range filter
+  - Recognize other common sargability traps (leading wildcards, type mismatches, arithmetic on a column)
+prerequisites: [indexes-conceptually]
+skills: [advanced-sql]
+datasets: [ecommerce]
+tags: [sql, advanced]
+key_takeaways:
+  - "A filter is 'sargable' (Search ARGument ABLE) when the database can evaluate it directly against a column's stored values — without first transforming every row's value through a function."
+  - "Wrapping the filtered column in a function (EXTRACT, LOWER, date formatting, arithmetic) usually breaks sargability, because the database has to compute that function's result for every row before it can compare anything."
+  - "The fix is almost always the same shape: move the transformation off the column and onto the comparison value instead, so the column itself stays untouched in the filter."
+common_mistakes:
+  - "Filtering with EXTRACT(year FROM order_date) = 2025 instead of a range comparison — mathematically equivalent, but the function wrap defeats the database's ability to reason about the raw order_date values (and any index or zone-map skipping built on them)."
+  - "Wrapping a column in LOWER() or UPPER() to do a case-insensitive match — same problem, same fix: normalize case in the data or use a case-insensitive comparison operator/collation instead of transforming the column on every row."
+practical_applications:
+  - "Rewriting a slow reporting query's date filter before it becomes a production incident as the underlying table grows from thousands to millions of rows."
+  - "Reviewing a colleague's query in code review and catching a function-wrapped filter before it ships."
+blocks:
+  - type: heading
+    text: What "sargable" means
+  - type: text
+    body: >
+      **Sargable** is short for "Search ARGument ABLE" — a filter is sargable when the database can
+      evaluate it directly against a column's raw stored values, without computing something new for
+      every row first. Sargable filters are the ones that can benefit from an index or from
+      block-skipping metadata (the zone maps from the previous lesson); non-sargable ones generally
+      can't, because the database has no choice but to touch every row and run the transformation
+      before it can even check the condition.
+  - type: heading
+    text: The classic example — wrapping a date column in a function
+  - type: text
+    body: >
+      A very common (and very tempting) way to filter "everything in 2025" is to pull the year out of a
+      date column and compare it to a number. It reads naturally, but it wraps the column in a
+      function.
+  - type: code
+    language: sql
+    caption: Non-sargable — the column is wrapped in EXTRACT()
+    code: |
+      SELECT COUNT(*)
+      FROM orders
+      WHERE EXTRACT(year FROM order_date) = 2025;
+  - type: text
+    body: >
+      To evaluate this, the database has to compute `EXTRACT(year FROM order_date)` for every single
+      row in `orders`, and only then compare that computed value to 2025. There's no way to reason
+      about which rows might match by looking at `order_date`'s raw stored values, because the
+      condition isn't actually about `order_date` anymore — it's about a value derived from it.
+  - type: code
+    language: sql
+    caption: Sargable — an equivalent range filter on the raw column
+    code: |
+      SELECT COUNT(*)
+      FROM orders
+      WHERE order_date >= DATE '2025-01-01'
+        AND order_date <  DATE '2026-01-01';
+  - type: output
+    caption: Both queries above return the identical count from this dataset
+    body: |
+      count_star()
+      -------------
+              3567
+  - type: text
+    body: >
+      Same result, same intent ("everything in 2025") — but this version compares `order_date` directly
+      against two literal boundary values. The column itself is never transformed, so the database can
+      reason about it using whatever raw-value structures it has (an index range scan in an OLTP
+      database, zone-map block skipping in DuckDB) instead of being forced to touch and compute on
+      every row.
+  - type: callout
+    variant: tip
+    title: The general fix — move the transformation off the column
+    body: >
+      Almost every non-sargable filter follows the same pattern: some function is applied to the
+      column, and the fix is to restate the condition so the function (if it's needed at all) applies
+      to the *comparison value* instead, leaving the column bare. "Year equals 2025" becomes "the date
+      falls in this literal range." "Lowercase name equals 'acme'" becomes "name equals a
+      pre-lowercased literal" (or better, matching against data that's already normalized).
+  - type: table
+    headers: ["Non-sargable", "Sargable rewrite", "Why it's equivalent"]
+    rows:
+      - ["EXTRACT(year FROM order_date) = 2025", "order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01'", "Same set of dates, expressed as a direct range on the raw column"]
+      - ["LOWER(email) = 'a@b.com'", "email = 'a@b.com' (assuming stored emails are already lowercase)", "Avoids transforming every row's email just to compare it"]
+      - ["unit_price * 1.1 > 100", "unit_price > 100 / 1.1", "Moves the arithmetic to the single literal instead of every row's unit_price"]
+      - ["name LIKE '%widget%'", "No fully sargable equivalent — a leading wildcard can't be range-bounded", "Worth calling out: not every non-sargable pattern has a clean rewrite (see below)"]
+  - type: callout
+    variant: warning
+    title: Not everything can be made sargable
+    body: >
+      A leading-wildcard LIKE pattern (`LIKE '%widget%'`) is a genuine case where there's no equivalent
+      range condition — "contains this substring anywhere" isn't expressible as "falls between these two
+      values." That's a real limitation, not a rewriting exercise; full-text search or a specialized
+      index type is the actual answer when that pattern shows up on a large table, which is beyond the
+      scope of a general sargability rewrite.
+  - type: example
+    title: The same trap on a numeric column
+    body: >
+      Sargability issues aren't limited to dates. Any arithmetic applied directly to a column inside a
+      filter has the same effect — the database must compute the expression per row before comparing.
+    code: |
+      -- Non-sargable: unit_price is transformed on every row
+      SELECT product_name FROM products WHERE unit_price * 0.9 > 200;
+
+      -- Sargable: the arithmetic moves to the single literal instead
+      SELECT product_name FROM products WHERE unit_price > 200 / 0.9;
+    language: sql
+  - type: question
+    prompt: >
+      Which of these WHERE conditions on order_date is sargable?
+    choices:
+      - "WHERE DATE_TRUNC('month', order_date) = DATE '2025-06-01'"
+      - "WHERE order_date >= DATE '2025-06-01' AND order_date < DATE '2025-07-01'"
+      - "WHERE CAST(order_date AS VARCHAR) LIKE '2025-06%'"
+    correct_index: 1
+    explanation: >
+      The second condition compares order_date directly to two literal boundaries with no function
+      wrapping the column — that's sargable. The first wraps order_date in DATE_TRUNC(), and the third
+      casts it to text and pattern-matches, both of which require computing a transformed value for
+      every row before the comparison can happen, even though all three conditions select the same set
+      of June 2025 rows.

@@ -1,0 +1,127 @@
+slug: correlated-subqueries
+module_slug: sql-subqueries-ctes
+title: Correlated Subqueries
+description: Subqueries that reference the outer query's current row, and how to think about them running once per outer row.
+difficulty: INTERMEDIATE
+estimated_minutes: 12
+display_order: 3
+objectives:
+  - Identify a correlated subquery by its reference to a column from the outer query
+  - Explain the "runs once per outer row" mental model for evaluating a correlated subquery
+  - Write a correlated scalar subquery to compare a row against a benchmark computed per-group
+  - Write a correlated EXISTS to test for related rows without pulling their values
+prerequisites: [subqueries-in-where]
+skills: [advanced-sql]
+datasets: [ecommerce]
+tags: [sql, intermediate]
+key_takeaways:
+  - A correlated subquery references a column from the outer query in its own WHERE clause, which means it can't be evaluated once up front — conceptually, it re-runs for every row the outer query considers.
+  - A correlated scalar subquery is how you compute a per-group benchmark (like "average price within this product's own category") without a separate GROUP BY query.
+  - "EXISTS is almost always written as a correlated subquery: it asks, for the current outer row, whether any matching inner row exists — and real database engines optimize this into a semi-join rather than literally looping."
+common_mistakes:
+  - "Forgetting to correlate the subquery — writing (SELECT AVG(unit_price) FROM products) instead of (SELECT AVG(unit_price) FROM products p2 WHERE p2.category_id = p.category_id) computes one global average instead of a per-category one, silently changing what the query answers."
+  - "Assuming EXISTS pulls data out of the subquery — it only checks for a matching row's presence, so SELECT 1 inside an EXISTS is idiomatic precisely because the selected column is never used."
+blocks:
+  - type: heading
+    text: A subquery that looks back at the outer row
+  - type: text
+    body: >
+      Every subquery in the last two lessons was self-contained — it could run entirely on its own,
+      with no idea what the outer query was doing. A **correlated subquery** breaks that independence:
+      it references a column from the outer query inside its own WHERE clause, so its result depends
+      on whichever outer row is currently being evaluated.
+  - type: code
+    language: sql
+    caption: Products priced above the average for their own category
+    code: |
+      SELECT p.product_name, p.category_id, p.unit_price
+      FROM products p
+      WHERE p.unit_price > (
+        SELECT AVG(p2.unit_price)
+        FROM products p2
+        WHERE p2.category_id = p.category_id
+      )
+      ORDER BY p.category_id;
+  - type: text
+    body: >
+      Look closely at the inner query: `WHERE p2.category_id = p.category_id` references `p`, which
+      is the outer table's alias. The subquery can no longer be computed once in isolation — its
+      answer changes depending on which outer product row it's being evaluated for. That's what
+      "correlated" means, and it's the only structural difference from the scalar subqueries you've
+      already seen.
+  - type: heading
+    text: The "once per outer row" mental model
+  - type: text
+    body: >
+      The easiest way to reason about a correlated subquery is to imagine SQL looping over the outer
+      table one row at a time, and for each row, plugging that row's values into the subquery and
+      running it fresh. For the query above, that looks like — for the first product row (category_id
+      = 1), compute AVG(unit_price) over every product where category_id = 1, then compare this row's
+      price to that number; move to the next product row, and repeat, recomputing the average for
+      whatever category that row belongs to.
+  - type: callout
+    variant: tip
+    title: This is a mental model, not literally how it executes
+    body: >
+      Real query engines — including DuckDB — are far too smart to actually re-scan the products
+      table once per outer row. They typically rewrite correlated subqueries into an equivalent join
+      or grouped computation under the hood, which is why this pattern doesn't get catastrophically
+      slower as the table grows. But the row-by-row mental model is still the right way to reason
+      about *what the query means* and to predict its output correctly.
+  - type: table
+    headers: ["Outer row (product)", "category_id", "Correlated subquery result (category avg)", "Kept?"]
+    rows:
+      - ["Pro Yoga Mat ($304.76)", "1", "$276.62", "Yes — 304.76 > 276.62"]
+      - ["Classic Notebook ($262.86)", "1", "$276.62", "No — 262.86 < 276.62"]
+      - ["Compact Headphones ($478.77)", "1", "$276.62", "Yes — 478.77 > 276.62"]
+  - type: heading
+    text: EXISTS is almost always correlated
+  - type: text
+    body: >
+      Last lesson introduced EXISTS without leaning on correlation. In practice, EXISTS is nearly
+      always written *with* a correlated condition, because that's what makes it useful: "does at
+      least one row in this other table relate to the current outer row?"
+  - type: code
+    language: sql
+    caption: Customers who have placed at least one mobile-channel order
+    code: |
+      SELECT c.customer_id, c.first_name, c.last_name
+      FROM customers c
+      WHERE EXISTS (
+        SELECT 1
+        FROM orders o
+        WHERE o.customer_id = c.customer_id
+          AND o.channel = 'mobile'
+      );
+  - type: text
+    body: >
+      For every customer row, the inner query asks "is there any order for this exact customer_id on
+      the mobile channel?" and stops as soon as it finds one — it never needs to count them or pull
+      any of their columns out, which is why `SELECT 1` (a throwaway constant) is the idiomatic thing
+      to select inside an EXISTS subquery. The value selected is irrelevant; only whether a row comes
+      back at all matters.
+  - type: example
+    title: "EXISTS vs. IN with correlation"
+    body: >
+      IN compares a column against a set of values and doesn't need correlation. EXISTS checks for
+      matching rows and is typically correlated. The two queries below answer the same question —
+      customers with at least one order — using each style.
+    code: |
+      -- IN: build the set of customer_ids that have ordered, then filter against it
+      SELECT * FROM customers WHERE customer_id IN (SELECT customer_id FROM orders);
+
+      -- EXISTS: for each customer, check whether a matching order row exists
+      SELECT * FROM customers c
+      WHERE EXISTS (SELECT 1 FROM orders o WHERE o.customer_id = c.customer_id);
+    language: sql
+  - type: question
+    prompt: "What makes a subquery 'correlated' rather than a plain (non-correlated) subquery?"
+    choices:
+      - It uses EXISTS instead of IN
+      - "It references a column from the outer query inside its own WHERE clause, so its result depends on the current outer row"
+      - It returns more than one row
+    correct_index: 1
+    explanation: >
+      Correlation is about the subquery referencing outer-query columns, which ties its result to
+      whichever outer row is currently being evaluated. Whether it uses EXISTS, IN, or a scalar
+      comparison, and how many rows it returns, are separate, independent details.

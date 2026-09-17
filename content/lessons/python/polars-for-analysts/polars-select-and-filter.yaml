@@ -1,0 +1,146 @@
+slug: polars-select-and-filter
+module_slug: polars-for-analysts
+title: ".select() and .filter(): The Expression API"
+description: Polars' core idiom — pl.col() expressions passed to .select() and .filter() — contrasted directly with pandas' bracket-and-boolean-mask style.
+difficulty: INTERMEDIATE
+estimated_minutes: 10
+display_order: 3
+objectives:
+  - Use .select() to choose columns and .filter() to choose rows, the Polars way
+  - Read and write a pl.col() expression as the basic unit of Polars code
+  - Translate fluently between a pandas boolean mask and a Polars .filter(pl.col(...)) call
+prerequisites: [polars-lazy-execution]
+skills: [pandas]
+datasets: [ecommerce]
+tags: [python, intermediate, real-world]
+key_takeaways:
+  - "pl.col('column_name') is an expression — a reference to a column that you build comparisons, math, and transformations on top of, rather than pulling the column out as a Series and operating on it directly."
+  - "Column selection is .select([...]) in Polars, not the pandas double-bracket df[['a', 'b']] — and row filtering is .filter(condition) instead of pandas' df[boolean_mask] bracket indexing."
+  - "The same pl.col(x) > 5 expression object can be reused inside .filter(), .select(), .with_columns(), and .group_by().agg() — it's the one idiom that runs through almost all of Polars, which is exactly why it's worth learning well early."
+common_mistakes:
+  - "Writing orders['status'] the pandas way and expecting a Series back — Polars supports this for quick interactive lookups, but idiomatic Polars code uses pl.col('status') inside an expression instead, because that's what lets Polars parallelize and optimize the operation."
+  - "Trying to chain multiple boolean conditions with Python's `and`/`or` instead of the element-wise `&`/`|` operators — same trap as pandas, and it raises the same kind of error in Polars."
+  - "Forgetting parentheses around each condition when combining them with & or | — operator precedence makes pl.col('a') > 5 & pl.col('b') == 'x' parse incorrectly without them, exactly as in pandas."
+practical_applications:
+  - "Pulling just the columns and rows needed for a specific chart or export from a much wider raw table, using .select() and .filter() together so no memory is wasted materializing unused columns."
+  - "Writing a reusable filter expression (e.g. 'is this a completed order') once and reusing it across several different .filter() and .agg() calls in a pipeline."
+interview_questions:
+  - question: "How do you filter a Polars DataFrame to rows where a column equals a value, and how is that different from pandas syntax?"
+    answer: "In Polars: df.filter(pl.col('status') == 'completed'). In pandas the equivalent is df[df['status'] == 'completed']. Both produce a boolean condition per row, but Polars wraps the column reference in an expression (pl.col(...)) rather than pulling it out as a Series first — that expression form is what lets Polars' engine plan and parallelize the operation instead of just evaluating it immediately in Python."
+  - question: "What is a Polars expression, conceptually?"
+    answer: "An expression, built starting from pl.col('name') or similar, is a description of a computation on a column rather than an immediately-executed one. You pass expressions into .select(), .filter(), .with_columns(), and .group_by().agg() — Polars' engine reads the expression, decides how to execute it (often across multiple threads), and only then produces a result. It's the mechanism that makes Polars' performance possible."
+resources:
+  - title: "Polars User Guide — Expressions"
+    url: "https://docs.pola.rs/user-guide/expressions/expressions-and-contexts/"
+blocks:
+  - type: text
+    body: >
+      Every DataFrame library needs two basic operations: pick some columns, and pick some rows. In
+      pandas you do both with square brackets — `df[['a', 'b']]` for columns, `df[df['a'] > 5]` for
+      rows. Polars gives each its own explicit method, `.select()` and `.filter()`, and both are built
+      around the same core idiom you'll use constantly from here on: the **expression**.
+  - type: heading
+    text: "pl.col() — the building block of every Polars expression"
+  - type: text
+    body: >
+      `pl.col("column_name")` doesn't fetch a column's values — it creates a reference *to* the column
+      that you can build comparisons and computations on top of. `pl.col("unit_price") > 100` isn't a
+      boolean array yet; it's an expression that means "compare the unit_price column to 100," which
+      Polars evaluates when it's actually used inside `.select()`, `.filter()`, or similar.
+  - type: heading
+    text: ".select() — choosing columns"
+  - type: code
+    language: python
+    code: |
+      import polars as pl
+
+      orders = pl.read_csv("data/sample/ecommerce/orders.csv")
+
+      result = orders.select(["order_id", "customer_id", "channel"])
+      print(result.head(3))
+    caption: Selecting a subset of columns
+  - type: output
+    body: |
+      shape: (3, 3)
+      ┌──────────┬─────────────┬─────────┐
+      │ order_id ┆ customer_id ┆ channel │
+      │ ---      ┆ ---         ┆ ---     │
+      │ i64      ┆ i64         ┆ str     │
+      ╞══════════╪═════════════╪═════════╡
+      │ 1        ┆ 1           ┆ mobile  │
+      │ 2        ┆ 1           ┆ web     │
+      │ 3        ┆ 2           ┆ web     │
+      └──────────┴─────────────┴─────────┘
+    caption: Real output
+  - type: heading
+    text: ".filter() — choosing rows"
+  - type: code
+    language: python
+    code: |
+      completed = orders.filter(pl.col("status") == "completed")
+      print(completed.shape)
+
+      # Combine conditions with & and | — each condition needs its own parentheses
+      big_web_orders = orders.filter(
+          (pl.col("status") == "completed") & (pl.col("channel") == "web")
+      )
+      print(big_web_orders.shape)
+    caption: Filtering with a single condition, then combining two conditions
+  - type: output
+    body: |
+      (3441, 5)
+      (1890, 5)
+    caption: "Real output — 3,441 completed orders overall; 1,890 of those are on the web channel"
+  - type: heading
+    text: "The direct pandas comparison"
+  - type: comparison
+    title: "Same task, pandas bracket style vs. Polars expression style"
+    columns: ["Task", "pandas", "Polars"]
+    rows:
+      - ["Select columns", "orders[['order_id', 'customer_id', 'channel']]", 'orders.select(["order_id", "customer_id", "channel"])']
+      - ["Filter rows, one condition", "orders[orders['status'] == 'completed']", 'orders.filter(pl.col("status") == "completed")']
+      - ["Filter rows, combined conditions", "orders[(orders['status'] == 'completed') & (orders['channel'] == 'web')]", 'orders.filter((pl.col("status") == "completed") & (pl.col("channel") == "web"))']
+      - ["Select AND filter together", "orders.loc[orders['status'] == 'completed', ['order_id', 'channel']]", 'orders.filter(pl.col("status") == "completed").select(["order_id", "channel"])']
+  - type: callout
+    variant: important
+    title: Why the expression form, not just a boolean array
+    body: >
+      In pandas, `orders['status'] == 'completed'` immediately computes a full boolean Series in Python.
+      In Polars, `pl.col("status") == "completed"` builds an expression object describing that
+      comparison — it isn't run yet. That distinction is what let the previous lesson's lazy
+      `.explain()` output show the filter being pushed all the way down into the file scan. The
+      expression is a plan fragment, not a result, and that's true whether you're in eager or lazy mode.
+  - type: example
+    title: "Chaining .filter() and .select() together"
+    body: >
+      Because both methods return a DataFrame (or LazyFrame), you chain them exactly the way you'd
+      chain pandas methods — read top to bottom as "first filter rows, then pick columns."
+    language: python
+    code: |
+      result = (
+          orders
+          .filter(pl.col("status") == "completed")
+          .select(["order_id", "customer_id", "channel"])
+      )
+      print(result.shape)   # (3441, 3)
+  - type: callout
+    variant: warning
+    title: "orders['status'] still works — but it's not the idiom"
+    body: >
+      Polars does support pandas-style bracket access for quick interactive checks — orders["status"]
+      returns a Series. It's fine for a one-off look in a notebook. But production Polars code is
+      written with pl.col() expressions inside .select() / .filter() / .with_columns(), because that's
+      the form the query engine can actually parallelize and optimize. If you find yourself writing
+      orders["col"][orders["other_col"] > 5] out of pandas habit, that's the signal to switch back to
+      the expression style.
+  - type: question
+    prompt: "In Polars, what does pl.col('unit_price') > 100 actually produce, before it's used inside .filter() or .select()?"
+    choices:
+      - "An expression describing the comparison — not yet evaluated into actual values"
+      - "A pandas-style boolean Series, computed immediately"
+      - "A Python list of True/False values"
+    correct_index: 0
+    explanation: >
+      pl.col(...) builds an expression object. Comparisons, arithmetic, and other operations chained
+      onto it extend that expression — none of it runs until the expression is used inside a context
+      like .filter() or .select() and (for a LazyFrame) .collect() is called.

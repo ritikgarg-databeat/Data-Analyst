@@ -1,0 +1,20 @@
+slug: stat-correlation-coefficient-strength
+skill: statistics
+title: Reading a Correlation Coefficient
+description: 'A correlation coefficient of r = -0.85 between price and units sold indicates:'
+exercise_type: MULTIPLE_CHOICE
+difficulty: BEGINNER
+points: 5
+tags:
+- statistics
+- correlation
+prompt: 'A correlation coefficient of r = -0.85 between price and units sold indicates:'
+correct_answer: A strong negative linear relationship -- as price increases, units sold tends to decrease
+explanation: The sign of r indicates direction (negative = as one variable rises, the other tends to fall) and the
+  magnitude indicates strength (0.85 is a strong linear relationship on a -1 to 1 scale) -- but correlation alone
+  never establishes that price CAUSES the change in units sold.
+choices:
+- A strong negative linear relationship -- as price increases, units sold tends to decrease
+- A strong positive linear relationship
+- No meaningful relationship since the value is negative
+- That price directly causes a change in units sold

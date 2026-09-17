@@ -1,0 +1,24 @@
+slug: abt-peeking-problem
+skill: experimentation
+title: The Danger of Peeking at Results Early
+description: Why is it statistically risky to repeatedly check an experiment's p-value every day and stop the test
+  as soon as it first crosses p<0.05?
+exercise_type: MULTIPLE_CHOICE
+difficulty: ADVANCED
+points: 5
+tags:
+- ab-testing
+- experiment-design
+prompt: Why is it statistically risky to repeatedly check an experiment's p-value every day and stop the test as
+  soon as it first crosses p<0.05?
+correct_answer: It inflates the true false-positive rate well above the nominal 5%, since you're effectively running
+  many implicit tests
+explanation: Each daily peek is another chance for random noise to cross the significance threshold -- stopping
+  at the FIRST crossing (rather than a pre-committed sample size or a sequential-testing-corrected method) means
+  the real false-positive rate across the whole monitoring period is much higher than 5%.
+choices:
+- It inflates the true false-positive rate well above the nominal 5%, since you're effectively running many implicit
+  tests
+- It has no statistical downside as long as you eventually stop
+- It only matters if the sample size is small
+- It makes the test take longer than planned

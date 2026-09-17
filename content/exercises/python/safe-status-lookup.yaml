@@ -1,0 +1,39 @@
+slug: safe-status-lookup
+lesson_slug: exceptions
+skill: python-fundamentals
+title: Handling a Missing Field Without Crashing
+description: Write robust code that looks up an order's status from a dictionary without crashing on missing keys.
+exercise_type: CODE
+difficulty: BEGINNER
+points: 15
+dataset: orders-sample
+tags: [python, beginner]
+prompt: >
+  You're looping over a list of order records loaded from the orders-sample dataset, where each
+  record is a dictionary. Most records have a "status" key, but some rows from a legacy import are
+  missing it entirely. Write a function get_status_safely(order) that returns the order's status if
+  present, or the string "unknown" if the key is missing — without letting a missing key crash the
+  loop. Then show how you'd use it inside a for loop over a list of order dictionaries to build a list
+  of statuses.
+hints:
+  - "Directly indexing a dictionary with a key that might not exist (order['status']) raises a KeyError and crashes the loop the moment it hits the first legacy row."
+  - "The dictionary .get() method takes an optional second argument that is returned when the key is missing, instead of raising an error."
+solution: >
+  def get_status_safely(order): return order.get("status", "unknown")
+
+
+  statuses = [get_status_safely(order) for order in orders]
+
+
+  This uses .get("status", "unknown") so a missing key returns the string "unknown" instead of raising
+  a KeyError. An equally correct alternative wraps direct bracket access in try/except KeyError and
+  returns "unknown" in the except block — .get() is simply the more idiomatic and concise way to do
+  the same thing.
+explanation: >
+  A strong answer either uses order.get("status", "unknown") or a try/except KeyError block — both
+  avoid crashing the loop on a legacy row missing the "status" key. A weak answer uses direct bracket
+  access (order["status"]) with no protection, which works for most rows but crashes the entire script
+  the moment it reaches the first record missing that key — exactly the failure mode this lesson is
+  about avoiding. The strongest answers also note that silently defaulting to "unknown" should ideally
+  be paired with some visibility (a count of how many rows fell back to the default) so the missing
+  data doesn't disappear unnoticed.

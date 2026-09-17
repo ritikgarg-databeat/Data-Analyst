@@ -1,0 +1,112 @@
+slug: dw-oltp-vs-olap
+module_slug: oltp-vs-olap
+title: "OLTP vs OLAP: Two Different Jobs for a Database"
+description: Why the database that runs checkout and the database that powers a revenue dashboard are built to do fundamentally different jobs — and why a warehouse isn't just "a bigger database."
+difficulty: BEGINNER
+estimated_minutes: 30
+display_order: 1
+objectives:
+  - Distinguish OLTP (transactional) systems from OLAP (analytical) systems by the shape of their workload, not just their size.
+  - Explain concretely why running heavy analytical queries directly against a production OLTP database causes real problems.
+  - Map the ecommerce dataset's raw tables (OLTP-shaped) to the dbt marts built from them (OLAP-shaped), as two views of the same business.
+skills: [data-warehousing, data-engineering-fundamentals]
+datasets: [ecommerce]
+tags: [oltp, olap, data-warehouse, architecture, beginner, foundations]
+key_takeaways:
+  - "OLTP (Online Transaction Processing) systems are optimized for many small, fast reads and writes of individual records — placing one order, updating one row. OLAP (Online Analytical Processing) systems are optimized for the opposite: scanning and aggregating millions of rows to answer a question."
+  - "The same business fact can live in both worlds at once, shaped differently for each job — an order is one row inserted into an OLTP `orders` table the instant a customer checks out, and later becomes one row of many being summed inside an OLAP query like `fct_daily_revenue`."
+  - "A data warehouse exists because OLTP and OLAP workloads actively fight each other on the same hardware — a warehouse isn't just \"the OLTP database, but bigger,\" it's a separate system built and indexed for scans instead of lookups."
+common_mistakes:
+  - "Assuming a warehouse is just a database with more disk space attached. The difference is architectural: OLTP engines optimize for row-level locking and index lookups on single records, while OLAP engines optimize for columnar scans and aggregation across huge row counts — different storage layouts, not just different quantities of the same thing."
+  - "Running a heavy reporting query (e.g., \"total revenue by category for the last 12 months\") directly against the production OLTP database that also handles live checkout traffic. Even a read-only query can lock resources and slow down or fail live transactions — this is one of the concrete reasons warehouses exist as separate systems."
+interview_questions:
+  - question: "A stakeholder asks why you can't just run your revenue dashboard's queries directly against the production application database. What do you tell them?"
+    answer: >
+      Two separate reasons. First, workload conflict: the production database is tuned for OLTP —
+      fast, small, indexed lookups and writes for individual rows (one customer's order, one payment
+      update) — while a dashboard query wants to scan and aggregate large swaths of history, which is
+      an OLAP-shaped workload. Running OLAP queries against an OLTP engine either runs slowly or
+      competes for locks and I/O with live transactional traffic, which can visibly slow down or even
+      block real customer checkouts. Second, data shape: production tables are usually normalized for
+      write efficiency and data integrity, not for the kind of denormalized, pre-joined, historical
+      structure (like a star schema) that makes analytical questions fast and easy to answer
+      correctly. A warehouse — fed from the OLTP system, but physically separate and structured
+      differently — solves both problems at once.
+blocks:
+  - type: heading
+    text: Two workloads, one business
+  - type: text
+    body: >
+      Every business runs two very different kinds of database workload against what is often the
+      *same underlying data*. **OLTP** (Online Transaction Processing) is the workload behind the
+      application itself: a customer places an order, a payment gets recorded, a support agent
+      updates a ticket. Each of these touches one row, or a handful of rows, and needs to complete in
+      milliseconds. **OLAP** (Online Analytical Processing) is the workload behind analysis: "what was
+      total revenue by category last quarter?" Each of these touches potentially millions of rows and
+      is expected to return an aggregated answer, not a single record.
+  - type: text
+    body: >
+      The `orders`, `order_items`, and `payments` tables in the ecommerce dataset are OLTP-shaped: one
+      row is inserted the moment a specific event happens (an order is placed, an item is added, a
+      payment clears), and the most common query against them in production is "look up order #4213"
+      — a fast, indexed, single-row read or write. Nobody runs the live checkout system by scanning
+      every historical order.
+  - type: comparison
+    title: "OLTP vs OLAP, side by side"
+    columns: ["Dimension", "OLTP", "OLAP"]
+    rows:
+      - ["Primary job", "Run the application (checkout, sign-up, ticket updates)", "Answer analytical questions (revenue trends, cohort behavior)"]
+      - ["Typical query", "Look up or update one row by ID", "Aggregate across millions of rows"]
+      - ["Read/write mix", "Frequent writes, small reads", "Almost entirely reads, in large batches"]
+      - ["Schema shape", "Normalized — minimizes duplication, protects write integrity", "Denormalized / dimensional — minimizes joins, optimizes for scanning"]
+      - ["Storage layout", "Row-oriented (a whole record read/written together)", "Often column-oriented (a whole column scanned at once)"]
+      - ["Latency target", "Milliseconds, per transaction", "Seconds, per report — but across huge row counts"]
+      - ["Example in this project", "The `orders` table a checkout flow inserts into", "`fct_daily_revenue`, one row per day, summarizing months of orders at once"]
+  - type: example
+    title: "The same order, in both worlds"
+    body: >
+      When a customer completes checkout, one row lands in the OLTP `orders` table:
+      `order_id=4213, customer_id=88, order_date=2025-03-14, status='completed', channel='web'`. That
+      row's only job at that moment is to exist correctly and be retrievable fast by its ID. Nightly,
+      that same order becomes one of thousands of rows scanned by `fct_daily_revenue`
+      (`dbt/models/marts/fct_daily_revenue.sql`), which groups every completed order by `order_date`
+      and sums up `gross_revenue`, `gross_margin`, and distinct customer counts into one row per
+      calendar day. The OLTP table answers "does order 4213 exist and what's its status?" in
+      milliseconds. The OLAP table answers "how much did we make on March 14th, across every order
+      that day?" — a question the OLTP table was never shaped to answer efficiently.
+  - type: callout
+    variant: common_mistake
+    title: "Don't point the dashboard straight at the production database"
+    body: >
+      It's tempting to skip building a warehouse and just query the live application database for
+      reports — after all, the data is already there. The problem is contention: an aggregate query
+      scanning a large slice of the `orders` table can hold locks or consume I/O that a live checkout
+      transaction is also waiting on, which can mean real, paying customers experience a slow or
+      failed checkout because someone ran a dashboard refresh. This is one of the concrete,
+      operational reasons warehouses are built as separate systems fed *from* the OLTP database,
+      rather than queried in place.
+  - type: heading
+    text: Why this distinction earns its own module
+  - type: text
+    body: >
+      Every concept in the rest of this domain — the warehouse, the lake, the lakehouse, staging
+      layers, star schemas, facts and dimensions — exists to serve the OLAP side of this split well,
+      without disturbing the OLTP side that runs the business moment to moment. Understanding *why*
+      the split exists is what makes the rest of the architecture feel motivated rather than
+      arbitrary.
+  - type: question
+    prompt: >
+      A production `orders` table serves live checkout traffic. An analyst wants to run a query
+      that scans all 2 million historical orders to compute year-over-year revenue growth. What's the
+      most accurate description of the risk?
+    choices:
+      - "There's no real risk — reads don't affect writes in a database"
+      - "The analytical query's large scan can compete for locks and I/O with live transactional writes on the same system, potentially slowing down or blocking real customer checkouts"
+      - "The risk is only that the query will be slow for the analyst, not that it affects anyone else"
+    correct_index: 1
+    explanation: >
+      Read and write workloads share the same underlying resources (disk I/O, memory, lock manager)
+      on a single database engine. A large analytical scan is exactly the kind of workload OLTP
+      engines aren't optimized for, and it can create contention that measurably affects live,
+      revenue-generating transactions — which is the practical reason analytical workloads are moved
+      to a separate, OLAP-shaped system instead of run in place.

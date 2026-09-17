@@ -1,0 +1,71 @@
+slug: stats-order-quantity-revenue-correlation
+lesson_slug: corr-correlation-coefficient
+skill: statistics
+dataset: ecommerce
+title: How Strongly Does Order Size Correlate With Revenue?
+description: Aggregate order_items to the order level and compute the Pearson correlation between total item quantity and net revenue.
+exercise_type: PYTHON
+difficulty: INTERMEDIATE
+points: 20
+tags: [python, statistics, intermediate, e-commerce]
+business_context: >
+  Finance wants a quick, defensible answer to "how tightly does the number of items in an order
+  track with how much revenue that order brings in" before building a revenue forecast off of order
+  volume alone.
+prompt: >
+  Using `order_items`, compute each line's net revenue as `quantity * unit_price - discount *
+  quantity`, aggregate to the order level to get each order's `total_qty` (sum of quantity) and
+  `revenue` (sum of net revenue), and compute the Pearson correlation between `total_qty` and
+  `revenue` (`scipy.stats.pearsonr`). Store your answer in a variable named `result`: a dict with
+  keys `corr` (rounded to 3 decimals) and `p_value` (rounded to 4 decimals).
+python_datasets: [order_items]
+python_starter_code: |
+  # order_items is already loaded as a DataFrame.
+  # Explore it first:
+  order_items.head()
+python_solution_code: |
+  from scipy import stats
+
+  oi = order_items.copy()
+  oi["line_net"] = oi["quantity"] * oi["unit_price"] - oi["discount"] * oi["quantity"]
+  order_agg = (
+      oi.groupby("order_id")
+      .agg(total_qty=("quantity", "sum"), revenue=("line_net", "sum"))
+      .reset_index()
+  )
+  corr, p_value = stats.pearsonr(order_agg["total_qty"], order_agg["revenue"])
+  result = {"corr": round(corr, 3), "p_value": round(p_value, 4)}
+python_result_variable: result
+python_numeric_tolerance: 0.001
+python_hidden_tests:
+  - name: "Correlation should be strong, positive, and highly significant"
+    code: |
+      assert result["corr"] > 0.7, (
+          "Order size and revenue should be strongly positively correlated in this dataset."
+      )
+      assert result["p_value"] < 0.001, (
+          "This correlation should be highly statistically significant given the sample size."
+      )
+hints:
+  - "A line's net revenue after its discount is `quantity * unit_price - discount * quantity` (discount here is a per-unit dollar amount, so multiply it by quantity too)."
+  - "`.groupby('order_id').agg(total_qty=('quantity', 'sum'), revenue=('line_net', 'sum'))` aggregates both columns to the order level in one step."
+solution: |
+  ```python
+  from scipy import stats
+
+  oi = order_items.copy()
+  oi["line_net"] = oi["quantity"] * oi["unit_price"] - oi["discount"] * oi["quantity"]
+  order_agg = (
+      oi.groupby("order_id")
+      .agg(total_qty=("quantity", "sum"), revenue=("line_net", "sum"))
+      .reset_index()
+  )
+  corr, p_value = stats.pearsonr(order_agg["total_qty"], order_agg["revenue"])
+  result = {"corr": round(corr, 3), "p_value": round(p_value, 4)}
+  ```
+explanation: >
+  Across 4,205 orders, total item quantity and net revenue correlate at r = 0.833 with an
+  effectively zero p-value — a strong, highly significant linear relationship. This isn't a
+  surprising discovery so much as a close-to-mechanical fact (revenue is built from quantity and
+  price), but it does tell Finance that order volume alone captures most, though not all, of
+  revenue's variation — the rest comes from which items (at what price) make up each order.

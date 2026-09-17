@@ -1,0 +1,119 @@
+slug: map
+module_slug: pandas-transformation
+title: map()
+description: ".map() for element-wise Series substitution and lookup — how it differs from the row/element-general .apply() and from value-replacing .replace()."
+difficulty: INTERMEDIATE
+estimated_minutes: 10
+display_order: 3
+objectives:
+  - "Use .map() with a dictionary or function to substitute every value in a Series"
+  - "Explain how .map() differs from .apply() (Series-only, built specifically for substitution)"
+  - Know when .map() and .replace() are interchangeable, and when they aren't
+prerequisites: [apply]
+skills: [pandas]
+datasets: [ecommerce]
+tags: [python, intermediate, real-world]
+key_takeaways:
+  - ".map() is a Series-only method purpose-built for value substitution — pass it a dictionary (each value looked up as a key) or a function (called on each value), and it returns a new Series of the results."
+  - "Given a dictionary, .map() replaces EVERY value in the Series, and any value with no matching key becomes NaN — there's no DataFrame-level equivalent of .map(dict), because it's specifically a Series operation."
+  - ".apply() is the general-purpose tool (any function, works on Series or DataFrame rows/columns); .map() is the specialized one (substitution only, Series only) — reach for .map() first when substitution is literally all you need, since it says exactly what it's doing."
+common_mistakes:
+  - "Calling .map() on a whole DataFrame expecting it to substitute values across every column — .map() for value substitution is a Series method; DataFrame has its own similarly-named but differently-behaved .map() for applying a function element-wise, which is a different operation from dictionary lookup."
+  - "Not checking for NaN after a dictionary-based .map() call — any value not present as a key silently becomes NaN, which is easy to miss if you don't immediately verify with .isna().sum()."
+blocks:
+  - type: text
+    body: >
+      `.map()` is pandas' tool for exactly one job: replacing every value in a Series with something else,
+      based on a dictionary lookup or a function. It's narrower than `.apply()`, and that narrowness is
+      the point — when substitution is genuinely all you need, `.map()` says so directly.
+  - type: heading
+    text: ".map() with a dictionary"
+  - type: code
+    language: python
+    code: |
+      import pandas as pd
+
+      customers = pd.read_csv("data/sample/ecommerce/customers.csv")
+
+      segment_labels = {"business": "Business", "consumer": "Consumer"}
+      customers["segment_label"] = customers["customer_segment"].map(segment_labels)
+      print(customers[["customer_id", "customer_segment", "segment_label"]].head(5))
+    caption: "Every value in customer_segment is looked up in segment_labels and replaced with the match"
+  - type: output
+    body: |
+         customer_id customer_segment segment_label
+         0            1         business      Business
+         1            2         business      Business
+         2            3         business      Business
+         3            4         consumer      Consumer
+         4            5         consumer      Consumer
+  - type: heading
+    text: ".map() with a function"
+  - type: code
+    language: python
+    code: |
+      customers["email_domain"] = customers["email"].map(lambda e: e.split("@")[1])
+      print(customers[["email", "email_domain"]].head(3))
+    caption: "The function runs once per value, same shape of call as Series.apply() — for a Series, map() and apply() with a plain function often behave the same way"
+  - type: output
+    body: |
+                                 email email_domain
+                                 0     mia.williams0@example.com  example.com
+                                 1     lucas.miller1@example.com  example.com
+                                 2      aiden.brown2@example.com  example.com
+  - type: heading
+    text: "Unmatched keys become NaN"
+  - type: code
+    language: python
+    code: |
+      incomplete_map = {"business": "Business"}   # 'consumer' is missing
+      print(customers["customer_segment"].map(incomplete_map).isna().sum())
+    caption: Every 'consumer' row has no matching key, so it becomes NaN
+  - type: output
+    body: |
+      1065
+  - type: callout
+    variant: warning
+    title: "map() with a dictionary is all-or-nothing"
+    body: >
+      1,065 of the 1,500 customers are 'consumer' — none of them had a matching key in incomplete_map, so
+      all 1,065 became NaN. This is exactly the behavior you saw with .map() in the Inconsistent
+      Categories lesson: unlike .replace(), a dictionary passed to .map() replaces the WHOLE Series, with
+      NaN standing in for anything it doesn't recognize. Always check .isna().sum() right after a
+      dictionary-based .map() call.
+  - type: heading
+    text: ".map() vs .apply() vs .replace()"
+  - type: table
+    headers: ["Method", "Works on", "Built for", "Unmatched values"]
+    rows:
+      - [".map(dict_or_func)", "Series only", "Substitution — a dictionary lookup, or a function applied value-by-value", "Dict: become NaN. Function: whatever the function returns"]
+      - [".apply(func)", "Series or DataFrame", "General-purpose — any custom function, including logic that isn't substitution at all", "N/A — it's a function call, not a lookup"]
+      - [".replace(dict)", "Series or DataFrame", "Substitution, but conservative — only touches recognized values", "Left unchanged"]
+  - type: text
+    body: >
+      You met `.replace()` in the Data Cleaning module for fixing inconsistent categories, and it looks a
+      lot like `.map()` with a dictionary. The difference that matters: `.replace()` only swaps the
+      values it recognizes and leaves the rest exactly as they were; `.map()` with a dictionary rebuilds
+      the *entire* Series from the dictionary and turns anything unrecognized into NaN. Use `.map()` when
+      you're confident (or want to be forced to find out) that your dictionary covers every value; use
+      `.replace()` when you only want to touch specific known problem values and leave everything else
+      untouched.
+  - type: callout
+    variant: tip
+    title: A simple decision rule
+    body: >
+      Need to substitute values using a dict, and only those values, everything else stays put? Use
+      .replace(). Need to run a function on every value in a Series? .map() (or Series.apply() — for a
+      Series, they largely overlap here). Need row-wise logic across multiple columns, or to apply
+      something to a whole DataFrame? .apply() with axis=1 is the one built for that.
+  - type: question
+    prompt: "customers['customer_segment'].map({'business': 'Business'}) is run on a column containing both 'business' and 'consumer' values. What happens to the 'consumer' rows?"
+    choices:
+      - "They become NaN, since 'consumer' has no matching key in the dictionary"
+      - "They're left unchanged as 'consumer'"
+      - "They raise a KeyError and stop execution"
+    correct_index: 0
+    explanation: >
+      A dictionary passed to .map() replaces the entire Series by lookup — any value without a matching
+      key (here, every 'consumer' row) becomes NaN rather than being left alone. .replace() is the method
+      that would have left unmatched values untouched.

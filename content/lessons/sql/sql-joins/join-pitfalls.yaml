@@ -1,0 +1,141 @@
+slug: join-pitfalls
+module_slug: sql-joins
+title: Join Pitfalls
+description: Fan-out row duplication from one-to-many joins, and filtering in ON vs. WHERE for outer joins.
+difficulty: INTERMEDIATE
+estimated_minutes: 14
+display_order: 7
+objectives:
+  - Explain why joining a one-to-many relationship multiplies rows, and why that silently inflates a SUM computed afterward
+  - Fix a fan-out by aggregating the "many" side down to one row per key before joining, instead of after
+  - Predict the difference between putting a filter condition in ON versus WHERE when an outer join is involved
+prerequisites: [multi-table-joins]
+skills: [sql-fundamentals]
+datasets: [ecommerce]
+tags: [sql, intermediate]
+key_takeaways:
+  - "Joining a 'one' row to its 'many' matching rows (an order to its several order_items) duplicates the 'one' side's values once per matching row — an aggregate like SUM computed on those duplicated values afterward is inflated by exactly that multiplication factor."
+  - "The fix is sequencing: aggregate the many-side table down to one row per key first, then join that pre-aggregated result to the one-side table — never aggregate after joining tables with a one-to-many relationship between them."
+  - "For an outer join, a condition inside ON filters which right-hand rows are allowed to match, while a condition in WHERE filters the joined result afterward — and a WHERE condition on the right-hand table silently turns the outer join back into an inner join, because an unmatched row's NULLs almost never pass a WHERE filter."
+common_mistakes:
+  - "Joining an orders-level table to a per-line-item table (order_items) and a per-order table (payments) in the same query, then SUM-ing the per-order amount — every extra order_items row for that order multiplies the payment amount into the total that many extra times."
+  - "Writing a LEFT JOIN specifically to keep unmatched rows, then adding a condition on the right-hand table in WHERE (WHERE p.payment_method = 'credit_card') — this discards every row where p is NULL along with the ones that didn't match the condition, defeating the purpose of using LEFT JOIN in the first place."
+blocks:
+  - type: heading
+    text: "Pitfall 1: fan-out from a one-to-many join"
+  - type: text
+    body: >
+      One order can have several order_items — that's a one-to-many relationship. Joining orders to
+      order_items is completely correct on its own; the fan-out problem shows up specifically when a
+      second table that's already one row per order (like payments) gets joined into the same query,
+      and then an aggregate is computed on that second table's column.
+  - type: example
+    title: "Order 3: one payment, four line items, one very wrong sum"
+    body: >
+      Order 3 has exactly one payment record (amount 3005.27) and four order_items rows. Joining both
+      into the same query means every one of order 3's four order_items rows now carries a copy of
+      that same payment_amount value. Summing payment_amount after that join doesn't return 3005.27 —
+      it adds the same 3005.27 to itself four times.
+    code: |
+      SELECT
+        o.order_id,
+        p.amount AS payment_amount,
+        SUM(p.amount) AS naive_sum,
+        COUNT(*) AS row_count
+      FROM orders o
+      JOIN payments p ON p.order_id = o.order_id
+      JOIN order_items oi ON oi.order_id = o.order_id
+      WHERE o.order_id = 3
+      GROUP BY o.order_id, p.amount;
+      -- naive_sum comes back 12021.08 — exactly 4 x 3005.27, one copy per order_items row
+    language: sql
+  - type: callout
+    variant: common_mistake
+    title: This rarely looks obviously wrong
+    body: >
+      The query runs without error and the wrong number looks like a plausible dollar figure — there's
+      no red flag in the output itself. The only way to catch it is knowing to ask "is there a
+      one-to-many relationship anywhere in this join chain, and am I aggregating a column from the
+      'one' side of it?"
+  - type: heading
+    text: "The fix: aggregate the many side before joining"
+  - type: text
+    body: >
+      The fix is a sequencing change, not a different function. Instead of joining order_items in raw
+      and aggregating afterward, collapse order_items down to one row per order_id first — inside a
+      subquery in FROM — and join that already-aggregated result to orders and payments. Every join
+      after that point is one-row-to-one-row, so nothing can multiply.
+  - type: code
+    language: sql
+    caption: Pre-aggregating order_items to avoid the fan-out
+    code: |
+      SELECT
+        o.order_id,
+        p.amount AS payment_amount,
+        item_totals.item_lines
+      FROM orders o
+      JOIN payments p ON p.order_id = o.order_id
+      JOIN (
+        SELECT order_id, COUNT(*) AS item_lines
+        FROM order_items
+        GROUP BY order_id
+      ) item_totals ON item_totals.order_id = o.order_id
+      WHERE o.order_id = 3;
+      -- payment_amount now comes back correctly as 3005.27, with item_lines = 4 alongside it
+  - type: heading
+    text: "Pitfall 2: filtering in ON vs. WHERE on an outer join"
+  - type: text
+    body: >
+      A LEFT JOIN's entire purpose is keeping unmatched left-hand rows around, with NULLs standing in
+      for the missing right-hand columns. Where a filter condition on the right-hand table gets placed
+      — inside ON, or in WHERE after the join — decides whether that purpose survives.
+  - type: example
+    title: Same filter, two placements, two very different results
+    body: >
+      Both versions look like they're asking the same question — "orders alongside their credit_card
+      payment, if any." Only the ON version actually answers it. Putting the condition in ON restricts
+      which payments rows are eligible to match, while still keeping every order (matched or not).
+      Putting it in WHERE filters the already-joined result, and NULL never satisfies an equality
+      check — so every order that didn't have a credit_card payment (including every order with no
+      payment at all) gets removed, silently converting the LEFT JOIN into the equivalent of an INNER
+      JOIN.
+    code: |
+      -- Filter inside ON: keeps all 4,205 orders
+      SELECT o.order_id, o.status, p.payment_method, p.amount
+      FROM orders o
+      LEFT JOIN payments p
+        ON p.order_id = o.order_id
+        AND p.payment_method = 'credit_card';
+
+      -- Same filter moved to WHERE: drops down to 2,558 rows
+      SELECT o.order_id, o.status, p.payment_method, p.amount
+      FROM orders o
+      LEFT JOIN payments p ON p.order_id = o.order_id
+      WHERE p.payment_method = 'credit_card';
+    language: sql
+  - type: table
+    headers: ["Filter placement", "What it restricts", "Effect on unmatched left-hand rows"]
+    rows:
+      - ["Inside ON", "Which right-hand rows are eligible to match at all", "Kept — LEFT JOIN's guarantee is preserved"]
+      - ["In WHERE", "The already-produced joined rows, after matching happened", "Dropped — NULL right-hand columns fail the condition, acting like an INNER JOIN"]
+  - type: callout
+    variant: important
+    title: This distinction only matters for outer joins
+    body: >
+      For an INNER JOIN, putting a condition in ON versus WHERE makes no difference at all — there
+      are no unmatched rows with NULLs to accidentally filter out, so both placements produce the
+      same result. The ON-vs-WHERE distinction is specifically an outer join concern, which is exactly
+      why it's easy to develop the habit with INNER JOIN and then get tripped up the first time a
+      LEFT JOIN is involved.
+  - type: question
+    prompt: "A LEFT JOIN from orders to payments is followed by WHERE p.status = 'success'. What happens to orders that have no payment at all (cancelled or pending orders)?"
+    choices:
+      - "They're kept, with p.status shown as NULL"
+      - "They're removed from the result, because NULL doesn't satisfy p.status = 'success'"
+      - "They cause the query to fail with an error"
+    correct_index: 1
+    explanation: >
+      A filter in WHERE is evaluated after the join has already happened. For an order with no
+      matching payment, p.status is NULL, and NULL = 'success' evaluates to unknown rather than true —
+      so WHERE excludes that row, exactly as if it had failed a normal false condition. The LEFT JOIN
+      successfully kept the row through the join step; the WHERE clause is what removes it afterward.

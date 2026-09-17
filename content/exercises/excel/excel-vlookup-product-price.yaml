@@ -1,0 +1,74 @@
+slug: excel-vlookup-product-price
+skill: excel-fundamentals
+title: Looking Up a Product's Price with VLOOKUP
+description: The `Lookup` sheet has `ProductID` (A), `Name` (B), and `Price` (C) for 4 products. On `Orders`, fill
+  in `B2` with a VLOOKUP that finds the price for the ProductID in `A2` from `Lookup!A2:C5`, returning the 3rd column,
+  with an exact match.
+exercise_type: EXCEL
+difficulty: BEGINNER
+points: 10
+tags:
+- excel
+business_context: An order needs its price filled in from a separate product price list, without retyping prices
+  by hand.
+prompt: The `Lookup` sheet has `ProductID` (A), `Name` (B), and `Price` (C) for 4 products. On `Orders`, fill in
+  `B2` with a VLOOKUP that finds the price for the ProductID in `A2` from `Lookup!A2:C5`, returning the 3rd column,
+  with an exact match.
+excel_starter_sheets:
+- name: Lookup
+  cells:
+    A1: ProductID
+    B1: Name
+    C1: Price
+    A2: P1
+    B2: Widget
+    C2: '9.99'
+    A3: P2
+    B3: Gadget
+    C3: '19.99'
+    A4: P3
+    B4: Gizmo
+    C4: '14.5'
+    A5: P4
+    B5: Thingamajig
+    C5: '5.25'
+- name: Orders
+  cells:
+    A1: ProductID
+    B1: Price
+    A2: P3
+excel_solution_sheets:
+- name: Lookup
+  cells:
+    A1: ProductID
+    B1: Name
+    C1: Price
+    A2: P1
+    B2: Widget
+    C2: '9.99'
+    A3: P2
+    B3: Gadget
+    C3: '19.99'
+    A4: P3
+    B4: Gizmo
+    C4: '14.5'
+    A5: P4
+    B5: Thingamajig
+    C5: '5.25'
+- name: Orders
+  cells:
+    A1: ProductID
+    B1: Price
+    A2: P3
+    B2: =VLOOKUP(A2,Lookup!A2:C5,3,FALSE)
+excel_check_cells:
+- Orders!B2
+hints:
+- VLOOKUP(lookup_value, table_range, column_index, exact_match) -- column_index counts from 1 at the LEFT edge of
+  table_range, not from the sheet's own column letters.
+- Pass FALSE as the 4th argument for an exact match -- an approximate match assumes the lookup column is sorted,
+  which ProductID here is not.
+solution: '`=VLOOKUP(A2,Lookup!A2:C5,3,FALSE)` evaluates to 14.5.'
+explanation: VLOOKUP scans the first column of `Lookup!A2:C5` (ProductID) for "P3", finds it in the 3rd row of that
+  range, and returns the value in that row's 3rd column (Price) -- 14.5. FALSE forces an exact match rather than
+  assuming the ProductID column is sorted.

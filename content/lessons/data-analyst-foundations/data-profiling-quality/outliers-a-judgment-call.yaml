@@ -1,0 +1,112 @@
+slug: outliers-a-judgment-call
+module_slug: data-profiling-quality
+title: "Outliers: A Judgment Call, Not a Formula"
+description: How IQR and z-score flag an extreme value in plain language, and the judgment a formula can never make for you — is this a data error to fix, or a real extreme case worth keeping?
+difficulty: BEGINNER
+estimated_minutes: 12
+display_order: 4
+objectives:
+  - Explain, in plain language, what the IQR method and the z-score method each flag as an outlier
+  - State why neither method can tell you whether a flagged value is an error or a real case
+  - Apply a concrete test — a single suspicious row vs. a consistent pattern — to decide which it is
+prerequisites: [duplicate-rows-and-candidate-keys]
+skills: [exploratory-data-analysis]
+datasets: [ecommerce]
+tags: [foundations, beginner, real-world]
+key_takeaways:
+  - "Two common detection methods flag extreme values automatically: IQR (anything far outside the middle 50% of values) and z-score (anything far from the mean, measured in standard deviations). Both are described in plain language in this lesson — neither requires writing code to understand what they're doing."
+  - "A detection method's output is a question, not an answer. It tells you WHERE to look; it cannot tell you whether the value it flagged is a data-entry mistake or a legitimately large, real case."
+  - "The single most useful test: does the extreme value come from one isolated, inconsistent row, or from a consistent pattern across multiple rows over time? A single suspicious row looks like an error. A consistent pattern — the same customer, repeatedly, over weeks — looks like a real extreme case."
+  - "Deleting a genuine extreme case because it's statistically unusual isn't cleaning the data — in an analysis specifically about customer value, fraud, or anything else where extremes ARE the subject, it's deleting the answer. The Python EDA module works through exactly this judgment call on a real customer in this same dataset, with the actual numbers, if you want to see it applied in code."
+common_mistakes:
+  - "Treating every value an IQR or z-score rule flags as something to automatically remove, without looking at the rows behind the flag."
+  - "Assuming any value far from the average must be a mistake — in a business with real variation in order size (bulk buyers, enterprise accounts, VIP customers), being far from average is exactly what a genuinely important case looks like."
+  - "Applying the same outlier decision to every column in a dataset — the right call for a suspiciously large order amount can be completely different from the right call for a physically impossible negative quantity."
+practical_applications:
+  - "Deciding whether to keep, cap, or exclude a flagged value based on whether it's backed by a consistent pattern, before it distorts a mean or a business-facing metric."
+  - "Explaining to a stakeholder why an unusually large order or customer wasn't excluded from an analysis — because it's a real case the business needs to see, not an error."
+interview_questions:
+  - question: "In plain language, what do the IQR method and z-score method each flag, and what's the key limitation both share?"
+    answer: "IQR looks at the middle 50% of the data (between the 25th and 75th percentile) and flags anything far below or above that middle range as unusually extreme. Z-score measures how many standard deviations a value sits from the mean and flags anything far from zero as unusual. Both are purely statistical — they only know a value is numerically far from 'typical' in this dataset. Neither one knows anything about the business behind the number, so neither can tell you whether a flagged value is a mistake to fix or a real case worth keeping. That judgment always has to come from looking at what's actually behind the flagged value."
+  - question: "How do you decide whether an outlier should be removed from an analysis?"
+    answer: "I look at whether it's an isolated, inconsistent single row, or a consistent pattern across multiple rows. A single wildly-off value with no supporting pattern — a price that doesn't match anything else about that product, a negative quantity — usually points to a data error worth fixing or removing. A pattern that holds up across many separate, individually ordinary records — the same customer buying repeatedly over weeks, each purchase unremarkable on its own — usually points to a real extreme case that should be kept, and possibly reported on separately rather than let it distort an average silently."
+resources:
+  - title: "NIST — Detection of Outliers"
+    url: "https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm"
+blocks:
+  - type: heading
+    text: "Two ways to flag an extreme value, explained without code"
+  - type: table
+    headers: ["Method", "Plain-language idea", "What it flags"]
+    rows:
+      - ["IQR (interquartile range)", "Find the middle 50% of your values — from the 25th percentile to the 75th. Anything much farther below or above that middle band than the band itself is wide", "Values statistically far from where most of the data sits, without assuming any particular distribution shape"]
+      - ["Z-score", "Measure how many standard deviations a value is from the mean", "Values several standard deviations from average — typically anything beyond about 2-3 is flagged"]
+  - type: text
+    body: >
+      Neither method needs a business analyst to understand — they're both purely arithmetic rules applied
+      to a column of numbers. That's exactly their strength (fast, consistent, no manual scanning of every
+      row) and exactly their limitation: they only know "far from typical, numerically." They know nothing
+      about what the number represents.
+  - type: callout
+    variant: important
+    title: "A statistical flag is a question, not a verdict"
+    body: >
+      "This value is 3 standard deviations from the mean" and "this value is wrong" are two completely
+      different claims. The first is something a formula can tell you in a fraction of a second. The second
+      requires looking at the actual row — or rows — behind the number, which no formula can do for you.
+  - type: heading
+    text: "The one test that actually resolves the judgment call"
+  - type: text
+    body: >
+      Given a flagged extreme value, the single most useful question is: **is this one isolated, inconsistent
+      row, or a pattern across multiple rows?**
+  - type: comparison
+    title: "One row vs. a pattern"
+    columns: ["Signal", "Points toward: data error", "Points toward: real extreme case"]
+    rows:
+      - ["Number of rows behind it", "A single row, standing alone", "Multiple separate rows telling a consistent story over time"]
+      - ["Internal consistency", "Doesn't add up — a price far outside its own product's normal range, a negative quantity, a date in the future", "Each individual row looks completely ordinary; only the total or aggregate is extreme"]
+      - ["Plausibility", "Physically or logically impossible given what you know about the business", "Plausible given the business — a known enterprise account, a legitimately bulk-buying segment"]
+      - ["What to do", "Fix or remove the specific bad row(s)", "Keep it. Report it separately if it's distorting a mean, but don't delete it"]
+  - type: example
+    title: "One $50,000 order among thousands of $80 orders"
+    body: >
+      Imagine an online store where the typical order is around $80, and a statistical scan flags a single
+      $50,000 order as an extreme outlier. Before deciding anything, look at what's behind it. If it's one
+      isolated transaction from a brand-new account, placed at 3am, for a product normally priced at $40 —
+      that combination of signals (isolated, inconsistent, implausible) points toward a data error: maybe a
+      unit mix-up (50,000 units of a $1 item, mis-entered as a $50,000 single-item order) or fraud worth
+      flagging to a different team. But if it's the fifth order in six months from a known enterprise
+      account that always buys in bulk, at a price consistent with their contract terms — that's not an
+      error at all. It's your biggest customer, showing up in the data exactly as they should, and deleting
+      that row as "an outlier" would mean deleting the single most valuable relationship from whatever
+      analysis you're running.
+  - type: callout
+    variant: common_mistake
+    title: "'It's a statistical outlier, so I'll remove it' is not a complete decision"
+    body: >
+      Removing a value because a formula flagged it, without checking what's actually behind it, quietly
+      substitutes "convenient for my average" for "accurate about the business." If the analysis is
+      specifically about customer value, large orders, or fraud, discarding the extreme values isn't
+      cleanup — it's deleting exactly the cases the analysis exists to find.
+  - type: heading
+    text: "This same judgment call, worked with real numbers"
+  - type: text
+    body: >
+      The Python EDA module's outliers lesson works through this exact judgment call using a real customer
+      in this course's ecommerce dataset — someone whose total spend is over 10x the median customer, and a
+      concrete look at whether that comes from one suspicious transaction or a consistent pattern across
+      many separate, individually ordinary orders. If you want to see the reasoning in this lesson applied
+      to live code and a real result, that's the place to go next; this lesson's job was to make sure you
+      understand the judgment call itself first, independent of any particular tool.
+  - type: question
+    prompt: "A z-score check flags a customer's total spend as more than 3 standard deviations above the mean. You look closer and find it's made up of 13 separate orders, each individually unremarkable, placed over about ten weeks. What does this pattern suggest?"
+    choices:
+      - "This looks like a real extreme case (a genuine high-value repeat customer), not a data error — a consistent pattern across many separate, ordinary-looking rows is the signature of a real case, not a single anomalous transaction"
+      - "The z-score flag should always be trusted as-is; 13 orders is still a data error regardless of the pattern"
+      - "There's no way to tell without rerunning the z-score calculation with a different threshold"
+    correct_index: 0
+    explanation: >
+      A single suspicious row is the signature of a data error. A consistent pattern spread across many
+      separate, individually ordinary rows over real time is the signature of a genuine extreme case — here,
+      a real high-value customer, not a mistake to correct or exclude.

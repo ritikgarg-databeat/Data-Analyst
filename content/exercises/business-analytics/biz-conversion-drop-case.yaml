@@ -1,0 +1,62 @@
+slug: biz-conversion-drop-case
+skill: business-problem-solving
+title: Why Did Website Conversion Rate Drop This Month?
+description: 'Describe your investigation framework for this conversion drop: what you would check first to rule
+  out a tracking/measurement issue, how you would segment the funnel to localize the drop, what hypotheses you would
+  test, and how you would structure your recommendation. You are not given the actual root cause.'
+exercise_type: BUSINESS_REASONING
+difficulty: ADVANCED
+points: 30
+tags:
+- conversion
+- root-cause
+- business-analytics
+business_context: You support an e-commerce site's growth team. Overall site conversion rate (visits to completed
+  purchase) dropped from 3.2% to 2.6% month-over-month, and the team wants to know why before deciding on a fix.
+prompt: 'Describe your investigation framework for this conversion drop: what you would check first to rule out
+  a tracking/measurement issue, how you would segment the funnel to localize the drop, what hypotheses you would
+  test, and how you would structure your recommendation. You are not given the actual root cause.'
+stakeholder: null
+constraints:
+- You don't know the cause in advance -- your answer is evaluated on the analytical framework.
+- Assume access to funnel-step-level event data, platform/device breakdowns, traffic-source data, and a deploy/release
+  log.
+expected_deliverables:
+- A measurement-integrity check before assuming the drop is behavioral
+- A funnel-step breakdown to localize exactly where in the funnel the drop occurs
+- Segmentation by platform/device and traffic source
+- Specific hypotheses and how each would be tested
+- A recommendation structure
+rubric:
+- criterion: Checks for a tracking/measurement issue first (e.g. a broken conversion-tracking pixel or event, or
+    a bot-traffic spike diluting the denominator) before assuming a real behavioral change
+  points: 20
+- criterion: Breaks the funnel into steps (e.g. product view -> add to cart -> checkout start -> payment -> confirmation)
+    to find exactly which step's conversion rate actually declined
+  points: 25
+- criterion: Segments by platform/device and traffic source to check whether the drop is uniform or concentrated
+    in one segment
+  points: 20
+- criterion: Cross-references the timing against the deploy/release log for a specific step that changed
+  points: 15
+- criterion: Gives a recommendation process appropriate to whichever specific funnel step and segment the data points
+    to, rather than a generic 'improve the website' recommendation
+  points: 20
+hints:
+- A conversion-rate drop can come from the DENOMINATOR (a traffic-quality or bot-traffic issue inflating visit counts)
+  just as easily as the numerator (fewer people completing purchase) -- rule out the denominator side first.
+- Breaking down by funnel STEP (not just overall conversion) usually finds the drop concentrated in one specific
+  step, which points directly at what to investigate (e.g. a payment-step drop points at a payment-provider issue,
+  not a general 'website is bad' story).
+solution: 'First rule out measurement issues: check whether a tracking event or pixel broke around the timing of
+  the drop, and check for an unusual spike in low-quality/bot traffic that would inflate the visit count denominator
+  without any real behavioral change. Then break the funnel into steps (product view, add-to-cart, checkout start,
+  payment, confirmation) and compute step-to-step conversion for each, to find exactly which step''s rate declined
+  rather than assuming the whole funnel degraded uniformly. Segment the affected step by platform/device and traffic
+  source to see if it''s concentrated (e.g. only mobile Safari, only one payment method, only one traffic source)
+  or broad. Cross-reference the timing of the affected step''s decline against the deploy/release log to check for
+  a specific shipped change. Recommendation is then targeted to the specific step and segment found -- e.g. a payment-provider
+  fix, a mobile-specific bug fix, or a traffic-quality investigation -- rather than a vague site-wide redesign.'
+explanation: This case rewards precise localization (which funnel step, which segment, which release) over a generic
+  diagnosis, and explicitly rewards ruling out measurement artifacts before concluding the change is behavioral
+  -- both are recurring, high-value analyst behaviors this question is designed to surface.

@@ -1,0 +1,24 @@
+slug: de-ex-full-vs-incremental-load
+lesson_slug: de-ingestion-patterns
+skill: data-engineering-fundamentals
+title: Full Load or Incremental Load?
+description: Choose the more appropriate ingestion pattern for a large, high-volume table.
+exercise_type: MULTIPLE_CHOICE
+difficulty: BEGINNER
+points: 10
+tags: [ingestion, batch-processing, data-engineering, beginner]
+prompt: >
+  A source table has grown to 200 million rows and gains a few hundred thousand new, reliably
+  timestamped rows every night. A nightly pipeline currently truncates and re-extracts the entire
+  200 million rows every run. What's the most reasonable improvement to suggest?
+choices:
+  - "Switch to change data capture immediately, since it's always the superior choice at any scale"
+  - "Switch to an incremental load using the reliable timestamp column, extracting only rows new since the last run, since re-extracting the full 200 million rows every night is increasingly wasteful as the table grows"
+  - "Nothing — full load is always the safest choice regardless of table size"
+correct_answer: "Switch to an incremental load using the reliable timestamp column, extracting only rows new since the last run, since re-extracting the full 200 million rows every night is increasingly wasteful as the table grows"
+explanation: >
+  Incremental load is designed for exactly this situation: a large table with a small, reliably
+  changing slice each run and a trustworthy column to detect that change. Full load's simplicity
+  stops paying for itself once the table is large enough that re-extracting everything nightly
+  becomes a real time and cost burden. CDC is a further option worth considering only if incremental
+  load's periodic-pull latency itself becomes insufficient — it isn't the default first step.

@@ -1,0 +1,137 @@
+slug: date-differences
+module_slug: pandas-time-series
+title: Date Differences
+description: Subtracting two datetime columns to get a Timedelta, reading it with .dt.days, and a real example — days between a customer's signup and their first order.
+content_type: READING
+difficulty: INTERMEDIATE
+estimated_minutes: 10
+display_order: 4
+objectives:
+  - Subtract two datetime columns to produce a Timedelta column
+  - Extract the number of whole days from a Timedelta with .dt.days
+  - Compute a real time-to-first-purchase metric by combining signup and order data
+prerequisites: [rolling-windows]
+skills: [pandas]
+datasets: [ecommerce]
+tags: [python, intermediate, real-world]
+key_takeaways:
+  - "Subtracting one datetime column from another produces a Timedelta column — a duration, not a date — which pandas computes correctly (including across month and year boundaries) once both columns are real datetime dtype."
+  - ".dt.days pulls out the whole-number day count from a Timedelta, which is what you want for a metric like 'days between signup and first order.'"
+  - "A common real pattern is: aggregate one table down to a single date per key (e.g. each customer's first order date), merge that onto another table (e.g. customers), then subtract the two date columns."
+common_mistakes:
+  - "Subtracting datetime columns before converting them with pd.to_datetime() — subtracting strings raises an error rather than computing a date difference."
+  - "Forgetting some rows may not have a match at all (e.g. a customer who signed up but never ordered) — subtracting against a NaN date produces NaT (Not a Time), and .dt.days on that is NaN, which needs to be handled (e.g. with .dropna() or explicit filtering) rather than silently included in a summary statistic."
+  - "Using orders.groupby('customer_id')['order_date'].first() when you actually want the earliest order chronologically — .first() returns the first row in the DataFrame's current order, not the minimum date. .min() is the correct choice unless the data is already sorted by date."
+practical_applications:
+  - "Measuring average days-to-first-purchase as an onboarding/activation metric."
+  - "Computing customer tenure (days since signup) as an input feature for a churn or segmentation analysis."
+interview_questions:
+  - question: "How do you compute the number of days between two datetime columns in pandas?"
+    answer: "Subtract one from the other — (df['end_date'] - df['start_date']) — which produces a Timedelta column representing the duration between them. To get that duration as a plain integer number of days, chain .dt.days onto it: (df['end_date'] - df['start_date']).dt.days. Both columns need to already be datetime dtype (via pd.to_datetime()) for the subtraction to work at all."
+  - question: "A customer signed up but has never placed an order. What happens if you compute days_to_first_order for that customer by subtracting signup_date from a first_order_date that's NaN for them?"
+    answer: "Subtracting a real datetime from NaN (or NaN from a real datetime) produces NaT — pandas' 'Not a Time' null value for datetime/timedelta data, the same concept as NaN but for time-based dtypes. Calling .dt.days on a NaT produces NaN. That row should typically be excluded from an average days-to-first-order calculation (e.g. with .dropna()) rather than silently treated as 0 or included as-is, since 'never ordered' is a fundamentally different situation from 'ordered immediately.'"
+blocks:
+  - type: text
+    body: >
+      Once two columns are real datetime dtype, subtracting one from the other gives you a
+      **Timedelta** — pandas' representation of a duration (so many days, hours, etc.), computed
+      correctly even across month and year boundaries. This is the building block for almost any
+      "how long between X and Y" metric.
+  - type: heading
+    text: "A real example — days from signup to first order"
+  - type: text
+    body: >
+      `customers` has a `signup_date`. `orders` has one row per order, so a customer's **first**
+      order date needs to be computed by aggregating — the minimum order_date per customer_id — before
+      it can be compared to signup_date at all.
+  - type: code
+    language: python
+    code: |2
+      import pandas as pd
+
+      customers = pd.read_csv("data/sample/ecommerce/customers.csv")
+      orders = pd.read_csv("data/sample/ecommerce/orders.csv")
+
+      customers["signup_date"] = pd.to_datetime(customers["signup_date"])
+      orders["order_date"] = pd.to_datetime(orders["order_date"])
+
+      first_order = (
+          orders.groupby("customer_id")["order_date"].min()
+          .reset_index()
+          .rename(columns={"order_date": "first_order_date"})
+      )
+
+      merged = customers.merge(first_order, on="customer_id", how="left")
+      merged[["customer_id", "signup_date", "first_order_date"]].head(3)
+    caption: One row per customer, with their earliest order date merged in
+  - type: output
+    body: |2
+         customer_id signup_date first_order_date
+      0            1  2025-06-26        2025-10-18
+      1            2  2024-12-21        2024-12-23
+      2            3  2025-10-27        2025-10-31
+  - type: heading
+    text: Subtracting to get a Timedelta
+  - type: code
+    language: python
+    code: |2
+      delta = merged["first_order_date"] - merged["signup_date"]
+      delta.dtype, delta.head(3)
+    caption: Subtracting two datetime columns produces a timedelta64 column
+  - type: output
+    body: |2
+      dtype: timedelta64[us]
+      0   114 days
+      1     2 days
+      2     4 days
+      dtype: timedelta64[us]
+  - type: code
+    language: python
+    code: |2
+      merged["days_to_first_order"] = (merged["first_order_date"] - merged["signup_date"]).dt.days
+      merged[["customer_id", "signup_date", "first_order_date", "days_to_first_order"]].head(3)
+    caption: .dt.days converts the Timedelta into a plain integer day count
+  - type: output
+    body: |2
+         customer_id signup_date first_order_date  days_to_first_order
+      0            1  2025-06-26        2025-10-18                 114
+      1            2  2024-12-21        2024-12-23                   2
+      2            3  2025-10-27        2025-10-31                   4
+  - type: heading
+    text: Summarizing the metric
+  - type: code
+    language: python
+    code: |2
+      merged["days_to_first_order"].describe().round(1)
+    caption: "Across all customers who did place an order (real, verified output)"
+  - type: output
+    body: |2
+      count    1362.0
+      mean      120.9
+      std       134.2
+      min         0.0
+      25%        22.0
+      50%        68.0
+      75%       178.8
+      max       672.0
+      Name: days_to_first_order, dtype: float64
+  - type: callout
+    variant: common_mistake
+    title: Customers who never ordered get NaN, not 0
+    body: >
+      138 customers in this dataset have no matching row in orders at all — for them,
+      first_order_date is NaN (from the left join) and days_to_first_order is NaN too, not 0. That's
+      correct: "never ordered" and "ordered the same day as signup" are very different situations, and
+      .describe() above correctly excludes those NaN rows from its count of 1,362 (out of 1,500 total
+      customers).
+  - type: question
+    prompt: "df['end'] and df['start'] are both real datetime64 columns. What is the dtype of df['end'] - df['start']?"
+    choices:
+      - "datetime64 — the same as the original columns"
+      - "timedelta64 — a duration, not a point in time"
+      - "int64 — the number of days as a plain integer"
+    correct_index: 1
+    explanation: >
+      Subtracting one datetime from another produces a duration (a Timedelta), represented as
+      timedelta64 dtype — not another datetime, and not automatically an integer. To get a plain
+      integer day count from it, you still need to chain .dt.days onto the result.

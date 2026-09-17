@@ -1,0 +1,123 @@
+slug: pa-cohort-retention-python
+module_slug: cohorts
+title: "Building a Cohort Retention Matrix in pandas"
+description: >
+  The same cohort retention matrix from the SQL lesson, rebuilt with pandas groupby and
+  pivot/unstack, and cross-checked cell-by-cell against the SQL output.
+difficulty: ADVANCED
+estimated_minutes: 25
+display_order: 3
+objectives:
+  - Assign cohort_month and period_number columns in pandas using values.astype('datetime64[M]') and integer month arithmetic
+  - Build a cohort size Series and a cohort/period active-user pivot, then divide one by the other correctly aligned
+  - Reconcile a pandas-built retention matrix against the SQL version cell-by-cell
+prerequisites: [pa-cohort-retention-sql]
+skills: [product-analytics, pandas]
+datasets: [saas-product]
+tags: [product, saas, cohort, python, advanced]
+key_takeaways:
+  - "Truncating a pandas datetime column to month granularity is a one-liner — series.values.astype('datetime64[M]') — and is the pandas equivalent of SQL's DATE_TRUNC('month', ...)."
+  - "pivot_table (or groupby + unstack) turns a long cohort/period/active_users table into the wide matrix shape; dividing that wide table by a cohort-size Series with .divide(..., axis=0) aligns the division correctly by row (cohort), not by column."
+  - A pandas-built matrix should match a SQL-built one to the same precision on every shared cell — this dataset's 2025-01 through 2025-04 cohorts match to 4 decimal places between the two approaches, which is the standard of proof to hold any cohort analysis to before publishing it.
+common_mistakes:
+  - Dividing the active-users pivot by the cohort-size Series without axis=0, which pandas will attempt to align by column labels instead of by row (cohort), silently producing NaN or wrong values for every cell.
+  - Forgetting the equivalent of the SQL `WHERE event_timestamp >= signup_date` filter, which in this dataset would let any row with an event before its own signup_date leak a negative period_number into the pivot.
+blocks:
+  - type: text
+    body: >
+      This lesson rebuilds the previous lesson's SQL matrix in pandas, using the same logic:
+      truncate both dates to month granularity, compute an integer period offset, then build a
+      cohort-size denominator and an active-users numerator before dividing.
+  - type: heading
+    text: "Step 1: cohort_month and period_number"
+  - type: code
+    language: python
+    caption: Month-truncation and period offset, the pandas way
+    code: |
+      import pandas as pd
+
+      # events has: user_id, signup_date, event_name, event_timestamp — both date columns load
+      # from CSV as plain strings, so convert them explicitly before any date arithmetic.
+      df = events.copy()
+      df["signup_date"] = pd.to_datetime(df["signup_date"])
+      df["event_timestamp"] = pd.to_datetime(df["event_timestamp"])
+      df = df[df["event_timestamp"] >= df["signup_date"]]
+
+      df["cohort_month"] = df["signup_date"].values.astype("datetime64[M]")
+      df["event_month"]  = df["event_timestamp"].values.astype("datetime64[M]")
+
+      df["period_number"] = (
+          (df["event_month"].dt.year - df["cohort_month"].dt.year) * 12
+          + (df["event_month"].dt.month - df["cohort_month"].dt.month)
+      )
+  - type: callout
+    variant: warning
+    title: "pd.to_datetime(...) first — these columns load as plain strings"
+    body: >
+      A CSV has no native date type, so `pd.read_csv` loads `signup_date` and `event_timestamp` as
+      plain strings unless told otherwise. Calling `.values.astype("datetime64[M]")` directly on a
+      string column raises an error rather than silently doing the wrong thing, which at least makes
+      this mistake easy to catch — but it still has to be fixed before anything else here will run.
+  - type: text
+    body: >
+      Once both columns are real datetime64 columns, `.astype("datetime64[M]")` truncates each
+      timestamp to the first of its month — the pandas equivalent of `DATE_TRUNC('month', ...)`. The
+      period-number formula is the same "months elapsed" arithmetic DuckDB's `DATEDIFF('month', ...)`
+      performs internally.
+  - type: heading
+    text: "Step 2: cohort size and the active-user pivot"
+  - type: code
+    language: python
+    caption: Build the numerator (wide pivot) and denominator (cohort sizes), then divide with correct alignment
+    code: |
+      cohort_sizes = df[df["period_number"] == 0].groupby("cohort_month")["user_id"].nunique()
+
+      pivot = (
+          df.groupby(["cohort_month", "period_number"])["user_id"]
+          .nunique()
+          .unstack(fill_value=0)
+      )
+
+      retention = pivot.divide(cohort_sizes, axis=0).round(4)
+      retention.loc["2025-01":"2025-04", 0:4]
+  - type: output
+    caption: Result — matches the SQL version to 4 decimal places
+    body: |
+      period_number    0       1       2       3       4
+      cohort_month
+      2025-01-01     1.0  0.2698  0.1984  0.1270  0.0714
+      2025-02-01     1.0  0.2687  0.1343  0.0672  0.0522
+      2025-03-01     1.0  0.2188  0.1312  0.0812  0.0500
+      2025-04-01     1.0  0.3429  0.1786  0.1143  0.0714
+  - type: callout
+    variant: warning
+    title: "axis=0 is not optional in the final division"
+    body: >
+      `pivot.divide(cohort_sizes, axis=0)` tells pandas to align `cohort_sizes` (indexed by
+      `cohort_month`) against the pivot's *row* index, dividing every column in a row by that row's
+      cohort size. Omitting `axis=0` (or writing `pivot / cohort_sizes` without care) makes pandas try
+      to align `cohort_sizes` against the pivot's *columns* instead — which don't share any labels
+      with a Series indexed by cohort_month — and silently returns a table of NaN.
+  - type: heading
+    text: Cross-checking against the SQL matrix
+  - type: text
+    body: >
+      Every value in this pandas output matches the SQL lesson's matrix exactly: 2025-01 period-1 is
+      0.2698 in both, 2025-04 period-1 is 0.3429 in both, and so on across every shared cell. That
+      agreement — to four decimal places, built two independent ways — is the bar a real cohort
+      analysis should clear before anyone trusts it enough to act on.
+  - type: question
+    prompt: >
+      `pivot.divide(cohort_sizes, axis=0)` produces the correct retention matrix, but a colleague
+      tries `pivot / cohort_sizes` without the `axis=0` argument and gets a table of all NaN. Why?
+    choices:
+      - "cohort_sizes must contain null values"
+      - "Without axis=0, pandas tries to align cohort_sizes against the pivot table's column labels (period numbers) rather than its row labels (cohort_month), and since cohort_sizes is indexed by cohort_month, no labels match"
+      - "The pivot table must be transposed before dividing"
+      - "Division between a DataFrame and a Series is never supported in pandas"
+    correct_index: 1
+    explanation: >
+      pandas' default alignment for DataFrame-Series arithmetic matches the Series' index against the
+      DataFrame's *columns*, not its rows. Since cohort_sizes is indexed by cohort_month (which is the
+      pivot's row index, not its columns), that default alignment finds no matching labels and
+      returns NaN everywhere — axis=0 explicitly tells pandas to align by row instead.

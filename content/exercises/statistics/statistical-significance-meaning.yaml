@@ -1,0 +1,22 @@
+slug: statistical-significance-meaning
+lesson_slug: hyp-p-values
+skill: statistics
+title: What "Statistically Significant" Actually Claims
+description: Quick check on the precise meaning of a significant test result.
+exercise_type: MULTIPLE_CHOICE
+difficulty: INTERMEDIATE
+points: 10
+tags: [statistics, intermediate, interview]
+prompt: >
+  A test comparing two groups returns a statistically significant result at the 0.05 level. Which
+  statement is the most accurate description of what that means?
+choices:
+  - "The data provides strong enough evidence against the null hypothesis (using a pre-chosen 0.05 threshold) that we conclude a real difference likely exists — but this alone says nothing about whether the difference is large enough to matter practically"
+  - "There is a 95% probability the observed difference is real and important"
+  - "The effect being measured is guaranteed to be large enough to be worth acting on"
+correct_answer: "The data provides strong enough evidence against the null hypothesis (using a pre-chosen 0.05 threshold) that we conclude a real difference likely exists — but this alone says nothing about whether the difference is large enough to matter practically"
+explanation: >
+  Statistical significance is about whether an effect is distinguishable from chance/zero given the
+  data and a chosen threshold — it says nothing about the size or business importance of that
+  effect (practical significance), which is a separate question a large enough sample can make even
+  a tiny effect satisfy the significance bar for.

@@ -1,0 +1,122 @@
+slug: pa-product-case-walkthrough
+module_slug: product-cases
+title: "The Product Analytics Case Framework, Worked End to End"
+description: >
+  A repeatable four-part framework for any "why is this metric doing that" product case — build the
+  segmented picture, find the specific gap, propose a testable hypothesis, quantify the opportunity —
+  worked fully on a real question from this dataset.
+difficulty: ADVANCED
+estimated_minutes: 25
+display_order: 1
+objectives:
+  - Apply a repeatable four-part framework (segment, locate, hypothesize, quantify) to an open-ended product question
+  - Distinguish a specific, testable hypothesis from a vague one
+  - Turn a finding into a quantified opportunity size, not just a description of what's wrong
+prerequisites: [pa-product-experiments-bridge, pa-cohort-retention-python]
+skills: [product-analytics, product-cases, business-problem-solving]
+datasets: [saas-product]
+tags: [product, saas, case-study, advanced]
+key_takeaways:
+  - A strong product-analytics case answer always has the same four parts, in order — segment the metric to find where the problem concentrates, state specifically where it concentrates and by how much, propose a testable (not vague) hypothesis for why, and quantify what closing the gap would be worth.
+  - "\"Testable\" means a hypothesis names a specific mechanism and a specific way to check it — \"paid_social's landing page doesn't match ad messaging, check by comparing bounce rate on the paid_social landing page\" is testable; \"paid_social users are just lower quality\" is not, because there's no next step it implies."
+  - A case answer that stops at "here's the problem" is half-finished — a stakeholder needs the size of the opportunity to decide whether it's worth prioritizing against everything else competing for the team's time.
+common_mistakes:
+  - Jumping straight to a hypothesis before segmenting the data to confirm where a problem actually concentrates — a plausible-sounding cause for a metric that turns out not to vary meaningfully across segments is a wasted investigation.
+  - Ending a case answer with "we should investigate further" as the entire recommendation, instead of naming the specific next check and putting a number on what's at stake if the hypothesis turns out to be right.
+blocks:
+  - type: text
+    body: >
+      Every other module in this domain built toward one skill each — funnels, cohorts, churn,
+      adoption. A real product-analytics case, in an interview or on the job, usually needs all of
+      them stitched together to answer one open-ended question. This lesson gives that a name: a
+      four-part framework, worked fully on one real example from this dataset.
+  - type: heading
+    text: The four-part framework
+  - type: checklist
+    title: Segment → Locate → Hypothesize → Quantify
+    items:
+      - "1. Segment — break the metric down by the dimensions available (channel, cohort, plan, geography) instead of looking at one blended number"
+      - "2. Locate — state specifically where the problem concentrates and by how much, with the actual numbers, not an impression"
+      - "3. Hypothesize — propose a specific, testable mechanism for why that segment differs, and name what you'd check to confirm or rule it out"
+      - "4. Quantify — put a number on what closing the gap would be worth, so a stakeholder can weigh it against other priorities"
+  - type: heading
+    text: "Worked example: why does the funnel bottleneck at engaged→upgraded?"
+  - type: text
+    body: >
+      The question: "Our overall signup-to-upgrade conversion is only 7.1%. Where should we focus,
+      and why?"
+  - type: heading
+    text: "Step 1 — Segment"
+    level: 3
+  - type: table
+    headers: ["Step", "Users reaching step", "Step-to-step rate"]
+    rows:
+      - ["1. Signup", "3,000", "—"]
+      - ["2. Activated", "2,074", "69.1%"]
+      - ["3. Engaged", "1,125", "54.2%"]
+      - ["4. Upgraded", "212", "18.8%"]
+  - type: heading
+    text: "Step 2 — Locate"
+    level: 3
+  - type: text
+    body: >
+      Reading rate alone, engaged→upgraded (18.8%) is the weakest step by a wide margin — less than a
+      third of the next-weakest step's rate (activated→engaged, 54.2%). Reading absolute loss, all
+      three steps lose a strikingly similar number of real users (926, then 949, then 913) — so this
+      step isn't uniquely bad in raw headcount, but it is uniquely inefficient: it converts the
+      smallest fraction of the population that reaches it. Both facts matter, and a specific location
+      statement names both: "the engaged→upgraded step converts only 18.8% of engaged users — the
+      worst rate of any step — while still losing about the same absolute number of users (913) as
+      the other two steps."
+  - type: heading
+    text: "Step 3 — Hypothesize"
+    level: 3
+  - type: text
+    body: >
+      A vague hypothesis: "engaged users just aren't ready to pay yet." That's not testable — it
+      implies no specific next check. A specific, testable hypothesis: "engaged users don't
+      upgrade because they haven't hit a usage limit or a moment where the paid tier's value becomes
+      obvious — check by looking at whether upgraded users, in the days just before upgrading, show a
+      spike in a specific in-product action that free-tier engaged users who don't upgrade never
+      reach." That names a mechanism (a missing trigger moment) and a specific check (compare
+      pre-upgrade behavior of upgraders against non-upgrading engaged users).
+  - type: heading
+    text: "Step 4 — Quantify"
+    level: 3
+  - type: formula
+    expression: "Additional upgrades if engaged→upgraded rose to the activated→engaged rate's ballpark (~30%) = 1,125 × (0.30 − 0.188) ≈ 126 additional upgrades"
+    description: A conservative target improvement, not an assumption that the gap fully closes
+  - type: callout
+    variant: important
+    title: The complete case answer
+    body: >
+      "Overall conversion is 7.1%, but the real story is the engaged→upgraded step: it converts only
+      18.8% (versus 54.2% and 69.1% for the earlier steps), even though all three steps lose a similar
+      ~900-950 users in absolute terms. My hypothesis is engaged users lack a clear trigger moment for
+      upgrading — I'd check this by comparing the in-product behavior of users in the days right
+      before they upgraded against engaged users of similar tenure who never did. If a specific
+      trigger action is common among upgraders and rare among non-upgraders, surfacing that action
+      earlier could plausibly move the rate from 18.8% toward the high-20s or 30%, worth on the order
+      of 100-130 additional upgrades from the current engaged population alone."
+  - type: callout
+    variant: warning
+    title: What this framework doesn't replace
+    body: >
+      Steps 1 and 2 are pure, defensible descriptive analysis — they came straight from real query
+      results. Step 3's hypothesis is an educated guess grounded in the data, not a proven cause. Step
+      4's quantification is a plausible target, not a guarantee. A strong case answer is honest about
+      which parts are established fact and which parts are the best available hypothesis pending
+      further testing (which is exactly where the `product-experiments` bridge module picks up).
+  - type: question
+    prompt: >
+      Which of these is a "testable" hypothesis in the sense this framework requires?
+    choices:
+      - "Engaged users just aren't the right kind of customer"
+      - "Engaged users don't upgrade because they haven't hit a specific in-product trigger moment yet — check by comparing pre-upgrade behavior of upgraders against similar-tenure engaged users who didn't upgrade"
+      - "The upgrade funnel step is simply always going to convert worse than earlier steps"
+      - "Nothing can be done about this step, since it's the last one in the funnel"
+    correct_index: 1
+    explanation: >
+      A testable hypothesis names a specific mechanism (a missing trigger moment) and a specific,
+      concrete check (comparing pre-upgrade behavior between two defined groups) that would confirm
+      or rule it out. The other options either don't propose a mechanism at all or aren't actionable.

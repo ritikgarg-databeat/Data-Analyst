@@ -1,0 +1,106 @@
+slug: exp-primary-secondary-guardrail-metrics
+module_slug: hypothesis-design
+title: Primary, Secondary, and Guardrail Metrics
+description: >
+  Why every experiment needs exactly one metric that decides the outcome, plus guardrail metrics that
+  can veto a "win" — using a real checkout-redesign test where the primary metric improved.
+difficulty: INTERMEDIATE
+estimated_minutes: 20
+display_order: 2
+objectives:
+  - Distinguish a primary metric (decides the outcome) from secondary metrics (context) and guardrail metrics (can veto a win)
+  - Explain why an experiment should declare exactly one primary metric before launch, not several
+  - Identify a plausible guardrail metric for a given experiment and explain what it protects against
+prerequisites: [exp-writing-a-testable-hypothesis]
+skills: [experimentation, statistical-reasoning, business-metrics]
+datasets: [saas-product]
+tags: [experimentation, ab-testing, saas, intermediate]
+key_takeaways:
+  - The primary metric is the single number that decides ship/no-ship, chosen before launch, directly tied to the hypothesis's mechanism.
+  - Secondary metrics add context (did engagement also move, in which direction) but don't decide the outcome on their own.
+  - Guardrail metrics don't need to improve — they just need to not get meaningfully worse; a guardrail regression can (and should) override a primary-metric win.
+common_mistakes:
+  - Declaring multiple metrics as "primary" and then, after the test, picking whichever one happened to be significant as if it had been the plan all along.
+  - Improving the primary metric while a guardrail metric quietly gets worse, and shipping anyway because "the main number went up."
+blocks:
+  - type: heading
+    text: Three roles, one decision
+  - type: text
+    body: >
+      Every experiment should declare, before launch, exactly one **primary metric** — the number that
+      decides whether the test is a win. Alongside it, **secondary metrics** add context (did related
+      behavior move in a sensible direction too?) without deciding the outcome by themselves. And
+      **guardrail metrics** are metrics you don't expect to improve, but that must not get meaningfully
+      *worse* — if one does, it can veto a win on the primary metric.
+  - type: example
+    title: "checkout_redesign, with all three roles assigned"
+    body: >
+      Primary metric: checkout conversion rate — this is what the hypothesis is actually about, and it's
+      what decides ship/no-ship. Secondary metric: average time to complete checkout — if the redesign
+      works the way the mechanism predicts (fewer steps, less friction), this should drop too, which
+      would corroborate the story. Guardrail metric: 30-day refund rate — a redesign that pushes people
+      through checkout faster could also push some of them into a purchase they didn't mean to make, or
+      the wrong plan; if refund rate jumps, that's a reason to hold off even if conversion is up.
+  - type: code
+    language: sql
+    code: |
+      SELECT
+        variant,
+        COUNT(*) AS users,
+        ROUND(AVG(converted) * 100, 2) AS primary_conversion_rate_pct
+      FROM experiment_assignments
+      WHERE experiment_id = 'checkout_redesign'
+      GROUP BY variant
+      ORDER BY variant;
+    caption: >
+      Real result: control 11.3% (113/1,000), treatment 12.5% (125/1,000) — the primary metric moved in
+      the hypothesized direction. (Whether that difference is large enough to trust is the subject of the
+      A/B Test Analysis module — a metric moving in the right direction isn't yet the same as a proven
+      effect.)
+  - type: table
+    caption: The three roles
+    headers: ["Role", "How many", "Rule"]
+    rows:
+      - ["Primary", "Exactly one", "Decided before launch; directly reflects the hypothesis's mechanism; alone decides ship/no-ship"]
+      - ["Secondary", "A few", "Adds context and corroborates the story; never overrides the primary metric on its own"]
+      - ["Guardrail", "One or a few", "Doesn't need to improve, but a meaningful regression here can veto a primary-metric win"]
+  - type: callout
+    variant: warning
+    title: A guardrail regression outranks a primary-metric win
+    body: >
+      If checkout conversion rises but refund rate or 30-day churn rises with it, the right call is
+      usually to hold off and investigate, not to ship because "the main metric won." Guardrails exist
+      specifically to catch wins that come at a hidden cost.
+  - type: callout
+    variant: common_mistake
+    title: Multiple "primary" metrics is a trap
+    body: >
+      If three metrics are all declared "primary," there's a strong chance at least one of them moves by
+      chance alone (this connects to the multiple-testing pitfall covered later in this domain). Naming
+      exactly one primary metric before launch removes the temptation to retroactively call whichever
+      metric looked good "the one that mattered."
+  - type: question
+    prompt: >
+      An experiment's primary metric (signup-to-paid conversion) improves in the treatment group, but
+      customer support ticket volume (a guardrail metric) roughly doubles for treatment users. What's the
+      right next step?
+    choices:
+      - "Ship immediately — the primary metric is what was being tested, and it won"
+      - "Investigate the ticket volume increase before shipping — a guardrail regression this large may mean the change is creating a worse (or confusing) experience even though more people are converting"
+      - "Ignore ticket volume since it wasn't the metric named in the hypothesis"
+    correct_index: 1
+    explanation: >
+      Guardrail metrics exist precisely to catch cases like this: a metric improving under conditions
+      that quietly make things worse elsewhere (e.g., a more aggressive checkout flow converts more
+      people but also confuses more of them). A doubling in support tickets is a strong signal to dig in
+      before shipping, even though the declared primary metric improved.
+interview_questions:
+  - question: "How do you decide which metric should be the primary metric for an experiment, and what's the role of a guardrail metric?"
+    answer: >
+      The primary metric should be the one number most directly tied to the hypothesis's mechanism and
+      the business decision at stake, decided before launch — for a checkout redesign meant to reduce
+      abandonment, that's checkout conversion rate, not a looser proxy like page views or time on site.
+      Guardrail metrics are different in kind: they're not expected to improve, but they need to not get
+      meaningfully worse, and they exist to catch cases where the primary metric improves at a hidden
+      cost — for example, conversion rising while refund rate or support ticket volume also rises. A
+      guardrail regression can and should override a primary-metric win.

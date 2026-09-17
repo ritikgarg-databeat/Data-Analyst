@@ -1,0 +1,114 @@
+slug: pa-engagement-depth
+module_slug: product-engagement
+title: "Engagement Depth: What a Single Number Hides"
+description: >
+  Splitting users into engagement-depth segments instead of reporting one average, and showing why
+  depth of engagement is one of the strongest predictors of monetization in this dataset.
+difficulty: INTERMEDIATE
+estimated_minutes: 20
+display_order: 1
+objectives:
+  - Explain why an average events-per-user number can look unremarkable while hiding a highly polarized distribution
+  - Build engagement-depth segments (e.g. one-and-done, casual, power user) directly from an event count per user
+  - Connect engagement depth to a downstream business outcome (monetization) using real data, not assumption
+prerequisites: [engagement]
+skills: [product-analytics, product-metrics]
+datasets: [saas-product]
+tags: [product, saas, intermediate]
+key_takeaways:
+  - "A single average (2.62 events per user, in this dataset) can look mundane while hiding a sharply bimodal reality: 30.9% of users never return after signup, while 13.5% return again and again."
+  - Engagement-depth segments (built from nothing more than a per-user event count) turn one flat number into a distribution you can act on differently for each group.
+  - "The real test of whether engagement depth matters is whether it predicts something downstream — in this dataset, it predicts monetization dramatically: power users upgrade at 41.6%, casual users at 2.6%, and one-and-done users at 0%."
+common_mistakes:
+  - Reporting "average events per user" as if it describes a typical user, when the underlying distribution is this skewed — the average describes almost no one, since most users are either far below it (one event) or the "typical" middle segment sits well below it too.
+  - Assuming engagement depth matters without checking it against an actual outcome — it's a compelling-sounding metric, but its value comes from the fact that it's been checked against monetization here, not from intuition alone.
+blocks:
+  - type: text
+    body: >
+      The `product-metrics` engagement lesson covered engagement as a concept — frequency and depth of
+      use, and why a single count of "actions" can be misleading. This lesson builds a concrete,
+      three-segment view of engagement depth from this dataset's own event counts, and checks whether
+      it actually predicts anything that matters.
+  - type: heading
+    text: "One average, and what it hides"
+  - type: text
+    body: >
+      Across all 3,000 users, the average user has 2.62 events on record (median: 2.0). On its own,
+      that number sounds like "most users do a couple of things and move on" — a mild, unremarkable
+      picture. The actual distribution tells a much more polarized story.
+  - type: code
+    language: sql
+    caption: Per-user event count, then bucketed into three engagement-depth segments
+    code: |
+      WITH per_user AS (
+        SELECT
+          user_id,
+          COUNT(*) AS n_events,
+          MAX(CASE WHEN event_name = 'upgraded' THEN 1 ELSE 0 END) AS upgraded
+        FROM events
+        GROUP BY user_id
+      )
+      SELECT
+        CASE
+          WHEN n_events = 1              THEN 'one_and_done'
+          WHEN n_events BETWEEN 2 AND 4   THEN 'casual'
+          ELSE 'power_user'
+        END AS segment,
+        COUNT(*)                                       AS n_users,
+        SUM(upgraded)                                   AS n_upgraded,
+        ROUND(SUM(upgraded) * 1.0 / COUNT(*), 4)        AS upgrade_rate
+      FROM per_user
+      GROUP BY 1
+      ORDER BY 4 DESC;
+  - type: table
+    headers: ["Segment", "Definition", "Users", "% of base", "Upgrade rate"]
+    rows:
+      - ["Power user", "5+ recorded events", "404", "13.5%", "41.6%"]
+      - ["Casual", "2-4 recorded events", "1,670", "55.7%", "2.6%"]
+      - ["One-and-done", "exactly 1 event (signup only)", "926", "30.9%", "0.0%"]
+  - type: callout
+    variant: important
+    title: Engagement depth is one of the strongest signals in this dataset
+    body: >
+      The 13.5% of users classified as power users (5 or more distinct events) upgrade at 41.6% — a
+      rate nearly 16x higher than the "casual" segment's 2.6%, and infinitely higher than the
+      one-and-done segment's 0%. This isn't a subtle correlation; it's the single clearest predictor
+      of monetization found anywhere in this dataset so far, and it comes from nothing more
+      sophisticated than a per-user event count.
+  - type: heading
+    text: What this segmentation is (and isn't) telling you
+  - type: callout
+    variant: warning
+    title: Depth predicting monetization doesn't mean depth causes it
+    body: >
+      It's tempting to read this table as "get more users to take 5+ actions and upgrades will
+      follow." That may well be true, but the data shown here is observational — power users might
+      simply be the segment that already had strong intent to buy, and their engagement depth is a
+      symptom of that intent rather than its cause. Before investing in "drive more actions per
+      user" as a strategy, this pattern is a strong hypothesis worth testing, not yet a proven lever
+      — exactly the kind of question the `product-experiments` module addresses.
+  - type: heading
+    text: Depth vs. breadth
+  - type: text
+    body: >
+      This lesson used *depth* (how many distinct events a user racks up) as the engagement measure.
+      A different, complementary cut is *breadth* — how many distinct features or event *types* a
+      user touches, regardless of repeat count. In this dataset's four-event-type schema, breadth and
+      the cumulative funnel are closely related (reaching more distinct steps is itself a breadth
+      measure); in a product with dozens of features, breadth and depth can diverge sharply, and a
+      full engagement picture usually needs both.
+  - type: question
+    prompt: >
+      The average user has 2.62 events, and the median is 2.0 — both look unremarkable. What does
+      splitting users into one-and-done / casual / power-user segments reveal that the average hides?
+    choices:
+      - "That the average is miscalculated and should be recomputed"
+      - "That the distribution is polarized: nearly a third of users never return at all, while a small 13.5% power-user segment upgrades at a dramatically higher rate than everyone else"
+      - "That engagement depth has no relationship to monetization in this dataset"
+      - "That most users fall very close to the average of 2.62 events"
+    correct_index: 1
+    explanation: >
+      A single average of 2.62 events masks a distribution where 30.9% of users have exactly one
+      event and never return, while a 13.5% power-user segment (5+ events) upgrades at 41.6% — nearly
+      16 times the casual segment's rate. Segmenting reveals a strongly polarized, actionable pattern
+      that the average alone completely hides.

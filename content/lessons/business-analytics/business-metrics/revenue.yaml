@@ -1,0 +1,89 @@
+slug: revenue
+module_slug: business-metrics
+title: Revenue
+description: What "revenue" really means, why gross and net revenue disagree, and the traps that make two correct people report two different numbers.
+difficulty: BEGINNER
+estimated_minutes: 10
+display_order: 1
+objectives:
+  - Define gross revenue and net revenue and state exactly what separates them
+  - Identify which revenue definition a given business question actually calls for
+  - Recognize the most common ways revenue numbers get miscounted or misreported
+skills: [business-metrics]
+datasets: [orders-sample]
+tags: [business-analytics, foundations, beginner]
+key_takeaways:
+  - Gross revenue and net revenue are both legitimately called "revenue" but differ by returns, refunds, discounts, and chargebacks — always confirm which one a number represents before comparing it to another.
+  - Two dashboards can disagree on "this month's revenue" without either being wrong, if they use different status filters or recognition points.
+  - When numbers don't reconcile between two sources, check the definition before assuming a bug or an error.
+common_mistakes:
+  - Presenting a number simply labeled "revenue" without stating whether it is gross or net, letting stakeholders assume it's whichever one they expect.
+  - Including cancelled or refunded orders in a revenue total because the query never filtered on order status.
+blocks:
+  - type: heading
+    text: What "revenue" actually means
+  - type: text
+    body: >
+      Revenue looks like the simplest metric in the business — it's just "money in," right? In
+      practice it's one of the most disputed numbers on any team, because "revenue" is actually a
+      family of related-but-different numbers, and two people can report different figures for the
+      same month while both being technically correct.
+  - type: comparison
+    title: Gross Revenue vs. Net Revenue
+    columns: ["Term", "Definition", "When you'd use it"]
+    rows:
+      - ["Gross revenue", "Total dollar value of everything sold at list price, before subtracting anything", "Measuring top-line sales volume or sales team activity"]
+      - ["Net revenue", "Gross revenue minus returns, refunds, discounts, and chargebacks", "Financial reporting, forecasting, and anything tied to actual cash the business keeps"]
+  - type: formula
+    expression: "Net Revenue = Gross Revenue − Returns − Refunds − Discounts − Chargebacks"
+    description: >
+      Each subtracted term represents money that was booked as a sale but never actually stayed with
+      the business. A finance team's income statement almost always reports net revenue, even when
+      it's just labeled "Revenue."
+  - type: example
+    title: Same store, two revenue numbers
+    body: >
+      An online store has $120,000 in gross sales for the month. Customers returned $8,000 of
+      merchandise, and $4,500 was given back as promotional discounts. Net revenue for the month is
+      $120,000 − $8,000 − $4,500 = $107,500. A marketing dashboard reporting "gross sales" and a
+      finance report reporting "revenue" for the same month would show $120,000 and $107,500
+      respectively — an $12,500 gap that is not an error.
+    code: |
+      -- Gross revenue: every order regardless of what happened to it afterward
+      SELECT SUM(order_total) AS gross_revenue
+      FROM orders;
+
+      -- Net revenue: excludes orders that never became real, kept revenue
+      SELECT SUM(order_total) AS net_revenue
+      FROM orders
+      WHERE status NOT IN ('cancelled', 'refunded');
+    language: sql
+  - type: callout
+    variant: common_mistake
+    title: The silent status filter
+    body: >
+      A dashboard built with `SELECT SUM(order_total) FROM orders` — no status filter at all — is
+      silently reporting gross revenue, including orders that were later cancelled or refunded. It
+      will disagree with Finance's number every single month, and nobody will know why until someone
+      reads the query.
+  - type: checklist
+    title: Before you report a revenue number, confirm
+    items:
+      - Whether cancelled and refunded orders are excluded (net) or included (gross)
+      - Whether the number reflects when an order was placed or when it was fulfilled/recognized
+      - Whether taxes and shipping fees are included in the total
+      - Whether the time period boundaries match the number you're comparing it to
+  - type: question
+    prompt: >
+      A product dashboard shows $500K in "revenue" for June, but Finance's income statement shows
+      $460K for the same month. What's the most likely explanation?
+    choices:
+      - The dashboard has a bug and needs to be fixed immediately
+      - The dashboard is showing gross revenue while Finance is reporting net revenue
+      - Finance made an accounting error and should match the dashboard
+    correct_index: 1
+    explanation: >
+      A $40K gap in the same direction (dashboard higher than Finance) is the classic signature of a
+      gross-vs-net mismatch — the dashboard is very likely summing all orders without excluding
+      refunds, cancellations, and discounts, while Finance's reported revenue already nets those out.
+      The first step is confirming the definitions, not assuming either side is broken.

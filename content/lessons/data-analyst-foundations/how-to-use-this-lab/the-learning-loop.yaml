@@ -1,0 +1,57 @@
+slug: the-learning-loop
+module_slug: how-to-use-this-lab
+title: The Learning Loop
+description: How this platform's learning loop works and why it's built around mastery, not completion.
+difficulty: BEGINNER
+estimated_minutes: 10
+display_order: 1
+objectives:
+  - Explain the LEARN → PRACTICE → APPLY → EVALUATE → REVIEW → MASTER loop this platform is built around
+  - Identify which stage of the loop a given activity belongs to
+tags: [foundations, beginner]
+key_takeaways:
+  - Finishing a lesson is not the goal — being able to independently solve a real business problem with data is.
+  - Weakness identified during evaluation should route you back to focused review, not a fresh start.
+  - Mastery is demonstrated under interview-like conditions, not just self-reported confidence.
+blocks:
+  - type: text
+    body: >
+      Most "learn data analytics" content optimizes for completion: watch the videos, check the
+      boxes, get a certificate. That produces people who can *recognize* the right answer when shown
+      one, not people who can *produce* the right answer when handed an ambiguous business problem
+      and a raw dataset.
+  - type: heading
+    text: The loop
+  - type: text
+    body: >
+      Personal Data Analyst Lab is built around a different loop: **LEARN → PRACTICE → APPLY → GET
+      EVALUATED → IDENTIFY WEAKNESS → REVIEW → REATTEMPT → MASTER → INTERVIEW**.
+  - type: checklist
+    title: Walking the loop
+    items:
+      - "Learn — read focused material (like this lesson)"
+      - "Practice — drill the mechanics in isolation (a SQL Lab query, a pandas transformation)"
+      - "Apply — use the skill inside something closer to real work: a case study, a messy dataset"
+      - "Get evaluated — get an objective read on whether the output was actually correct, not just done"
+      - "Identify weakness — evaluation should point at specific gaps, not a vague 'try again'"
+      - "Review — spaced repetition and targeted re-study of exactly those gaps"
+      - "Reattempt — try again, now armed with the specific fix"
+      - "Master — demonstrated, durable competence that survives a week without practice"
+      - "Interview — the loop's real exit condition: perform under real pressure"
+  - type: callout
+    variant: important
+    title: Why this matters
+    body: >
+      Every section of this platform — Learn, Practice, Projects, Case Studies, Interview, Review —
+      maps directly onto one stage of this loop. Lesson completion rules later in the curriculum are
+      deliberately stricter than "you opened the page" for exactly this reason.
+  - type: question
+    prompt: Which stage of the loop is most often skipped by people who "finish" a course but can't perform on the job?
+    choices:
+      - Learn
+      - Get evaluated / Identify weakness
+      - Review
+    correct_index: 1
+    explanation: >
+      Course platforms are good at "Learn" and bad at rigorous evaluation — so learners never find
+      out which specific gaps they have, and never review the right things.

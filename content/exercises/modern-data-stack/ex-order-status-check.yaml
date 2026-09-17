@@ -1,0 +1,49 @@
+slug: ex-order-status-check
+skill: dbt
+dataset: ecommerce
+title: "dbt Exercise: Standardize, Filter, Then Test"
+description: Standardize a raw status column, filter out a specific status, and back both with a real accepted_values test.
+exercise_type: DBT
+difficulty: BEGINNER
+points: 15
+tags: [dbt, tests, data-quality, real-execution]
+business_context: >
+  A finance report needs only orders that are still "live" in some sense — cancelled orders should be
+  excluded entirely, not just flagged. Getting the filter wrong (or forgetting it) needs to actually
+  break something, not just look wrong in a code review.
+prompt: >
+  Write a dbt model named `ex_order_status_check` that selects `order_id` and a standardized `status`
+  (trimmed and lowercased, the same transformation `stg_orders.sql` already applies) from the raw
+  `orders` source, then filters out cancelled orders entirely (`status != 'cancelled'`, applied after
+  standardizing). The attached `accepted_values` test only allows `refunded`, `pending`, and
+  `completed` — it does NOT include `cancelled`, so any cancelled row left in your output will fail
+  the test for real.
+hints:
+  - "Standardize first with trim(lower(status)), then filter: where trim(lower(status)) != 'cancelled' (or filter on the already-aliased column in an outer query)."
+  - "Select from {{ source('raw', 'orders') }}, not from stg_orders — this exercise is about writing the standardization and filter yourself."
+dbt_model_name: ex_order_status_check
+dbt_starter_sql: |
+  select
+      order_id,
+      status -- TODO: standardize this, then filter out cancelled orders
+  from {{ source('raw', 'orders') }}
+dbt_schema_yml: |
+  columns:
+    - name: order_id
+      tests: [unique, not_null]
+    - name: status
+      tests:
+        - accepted_values:
+            arguments:
+              values: ["refunded", "pending", "completed"]
+solution: |
+  select
+      order_id,
+      trim(lower(status)) as status
+  from {{ source('raw', 'orders') }}
+  where trim(lower(status)) != 'cancelled'
+explanation: >
+  The real orders data does include `cancelled` rows (379 of them) alongside `refunded`, `pending`,
+  and `completed` — so a version that skips the filter isn't just theoretically wrong, it leaves real
+  `cancelled` rows in the output, and since `cancelled` isn't in the test's allowed list, the
+  `accepted_values` test genuinely fails against the real data rather than passing by accident.

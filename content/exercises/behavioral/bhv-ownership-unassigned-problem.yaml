@@ -1,0 +1,39 @@
+slug: bhv-ownership-unassigned-problem
+skill: behavioral-interviewing
+title: Fixing a Problem Nobody Assigned
+description: Describe a time you noticed a problem nobody had asked you to look into, and you went and
+  fixed it anyway.
+exercise_type: INTERVIEW_RESPONSE
+difficulty: INTERMEDIATE
+points: 10
+tags:
+- behavioral
+- star-method
+- ownership
+prompt: Describe a time you noticed a problem nobody had asked you to look into, and you went and fixed
+  it anyway.
+hints:
+- The STAR framework (Situation, Task, Action, Result) is a useful structure, not a script -- use it to
+  make sure you cover what actually happened, in what context, what you personally did, and what came
+  of it.
+- Interviewers are listening for a specific, real example -- a vague 'sometimes this happens on my team'
+  answer is much weaker than one concrete story with real details.
+rubric:
+- criterion: Describes one specific, real situation rather than a hypothetical or a generic pattern
+  points: 25
+- criterion: Clearly states the task or goal and the person's own specific role in it
+  points: 20
+- criterion: Explains concrete actions the person personally took, not just what the team did
+  points: 30
+- criterion: States a clear, ideally measurable outcome and what was learned from it
+  points: 25
+solution: I noticed our weekly revenue dashboard and the finance team's month-end reconciliation disagreed
+  by a small but consistent percentage every month. It wasn't my dashboard and nobody had flagged it as
+  broken, but the discrepancy bothered me, so I spent an afternoon tracing both pipelines back to their
+  source queries. I found the dashboard was including refunded orders in gross revenue while finance's
+  report excluded them. I documented the exact discrepancy, proposed the fix, and got sign-off from both
+  the dashboard owner and finance before changing the query, since I didn't want to silently change a
+  number people were already relying on.
+explanation: The answer demonstrates ownership without overstepping -- the analyst investigated and proposed
+  a fix, but got explicit sign-off before changing a metric other teams depended on, which shows good
+  judgment about the difference between individual initiative and unilaterally changing shared numbers.

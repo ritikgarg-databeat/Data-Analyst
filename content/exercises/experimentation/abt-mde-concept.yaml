@@ -1,0 +1,21 @@
+slug: abt-mde-concept
+skill: experimentation
+title: What MDE Actually Means
+description: What does 'minimum detectable effect' (MDE) mean when planning an A/B test?
+exercise_type: MULTIPLE_CHOICE
+difficulty: INTERMEDIATE
+points: 5
+tags:
+- ab-testing
+- sample-size
+prompt: What does 'minimum detectable effect' (MDE) mean when planning an A/B test?
+correct_answer: The smallest true effect size the test is powered to reliably detect, given its sample size and
+  desired power
+explanation: MDE is a planning input/output relating sample size, power, and the smallest real effect you'd reliably
+  catch -- it's a statistical property of the test design, not a business threshold for what counts as a 'good enough'
+  result (that's a separate, practical-significance judgment).
+choices:
+- The smallest true effect size the test is powered to reliably detect, given its sample size and desired power
+- The smallest effect that would be considered a business success
+- The margin of error of the control group's own metric
+- The minimum sample size needed to run any test at all

@@ -1,0 +1,186 @@
+slug: rfm-segmentation
+module_slug: sql-analytical-sql
+title: RFM Segmentation
+description: Scoring every customer on Recency, Frequency, and Monetary value and combining those scores into segments — all computed directly in SQL.
+difficulty: ADVANCED
+estimated_minutes: 14
+display_order: 4
+objectives:
+  - Define Recency, Frequency, and Monetary value and compute each from orders and payments
+  - Use NTILE() to turn each raw metric into a comparable 1-4 (or 1-5) score
+  - Combine three scores into named customer segments with a CASE expression
+prerequisites: [funnel-analysis]
+skills: [advanced-sql]
+datasets: [ecommerce]
+tags: [sql, advanced, business-analytics]
+key_takeaways:
+  - "RFM stands for Recency (how long since they last bought), Frequency (how often they buy), and Monetary (how much they spend) — three simple metrics that together predict future value surprisingly well."
+  - "NTILE(4) buckets customers into quartiles per metric, which puts Recency, Frequency, and Monetary — three columns with completely different units and scales — onto the same 1-4 scoring scale so they can be combined."
+  - "The segment labels (Champions, At risk, Lost, ...) are just a CASE expression over the three scores — there's no single 'correct' set of thresholds, only ones that make business sense for the data at hand."
+common_mistakes:
+  - "Scoring Recency the same direction as Frequency and Monetary — a *smaller* recency (days since last order) is *better*, so it needs ORDER BY recency_days DESC inside NTILE() to make a high score mean 'recently active,' consistent with high Frequency/Monetary scores meaning 'good.'"
+  - "Including cancelled or refunded orders in Frequency and Monetary — a customer who ordered and then got a full refund didn't generate real frequency or revenue, and including that order inflates both metrics."
+practical_applications:
+  - "Prioritizing a win-back email campaign at the 'At risk' segment (high past value, but starting to go quiet) instead of blasting the whole customer base equally."
+  - "Deciding which segment justifies a loyalty perk or account manager, based on who is actually both frequent and high-spending, not just one or the other."
+blocks:
+  - type: heading
+    text: Three numbers that predict who's valuable
+  - type: text
+    body: >
+      RFM segmentation scores every customer on three axes: **Recency** (days since their last order —
+      lower is better), **Frequency** (how many orders they've placed — higher is better), and
+      **Monetary** (how much they've spent — higher is better). The idea is old (it predates modern
+      analytics tooling by decades) precisely because it works: customers who bought recently, buy
+      often, and spend a lot are reliably the most valuable ones going forward.
+  - type: code
+    language: sql
+    caption: Step 1 — compute raw Recency, Frequency, Monetary per customer
+    code: |
+      WITH customer_orders AS (
+        SELECT
+          o.customer_id,
+          MAX(o.order_date) AS last_order_date,
+          COUNT(*) AS frequency,
+          SUM(p.amount) AS monetary
+        FROM orders o
+        JOIN payments p ON p.order_id = o.order_id AND p.status = 'success'
+        WHERE o.status = 'completed'
+        GROUP BY o.customer_id
+      )
+      SELECT
+        customer_id,
+        DATE_DIFF('day', last_order_date, DATE '2026-01-01') AS recency_days,
+        frequency,
+        ROUND(monetary, 2) AS monetary
+      FROM customer_orders
+      ORDER BY customer_id
+      LIMIT 5;
+  - type: text
+    body: >
+      Joining `payments` filtered to `status = 'success'` and restricting `orders` to `status =
+      'completed'` keeps cancelled and refunded orders out of Frequency and Monetary entirely — those
+      orders didn't result in revenue the business actually kept, so they shouldn't count toward "how
+      valuable is this customer." `DATE_DIFF('day', last_order_date, DATE '2026-01-01')` measures
+      Recency against a fixed reference date — in a live system that would be `CURRENT_DATE`; here it's
+      pinned so the numbers in this lesson stay reproducible.
+  - type: heading
+    text: Step 2 — turning raw metrics into comparable scores
+  - type: text
+    body: >
+      Recency is in days, Frequency is an order count, and Monetary is in dollars — three completely
+      different scales that can't be compared or combined directly. `NTILE(4)` solves that by sorting
+      customers on each metric and splitting them into four equal-sized buckets (quartiles), so every
+      metric ends up scored 1 to 4 regardless of its original units.
+  - type: code
+    language: sql
+    caption: Scoring each metric with NTILE — note the direction of each ORDER BY
+    code: |
+      WITH customer_orders AS (
+        SELECT
+          o.customer_id,
+          MAX(o.order_date) AS last_order_date,
+          COUNT(*) AS frequency,
+          SUM(p.amount) AS monetary
+        FROM orders o
+        JOIN payments p ON p.order_id = o.order_id AND p.status = 'success'
+        WHERE o.status = 'completed'
+        GROUP BY o.customer_id
+      ),
+      rfm_base AS (
+        SELECT
+          customer_id,
+          DATE_DIFF('day', last_order_date, DATE '2026-01-01') AS recency_days,
+          frequency,
+          monetary
+        FROM customer_orders
+      )
+      SELECT
+        customer_id,
+        NTILE(4) OVER (ORDER BY recency_days DESC) AS recency_score,
+        NTILE(4) OVER (ORDER BY frequency ASC)     AS frequency_score,
+        NTILE(4) OVER (ORDER BY monetary ASC)      AS monetary_score
+      FROM rfm_base
+      ORDER BY customer_id
+      LIMIT 5;
+  - type: callout
+    variant: important
+    title: Recency sorts backwards on purpose
+    body: >
+      Frequency and Monetary sort ASC — the customers with the *highest* raw values land in quartile 4
+      (the best score). Recency is the opposite: a *small* recency_days (they ordered very recently) is
+      good, so it has to sort DESC to put the most-recent customers in quartile 4 too. Get this
+      backwards and "high recency score" ends up meaning "hasn't ordered in ages" — exactly
+      backwards from every other score.
+  - type: heading
+    text: Step 3 — combining scores into segments
+  - type: text
+    body: >
+      With all three scores on the same 1-4 scale, a CASE expression can turn combinations of scores
+      into business-meaningful segment names. There's no universally "correct" set of rules here — the
+      thresholds below are one reasonable starting point, tuned to whatever distinctions matter most
+      for the business.
+  - type: code
+    language: sql
+    caption: Segmenting customers from their R/F/M scores
+    code: |
+      WITH customer_orders AS (
+        SELECT
+          o.customer_id,
+          MAX(o.order_date) AS last_order_date,
+          COUNT(*) AS frequency,
+          SUM(p.amount) AS monetary
+        FROM orders o
+        JOIN payments p ON p.order_id = o.order_id AND p.status = 'success'
+        WHERE o.status = 'completed'
+        GROUP BY o.customer_id
+      ),
+      rfm_scores AS (
+        SELECT
+          customer_id,
+          NTILE(4) OVER (ORDER BY DATE_DIFF('day', last_order_date, DATE '2026-01-01') DESC) AS r_score,
+          NTILE(4) OVER (ORDER BY frequency ASC) AS f_score,
+          NTILE(4) OVER (ORDER BY monetary ASC)  AS m_score
+        FROM customer_orders
+      )
+      SELECT
+        CASE
+          WHEN r_score = 4 AND f_score = 4 AND m_score = 4 THEN 'Champions'
+          WHEN r_score = 4 AND f_score >= 3                THEN 'Loyal customers'
+          WHEN r_score = 1 AND f_score >= 3                THEN 'At risk'
+          WHEN r_score = 1 AND f_score <= 2                THEN 'Lost'
+          ELSE 'Needs attention'
+        END AS segment,
+        COUNT(*) AS customers
+      FROM rfm_scores
+      GROUP BY 1
+      ORDER BY customers DESC;
+  - type: output
+    body: |
+      segment          | customers
+      ------------------+-----------
+      Needs attention   |       740
+      Lost              |       224
+      Champions         |       120
+      At risk           |        92
+      Loyal customers   |        85
+  - type: table
+    headers: ["Segment", "Score pattern", "What it means"]
+    rows:
+      - ["Champions", "R=4, F=4, M=4", "Bought recently, often, and big — the top priority to retain"]
+      - ["Loyal customers", "R=4, F≥3", "Recent and frequent, even if spend isn't top-tier yet"]
+      - ["At risk", "R=1, F≥3", "Used to buy often but haven't recently — high-value win-back targets"]
+      - ["Lost", "R=1, F≤2", "Infrequent and inactive — low priority for retention spend"]
+      - ["Needs attention", "everything else", "The broad middle — worth segmenting further before acting"]
+  - type: question
+    prompt: "A customer has recency_score=1, frequency_score=4, monetary_score=4 — they used to order often and spend a lot, but haven't ordered in a long time. Which segment does the CASE logic above assign them, and why does that make business sense?"
+    choices:
+      - "Champions, because their frequency and monetary scores are maxed out"
+      - "At risk, because R=1 with F>=3 matches that rule before falling through to the generic bucket — high past value plus recent inactivity is exactly the win-back target"
+      - "Lost, because any customer who hasn't ordered recently should be deprioritized"
+    correct_index: 1
+    explanation: >
+      The CASE expression checks 'At risk' (R=1 AND F>=3) before it would fall into a catch-all —
+      this customer's frequency_score of 4 satisfies F>=3. Business-wise this is the right call: someone
+      who was clearly a strong past customer but has gone quiet is a much better win-back target than
+      someone who was never frequent or high-spending to begin with (who'd fall under 'Lost' instead).

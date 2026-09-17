@@ -1,0 +1,19 @@
+slug: biz-marketing-roas
+skill: business-metrics
+title: Marketing ROAS
+description: A campaign spent $10,000 and generated $35,000 in attributed revenue. What is the ROAS (return on ad
+  spend)?
+exercise_type: MULTIPLE_CHOICE
+difficulty: INTERMEDIATE
+points: 5
+tags:
+- marketing
+prompt: A campaign spent $10,000 and generated $35,000 in attributed revenue. What is the ROAS (return on ad spend)?
+correct_answer: 3.5x (or 350%)
+explanation: ROAS = attributed revenue / ad spend = 35,000/10,000 = 3.5x -- note this is a REVENUE-based ratio,
+  not a profit-based one; a full profitability read would also need to net out COGS/margin against that revenue.
+choices:
+- 3.5x (or 350%)
+- $25,000
+- 0.29x
+- It cannot be computed without profit margin data

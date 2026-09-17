@@ -1,0 +1,106 @@
+slug: exp-sample-ratio-mismatch-check
+lesson_slug: exp-peeking-multiple-testing-underpowered-srm
+skill: experimentation
+dataset: saas-product
+title: Checking Both Experiments for Sample Ratio Mismatch
+description: Run a chi-square goodness-of-fit test on each experiment's assignment split to check whether it matches the intended 50/50 ratio.
+exercise_type: PYTHON
+difficulty: INTERMEDIATE
+points: 15
+tags: [python, statistics, experimentation, ab-testing, saas, intermediate]
+business_context: >
+  Before trusting any metric comparison from an experiment, a careful analyst checks whether the actual
+  control/treatment split matches the intended ratio closely enough to rule out an assignment or logging
+  bug — this is a mechanical, five-minute check that should happen before any deeper analysis.
+prompt: >
+  For each `experiment_id` in `experiment_assignments`, count how many users were assigned to `control`
+  and how many to `treatment`, then run a chi-square goodness-of-fit test (using
+  `scipy.stats.chisquare`) comparing those two observed counts against an expected 50/50 split. Store
+  your answer in a variable named `result`: a DataFrame with columns `experiment_id`, `control_n`,
+  `treatment_n`, `chi2_stat` (rounded to 4 decimal places), and `p_value` (rounded to 4 decimal places),
+  sorted ascending by `experiment_id`.
+python_datasets: [experiment_assignments]
+python_starter_code: |
+  from scipy import stats
+
+  # experiment_assignments is already loaded as a DataFrame.
+  experiment_assignments["experiment_id"].unique()
+python_solution_code: |
+  import pandas as pd
+  from scipy import stats
+
+  rows = []
+  for exp in sorted(experiment_assignments["experiment_id"].unique()):
+      sub = experiment_assignments[experiment_assignments["experiment_id"] == exp]
+      counts = sub["variant"].value_counts()
+      n_control = int(counts.get("control", 0))
+      n_treatment = int(counts.get("treatment", 0))
+      total = n_control + n_treatment
+      chi2, p_value = stats.chisquare([n_control, n_treatment], f_exp=[total / 2, total / 2])
+      rows.append({
+          "experiment_id": exp,
+          "control_n": n_control,
+          "treatment_n": n_treatment,
+          "chi2_stat": round(float(chi2), 4),
+          "p_value": round(float(p_value), 4),
+      })
+
+  result = pd.DataFrame(rows).sort_values("experiment_id").reset_index(drop=True)
+python_result_variable: result
+python_row_order_matters: true
+python_numeric_tolerance: 0.001
+python_hidden_tests:
+  - name: "checkout_redesign row matches a live recomputation"
+    code: |
+      from scipy import stats
+
+      sub = experiment_assignments[experiment_assignments["experiment_id"] == "checkout_redesign"]
+      counts = sub["variant"].value_counts()
+      n_control, n_treatment = int(counts["control"]), int(counts["treatment"])
+      total = n_control + n_treatment
+      chi2_expected, p_expected = stats.chisquare([n_control, n_treatment], f_exp=[total / 2, total / 2])
+
+      row = result[result["experiment_id"] == "checkout_redesign"].iloc[0]
+      assert int(row["control_n"]) == n_control
+      assert int(row["treatment_n"]) == n_treatment
+      assert abs(float(row["chi2_stat"]) - chi2_expected) < 0.001
+      assert abs(float(row["p_value"]) - p_expected) < 0.001
+  - name: "Neither experiment should show a sample ratio mismatch"
+    code: |
+      assert (result["p_value"] > 0.05).all(), (
+          "Both real experiments in this dataset are cleanly balanced 50/50 splits, so no row should "
+          "show a significant SRM (p_value should be well above 0.05 for both)."
+      )
+hints:
+  - "`series.value_counts()` on the `variant` column of a filtered slice gives you the control and treatment counts for that experiment."
+  - "`scipy.stats.chisquare(observed, f_exp=expected)` takes the observed counts and the expected counts under the null (an even 50/50 split here) and returns `(chi2_statistic, p_value)`."
+solution: |
+  ```python
+  import pandas as pd
+  from scipy import stats
+
+  rows = []
+  for exp in sorted(experiment_assignments["experiment_id"].unique()):
+      sub = experiment_assignments[experiment_assignments["experiment_id"] == exp]
+      counts = sub["variant"].value_counts()
+      n_control = int(counts.get("control", 0))
+      n_treatment = int(counts.get("treatment", 0))
+      total = n_control + n_treatment
+      chi2, p_value = stats.chisquare([n_control, n_treatment], f_exp=[total / 2, total / 2])
+      rows.append({
+          "experiment_id": exp,
+          "control_n": n_control,
+          "treatment_n": n_treatment,
+          "chi2_stat": round(float(chi2), 4),
+          "p_value": round(float(p_value), 4),
+      })
+
+  result = pd.DataFrame(rows).sort_values("experiment_id").reset_index(drop=True)
+  ```
+explanation: >
+  Run on the real data, checkout_redesign comes back exactly 1,000 control / 1,000 treatment, and
+  onboarding_email comes back exactly 500 control / 500 treatment — both give chi2 = 0.0 and p = 1.0,
+  meaning both splits are perfectly consistent with the intended 50/50 ratio. This is a "pass" result:
+  it clears the way to trust the rest of each experiment's analysis. Had either come back with, for
+  example, a p-value well under 0.01, that would be a signal to stop and investigate the assignment or
+  logging pipeline before trusting any conversion-rate comparison from that test.

@@ -1,0 +1,67 @@
+slug: stakeholder-communication
+module_slug: what-a-data-analyst-does
+title: Stakeholder Communication
+description: How to frame analytical findings for non-technical audiences — leading with the recommendation, not the methodology.
+difficulty: BEGINNER
+estimated_minutes: 12
+display_order: 5
+objectives:
+  - Structure a finding so the recommendation comes first and the methodology supports it, not the reverse
+  - Recognize framing that buries the actionable takeaway under technical detail
+prerequisites: [from-business-question-to-decision]
+skills: [communication]
+tags: [foundations, beginner, business-analytics]
+key_takeaways:
+  - Stakeholders remember the headline and the recommendation; methodology belongs in an appendix or is answered only when asked.
+  - An answer-first structure — recommendation, then key evidence, then confidence and caveats — works for a Slack message, a slide, or a five-minute readout.
+  - Caveats and confidence level should be stated, not hidden, but stated briefly rather than as the opening.
+common_mistakes:
+  - Opening a readout with "so I pulled the data and joined the orders table to..." — the room checks out before hearing the answer.
+  - Presenting a finding with no explicit recommendation, forcing the stakeholder to guess what to do about it.
+blocks:
+  - type: heading
+    text: Lead with the answer
+  - type: text
+    body: >
+      The instinct after finishing an analysis is to explain it the way you did it — data source, joins,
+      filters, then finally the number. That order makes sense while you're doing the work. It's the
+      wrong order for presenting it to a business audience, who mainly want to know what to do next.
+  - type: comparison
+    title: Two ways to open the same readout
+    columns: ["Methodology-first (weak)", "Answer-first (strong)"]
+    rows:
+      - ["\"So I pulled last quarter's orders table, joined it to the customer dimension, filtered for active accounts, and grouped by region, and what I found was...\"", "\"Recommend we expand the free-shipping threshold test to the West region — it lifted average order value 6% with no delivery cost regression. Here's the data behind that.\""]
+  - type: heading
+    text: A structure that works almost everywhere
+  - type: checklist
+    title: Answer-first structure
+    items:
+      - Headline recommendation, stated in one sentence, first
+      - Two or three numbers that support it — not every number you looked at
+      - Confidence and caveats, stated briefly, not hidden
+      - Methodology available on request, not delivered proactively
+  - type: example
+    title: A 90-second readout
+    body: >
+      "Recommend we raise the free-shipping threshold from $35 to $50 for the West region. The test
+      group saw a 6% lift in average order value with no measurable increase in cart abandonment.
+      Confidence is moderate — this is one region and three weeks of data, so it's worth a second
+      region before rolling out nationally. Happy to walk through the test design if useful."
+  - type: callout
+    variant: tip
+    title: Match methodology depth to the room
+    body: >
+      A VP wants the headline and the ask. A fellow analyst reviewing your work wants the join logic and
+      sample size. Same finding, different depth — read the room before deciding how much method to
+      show up front.
+  - type: question
+    prompt: A stakeholder skims your message and replies "so what should we do?" What does that reaction usually mean?
+    choices:
+      - They didn't read carefully enough — the recommendation was already in there
+      - The recommendation wasn't stated clearly and up front, so it got lost in the methodology and numbers
+      - The finding wasn't strong enough to act on
+    correct_index: 1
+    explanation: >
+      If a reader has to ask "so what should we do," the message likely led with process or data instead
+      of the recommendation. The fix is structure — put the recommendation first — not necessarily more
+      analysis.

@@ -1,0 +1,25 @@
+slug: dm-ex-fk-unknown-table
+lesson_slug: dm-validator-findings-explained
+skill: data-modeling
+title: "What foreign_key_unknown_table Means"
+description: Distinguishing foreign_key_unknown_table from dangling_relationship — two different checks that can sound similar.
+exercise_type: MULTIPLE_CHOICE
+difficulty: INTERMEDIATE
+points: 10
+tags: [validation, relationships, data-modeling]
+prompt: >
+  fct_orders.customer_id is marked is_foreign_key with references_table set to "Customers" (capitalized), but
+  the actual table in the model is named "dim_customers". What finding does Validate return?
+choices:
+  - "foreign_key_unknown_table, because \"Customers\" doesn't match any table name in the model — matching is case-insensitive, but \"Customers\" is still a different name from \"dim_customers\", not just a different case of the same name"
+  - "No finding — table name matching ignores everything except the first letter"
+  - "dangling_relationship, because the referenced table used to exist but was renamed"
+correct_answer: "foreign_key_unknown_table, because \"Customers\" doesn't match any table name in the model — matching is case-insensitive, but \"Customers\" is still a different name from \"dim_customers\", not just a different case of the same name"
+hints:
+  - "foreign_key_unknown_table looks at the text in references_table; dangling_relationship looks at a drawn relationship edge's stored table ID. Which one is actually involved here?"
+explanation: >
+  foreign_key_unknown_table fires when references_table doesn't match any real table name in the model
+  (comparison is case-insensitive, but "Customers" is still simply a different string from "dim_customers," not
+  a differently-cased version of it). dangling_relationship is a different check entirely — it's about a
+  relationship edge's stored from/to table ID pointing at a table that no longer exists, not about a column's
+  references_table text.

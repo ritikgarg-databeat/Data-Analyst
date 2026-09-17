@@ -1,0 +1,90 @@
+slug: dw-serving-the-warehouse
+module_slug: analytical-layers-and-serving
+title: "The Last Mile: Serving Marts to BI Tools and Analysts"
+description: How a warehouse's marts actually reach the people and tools that use them — direct SQL, BI extracts, and a semantic layer — and what can still go wrong even after the modeling is done right.
+difficulty: INTERMEDIATE
+estimated_minutes: 35
+display_order: 1
+objectives:
+  - Describe at least two common ways a mart's data reaches its end consumers (direct query access, BI-tool extracts/imports, a semantic layer).
+  - Explain why the same underlying mart can produce inconsistent-looking numbers across different BI tools if metric definitions aren't centralized.
+  - Connect this project's own consumption paths (SQL Lab, the Data Modeler, dbt docs/lineage) to the general serving-layer concepts in this lesson.
+skills: [data-warehousing, dbt, data-lineage]
+datasets: [ecommerce]
+tags: [data-warehouse, architecture, lineage, dbt, intermediate]
+prerequisites: [dw-data-marts]
+key_takeaways:
+  - "A warehouse's marts don't automatically reach the people who need them — they're consumed through some serving mechanism: direct SQL access for analysts, a BI tool's own connection (querying live or importing an extract), or a semantic/metrics layer that defines business metrics once and serves them consistently to multiple downstream tools."
+  - "The same correctly-modeled mart can still produce inconsistent numbers across two BI tools if each tool's dashboard independently re-defines a metric (like \"revenue\") slightly differently — one filtering to completed orders, another not — which is exactly the problem a semantic layer (or a single, shared, well-documented mart) is meant to prevent."
+  - "This project itself has multiple real serving paths on top of the same marts: an analyst can query fct_orders/dim_customers/dim_products directly (the SQL Lab / exercises in this platform), or explore the model's structure and lineage through dbt's generated docs — both are consuming the exact same underlying, single source of truth rather than each maintaining a separate copy of the logic."
+common_mistakes:
+  - "Assuming the analytical work is finished once a mart is correctly modeled and tested. A perfectly modeled fct_orders still needs to actually reach a dashboard, a BI tool, or an analyst's query — and how it gets there (which serving mechanism, whether metric definitions are centralized) determines whether different consumers see the same answer to the same question."
+  - "Letting each BI dashboard define its own version of a shared metric (like \"active customer\" or \"completed revenue\") instead of pulling from one shared, documented definition. Two dashboards built independently against the same fct_orders table can silently disagree about something as basic as \"total revenue\" if one filters status = 'completed' and the other doesn't — a modeling problem hiding as what looks like a serving-layer bug."
+blocks:
+  - type: heading
+    text: "Modeled correctly isn't the same as reaching anyone"
+  - type: text
+    body: >
+      Everything earlier in this domain — staging, marts, star schemas, grain, SCDs — gets data into a
+      correct, well-structured shape. None of it, on its own, puts that data in front of a
+      stakeholder. The **serving layer** is how a warehouse's marts actually reach the people and
+      tools that need them, and it's worth treating as its own design problem, because a modeling
+      mistake and a serving mistake can look identical from a dashboard ("the number's wrong") while
+      needing completely different fixes.
+  - type: table
+    headers: ["Serving mechanism", "How it works", "Tradeoff"]
+    rows:
+      - ["Direct query access", "An analyst (or tool) runs SQL straight against the warehouse's marts", "Maximum flexibility; requires SQL skill and warehouse knowledge per person"]
+      - ["BI tool, live connection", "A dashboard tool (Looker, Tableau, Power BI, Metabase, ...) queries the warehouse on demand", "Always current; adds query load to the warehouse per dashboard view"]
+      - ["BI tool, extract/import", "The BI tool periodically pulls a copy of the data into its own storage", "Fast, isolated dashboards; data can go stale between refreshes"]
+      - ["Semantic / metrics layer", "Business metrics (\"revenue,\" \"active customer\") are defined once, centrally, and served consistently to every downstream tool", "Prevents definition drift across tools; adds a layer to build and maintain"]
+  - type: example
+    title: "Two paths onto the same marts, in this project"
+    body: >
+      This platform itself demonstrates two of these paths on top of the exact same underlying
+      `marts` schema. An analyst can query `fct_orders`, `dim_customers`, and `dim_products` directly
+      with SQL — the direct-access path, exactly like a business analyst querying a warehouse from
+      their own BI tool. Separately, dbt's generated documentation exposes the same models' structure
+      and lineage graph — which model depends on which — so a new team member can see how
+      `fct_orders` was actually built (from `stg_orders`, `int_order_items_priced`, and
+      `int_order_payments`) without reading every line of SQL. Both paths consume the same single
+      source of truth; neither maintains a separate copy of the transformation logic.
+  - type: callout
+    variant: warning
+    title: "Two dashboards, same table, different \"revenue\""
+    body: >
+      Suppose one dashboard sums `fct_orders.gross_revenue` with no status filter, and a second
+      dashboard sums it filtered to `status = 'completed'` — both querying the exact same,
+      correctly-built `fct_orders` table. They will report two different "total revenue" numbers,
+      and neither is obviously wrong from the SQL alone; they're answering subtly different
+      questions. This is precisely the failure mode a semantic layer (or, at smaller scale, a single
+      well-documented mart with an agreed, published definition of "revenue") is meant to prevent —
+      by defining the metric once, centrally, so every tool serving it inherits the same definition
+      instead of each dashboard builder deciding independently.
+  - type: heading
+    text: Lineage matters most exactly when serving goes wrong
+  - type: text
+    body: >
+      When a stakeholder reports "this number looks wrong," being able to trace it — from the
+      dashboard, back through whichever serving mechanism produced it, back through the mart, back
+      through staging, to the raw source — is what actually lets you find where the discrepancy lives.
+      That traceability is called **lineage**, and it's the direct payoff of the layered architecture
+      this whole domain has been building toward: a wrong number in `fct_daily_revenue` can be traced
+      to `fct_orders`, then to `stg_orders` or `int_order_items_priced`, then to the raw CSV — a
+      concrete path to walk, rather than a black box.
+  - type: question
+    prompt: >
+      Two BI dashboards built against the exact same, correctly-modeled fct_orders table show
+      different "total revenue" numbers. What is the most likely explanation, and what's the right
+      fix?
+    choices:
+      - "fct_orders itself must be broken, since a correctly-modeled fact table can only ever produce one number"
+      - "The two dashboards likely apply different filtering logic (e.g., one includes non-completed orders and the other doesn't) when independently defining \"revenue\" — the fix is to centralize that metric's definition once (a semantic layer, or a documented, agreed definition) rather than debug the fact table itself"
+      - "This is expected and not worth investigating, since every dashboard is entitled to its own definition of revenue"
+    correct_index: 1
+    explanation: >
+      A correctly-modeled fact table can still produce different-looking numbers if different
+      consumers apply different, undocumented filtering or aggregation logic on top of it — that's a
+      serving/definition problem, not a modeling problem, and the right fix is centralizing the
+      metric's definition (a semantic layer, or at minimum a shared, published definition) so every
+      tool inherits the same answer instead of each one silently deciding for itself.

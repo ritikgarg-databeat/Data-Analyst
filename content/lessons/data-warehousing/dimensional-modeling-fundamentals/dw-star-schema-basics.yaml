@@ -1,0 +1,101 @@
+slug: dw-star-schema-basics
+module_slug: dimensional-modeling-fundamentals
+title: "Star Schemas: Modeling for Question-Answering"
+description: What a star schema is, why dimensional models trade storage efficiency for query simplicity, and how the marts schema in this project's dbt build is a real, working star schema.
+difficulty: INTERMEDIATE
+estimated_minutes: 40
+display_order: 1
+objectives:
+  - Describe the shape of a star schema — one or more fact tables surrounded by dimension tables — and why it's named that.
+  - Contrast dimensional modeling's goal (fast, intuitive question-answering) with normalization's goal (minimizing write-time duplication).
+  - Identify the star schema formed by fct_orders, dim_customers, and dim_products in the real dbt project.
+skills: [data-warehousing, dimensional-modeling, data-modeling]
+datasets: [ecommerce]
+tags: [star-schema, data-modeling, fact-table, dimension-table, intermediate]
+prerequisites: [dw-raw-staging-marts]
+key_takeaways:
+  - "A star schema is one (or a few) fact table(s) at the center, joined directly to several dimension tables around it — drawn out, the joins radiate from the fact table like points of a star, which is where the name comes from."
+  - "Dimensional modeling optimizes for a different goal than normalization does: normalization (common in OLTP schema design) minimizes data duplication to protect write integrity; dimensional modeling deliberately accepts some duplication in dimensions to minimize the number of joins an analytical question needs, and to make the model intuitive to a human asking a business question."
+  - "fct_orders, dim_customers, and dim_products in this project's dbt build form a real star schema: fct_orders is the fact table (one row per order, with measures like gross_revenue and gross_margin), and dim_customers/dim_products are its dimensions — each joined to fct_orders by a single foreign key (customer_id, product_id isn't directly on fct_orders, but item_count/revenue are aggregated up to the order grain from products via order_items)."
+common_mistakes:
+  - "Assuming a star schema must be fully normalized like an OLTP schema, with every attribute broken out into its own table. Dimensional modeling deliberately denormalizes within a dimension — dim_products already carries category_name and parent_category directly on it, rather than requiring a separate join to a categories table for every query, because minimizing joins is the point."
+  - "Trying to model every possible business question in a single star schema. A star schema is usually built around one specific grain and one specific set of related questions (like \"analysis at the order level\") — a genuinely different grain or business process (like daily revenue trends) reasonably gets its own fact table, as fct_daily_revenue shows."
+blocks:
+  - type: heading
+    text: "One fact, several dimensions, radiating out"
+  - type: text
+    body: >
+      A **star schema** puts one fact table at the center and joins it directly to several
+      **dimension** tables, each connected by a single foreign key. Drawn as a diagram, the fact
+      table sits in the middle with lines running out to each dimension — visually, a star. This
+      shape isn't an accident of convenience: it's designed so that a typical analytical question
+      ("total gross revenue by customer segment, for web orders only") can be answered with the fact
+      table joined to exactly the dimensions it needs, with no chains of intermediate joins to
+      traverse.
+  - type: example
+    title: "The star schema already sitting in this project's marts"
+    body: >
+      `dbt/models/marts/marts.yml` documents exactly this shape. `fct_orders` is the fact table:
+      grain "1 row = 1 order," carrying measures like `gross_revenue`, `gross_margin`, and
+      `amount_paid`. `dim_customers` (grain: 1 row = 1 customer) and `dim_products` (grain: 1 row = 1
+      product) are dimensions — `fct_orders.customer_id` is a foreign key straight to
+      `dim_customers.customer_id`. To answer "total revenue by customer country," you join
+      `fct_orders` to `dim_customers` once, group by `country`, and sum `gross_revenue` — one join,
+      no chained lookups through an intermediate table, because the model was built for exactly this
+      kind of question.
+  - type: code
+    language: sql
+    code: |
+      -- One join, straight from the fact table to the dimension it needs — the point of a star schema
+      select
+          c.country,
+          sum(f.gross_revenue) as total_revenue
+      from fct_orders as f
+      left join dim_customers as c
+          on f.customer_id = c.customer_id
+      where f.status = 'completed'
+      group by c.country
+      order by total_revenue desc;
+    caption: "A star schema's payoff: a business question becomes one join and one group by, not a multi-table hunt."
+  - type: heading
+    text: Dimensional modeling optimizes for a different goal than normalization
+  - type: text
+    body: >
+      A fully normalized schema (the kind you'd design for an OLTP system) minimizes data duplication
+      by breaking every repeating attribute into its own table, connected by keys — this protects
+      write integrity (update a customer's country once, everywhere sees the update) at the cost of
+      more joins to reassemble a full picture. Dimensional modeling explicitly trades some of that
+      duplication back for simplicity: `dim_products` already carries `category_name` and
+      `parent_category` directly, rather than forcing every query to separately join a `categories`
+      table. The tradeoff makes sense because a warehouse's dimension tables are rebuilt from clean
+      source data on a schedule, not hand-edited row by row the way an OLTP table is — the
+      write-integrity problem normalization solves mostly doesn't apply here.
+  - type: table
+    headers: ["Goal", "Normalized (OLTP-style) schema", "Dimensional (star schema)"]
+    rows:
+      - ["Primary objective", "Minimize duplication, protect write integrity", "Minimize joins, make ad-hoc questions fast and intuitive"]
+      - ["Typical shape", "Many small, linked tables (3NF or higher)", "One or a few fact tables, denormalized dimensions around them"]
+      - ["Who queries it", "The application, mostly single-row lookups/writes", "Analysts and BI tools, mostly aggregate reads"]
+      - ["Example in this project", "A hypothetical fully-normalized products/categories/subcategories chain", "dim_products, already carrying category_name and parent_category directly"]
+  - type: callout
+    variant: tip
+    title: "You'll build one of these yourself in the Data Modeler"
+    body: >
+      This platform's Data Modeler tool lets you visually lay out a fact table with its dimensions —
+      naming tables, columns, marking primary/foreign keys, classifying each table as fact or
+      dimension, and declaring the fact table's grain — and it validates common mistakes (like a fact
+      table with no declared grain, or a dimension missing a primary key) as you go. The next module
+      goes deeper on the two building blocks (facts and dimensions) you'll be placing on that canvas.
+  - type: question
+    prompt: "Why does a star schema typically denormalize its dimension tables, instead of normalizing them the way an OLTP schema would?"
+    choices:
+      - "Because denormalization is always objectively better than normalization in every context"
+      - "Because dimensional modeling optimizes for minimizing joins and making ad-hoc analytical questions fast and intuitive, and dimension tables are rebuilt from a pipeline rather than hand-edited, so normalization's write-integrity benefit mostly doesn't apply"
+      - "Because normalized tables can't be joined to fact tables at all"
+    correct_index: 1
+    explanation: >
+      Normalization exists to protect write integrity in systems where individual rows get updated
+      directly — the exact problem dimensional models don't have, since dimension tables like
+      dim_products are rebuilt wholesale from clean staging data on a schedule. With that concern
+      mostly absent, accepting some duplication (category_name living directly on dim_products) is a
+      good trade for the real payoff: fewer joins, faster and more intuitive analytical queries.

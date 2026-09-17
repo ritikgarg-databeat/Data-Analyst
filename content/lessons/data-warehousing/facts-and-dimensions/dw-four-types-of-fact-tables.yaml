@@ -1,0 +1,109 @@
+slug: dw-four-types-of-fact-tables
+module_slug: facts-and-dimensions
+title: "The Four Types of Fact Tables"
+description: Transaction, periodic snapshot, accumulating snapshot, and factless fact tables — what distinguishes each, and real or realistic ecommerce examples of every type.
+difficulty: INTERMEDIATE
+estimated_minutes: 40
+display_order: 2
+objectives:
+  - Distinguish transaction, periodic snapshot, accumulating snapshot, and factless fact tables by when and how their rows get created or updated.
+  - Identify fct_orders as a transaction fact and fct_daily_revenue as a periodic snapshot fact, using their actual dbt materialization configs as evidence.
+  - Design (in prose) an accumulating snapshot and a factless fact table for the ecommerce dataset, even though neither exists in the current dbt build.
+skills: [data-warehousing, dimensional-modeling, dbt]
+datasets: [ecommerce]
+tags: [fact-table, star-schema, incremental, data-modeling, intermediate]
+prerequisites: [dw-facts-and-dimensions-basics]
+key_takeaways:
+  - "Transaction fact: one row per business event, created once and essentially never updated afterward. fct_orders is a real, working example — one row per order, inserted when the order happens, at the grain \"1 row = 1 order.\""
+  - "Periodic snapshot fact: one row per fixed time interval (a day, a week, a month), summarizing activity as of that period — a new row appears each period, and old rows generally don't change. fct_daily_revenue is a real, working example — one row per calendar day, built incrementally so each run only computes new days rather than re-deriving all history."
+  - "Accumulating snapshot fact and factless fact don't currently exist in this project's build, but are realistic and useful for the ecommerce dataset: an accumulating snapshot could track an order's lifecycle (placed → paid → shipped date columns, updated in place as each milestone happens); a factless fact could record every marketing touch a session represents, with no numeric measure at all — the row's mere existence is the fact."
+common_mistakes:
+  - "Assuming every fact table is a transaction fact by default. fct_daily_revenue is not a transaction fact — no single \"daily revenue event\" happens in the source data; the table is derived by aggregating many transaction-fact rows (fct_orders) up to a fixed grain (one row per day), which is what makes it a periodic snapshot instead."
+  - "Confusing a periodic snapshot fact with a dimension table that changes over time (an SCD, covered in the next module). A periodic snapshot's *new rows* appear because time passed and a fixed-grain summary was recomputed for the new period (fct_daily_revenue gains a March 15 row on March 15) — it's not tracking a changing attribute of one entity the way an SCD does."
+blocks:
+  - type: heading
+    text: Four shapes, one purpose each
+  - type: text
+    body: >
+      Fact tables aren't all built the same way — the four classic types differ in when rows appear
+      and whether they change afterward. Knowing which type you're looking at (or need to build)
+      tells you how to query it correctly and what "up to date" even means for it.
+  - type: table
+    headers: ["Type", "When a row is created", "Does a row change afterward?", "Example (real or realistic, ecommerce)"]
+    rows:
+      - ["Transaction fact", "Once, when the event happens", "Essentially never", "fct_orders — 1 row per order, at the moment it's placed"]
+      - ["Periodic snapshot fact", "Once per fixed time interval (day/week/month)", "Rarely — a new row per period, old ones stay put", "fct_daily_revenue — 1 row per calendar day"]
+      - ["Accumulating snapshot fact", "Once, when a multi-step process begins", "Yes — updated in place as milestones complete", "A hypothetical order-fulfillment fact: order_date, paid_date, shipped_date, delivered_date"]
+      - ["Factless fact", "Once per occurrence of an event with no numeric measure", "Essentially never", "A hypothetical fact recording every session-to-campaign touch, with no measure column at all"]
+  - type: example
+    title: "fct_orders: a real transaction fact"
+    body: >
+      `fct_orders.sql`'s own header comment states it plainly: "Transaction fact: 1 row = 1 order, at
+      the grain of the order itself. One row is created the moment an order exists; it is not
+      re-created per event." The `marts.yml` description echoes this: rows "are created once, when
+      the order is placed, and are not re-derived per time period (contrast with fct_daily_revenue,
+      a periodic snapshot fact)." Once an order's row exists, later payments or status changes get
+      reflected by re-running the model against updated staging data (in this project's simple batch
+      rebuild) rather than the fact table tracking a *history* of status changes itself — that kind
+      of change-tracking is what dimensions and snapshots are for, covered next module.
+  - type: example
+    title: "fct_daily_revenue: a real periodic snapshot fact"
+    body: >
+      `fct_daily_revenue.sql`'s grain is "1 row = 1 calendar day," aggregating `fct_orders` (filtered
+      to `status = 'completed'`) by `order_date`. It's built `materialized='incremental'` with
+      `unique_key='order_date'` — a new day's row gets added as that day accumulates completed
+      orders, and the model's `is_incremental()` block specifically only recomputes days at or after
+      the current max `order_date` already in the table, instead of rescanning all history every run.
+      That's the periodic-snapshot pattern in its most literal form: a fixed grain (one calendar day),
+      recomputed incrementally as new periods occur.
+  - type: code
+    language: sql
+    code: |
+      -- dbt/models/marts/fct_daily_revenue.sql (abridged)
+      {{ config(materialized='incremental', unique_key='order_date', on_schema_change='fail') }}
+
+      select o.order_date, sum(o.gross_revenue) as total_gross_revenue
+      from {{ ref('fct_orders') }} as o
+      where o.status = 'completed'
+      {% if is_incremental() %}
+        and o.order_date >= (select coalesce(max(order_date), '1900-01-01') from {{ this }})
+      {% endif %}
+      group by o.order_date
+    caption: "A periodic snapshot fact, built incrementally: each run only computes days not already captured, rather than re-deriving all of history."
+  - type: heading
+    text: "The two types not (yet) in this project"
+  - type: text
+    body: >
+      An **accumulating snapshot fact** tracks a single, multi-step business process with one row per
+      instance of that process, updating the row in place as milestones complete — a classic example
+      is order fulfillment: one row per order with columns like `order_date`, `paid_date`,
+      `shipped_date`, `delivered_date`, each filled in (or left null) as that stage happens. Unlike a
+      transaction fact, this row *is* expected to be updated after creation. A **factless fact**
+      records that an event occurred, with no numeric measure at all — its "fact" is the combination
+      of foreign keys itself. For this dataset, a factless fact could log every marketing-attributed
+      session (`session_id`, `customer_id`, `marketing_campaign_id`, `landing_page`) purely to answer
+      "did this touch happen," with counting (`COUNT(*)`) standing in for a measure that was never
+      needed.
+  - type: callout
+    variant: tip
+    title: "You'll classify fact tables like this in the Data Modeler"
+    body: >
+      When you build a star schema in this platform's Data Modeler, classifying a table as a fact
+      requires declaring its grain — and recognizing which of these four shapes you're building
+      changes what "grain" even means for it (a fixed calendar grain for a periodic snapshot vs. a
+      per-event grain for a transaction fact).
+  - type: question
+    prompt: >
+      Why is fct_daily_revenue classified as a periodic snapshot fact rather than a transaction fact,
+      even though it's built from transaction-fact data (fct_orders)?
+    choices:
+      - "Because it has fewer columns than fct_orders"
+      - "Because its grain is a fixed calendar interval (1 row = 1 day) recomputed incrementally as new periods occur, rather than 1 row per individual business event — no single \"daily revenue\" event exists in the source data the way an individual order does"
+      - "Because it's materialized as a table instead of a view"
+    correct_index: 1
+    explanation: >
+      The type of a fact table is about its grain and how rows get created, not its materialization
+      config or column count. fct_daily_revenue's grain is a fixed time period (a calendar day), and a
+      new row appears because a period elapsed and got summarized — the defining signature of a
+      periodic snapshot fact, regardless of the fact that its source data (fct_orders) happens to be
+      a transaction fact.

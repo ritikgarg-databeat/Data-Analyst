@@ -1,0 +1,75 @@
+slug: customers-who-stopped-ordering
+lesson_slug: common-sql-interview-patterns
+skill: interview-sql
+dataset: ecommerce
+title: Find Customers Who Stopped Ordering
+description: Write a query that flags customers who ordered in an early period but placed zero orders in a recent period — a classic "did X but not Y" churn interview pattern.
+exercise_type: SQL
+difficulty: ADVANCED
+points: 30
+tags: [sql, interview, subqueries]
+business_context: >
+  "Customers who did X but not Y" is a classic interview question because it tests whether a candidate
+  can correctly express negation across two different sets of rows without accidentally excluding or
+  including the wrong customers. Here, the lifecycle marketing team wants a win-back list: customers who
+  were clearly active once but have gone quiet recently, so they can be targeted with a re-engagement
+  campaign before they're lost for good.
+prompt: >
+  Using the `orders` and `customers` tables, define an "early period" as orders with `order_date`
+  between `2024-01-01` and `2024-12-31` (inclusive) and a "recent period" as orders with `order_date`
+  between `2025-07-01` and `2025-12-31` (inclusive). Write a query that finds every customer who placed
+  at least one order (any status) in the early period but placed zero orders (any status) in the recent
+  period. Return columns `customer_id`, `first_name`, and `last_name`. Row order does not matter.
+sql_tables: [orders, customers]
+sql_starter_query: |
+  -- Explore the orders table first
+  SELECT * FROM orders LIMIT 20;
+sql_solution_query: |
+  SELECT c.customer_id, c.first_name, c.last_name
+  FROM customers c
+  WHERE c.customer_id IN (
+      SELECT customer_id FROM orders WHERE order_date BETWEEN '2024-01-01' AND '2024-12-31'
+  )
+  AND c.customer_id NOT IN (
+      SELECT customer_id FROM orders WHERE order_date BETWEEN '2025-07-01' AND '2025-12-31'
+  );
+sql_row_order_matters: false
+sql_numeric_tolerance: 0.01
+sql_hidden_tests:
+  - name: "A flagged customer's name is correct"
+    query: |
+      SELECT customer_id, last_name
+      FROM customers
+      WHERE customer_id IN (
+          SELECT customer_id FROM orders WHERE order_date BETWEEN '2024-01-01' AND '2024-12-31'
+      )
+      AND customer_id NOT IN (
+          SELECT customer_id FROM orders WHERE order_date BETWEEN '2025-07-01' AND '2025-12-31'
+      )
+      ORDER BY customer_id
+      LIMIT 1
+    key_columns: 1
+hints:
+  - "'Did X but not Y' is a set-membership problem: the customers you want are in the set of early-period order-placers AND simultaneously NOT in the set of recent-period order-placers. Build each side as its own subquery first."
+  - "SELECT DISTINCT customer_id FROM orders WHERE order_date BETWEEN '2024-01-01' AND '2024-12-31' gives you the early-period set. Filter customers to `customer_id IN (that set)` and `customer_id NOT IN (the equivalent recent-period set)` — an INNER JOIN plus a LEFT JOIN ... WHERE IS NULL works too, but IN / NOT IN keeps the two conditions easy to read side by side."
+solution: >
+  ```sql
+  SELECT c.customer_id, c.first_name, c.last_name
+  FROM customers c
+  WHERE c.customer_id IN (
+      SELECT customer_id FROM orders WHERE order_date BETWEEN '2024-01-01' AND '2024-12-31'
+  )
+  AND c.customer_id NOT IN (
+      SELECT customer_id FROM orders WHERE order_date BETWEEN '2025-07-01' AND '2025-12-31'
+  );
+  ```
+explanation: >
+  A strong answer expresses each period as its own independent subquery on customer_id, rather than
+  trying to force both conditions into a single join or a single WHERE clause on order_date, which
+  cannot represent "existed in one date range and was absent from another" at the same time. Using any
+  order status (not just completed) in both subqueries matters here too — a customer who only placed a
+  cancelled order in the recent period still counted as active, showing purchase intent, so they should
+  not be flagged as having stopped ordering. A common mistake is filtering the whole query to a single
+  order_date range or a single status, which collapses the two independent conditions into one and either
+  produces every customer (if the NOT IN condition is dropped or misapplied) or an empty/near-empty result
+  (if both conditions are accidentally combined into a single impossible date range).

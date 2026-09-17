@@ -1,0 +1,42 @@
+slug: bayes-base-rate-fraud-alert
+lesson_slug: prob-bayes-theorem
+skill: statistical-reasoning
+title: "Should a Flagged Order Be Auto-Rejected? A Base Rate Question"
+description: Use Bayes' theorem on a realistic fraud-model scenario to decide whether auto-rejecting flagged orders is defensible.
+exercise_type: DATA_INTERPRETATION
+difficulty: INTERMEDIATE
+points: 15
+tags: [statistics, intermediate, interview]
+prompt: >
+  A fraud-detection model catches 92% of truly fraudulent orders (sensitivity) and incorrectly flags
+  6% of legitimate orders (false-positive rate). Only 0.8% of all orders are genuinely fraudulent.
+  The fraud team proposes auto-rejecting every flagged order to "stop fraud immediately." Using
+  Bayes' theorem, compute the probability that a flagged order is actually fraudulent, and use that
+  number to evaluate the auto-reject proposal. What would you recommend instead, and why?
+hints:
+  - "Start from P(fraud), then find P(flagged) by adding up true positives and false positives as fractions of all orders, before computing P(fraud | flagged)."
+  - "Compare the absolute count of false positives (from the huge pool of legitimate orders) to the absolute count of true positives (from the tiny pool of fraudulent orders) — that comparison is the whole story here."
+solution: >
+  P(fraud) = 0.008, P(flagged | fraud) = 0.92, P(flagged | not fraud) = 0.06, P(not fraud) = 0.992.
+  P(flagged) = 0.92 x 0.008 + 0.06 x 0.992 = 0.00736 + 0.05952 = 0.06688.
+  P(fraud | flagged) = 0.00736 / 0.06688 ≈ 0.110, or about 11%.
+  Despite the model sounding accurate on both headline metrics (92% catch rate, only 6% false-positive
+  rate), only about 11% of flagged orders are genuinely fraudulent — roughly 89% of flags are false
+  alarms. This happens because legitimate orders vastly outnumber fraudulent ones (992 vs. 8 per
+  1,000), so even a "small" 6% false-positive rate applied to that huge legitimate pool produces far
+  more false alarms in absolute count than the true catches from the tiny fraud pool.
+  The auto-reject proposal is not defensible as stated: it would incorrectly block roughly 9 out of
+  every 10 flagged orders, all of which are legitimate customers being denied a purchase — a serious
+  customer-experience and revenue cost, not just a false-positive statistic. The better recommendation
+  is to route flagged orders to a fast human (or secondary automated) review step rather than an
+  automatic rejection, using the model to narrow down which ~6.7% of orders deserve a second look
+  rather than to make the final call unassisted. If the business specifically wants to reduce manual
+  review volume, the model's threshold could be tuned to trade off catch rate against false-positive
+  rate, but that tradeoff should be made deliberately, with the base-rate math in view — not by
+  auto-rejecting on the current threshold.
+explanation: >
+  A strong answer computes P(fraud | flagged) correctly with Bayes' theorem, explains *why* the base
+  rate causes the surprising result (in terms of absolute counts of true vs. false positives, not
+  just abstract percentages), and turns that into a concrete process recommendation (review queue,
+  not auto-reject) rather than stopping at the number itself. A weaker answer computes the number but
+  doesn't connect it back to what the business should actually do differently.

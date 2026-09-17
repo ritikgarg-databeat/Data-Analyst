@@ -1,0 +1,165 @@
+slug: conditional-columns
+module_slug: pandas-transformation
+title: Conditional Columns
+description: "np.where() for a 2-branch conditional column, pd.cut() for bucketing a numeric column into labeled tiers, and np.select() for 3+ branch conditions — one of the most common real analyst patterns."
+difficulty: INTERMEDIATE
+estimated_minutes: 13
+display_order: 6
+objectives:
+  - "Build a 2-branch conditional column with np.where()"
+  - "Bucket a numeric column into labeled tiers with pd.cut()"
+  - "Handle 3+ branch conditional logic cleanly with np.select()"
+prerequisites: [sort]
+skills: [pandas]
+datasets: [ecommerce]
+tags: [python, intermediate, real-world]
+key_takeaways:
+  - "np.where(condition, value_if_true, value_if_false) builds a new column in one vectorized call — it's the go-to for any 'if this, then A, else B' column, and it's dramatically faster than the equivalent .apply() for large data."
+  - "pd.cut(column, bins=[...], labels=[...]) turns a continuous numeric column into a labeled categorical one by slicing it into ranges — the standard tool for tiers like customer value segments or price bands."
+  - "np.select(conditions_list, choices_list, default=...) is np.where() generalized to 3 or more branches: a list of conditions checked top to bottom, a matching list of results, and a fallback for anything that matches none of them."
+  - "All three of these are vectorized — no Python-level loop, no .apply() — which is exactly why they're the preferred pattern for conditional columns once the logic can be expressed as a set of conditions rather than genuinely custom code."
+common_mistakes:
+  - "Reaching for .apply() with an if/elif/else function when np.select() expresses the identical logic more directly and runs faster — this is the most common apply()-avoidable pattern in real analyst code."
+  - "Forgetting pd.cut()'s bins are edges, not counts — bins=[0, 100, 300, 500] creates two ranges, (0, 100] and (100, 300] and (300, 500], not three arbitrary groups of your choosing; getting the boundary count right (one more edge than the number of buckets) trips people up."
+  - "Listing np.select() conditions in an order where a later, more specific condition can never be reached because an earlier, broader one already matches every row that would satisfy it — conditions are checked top to bottom and the FIRST match wins."
+blocks:
+  - type: text
+    body: >
+      "If this row meets some condition, set the new column to A, otherwise B" — and its bigger sibling,
+      "if condition 1, A; if condition 2, B; otherwise C" — are two of the most common patterns in real
+      analyst code. NumPy's `where()` and `select()`, plus pandas' `cut()`, cover almost every version of
+      this you'll run into, without ever falling back to `.apply()`.
+  - type: heading
+    text: "np.where() — a two-branch conditional column"
+  - type: code
+    language: python
+    code: |
+      import pandas as pd
+      import numpy as np
+
+      products = pd.read_csv("data/sample/ecommerce/products.csv")
+      products["margin"] = products["unit_price"] - products["cost"]
+
+      products["margin_flag"] = np.where(products["margin"] > 150, "high", "low")
+      print(products[["product_name", "margin", "margin_flag"]].head(5))
+      print()
+      print(products["margin_flag"].value_counts())
+    caption: "np.where(condition, value_if_true, value_if_false) — one condition, two possible outcomes"
+  - type: output
+    body: |
+                  product_name  margin margin_flag
+                  0         Pro Desk Lamp  141.02         low
+                  1       Compact Blender  191.76        high
+                  2    Essential Backpack  158.74        high
+                  3    Compact Board Game   95.69         low
+                  4  Compact Water Bottle  223.30        high
+
+                  margin_flag
+                  low     107
+                  high     43
+                  Name: count, dtype: int64
+  - type: heading
+    text: "pd.cut() — bucketing a numeric column into labeled tiers"
+  - type: code
+    language: python
+    code: |
+      products["price_tier"] = pd.cut(
+          products["unit_price"],
+          bins=[0, 100, 300, 500],
+          labels=["Low", "Mid", "High"],
+      )
+      print(products[["product_name", "unit_price", "price_tier"]].head(5))
+      print()
+      print(products["price_tier"].value_counts())
+    caption: "bins are the boundaries (0, 100, 300, 500 → three ranges); labels names each resulting bucket"
+  - type: output
+    body: |
+                  product_name  unit_price price_tier
+                  0         Pro Desk Lamp      321.10       High
+                  1       Compact Blender      332.83       High
+                  2    Essential Backpack      341.27       High
+                  3    Compact Board Game      273.69        Mid
+                  4  Compact Water Bottle      415.34       High
+
+                  price_tier
+                  Mid     69
+                  High    53
+                  Low     28
+                  Name: count, dtype: int64
+  - type: callout
+    variant: important
+    title: "bins needs one more edge than the number of buckets you want"
+    body: >
+      bins=[0, 100, 300, 500] describes THREE ranges — (0, 100], (100, 300], and (300, 500] — using FOUR
+      boundary values. If you want N labeled buckets, you need N+1 edges. By default each range excludes
+      its left edge and includes its right edge (a product priced at exactly 100.00 falls into "Low," not
+      "Mid") — pass right=False to flip that if your data needs the opposite convention.
+  - type: heading
+    text: "np.select() — three or more branches"
+  - type: code
+    language: python
+    code: |
+      conditions = [
+          products["margin"] < 50,
+          products["margin"] < 150,
+          products["margin"] >= 150,
+      ]
+      choices = ["thin", "moderate", "strong"]
+
+      products["margin_tier"] = np.select(conditions, choices, default="unknown")
+      print(products[["product_name", "margin", "margin_tier"]].head(5))
+      print()
+      print(products["margin_tier"].value_counts())
+    caption: "Conditions are checked top to bottom — the FIRST one a row matches decides its value"
+  - type: output
+    body: |
+                  product_name  margin margin_tier
+                  0         Pro Desk Lamp  141.02    moderate
+                  1       Compact Blender  191.76      strong
+                  2    Essential Backpack  158.74      strong
+                  3    Compact Board Game   95.69    moderate
+                  4  Compact Water Bottle  223.30      strong
+
+                  margin_tier
+                  moderate    75
+                  strong      43
+                  thin        32
+                  Name: count, dtype: int64
+  - type: callout
+    variant: common_mistake
+    title: "Order matters: the FIRST matching condition wins"
+    body: >
+      A product with margin=200 technically satisfies both "margin < 150" (false, so skip) and "margin >=
+      150" (true) here, but more subtly: if you'd written the conditions in the opposite order — margin >=
+      150 first, then margin < 150 — every row would match the first, broader-looking condition before
+      ever reaching the second, and 'thin'/'moderate' would never appear. Always order conditions from
+      most specific to least specific, or make sure they're mutually exclusive so order doesn't matter.
+  - type: table
+    headers: ["Tool", "Branches", "Typical use"]
+    rows:
+      - ["np.where(cond, a, b)", "Exactly 2", "A single yes/no flag column"]
+      - ["pd.cut(col, bins, labels)", "As many as you define bins for", "Bucketing a CONTINUOUS numeric column into ordered, labeled ranges"]
+      - ["np.select(conds, choices, default)", "3 or more, arbitrary conditions", "Business rules with several distinct branches that aren't just numeric ranges"]
+  - type: example
+    title: "pd.cut vs np.select for tiering — which one fits?"
+    body: >
+      Both can build a tiered column, but they fit different shapes of logic. pd.cut is the natural
+      choice when the tiers are purely about WHERE a single number falls (price bands, age groups). Reach
+      for np.select instead when the branches depend on more than one column, or aren't simple numeric
+      ranges — for example, a customer tier that also considers customer_segment alongside spend.
+    language: python
+    code: |
+      # A pd.cut boundary case: does 100.00 land in "Low" or "Mid"?
+      # Low = (0, 100], Mid = (100, 300] by default -> 100.00 is included in Low
+      print(pd.cut(pd.Series([100.0]), bins=[0, 100, 300, 500], labels=["Low", "Mid", "High"]))
+  - type: question
+    prompt: "np.select() is checking conditions=[cond_a, cond_b] against choices=['A', 'B'], default='C'. A row satisfies BOTH cond_a and cond_b. Which value does it get?"
+    choices:
+      - "'A' — the first matching condition in the list wins"
+      - "'B' — the last matching condition in the list wins"
+      - "'C' — np.select() falls back to default when more than one condition matches"
+    correct_index: 0
+    explanation: >
+      np.select() evaluates conditions in the order given and assigns the choice tied to the FIRST one
+      that's True for each row — later conditions (even if also True) are never reached for that row.
+      This is exactly why condition order matters when conditions can overlap.

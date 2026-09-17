@@ -1,0 +1,67 @@
+slug: de-sql-orders-missing-payment-by-status
+lesson_slug: de-automating-data-quality-checks
+skill: data-quality-engineering
+dataset: ecommerce
+title: "A RELATIONSHIP Check: Which Orders Have No Payment Record?"
+description: Write the referential-integrity style check that flags orders with no matching payment, broken down by status, to confirm which gaps are expected and which would be a real red flag.
+exercise_type: SQL
+difficulty: INTERMEDIATE
+points: 15
+tags: [sql, data-quality, relationships, data-engineering, intermediate]
+business_context: >
+  Finance wants confidence that every order with status "completed" has an actual payment behind
+  it before trusting revenue reports built on the `orders` table alone. Orders that are still
+  "pending" or were "cancelled" before payment are expected to have no payment record — the real
+  concern is whether any "completed" orders are missing one.
+prompt: >
+  Using `orders` and `payments`, write a query that finds orders with no matching row in `payments`
+  (matched on `order_id`), grouped by the order's `status`. Return `status` and
+  `orders_without_payment` (the count of such orders per status). Order the result by
+  `orders_without_payment` descending. Row order matters.
+sql_tables: [orders, payments]
+sql_starter_query: |
+  -- Explore both tables first
+  SELECT * FROM orders LIMIT 10;
+sql_solution_query: |
+  SELECT
+    o.status,
+    COUNT(*) AS orders_without_payment
+  FROM orders o
+  LEFT JOIN payments p ON o.order_id = p.order_id
+  WHERE p.order_id IS NULL
+  GROUP BY o.status
+  ORDER BY orders_without_payment DESC;
+sql_row_order_matters: true
+sql_numeric_tolerance: 0.01
+sql_hidden_tests:
+  - name: "The 'pending' status's orders_without_payment count matches an independent recomputation"
+    query: |
+      SELECT o.status, COUNT(*) AS orders_without_payment
+      FROM orders o
+      LEFT JOIN payments p ON o.order_id = p.order_id
+      WHERE p.order_id IS NULL AND o.status = 'pending'
+      GROUP BY o.status
+    key_columns: 1
+hints:
+  - "A LEFT JOIN from orders to payments, filtered to WHERE p.order_id IS NULL, finds orders with no matching payment row at all."
+  - "GROUP BY the order's own status column (not the payment's) to see which statuses account for the missing-payment orders."
+solution: >
+  ```sql
+  SELECT
+    o.status,
+    COUNT(*) AS orders_without_payment
+  FROM orders o
+  LEFT JOIN payments p ON o.order_id = p.order_id
+  WHERE p.order_id IS NULL
+  GROUP BY o.status
+  ORDER BY orders_without_payment DESC;
+  ```
+explanation: >
+  Against the real data, this returns exactly two rows: `cancelled` (379 orders with no payment)
+  and `pending` (127 orders with no payment) — and zero `completed` orders lacking a payment record.
+  That's exactly the expected pattern: a cancelled order reasonably never got paid, and a pending
+  order hasn't been paid *yet*, so both are benign. The check's real value is confirming that
+  `completed` doesn't show up in this result at all — if it ever did, that would be a genuine
+  referential-integrity red flag (a completed sale with no payment behind it), and this is precisely
+  the shape of a RELATIONSHIP-style rule a data quality engine would run continuously to catch that
+  the moment it happened, rather than an analyst discovering it by accident in a report.

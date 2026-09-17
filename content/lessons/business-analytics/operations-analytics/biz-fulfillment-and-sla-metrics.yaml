@@ -1,0 +1,99 @@
+slug: biz-fulfillment-and-sla-metrics
+module_slug: operations-analytics
+title: "Fulfillment and SLA Metrics: The Denominator That Decides Whether You Passed"
+description: How on-time delivery rate and SLA breach rate are defined, and why the choice of denominator can make the same operational performance look completely different.
+difficulty: INTERMEDIATE
+estimated_minutes: 12
+display_order: 2
+objectives:
+  - Compute on-time delivery rate and SLA breach rate for a fulfillment operation
+  - Identify the specific denominator choices that change what these metrics actually measure
+  - Explain why excluding cancelled or returned orders from a fulfillment metric can inflate performance
+skills: [business-analytics, business-metrics, metric-definition]
+tags: [business-analytics, operations, intermediate]
+key_takeaways:
+  - "On-Time Delivery Rate (%) = orders delivered by their promised date / total orders promised a date × 100 — the denominator must include every order that was promised a date, not just the ones that shipped successfully."
+  - "SLA Breach Rate = 1 − On-Time Delivery Rate, but is often tracked separately by severity (minor breach vs. major breach) since a two-hour miss and a two-day miss are very different operational problems."
+  - Excluding cancelled, lost, or "exception" orders from the on-time calculation is a common way to quietly inflate a fulfillment metric — those orders usually represent the worst performance, not neutral cases to be dropped.
+common_mistakes:
+  - Computing on-time rate only over orders that successfully shipped, silently excluding orders that were cancelled or never fulfilled due to an operational failure — exactly the cases that would look worst.
+  - Reporting a single on-time rate across every order type or shipping tier, hiding that express and standard shipping usually have very different SLA targets and real performance.
+blocks:
+  - type: heading
+    text: "\"On-time\" only means something with a denominator"
+  - type: text
+    body: >
+      On-Time Delivery Rate looks like the simplest fulfillment metric in the business — did the package
+      arrive by the date promised, yes or no? The complexity hides entirely in one question: on-time
+      relative to *which set of orders*? Depending on what gets excluded before the percentage is
+      calculated, wildly different operational realities can produce the exact same reported number.
+  - type: formula
+    expression: "On-Time Delivery Rate (%) = Orders delivered by promised date / Total orders promised a date × 100"
+    description: >
+      The denominator is every order that was given a delivery promise — including ones that were
+      eventually cancelled, lost in transit, or delivered so late the customer had already requested a
+      refund. Dropping those from the denominator doesn't make them disappear; it just makes the metric
+      stop counting the worst outcomes.
+  - type: example
+    title: The same 1,000 orders, two very different "on-time rates"
+    body: >
+      A fulfillment team promised delivery dates on 1,000 orders this month. 860 were delivered on time,
+      95 were delivered late, and 45 were cancelled before ever shipping (largely due to inventory or
+      warehouse errors). Computed against all 1,000 orders, on-time rate is 86.0%. Computed only against
+      the 955 orders that actually shipped (quietly excluding the 45 cancellations), on-time rate rises to
+      90.1% — a nearly 4-point improvement that came entirely from removing the worst-performing orders
+      from the denominator, not from any actual operational improvement.
+  - type: table
+    headers: ["Denominator used", "On-time orders", "Denominator size", "Reported on-time rate"]
+    rows:
+      - ["All orders promised a date (correct)", "860", "1,000", "86.0%"]
+      - ["Only orders that shipped (excludes cancellations)", "860", "955", "90.1%"]
+    caption: "Hand-built illustrative figures. The second row isn't fraudulent, but it answers a narrower question (\"of what we managed to ship, how much was on time\") while being presented as if it answered the broader one."
+  - type: callout
+    variant: common_mistake
+    title: Dropped orders are not neutral
+    body: >
+      Excluding cancelled or lost orders from an on-time calculation treats them as if they never happened
+      — but a cancelled order due to an inventory error is arguably a *worse* outcome than a late delivery,
+      not a case that should simply vanish from the metric. Any fulfillment metric that excludes a
+      category of orders should say so explicitly, and a customer-facing question ("how reliably do we
+      deliver on our promises?") almost always wants the wider denominator.
+  - type: heading
+    text: SLA breach rate — and why severity matters
+    level: 3
+  - type: formula
+    expression: "SLA Breach Rate (%) = 1 − On-Time Delivery Rate = Orders that missed their promised date / Total orders promised a date × 100"
+    description: >
+      Mathematically the complement of on-time rate, but usually worth tracking with a severity split — a
+      breach of a few hours on a multi-day delivery window is a very different operational signal than a
+      breach of several days.
+  - type: example
+    title: Not all breaches are equal
+    body: >
+      Of the 95 late orders in the earlier example, 70 were delivered within 1 day of the promised date
+      (a minor breach) and 25 were delivered 3+ days late (a major breach). A single "9.5% SLA breach
+      rate" treats both groups identically, but the root causes are usually different — minor breaches
+      often trace back to normal carrier variability, while major breaches more often point to a real
+      internal process failure (a warehouse delay, a stockout that wasn't caught until pick time) worth
+      investigating on its own.
+  - type: checklist
+    title: Before reporting an on-time or SLA metric, confirm
+    items:
+      - Whether cancelled, lost, or exception orders are included in the denominator (they usually should be)
+      - Whether the metric is segmented by shipping tier or SLA commitment, since these usually carry different targets
+      - Whether breach severity has been split out, since a minor and a major breach usually have different root causes
+  - type: question
+    prompt: >
+      A logistics team reports "94% on-time delivery," but excludes cancelled orders from the calculation
+      entirely. What's the strongest reason this framing could be misleading?
+    choices:
+      - "It isn't misleading — cancelled orders were never delivered late or on time, so excluding them is the only sensible choice."
+      - "Cancelled orders, especially ones caused by an operational failure, often represent the worst outcomes — excluding them from the denominator can make performance look better than what customers actually experienced."
+      - "On-time delivery rate should never be reported as a single percentage regardless of methodology."
+    correct_index: 1
+    explanation: >
+      Cancelled orders caused by a fulfillment or inventory failure are a real, often severe, failure to
+      deliver on a promise — arguably worse for the customer than an on-time delivery, and comparably bad
+      to a very late one. Removing them from the denominator doesn't answer "how reliable are we," it
+      answers a narrower question ("of what we shipped, how much was on time") while risking being
+      interpreted as the broader, more customer-relevant claim.

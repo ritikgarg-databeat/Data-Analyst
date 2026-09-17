@@ -1,0 +1,35 @@
+slug: dm-ex-sql-fanout-trap
+lesson_slug: dm-cost-of-a-bad-model
+skill: dimensional-modeling
+dataset: ecommerce
+title: "Reproduce the Fan-Out Trap, Then Fix It"
+description: Writing the corrected query that recovers the true order count after joining orders to order_items, verified against the real 4,205-row orders table.
+exercise_type: SQL
+difficulty: INTERMEDIATE
+points: 15
+tags: [grain, data-modeling, real-world]
+business_context: >
+  orders has exactly 4,205 real rows. Demonstrate, with a real query, how joining to order_items and counting
+  naively produces a different, wrong number — then write the corrected query.
+sql_tables: [orders, order_items]
+prompt: >
+  Write a single query against orders joined to order_items that returns the CORRECT number of distinct orders
+  (not order lines). Confirm your query returns 4205, matching the standalone orders table's real row count.
+sql_starter_query: |
+  SELECT COUNT(o.order_id) AS order_count
+  FROM orders o
+  JOIN order_items oi ON o.order_id = oi.order_id;
+  -- this naive version returns 12627, the order_items row count, not the order count -- fix it
+sql_solution_query: |
+  SELECT COUNT(DISTINCT o.order_id) AS order_count
+  FROM orders o
+  JOIN order_items oi ON o.order_id = oi.order_id;
+sql_row_order_matters: false
+hints:
+  - "Compare SELECT COUNT(*) FROM orders (a clean, unambiguous 4,205) to the naive joined count — the gap tells you exactly how much duplication the join to order_items introduced."
+explanation: >
+  The naive COUNT(o.order_id) after joining to order_items returns 12,627 — the row count of order_items itself
+  — because every order's row is repeated once per matching line item (orders in this dataset carry 1 to 5
+  items each). COUNT(DISTINCT o.order_id) correctly collapses back to 4,205, matching the standalone orders
+  table exactly. This is the fan-out trap from the why-data-modeling-matters module, reproduced and fixed
+  directly against the real data.

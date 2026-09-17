@@ -1,0 +1,60 @@
+slug: fill-missing-order-values
+lesson_slug: missing-values
+skill: data-cleaning
+dataset: ecommerce
+title: Fill Missing Order Values with a Segment-Wise Mean
+description: Fill missing order_value entries using each customer segment's own mean rather than a single overall average.
+exercise_type: PYTHON
+difficulty: INTERMEDIATE
+points: 20
+tags: [python, intermediate, real-world]
+business_context: >
+  A revenue analyst is prepping an order-value dataset for a report, but a handful of rows are
+  missing `order_value` entirely due to a logging gap. Business and consumer customers spend very
+  differently, so filling every gap with one overall average would distort both segments — each
+  segment's own average is the more honest fill value.
+prompt: >
+  Given `df = pd.DataFrame({"segment": ["business","business","consumer","consumer","business"],
+  "order_value": [100.0, None, 50.0, None, 300.0]})`, fill every missing `order_value` with the
+  mean `order_value` of that row's own `segment` (not the overall mean across all rows). Store your
+  answer in a variable named `result`: the DataFrame with `order_value` nulls filled in, all other
+  columns unchanged.
+python_datasets: []
+python_starter_code: |
+  df = pd.DataFrame({"segment": ["business", "business", "consumer", "consumer", "business"], "order_value": [100.0, None, 50.0, None, 300.0]})
+
+  # Fill each missing order_value using the mean order_value of that row's own
+  # segment (business rows fill from the business mean, consumer rows from the
+  # consumer mean) — not one overall mean across every row. Store in `result`.
+python_solution_code: |
+  df = pd.DataFrame({"segment": ["business", "business", "consumer", "consumer", "business"], "order_value": [100.0, None, 50.0, None, 300.0]})
+  result = df.copy()
+  result["order_value"] = result.groupby("segment")["order_value"].transform(lambda x: x.fillna(x.mean()))
+python_result_variable: result
+python_row_order_matters: false
+python_numeric_tolerance: 0.01
+python_hidden_tests:
+  - name: "No missing values remain, and the business fill matches the business mean"
+    code: |
+      assert result["order_value"].isna().sum() == 0, "Every missing order_value should have been filled."
+      business_filled = result.loc[result["segment"] == "business", "order_value"]
+      assert abs(business_filled.iloc[1] - 200.0) < 0.01, (
+          f"The missing business row should fill with the business segment's own mean (100 + 300) / 2 = 200.0, got {business_filled.iloc[1]}"
+      )
+hints:
+  - "A single overall .fillna(df['order_value'].mean()) would use one number for every missing row regardless of segment — you need each segment to fill from its own mean instead."
+  - "groupby('segment')['order_value'].transform(lambda x: x.fillna(x.mean())) computes each segment's mean and fills that segment's own missing values with it, returning a Series the same length and order as the original column."
+solution: |
+  ```python
+  df = pd.DataFrame({"segment": ["business", "business", "consumer", "consumer", "business"], "order_value": [100.0, None, 50.0, None, 300.0]})
+  result = df.copy()
+  result["order_value"] = result.groupby("segment")["order_value"].transform(lambda x: x.fillna(x.mean()))
+  ```
+explanation: >
+  A strong answer fills each missing value from its own segment's mean using
+  `groupby(...).transform(...)`, which preserves the original row order and index while still
+  computing each group's statistic from only that group's non-null values (the mean automatically
+  skips NaN). A common mistake is calling `df["order_value"].fillna(df["order_value"].mean())`,
+  which fills every gap with one overall mean — here that would pull the missing consumer row's
+  fill value up toward the business segment's higher spend, and pull the missing business row's
+  fill value down, understating how different the two segments actually are.

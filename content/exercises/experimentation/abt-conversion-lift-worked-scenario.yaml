@@ -1,0 +1,63 @@
+slug: abt-conversion-lift-worked-scenario
+skill: experimentation
+title: 'Interpreting a Conversion Lift: 5,000 vs. 5,300 Conversions'
+description: Compute the conversion rate for each group and the relative uplift. State whether you believe the result
+  is statistically significant and whether it's practically significant, and give your ship/no-ship recommendation
+  with your reasoning, including what further investigation (if any) you'd want before fully rolling out.
+exercise_type: BUSINESS_REASONING
+difficulty: ADVANCED
+points: 30
+tags:
+- ab-testing
+- conversion
+- hypothesis-testing
+business_context: 'An e-commerce team ran an A/B test on a redesigned product page. Control: 100,000 users, 5,000
+  conversions. Treatment: 100,000 users, 5,300 conversions. The test ran for 2 full weeks as pre-registered.'
+prompt: Compute the conversion rate for each group and the relative uplift. State whether you believe the result
+  is statistically significant and whether it's practically significant, and give your ship/no-ship recommendation
+  with your reasoning, including what further investigation (if any) you'd want before fully rolling out.
+stakeholder: null
+constraints:
+- Assume standard two-proportion z-test assumptions are reasonably met.
+- The team's minimum practically-meaningful lift, agreed before the test, was 3% relative.
+expected_deliverables:
+- Control and treatment conversion rates
+- The relative uplift
+- A significance assessment (with reasoning, not just a yes/no)
+- A practical-significance judgment against the pre-agreed 3% threshold
+- A ship/no-ship recommendation with a stated next step
+rubric:
+- criterion: Correctly computes control rate 5.0% and treatment rate 5.3%
+  points: 15
+- criterion: Correctly computes relative uplift of approximately 6% ((5.3-5.0)/5.0)
+  points: 15
+- criterion: Reasons about statistical significance using the actual sample sizes and effect size (e.g. via a two-proportion
+    z-test / confidence interval logic), not just asserting significance
+  points: 25
+- criterion: Explicitly compares the ~6% relative lift against the team's pre-agreed 3% practical-significance bar
+    and states whether it clears it
+  points: 20
+- criterion: Gives a clear ship/no-ship/monitor recommendation tied to both the statistical and practical assessment,
+    with a sensible next step (e.g. a guardrail-metric check or a longer monitoring window)
+  points: 25
+hints:
+- Conversion rate = conversions / users for each group; relative uplift = (treatment rate - control rate) / control
+  rate.
+- At n=100,000 per group with a 5%-ish baseline rate, a 0.3 percentage-point (6% relative) absolute difference is
+  generally large enough to be statistically significant -- but always state your reasoning about the standard error
+  at this sample size rather than asserting it.
+- The pre-agreed 3% relative practical-significance threshold matters as much as the statistical significance --
+  a real but tiny effect might not be worth the engineering/rollout cost, while this particular result clears both
+  bars.
+solution: 'Control conversion rate: 5,000/100,000 = 5.0%. Treatment conversion rate: 5,300/100,000 = 5.3%. Relative
+  uplift: (5.3-5.0)/5.0 = 6.0%. At n=100,000 per group, the standard error on each proportion is small (roughly
+  0.07 percentage points), making a 0.3 percentage-point absolute gap several standard errors wide -- this is very
+  likely statistically significant at the 95% level. It also clears the team''s pre-agreed 3% relative practical-significance
+  bar (6% > 3%). Recommendation: ship, while monitoring the agreed guardrail metrics (e.g. return rate, support
+  contact rate, average order value) for at least one more week post-launch to confirm the lift holds and no offsetting
+  harm appears, especially checking for a novelty effect if week-one post-launch data shows any lift decay.'
+explanation: This worked scenario tests whether an analyst can move fluidly between the raw numbers (rate and uplift
+  arithmetic), the statistical question (is this gap plausibly just noise, reasoned through approximate standard
+  error at this sample size, not asserted), the business question (does it clear the pre-agreed bar for being worth
+  shipping), and a ship decision that isn't just 'yes' but includes a concrete follow-up safeguard -- exactly the
+  chain of reasoning spec'd for a strong A/B-testing interview answer.

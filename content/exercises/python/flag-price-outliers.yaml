@@ -1,0 +1,67 @@
+slug: flag-price-outliers
+lesson_slug: outliers-in-pandas
+skill: data-cleaning
+dataset: ecommerce
+title: Flag Order-Value Outliers with the IQR Method
+description: Use the interquartile range method to flag anomalous order values before they distort summary statistics.
+exercise_type: PYTHON
+difficulty: INTERMEDIATE
+points: 20
+tags: [python, intermediate, real-world]
+business_context: >
+  A finance analyst is about to average a batch of order values for a daily report, but one row
+  looks like a data-entry error (an order two orders of magnitude larger than every other order
+  that day) that would badly skew the average if it's not flagged and reviewed first.
+prompt: >
+  Given `df = pd.DataFrame({"order_id": range(1, 11), "order_value": [45, 52, 48, 61, 55, 2400, 49,
+  58, 44, 50]})`, use the IQR (interquartile range) method to flag anomalous values: compute Q1 and
+  Q3, then flag any value below `Q1 - 1.5*IQR` or above `Q3 + 1.5*IQR`. Store your answer in a
+  variable named `result`: the DataFrame with all of `df`'s original columns plus a new boolean
+  `is_outlier` column.
+python_datasets: []
+python_starter_code: |
+  df = pd.DataFrame({"order_id": range(1, 11), "order_value": [45, 52, 48, 61, 55, 2400, 49, 58, 44, 50]})
+
+  # Use the IQR method (Q1, Q3, and the 1.5*IQR fences) to flag anomalous
+  # order_value entries. Add the flag as a boolean is_outlier column and
+  # store the result in `result`.
+python_solution_code: |
+  df = pd.DataFrame({"order_id": range(1, 11), "order_value": [45, 52, 48, 61, 55, 2400, 49, 58, 44, 50]})
+  q1 = df["order_value"].quantile(0.25)
+  q3 = df["order_value"].quantile(0.75)
+  iqr = q3 - q1
+  lower = q1 - 1.5 * iqr
+  upper = q3 + 1.5 * iqr
+  result = df.copy()
+  result["is_outlier"] = (result["order_value"] < lower) | (result["order_value"] > upper)
+python_result_variable: result
+python_row_order_matters: false
+python_numeric_tolerance: 0.01
+python_hidden_tests:
+  - name: "Only the 2400 order is flagged as an outlier"
+    code: |
+      flagged_row = result.loc[result["order_id"] == 6, "is_outlier"].iloc[0]
+      assert flagged_row == True, "order_id 6 (order_value 2400) should be flagged as an outlier."
+      assert result["is_outlier"].sum() == 1, f"Expected exactly 1 flagged outlier, got {int(result['is_outlier'].sum())}"
+hints:
+  - "The IQR method defines a 'normal' range using the middle 50% of the data (between the 25th and 75th percentiles) and flags anything that falls far outside it — it doesn't use the mean or standard deviation at all, which is exactly why it isn't thrown off by the outlier itself."
+  - "df['order_value'].quantile(0.25) and .quantile(0.75) give you Q1 and Q3. IQR = Q3 - Q1, and the fences are Q1 - 1.5*IQR (lower) and Q3 + 1.5*IQR (upper) — flag any value outside that range."
+solution: |
+  ```python
+  df = pd.DataFrame({"order_id": range(1, 11), "order_value": [45, 52, 48, 61, 55, 2400, 49, 58, 44, 50]})
+  q1 = df["order_value"].quantile(0.25)
+  q3 = df["order_value"].quantile(0.75)
+  iqr = q3 - q1
+  lower = q1 - 1.5 * iqr
+  upper = q3 + 1.5 * iqr
+  result = df.copy()
+  result["is_outlier"] = (result["order_value"] < lower) | (result["order_value"] > upper)
+  ```
+explanation: >
+  A strong answer computes the IQR fences from the quantiles of the data itself and flags values
+  outside them with a single boolean comparison, which is robust precisely because Q1/Q3 aren't
+  dragged around by one extreme value the way a mean or standard deviation would be. A common
+  mistake is flagging outliers with something like `abs(value - mean) > 2 * std`, which sounds
+  reasonable but is self-defeating here: the single extreme value (2400) inflates the mean and
+  standard deviation so much that it can end up looking less extreme by that measure, potentially
+  causing the outlier to go undetected.

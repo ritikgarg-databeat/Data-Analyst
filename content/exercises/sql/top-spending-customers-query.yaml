@@ -1,0 +1,60 @@
+slug: top-spending-customers-query
+lesson_slug: group-by
+skill: sql-fundamentals
+dataset: ecommerce
+title: Rank Customers by Completed Spend
+description: Write a query that totals each customer's completed-order spend and sorts customers from highest to lowest.
+exercise_type: SQL
+difficulty: INTERMEDIATE
+points: 15
+tags: [sql, intermediate, real-world]
+business_context: >
+  The retention team wants to build a VIP outreach list. They need every customer's total spend across
+  their completed orders, ranked from the highest spender down, so they know exactly who to prioritize.
+prompt: >
+  Using the `orders` and `payments` tables, write a single query that returns each `customer_id`
+  together with their total spend (`ROUND(..., 2)`) across only their completed orders, sorted from the
+  highest total spend to the lowest.
+sql_tables: [orders, payments]
+sql_starter_query: |
+  -- payments doesn't have customer_id directly — you'll need to join through orders
+  SELECT * FROM orders LIMIT 20;
+sql_solution_query: |
+  SELECT o.customer_id, ROUND(SUM(p.amount), 2) AS total_spend
+  FROM orders o
+  JOIN payments p ON p.order_id = o.order_id
+  WHERE o.status = 'completed'
+  GROUP BY o.customer_id
+  ORDER BY total_spend DESC;
+sql_row_order_matters: true
+sql_numeric_tolerance: 0.01
+sql_hidden_tests:
+  - name: "Top spending customer's total is correct"
+    query: |
+      SELECT o.customer_id, ROUND(SUM(p.amount), 2) AS total_spend
+      FROM orders o
+      JOIN payments p ON p.order_id = o.order_id
+      WHERE o.status = 'completed'
+      GROUP BY o.customer_id
+      ORDER BY total_spend DESC
+      LIMIT 1
+    key_columns: 1
+hints:
+  - "customer_id lives on orders, not payments — you'll need to join the two tables on order_id before you can group by customer."
+  - "Filter status = 'completed' with WHERE before grouping, GROUP BY customer_id, aggregate with SUM(amount), and finish with ORDER BY on that total, descending."
+solution: >
+  ```sql
+  SELECT o.customer_id, ROUND(SUM(p.amount), 2) AS total_spend
+  FROM orders o
+  JOIN payments p ON p.order_id = o.order_id
+  WHERE o.status = 'completed'
+  GROUP BY o.customer_id
+  ORDER BY total_spend DESC;
+  ```
+explanation: >
+  A strong answer joins orders to payments on order_id (customer_id only lives on orders; dollar
+  amounts only live on payments), filters to completed orders with WHERE before aggregating, groups by
+  customer_id so each customer gets exactly one row, uses SUM(amount) to total their spend, and sorts
+  by that computed total in descending order. A common near-miss is forgetting the WHERE filter
+  entirely and summing every order regardless of status, which overstates spend by including orders
+  that were cancelled or still pending.

@@ -1,0 +1,39 @@
+slug: exploring-the-shape-of-order-value-distribution
+lesson_slug: welcome-to-the-challenge-library
+skill: exploratory-data-analysis
+dataset: ecommerce
+title: "Why the Average Order Value Overstates the Typical Order"
+description: Interpret the shape of the payments.amount distribution — median vs. mean, and what a right-skewed shape means for choosing which figure to report.
+exercise_type: DATA_INTERPRETATION
+difficulty: INTERMEDIATE
+points: 15
+tags: [eda, real-world, intermediate]
+prompt: >
+  Using `payments` (successful payments only), the distribution of `amount` has a median of $1,569.11 and
+  a mean of $1,689.15 — the mean is about 7.6% higher than the median. The 90th percentile is $3,179.01 and
+  the maximum is $6,370.39, while the 25th percentile is only $832.14. A stakeholder asks for "the average
+  order value" for a slide. What do you tell them about which figure to use, and what does the gap between
+  the mean and median tell you about the shape of this distribution?
+hints:
+  - "A mean pulled meaningfully above the median is the classic signature of a specific distribution shape — think about which direction the 'tail' of unusually large values has to be pointing to pull the mean up rather than down."
+  - "Consider what 'the average order value' is actually going to be used for on the stakeholder's slide — a single summary number is doing different jobs depending on whether it's meant to represent 'the typical order' or 'total revenue per order, for a forecasting calculation.'"
+solution: >
+  The gap between the mean ($1,689.15) and the median ($1,569.11), combined with the wide right tail (25th
+  percentile at $832.14 but a 90th percentile at $3,179.01 and a max of $6,370.39), is the signature of a
+  right-skewed distribution: most orders cluster at a moderate value, but a smaller number of much larger
+  orders stretch the distribution's right tail out and pull the mean above the median. I'd tell the
+  stakeholder: if the slide is meant to represent "what a typical order looks like," the median ($1,569.11)
+  is the more honest figure — it isn't distorted by the relatively small number of large orders. If the
+  slide instead needs a figure for a calculation like "revenue per order × order count = total revenue,"
+  the mean is actually the correct number to use, precisely because it does account for those larger
+  orders' contribution to total revenue. The real answer isn't "pick one" in the abstract — it's "it depends
+  on what this number is being used to represent," and I'd ask which of those two the stakeholder actually
+  needs before handing over either one unlabeled.
+explanation: >
+  A strong answer identifies the specific shape (right-skewed) from the mean-median gap and the tail
+  percentiles, rather than just noting "they're different." It also resists giving a single blanket
+  recommendation ("always use the median") and instead ties the choice to what the number will be used for
+  — a "typical order" claim versus a revenue-forecasting input need different summary statistics, and
+  handing over the wrong one unlabeled is a common way a technically-correct number ends up misleading a
+  stakeholder. A weaker answer reports the mean and median as interchangeable, or picks one without
+  explaining why that one fits the stakeholder's actual need.

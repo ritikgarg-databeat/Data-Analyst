@@ -1,0 +1,110 @@
+slug: customer-churn-analytics
+title: Customer Churn Analytics
+category: CUSTOMER_ANALYTICS
+business_context: >
+  You're the analyst supporting the Customer Success team at a subscription SaaS company. Churn has
+  been creeping up over the last few quarters, and the team has a gut feeling that certain plans and
+  certain customer cohorts are churning faster than others, but no rigorous analysis to point to. The
+  VP of Customer Success wants a deep-dive: which customers are actually churning, how much revenue
+  is at risk, and where the team should focus retention efforts given limited headcount.
+objective: >
+  Conduct a deep-dive churn analysis across plan tier, signup cohort, and tenure, build a simple
+  lifetime-value / revenue-at-risk model to quantify what churn is costing the business, and deliver
+  a prioritized retention recommendation backed by a supporting dashboard.
+requirements:
+  - "A churn-rate analysis broken down by plan (starter/pro/enterprise), by signup cohort, and by tenure (time from start_date to churn)"
+  - "A survival-style view of subscription tenure — e.g. what fraction of subscribers are still active at 1, 3, 6, and 12 months after start"
+  - "A revenue-at-risk / LTV model that estimates the MRR currently at risk from customers showing churn-risk signals, using mrr and status from subscriptions"
+  - "A segmentation of customers into at least 2-3 risk tiers based on plan, tenure, and/or engagement signals from events"
+  - "A retention-prioritization dashboard with at least 4 charts covering churn rate, tenure/survival, and revenue at risk"
+  - "A written retention-prioritization recommendation identifying which segment(s) the Customer Success team should focus on first and why"
+suggested_datasets:
+  - saas-product
+milestones:
+  - title: Understand the Business
+    description: Understand the SaaS company's plan structure, current churn concerns, and what decision the Customer Success team needs the analysis to support.
+  - title: Data Discovery
+    description: Profile subscriptions, users, and events, and confirm how status, start_date, and end_date define an active vs. churned subscription.
+  - title: Churn-Rate Analysis by Segment
+    description: Compute churn rate broken down by plan, signup cohort, and tenure to find where churn concentrates.
+  - title: Tenure and Survival Analysis
+    description: Build a survival-style view of how long subscribers typically stay before churning, by plan.
+  - title: Revenue-at-Risk Modeling
+    description: Build a simple model quantifying the MRR at risk from churned and at-risk subscribers.
+  - title: Customer Risk Segmentation
+    description: Segment customers into risk tiers using plan, tenure, and engagement signals to prioritize retention effort.
+  - title: Build the Retention Dashboard
+    description: Design and build a dashboard summarizing churn rate, survival, and revenue-at-risk for the Customer Success team.
+  - title: Insights and Retention Recommendation
+    description: Synthesize the findings into a prioritized recommendation for where Customer Success should focus limited retention resources.
+  - title: Final Presentation
+    description: Present the churn analysis and retention-prioritization recommendation to the VP of Customer Success.
+required_skills:
+  - sql-fundamentals
+  - advanced-sql
+  - statistics
+  - statistical-reasoning
+  - exploratory-data-analysis
+  - business-metrics
+  - data-visualization
+  - communication
+rubric:
+  - category: Business Understanding
+    weight: 10
+    criteria:
+      - criterion: Correctly frames what churn means for this subscription business and why it matters financially
+        points: 10
+      - criterion: Connects the analysis to a concrete retention-team decision
+        points: 10
+  - category: Technical Execution
+    weight: 25
+    is_technical: true
+    criteria:
+      - criterion: Churn rate is correctly computed by plan, cohort, and tenure
+        points: 10
+      - criterion: Survival/tenure analysis correctly handles still-active subscribers (no premature churn assumption)
+        points: 10
+      - criterion: Revenue-at-risk calculation correctly uses mrr and subscription status
+        points: 5
+  - category: Analytical Reasoning
+    weight: 25
+    criteria:
+      - criterion: Correctly identifies which segment(s) actually drive the majority of churn or revenue at risk
+        points: 10
+      - criterion: Risk segmentation is well-justified from the available signals, not arbitrary
+        points: 10
+      - criterion: Distinguishes correlation (e.g. plan tier correlating with churn) from likely causal drivers
+        points: 5
+  - category: Visualization
+    weight: 15
+    criteria:
+      - criterion: Dashboard clearly shows churn rate, survival curves, and revenue at risk
+        points: 10
+      - criterion: Chart choices make segment comparisons easy to read
+        points: 10
+  - category: Recommendations
+    weight: 25
+    criteria:
+      - criterion: Recommendation clearly prioritizes segments given limited retention-team capacity
+        points: 10
+      - criterion: Recommendation is quantified in terms of revenue impact
+        points: 10
+      - criterion: Recommendation acknowledges risk/uncertainty in the underlying model
+        points: 5
+learning_objectives:
+  - Analyze churn rate across plan, cohort, and tenure dimensions
+  - Build a survival-style view of subscription tenure
+  - Construct a simple revenue-at-risk / LTV model from subscription data
+  - Segment customers into actionable risk tiers
+  - Prioritize retention recommendations under limited team capacity
+estimated_hours: 7.0
+tags:
+  - sql
+  - statistics
+  - customer-analytics
+  - churn
+  - retention
+  - saas
+  - real-world
+  - advanced
+version: 1

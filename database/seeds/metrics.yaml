@@ -1,0 +1,475 @@
+# Seed data for the `metric_definitions` table — the Metrics Library
+# (Phase 6, spec section 42). Independent of lesson/exercise content.
+- slug: revenue
+  name: Revenue
+  category: revenue
+  definition: >
+    The total amount earned from selling goods or services, before any costs are subtracted.
+    Also called "top line."
+  formula: "SUM(order/payment amount) over a period"
+  examples:
+    - "$4.2M in revenue for Q3 2025"
+  sql_example: "SELECT SUM(amount) FROM payments WHERE status = 'success' AND payment_date BETWEEN '2025-07-01' AND '2025-09-30';"
+  python_example: "payments[payments['status'] == 'success'].query(\"'2025-07-01' <= payment_date <= '2025-09-30'\")['amount'].sum()"
+  common_mistakes:
+    - "Including refunded or failed payments, overstating true revenue."
+    - "Confusing revenue (top line) with profit (what's left after costs)."
+  related_metrics: [revenue-growth, gross-margin, mrr, arr]
+  business_questions:
+    - "Is the business growing?"
+    - "Which segment/channel/product drives the most revenue?"
+  interview_questions:
+    - question: "Walk me through how you'd calculate revenue for last month from a raw payments table."
+      answer: "Filter to successful/completed payments within the date range, sum the amount column, and be explicit about currency and whether it's gross or net of refunds."
+  display_order: 1
+
+- slug: revenue-growth
+  name: Revenue Growth Rate
+  category: revenue
+  definition: The percentage change in revenue between two periods (MoM, QoQ, or YoY).
+  formula: "(Revenue_this_period - Revenue_last_period) / Revenue_last_period"
+  examples:
+    - "Revenue grew 12% QoQ, from $3.75M to $4.2M"
+  sql_example: >
+    WITH monthly AS (
+      SELECT DATE_TRUNC('month', payment_date) AS month, SUM(amount) AS revenue
+      FROM payments WHERE status = 'success' GROUP BY 1
+    )
+    SELECT month, revenue, (revenue - LAG(revenue) OVER (ORDER BY month)) / LAG(revenue) OVER (ORDER BY month) AS mom_growth
+    FROM monthly ORDER BY month;
+  python_example: "monthly['mom_growth'] = monthly['revenue'].pct_change()"
+  common_mistakes:
+    - "Comparing periods of different length (e.g. a 28-day month vs a 31-day month) without normalizing."
+    - "Not accounting for seasonality — a MoM dip in January after a December holiday spike isn't necessarily a problem."
+  related_metrics: [revenue, mrr, arr]
+  business_questions:
+    - "Is growth accelerating or decelerating?"
+  interview_questions:
+    - question: "Revenue grew 5% MoM but 5% is below your target of 8%. What would you check first?"
+      answer: "Check for a one-time driver in the comparison month (a promo, a big deal), then segment growth by channel/segment to see whether the shortfall is broad or concentrated."
+  display_order: 2
+
+- slug: aov
+  name: Average Order Value (AOV)
+  category: revenue
+  definition: The average amount spent per order.
+  formula: "Total revenue / Number of orders"
+  examples:
+    - "AOV of $86.40 across 4,200 orders"
+  sql_example: "SELECT SUM(amount) / COUNT(DISTINCT order_id) AS aov FROM payments WHERE status = 'success';"
+  python_example: "payments.query(\"status == 'success'\")['amount'].sum() / payments['order_id'].nunique()"
+  common_mistakes:
+    - "Using COUNT(*) on a payments table with multiple payments per order instead of COUNT(DISTINCT order_id)."
+    - "Mixing successful and failed/refunded orders in the denominator."
+  related_metrics: [revenue, arpu]
+  business_questions:
+    - "Are customers buying more per transaction, or just more often?"
+  interview_questions:
+    - question: "AOV dropped 10% while revenue stayed flat. What does that imply?"
+      answer: "Order count must have risen roughly proportionally — more, smaller orders. Could reflect a promo, a new lower-priced product, or a shift in customer mix."
+  display_order: 3
+
+- slug: arpu
+  name: Average Revenue Per User (ARPU)
+  category: revenue
+  definition: Average revenue generated per active user over a period.
+  formula: "Total revenue / Number of active users"
+  examples:
+    - "ARPU of $14.20/month"
+  sql_example: "SELECT SUM(p.amount) / COUNT(DISTINCT p.customer_id) AS arpu FROM payments p WHERE p.status = 'success';"
+  python_example: "revenue_by_user = payments.groupby('customer_id')['amount'].sum(); revenue_by_user.mean()"
+  common_mistakes:
+    - "Dividing by total registered users instead of active users, understating ARPU."
+    - "Not distinguishing ARPU from ARPPU (average revenue per *paying* user, a much higher number in freemium products)."
+  related_metrics: [revenue, aov, ltv]
+  business_questions:
+    - "Is monetization per user improving?"
+  interview_questions:
+    - question: "How is ARPU different from ARPPU, and when would you report each?"
+      answer: "ARPU divides by all active users (including non-payers); ARPPU divides only by paying users. Report ARPU to gauge overall monetization efficiency, ARPPU to understand paying-customer value in a freemium model."
+  display_order: 4
+
+- slug: cac
+  name: Customer Acquisition Cost (CAC)
+  category: marketing
+  definition: The average cost to acquire one new paying customer, including marketing and sales spend.
+  formula: "Total acquisition spend / Number of new customers acquired"
+  examples:
+    - "CAC of $42 in a channel that spent $10,500 acquiring 250 customers"
+  sql_example: >
+    SELECT c.channel, SUM(c.spend) / COUNT(DISTINCT cu.customer_id) AS cac
+    FROM marketing_campaigns c JOIN customers cu ON cu.acquisition_campaign_id = c.campaign_id
+    GROUP BY c.channel;
+  python_example: "spend_by_channel['cac'] = spend_by_channel['spend'] / new_customers_by_channel['count']"
+  common_mistakes:
+    - "Only counting ad spend, ignoring sales team salaries/tools that also drove the acquisition."
+    - "Attributing a customer to the last channel touched, ignoring multi-touch influence."
+  related_metrics: [ltv, roas, cpa]
+  business_questions:
+    - "Is it profitable to acquire customers through this channel?"
+  interview_questions:
+    - question: "How would you decide if a CAC of $50 is 'good'?"
+      answer: "Compare it to LTV — a common rule of thumb is LTV:CAC ≥ 3:1. $50 CAC is fine if LTV is $150+, risky if LTV is $60."
+  display_order: 5
+
+- slug: ltv
+  name: Customer Lifetime Value (LTV)
+  category: revenue
+  definition: The total revenue (or profit) a business expects to earn from a customer over their entire relationship.
+  formula: "ARPU × Average customer lifespan (or 1 / churn rate)"
+  examples:
+    - "LTV of $480 for a customer paying $20/month with a 4% monthly churn rate"
+  sql_example: >
+    SELECT AVG(amount) / NULLIF(AVG(monthly_churn_rate), 0) AS estimated_ltv
+    FROM customer_monthly_summary;
+  python_example: "ltv = arpu / monthly_churn_rate"
+  common_mistakes:
+    - "Using a simple ARPU × lifespan formula for a business with highly variable customer value, hiding a wide distribution behind one average."
+    - "Comparing LTV computed with revenue to CAC computed against gross margin (mismatched units) — LTV should usually use gross-margin dollars, not raw revenue, to be comparable to CAC."
+  related_metrics: [cac, arpu, churn]
+  business_questions:
+    - "How much can we afford to spend to acquire a customer?"
+  interview_questions:
+    - question: "Your simple LTV formula assumes a constant churn rate. Why might that be wrong?"
+      answer: "Churn is rarely constant — it's typically higher in the first few months (early churn) and lower for tenured customers, so a single average churn rate can significantly over- or under-estimate LTV depending on cohort maturity."
+  display_order: 6
+
+- slug: conversion-rate
+  name: Conversion Rate
+  category: marketing
+  definition: The share of users who complete a desired action out of all users who had the opportunity to.
+  formula: "Number of conversions / Number of opportunities (visits, sessions, leads)"
+  examples:
+    - "2.3% of site visitors complete a purchase"
+  sql_example: "SELECT COUNT(*) FILTER (WHERE converted) * 1.0 / COUNT(*) AS conversion_rate FROM sessions;"
+  python_example: "sessions['converted'].mean()"
+  common_mistakes:
+    - "Using the wrong denominator (e.g. all users ever, instead of users in the relevant time window)."
+    - "Not distinguishing conversion-per-session from conversion-per-user (a user with many sessions before converting looks different under each)."
+  related_metrics: [ctr, cpa, funnel-conversion]
+  business_questions:
+    - "Is the funnel getting more or less efficient?"
+  interview_questions:
+    - question: "A page's conversion rate jumped from 2% to 5% overnight. What would you check before celebrating?"
+      answer: "Check for a tracking bug (e.g. double-counting conversions or undercounting the denominator), a traffic-source shift (a smaller, higher-intent segment), or a genuine change (new pricing, a fixed bug)."
+  display_order: 7
+
+- slug: ctr
+  name: Click-Through Rate (CTR)
+  category: marketing
+  definition: The share of people who saw something (an ad, an email, a search result) and clicked it.
+  formula: "Clicks / Impressions"
+  examples:
+    - "CTR of 3.1% on a display ad"
+  sql_example: "SELECT SUM(clicks) * 1.0 / SUM(impressions) AS ctr FROM ad_performance;"
+  python_example: "ad_performance['clicks'].sum() / ad_performance['impressions'].sum()"
+  common_mistakes:
+    - "Averaging per-ad CTRs directly instead of summing clicks/impressions first (biases toward low-volume ads)."
+  related_metrics: [conversion-rate, cpa, roas]
+  business_questions:
+    - "Is this creative/subject line resonating with the audience?"
+  interview_questions:
+    - question: "Why might a high-CTR ad still have poor ROAS?"
+      answer: "CTR only measures attention, not intent — the ad might attract clicks from an audience that rarely converts or has low purchase intent, so the traffic is cheap to attract but doesn't monetize."
+  display_order: 8
+
+- slug: cpa
+  name: Cost Per Acquisition (CPA)
+  category: marketing
+  definition: The cost to acquire one conversion (not always a paying customer — could be a lead, signup, or sale).
+  formula: "Total spend / Number of conversions"
+  examples:
+    - "CPA of $18 on a lead-gen campaign"
+  sql_example: "SELECT SUM(spend) / NULLIF(SUM(conversions), 0) AS cpa FROM marketing_campaigns;"
+  python_example: "campaigns['spend'].sum() / campaigns['conversions'].sum()"
+  common_mistakes:
+    - "Confusing CPA (cost per any defined conversion) with CAC (specifically cost per paying customer) — they're often used interchangeably but shouldn't be."
+  related_metrics: [cac, ctr, roas]
+  business_questions:
+    - "Which campaign is most cost-efficient at generating conversions?"
+  interview_questions:
+    - question: "CPA looks great on a campaign, but the sales team says the leads are low quality. What's going on?"
+      answer: "CPA measures acquisition cost per conversion, not conversion quality — the campaign may be optimizing for a cheap, easy-to-hit conversion event (e.g. a newsletter signup) that doesn't correlate with downstream revenue."
+  display_order: 9
+
+- slug: roas
+  name: Return on Ad Spend (ROAS)
+  category: marketing
+  definition: The revenue generated for every dollar spent on advertising.
+  formula: "Revenue attributed to ads / Ad spend"
+  examples:
+    - "A ROAS of 4.0 means $4 in revenue per $1 spent"
+  sql_example: "SELECT SUM(revenue) / NULLIF(SUM(spend), 0) AS roas FROM campaign_performance;"
+  python_example: "campaign_performance['revenue'].sum() / campaign_performance['spend'].sum()"
+  common_mistakes:
+    - "Using revenue instead of gross profit — a high ROAS can still be unprofitable if margins are thin."
+    - "Attribution window mismatches (crediting a sale to an ad click from months ago) inflating or deflating the number."
+  related_metrics: [cac, cpa, gross-margin]
+  business_questions:
+    - "Is this ad channel worth the spend?"
+  interview_questions:
+    - question: "Is a ROAS of 2.0 good or bad?"
+      answer: "It depends on gross margin — if margin is 60%, $1 spent needs about $1.67 in revenue to break even, so 2.0 is profitable; if margin is 20%, you'd need a ROAS of 5.0 to break even, so 2.0 would be a loss."
+  display_order: 10
+
+- slug: dau
+  name: Daily Active Users (DAU)
+  category: product
+  definition: The number of unique users who performed a meaningful action on a given day.
+  formula: "COUNT(DISTINCT user_id) for events on that day"
+  examples:
+    - "42,000 DAU on a typical Tuesday"
+  sql_example: "SELECT event_date, COUNT(DISTINCT user_id) AS dau FROM events GROUP BY event_date;"
+  python_example: "events.groupby('event_date')['user_id'].nunique()"
+  common_mistakes:
+    - "Counting any event (e.g. a background app-open ping) as 'active' rather than a genuinely meaningful action."
+  related_metrics: [wau, mau, dau-mau-ratio]
+  business_questions:
+    - "How many people are using the product today?"
+  interview_questions:
+    - question: "What counts as 'active' in your DAU definition, and why does it matter?"
+      answer: "It matters because a loose definition (any app open, including background pings) inflates DAU without reflecting real engagement — a good definition ties 'active' to a meaningful, intentional action."
+  display_order: 11
+
+- slug: wau
+  name: Weekly Active Users (WAU)
+  category: product
+  definition: The number of unique users who performed a meaningful action within a 7-day window.
+  formula: "COUNT(DISTINCT user_id) for events in the trailing 7 days"
+  examples:
+    - "180,000 WAU"
+  sql_example: "SELECT COUNT(DISTINCT user_id) FROM events WHERE event_date >= CURRENT_DATE - 7;"
+  python_example: "events[events['event_date'] >= cutoff]['user_id'].nunique()"
+  common_mistakes:
+    - "Summing 7 days of DAU instead of counting distinct users — massively over-counts anyone active on multiple days."
+  related_metrics: [dau, mau, dau-mau-ratio]
+  business_questions:
+    - "How large is the active user base at a weekly cadence?"
+  interview_questions:
+    - question: "Why can't you just sum 7 daily DAU numbers to get WAU?"
+      answer: "Because the same user active on multiple days would be counted multiple times — WAU needs a distinct-user count over the whole window, not a sum of daily distinct counts."
+  display_order: 12
+
+- slug: mau
+  name: Monthly Active Users (MAU)
+  category: product
+  definition: The number of unique users who performed a meaningful action within a 30-day window.
+  formula: "COUNT(DISTINCT user_id) for events in the trailing 30 days"
+  examples:
+    - "620,000 MAU"
+  sql_example: "SELECT COUNT(DISTINCT user_id) FROM events WHERE event_date >= CURRENT_DATE - 30;"
+  python_example: "events[events['event_date'] >= cutoff]['user_id'].nunique()"
+  common_mistakes:
+    - "Reporting MAU growth as a health signal on its own — a product can grow MAU while stickiness (DAU/MAU) declines."
+  related_metrics: [dau, wau, dau-mau-ratio]
+  business_questions:
+    - "What is the total addressable, currently-engaged user base?"
+  interview_questions:
+    - question: "MAU is up 20% YoY but DAU is flat. What might explain that?"
+      answer: "The product may be gaining infrequent/casual users (boosting the 30-day count) without gaining core, daily-habit users — worth checking the DAU/MAU ratio and cohort retention curves to see if engagement depth is declining."
+  display_order: 13
+
+- slug: dau-mau-ratio
+  name: DAU/MAU Ratio (Stickiness)
+  category: product
+  definition: The share of a product's monthly active users who are also active on a typical day — a proxy for how habitual/"sticky" the product is.
+  formula: "DAU / MAU"
+  examples:
+    - "A ratio of 0.25 means the average MAU user is active roughly 1 in 4 days"
+  sql_example: >
+    SELECT dau.d / mau.m AS stickiness FROM
+      (SELECT COUNT(DISTINCT user_id) AS d FROM events WHERE event_date = CURRENT_DATE) dau,
+      (SELECT COUNT(DISTINCT user_id) AS m FROM events WHERE event_date >= CURRENT_DATE - 30) mau;
+  python_example: "dau_count / mau_count"
+  common_mistakes:
+    - "Comparing stickiness across fundamentally different product types (a daily habit app vs. a once-a-quarter tax tool) as if higher is always better — the 'right' ratio depends on the product's natural use frequency."
+  related_metrics: [dau, mau]
+  business_questions:
+    - "Is the product a daily habit, or an occasional utility?"
+  interview_questions:
+    - question: "Is a DAU/MAU of 0.10 bad?"
+      answer: "It depends entirely on the product — 0.10 might be perfectly healthy for a tax-filing app used a few times a year, but concerning for a social feed meant to be a daily habit."
+  display_order: 14
+
+- slug: activation
+  name: Activation Rate
+  category: product
+  definition: The share of new users who reach a defined "aha moment" — the point where they've experienced the product's core value.
+  formula: "Users who reach the activation event / New users"
+  examples:
+    - "68% of signups activate (complete their first core action) within 7 days"
+  sql_example: >
+    SELECT COUNT(DISTINCT CASE WHEN activated THEN user_id END) * 1.0 / COUNT(DISTINCT user_id) AS activation_rate
+    FROM user_signup_cohort;
+  python_example: "cohort['activated'].mean()"
+  common_mistakes:
+    - "Picking an activation event that's too easy (e.g. 'viewed homepage') to be meaningful, or too hard (e.g. 'became a power user') to be an early signal."
+  related_metrics: [funnel-conversion, engagement, retention]
+  business_questions:
+    - "Are new users reaching real value quickly enough?"
+  interview_questions:
+    - question: "How would you choose what counts as an 'activation' event for a new product?"
+      answer: "Look for an early action that correlates strongly with long-term retention (e.g. via a retention curve split by whether users did/didn't take that action in their first session/week) — the best activation event is predictive, not just intuitive."
+  display_order: 15
+
+- slug: engagement
+  name: Engagement Rate
+  category: product
+  definition: A measure of how actively and frequently users interact with the product, typically the frequency or depth of core actions per active user.
+  formula: "Core actions per active user per period (varies by product)"
+  examples:
+    - "Average of 4.2 core actions per active user per week"
+  sql_example: "SELECT user_id, COUNT(*) AS actions FROM events WHERE event_name = 'core_action' GROUP BY user_id;"
+  python_example: "events[events['event_name']=='core_action'].groupby('user_id').size()"
+  common_mistakes:
+    - "Using a single, product-wide engagement number that hides very different behavior across user segments."
+  related_metrics: [activation, retention, feature-adoption]
+  business_questions:
+    - "Are active users getting more or less value over time?"
+  interview_questions:
+    - question: "Engagement per user is flat, but total engagement (sum across all users) is up. Is that good?"
+      answer: "It suggests growth is coming from more users at the same per-user depth, rather than deepening usage — both can be healthy, but they're different growth levers and call for different strategies."
+  display_order: 16
+
+- slug: retention
+  name: Retention Rate
+  category: product
+  definition: The share of users from a cohort who are still active in a later period.
+  formula: "Users active in period N / Users in the original cohort"
+  examples:
+    - "Month-1 retention of 42% for the January signup cohort"
+  sql_example: >
+    SELECT cohort_month, period_number, COUNT(DISTINCT user_id) * 1.0 / MAX(cohort_size) AS retention
+    FROM cohort_activity GROUP BY cohort_month, period_number;
+  python_example: "retention_matrix = cohort_activity.pivot_table(index='cohort_month', columns='period_number', values='retained_pct')"
+  common_mistakes:
+    - "Conflating 'classic' retention (active in exactly period N) with 'rolling' retention (active in period N or any period after) — they tell different stories and aren't comparable."
+  related_metrics: [churn, cohort-analysis, engagement]
+  business_questions:
+    - "Do users keep coming back after they first try the product?"
+  interview_questions:
+    - question: "Two products both report '40% Month-1 retention.' What would make these numbers not comparable?"
+      answer: "Different retention definitions (classic vs. rolling vs. unbounded), different activity thresholds ('any event' vs. 'core action'), or different cohort-inclusion rules (e.g. excluding bounced users) can all make identical-sounding numbers mean very different things."
+  display_order: 17
+
+- slug: churn
+  name: Churn Rate
+  category: customer
+  definition: The share of customers (or revenue) lost over a period — the inverse of retention.
+  formula: "Customers lost in period / Customers at the start of the period"
+  examples:
+    - "5% monthly logo churn"
+  sql_example: >
+    SELECT COUNT(*) FILTER (WHERE churned_this_month) * 1.0 / COUNT(*) AS churn_rate
+    FROM subscriptions WHERE status_at_period_start = 'active';
+  python_example: "subs['churned_this_month'].sum() / subs['active_at_period_start'].sum()"
+  common_mistakes:
+    - "Conflating logo churn (customer count) with revenue churn (dollars) — a business can have high logo churn but low revenue churn if the customers who leave are small accounts."
+    - "Not separating voluntary churn (customer chose to leave) from involuntary churn (a failed payment) — they need very different fixes."
+  related_metrics: [retention, ltv, mrr]
+  business_questions:
+    - "Are we losing customers/revenue faster than we're gaining them?"
+  interview_questions:
+    - question: "Logo churn is 5%/month but revenue churn is only 2%/month. What does that tell you?"
+      answer: "The customers churning tend to be smaller accounts (below-average revenue) — losing many small logos hurts the customer count more than the revenue line, which is a healthier pattern than the reverse."
+  display_order: 18
+
+- slug: feature-adoption
+  name: Feature Adoption Rate
+  category: product
+  definition: The share of eligible users who have used a specific feature at least once (or repeatedly, for a stricter definition).
+  formula: "Users who used the feature / Users who could have used it"
+  examples:
+    - "22% of Pro-plan users have tried the new export feature"
+  sql_example: >
+    SELECT COUNT(DISTINCT CASE WHEN used_feature THEN user_id END) * 1.0 / COUNT(DISTINCT user_id) AS adoption_rate
+    FROM eligible_users;
+  python_example: "eligible_users['used_feature'].mean()"
+  common_mistakes:
+    - "Measuring adoption against the entire user base instead of just users for whom the feature is relevant/available (e.g. a Pro-only feature measured against all users, including Free users who can't access it)."
+  related_metrics: [engagement, activation]
+  business_questions:
+    - "Is this feature finding its audience?"
+  interview_questions:
+    - question: "A new feature has 5% adoption after a month. Is that a failure?"
+      answer: "Depends on the feature's intended audience and discoverability — a niche power-user feature might be healthy at 5%, while a feature meant for all users with a prominent entry point would be concerning at that level. Check adoption within the intended segment, not the whole base."
+  display_order: 19
+
+- slug: mrr
+  name: Monthly Recurring Revenue (MRR)
+  category: revenue
+  definition: The predictable revenue a subscription business expects to receive each month.
+  formula: "SUM(monthly subscription value) across all active subscriptions"
+  examples:
+    - "$180K MRR across 1,200 active subscriptions"
+  sql_example: "SELECT SUM(mrr) FROM subscriptions WHERE status = 'active';"
+  python_example: "subscriptions.query(\"status == 'active'\")['mrr'].sum()"
+  common_mistakes:
+    - "Including one-time charges (setup fees, one-off purchases) in MRR, which by definition should only include recurring subscription value."
+    - "Not normalizing annual plans to a monthly-equivalent value (dividing by 12) before summing."
+  related_metrics: [arr, churn, revenue]
+  business_questions:
+    - "How much predictable revenue does the business have right now?"
+  interview_questions:
+    - question: "How would you decompose MRR growth into its components?"
+      answer: "New MRR (from new customers) + expansion MRR (upgrades/upsells) - contraction MRR (downgrades) - churned MRR (cancellations) = net new MRR — decomposing it this way shows whether growth is driven by new logos or existing-customer expansion."
+  display_order: 20
+
+- slug: arr
+  name: Annual Recurring Revenue (ARR)
+  category: revenue
+  definition: The annualized value of recurring revenue — MRR scaled to a yearly figure.
+  formula: "MRR × 12"
+  examples:
+    - "$2.16M ARR from $180K MRR"
+  sql_example: "SELECT SUM(mrr) * 12 AS arr FROM subscriptions WHERE status = 'active';"
+  python_example: "mrr_total * 12"
+  common_mistakes:
+    - "Treating ARR as a cash-in-hand figure rather than a run-rate projection — actual collected revenue can differ due to churn, upgrades, and downgrades during the year."
+  related_metrics: [mrr, revenue-growth]
+  business_questions:
+    - "What is the business's annualized scale, for board/investor reporting?"
+  interview_questions:
+    - question: "Why do SaaS companies report ARR instead of trailing-12-month revenue?"
+      answer: "ARR is a forward-looking run-rate based on current subscriptions, useful for gauging current business scale and trajectory, whereas trailing revenue is backward-looking and can lag a fast-changing business by up to a year."
+  display_order: 21
+
+- slug: gross-margin
+  name: Gross Margin
+  category: financial
+  definition: The share of revenue remaining after subtracting the direct cost of delivering the product/service (COGS).
+  formula: "(Revenue - COGS) / Revenue"
+  examples:
+    - "78% gross margin on a SaaS product"
+  sql_example: "SELECT (SUM(revenue) - SUM(cogs)) / NULLIF(SUM(revenue), 0) AS gross_margin FROM financials;"
+  python_example: "(financials['revenue'].sum() - financials['cogs'].sum()) / financials['revenue'].sum()"
+  common_mistakes:
+    - "Confusing gross margin (revenue minus direct delivery cost) with net margin (revenue minus ALL costs, including sales/marketing/overhead) — a healthy gross margin doesn't guarantee overall profitability."
+  related_metrics: [revenue, roas]
+  business_questions:
+    - "How much room is there to invest in growth after covering direct delivery costs?"
+  interview_questions:
+    - question: "A software company reports 90% gross margin but is still unprofitable. How is that possible?"
+      answer: "Gross margin only nets out direct delivery costs (e.g. hosting); the company can still be unprofitable if sales, marketing, R&D, and overhead costs exceed the gross profit — gross margin measures product economics, not overall company profitability."
+  display_order: 22
+
+- slug: win-rate
+  name: Win Rate
+  category: sales
+  definition: The share of sales opportunities that close as won deals (as opposed to lost or abandoned).
+  formula: "Won deals / (Won deals + Lost deals)"
+  examples:
+    - "A 24% win rate across the sales pipeline"
+  sql_example: >
+    SELECT COUNT(*) FILTER (WHERE stage = 'won') * 1.0 / COUNT(*) FILTER (WHERE stage IN ('won','lost')) AS win_rate
+    FROM opportunities;
+  python_example: "closed = opps[opps['stage'].isin(['won','lost'])]; (closed['stage']=='won').mean()"
+  common_mistakes:
+    - "Including still-open opportunities in the denominator, which deflates the win rate for deals that simply haven't closed yet."
+  related_metrics: [aov]
+  business_questions:
+    - "How effective is the sales team at closing qualified opportunities?"
+  interview_questions:
+    - question: "Win rate dropped from 30% to 22% this quarter. What would you investigate?"
+      answer: "Check whether the pipeline mix shifted (e.g. more low-fit leads entering the funnel, diluting quality), whether a competitor or pricing change affected deals, and whether the drop is concentrated in a specific segment, rep, or deal size."
+  display_order: 23

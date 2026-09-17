@@ -1,0 +1,68 @@
+slug: root-cause-analysis
+module_slug: analytical-thinking
+title: Root Cause Analysis
+description: Drilling from a symptom — a metric that moved — down to a root cause using a structured, "5 whys"-style approach.
+difficulty: BEGINNER
+estimated_minutes: 15
+display_order: 5
+objectives:
+  - Apply a structured "5 whys"-style approach to drill from a symptom to a root cause
+  - Distinguish a root cause from a plausible-sounding but unverified explanation
+prerequisites: [segmentation]
+skills: [business-problem-solving]
+tags: [foundations, beginner, business-analytics, case-study]
+key_takeaways:
+  - A symptom, the metric moving, is not the same as a root cause, the reason it moved — root cause analysis is the bridge between the two.
+  - Each "why" should be checked against data, not just reasoned from a desk, or you're stacking assumptions instead of finding a cause.
+  - Stop drilling when you reach something specific and actionable enough that fixing it should visibly move the metric back.
+common_mistakes:
+  - Stopping at the first plausible-sounding explanation instead of verifying it against the data.
+  - Confusing a correlated factor with a causal one — two things moving together doesn't mean one caused the other.
+blocks:
+  - type: heading
+    text: Symptom vs. root cause
+  - type: text
+    body: >
+      "Signups dropped" is a symptom — it describes what happened, not why. Root cause analysis is the
+      structured process of drilling from that symptom down to something specific enough to fix.
+  - type: heading
+    text: A 5-whys walkthrough
+  - type: example
+    title: Why did signups drop 15%?
+    body: >
+      1. Why did signups drop? Because completed signups on the mobile app fell 40% while web stayed
+      flat — checked by segmenting signups by platform. 2. Why did mobile signups fall? Because the
+      signup form's completion rate fell, not traffic — checked by confirming sessions to the signup
+      screen were flat, while form-start-to-complete rate dropped from 68% to 41%. 3. Why did
+      completion rate fall? Because it started dropping at the exact timestamp of Tuesday's mobile app
+      release — checked against hourly completion rate around the release time. 4. Why would the
+      release affect completion? The release added a new required field, phone number verification, to
+      the signup form — checked against release notes and a manual walkthrough of the new build. 5. Why
+      does that field hurt completion? A large share of users abandon at that exact step, visible in the
+      funnel between "form started" and "phone step reached," only in the new build. Root cause: the new
+      phone-verification step added in Tuesday's release is causing signup abandonment on mobile —
+      specific and actionable enough to fix.
+  - type: checklist
+    title: Doing 5-whys well
+    items:
+      - Check each "why" against actual data before moving to the next one, not just intuition
+      - Stop when you reach something specific and actionable, not just "user behavior changed"
+      - Watch for correlation vs. causation at each step — timing lining up is a clue, not proof
+  - type: callout
+    variant: common_mistake
+    title: Correlation isn't causation
+    body: >
+      The release and the drop happening at the same time is strong evidence, but not proof. Before
+      finalizing a root cause, check whether anything else changed at the same moment, like a marketing
+      campaign ending or a competitor's promotion, that could explain the timing just as well.
+  - type: question
+    prompt: In the 5-whys example above, why is "a new phone-verification step was added in the release" the root cause rather than "the mobile release happened"?
+    choices:
+      - "\"The release happened\" isn't specific or actionable — it doesn't tell you what to fix, while the phone-verification step does"
+      - Root causes must always be about a bug, not a deliberate product decision
+      - It isn't the root cause — the traffic pattern is the actual root cause
+    correct_index: 0
+    explanation: >
+      "The release" alone isn't actionable — a release can bundle dozens of changes. Drilling one more
+      level to the specific field that caused abandonment gives you something you can actually act on:
+      remove or simplify that one step.

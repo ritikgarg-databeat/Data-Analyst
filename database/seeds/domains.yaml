@@ -1,0 +1,87 @@
+# Seed data for the `domains` table.
+# display_order controls navigation/listing order. icon values are lucide-react icon names.
+- slug: data-analyst-foundations
+  name: Data Analyst Foundations
+  description: Core mindset, tools, and workflow every modern Data Analyst relies on.
+  icon: Compass
+  display_order: 1
+- slug: sql
+  name: SQL
+  description: Querying, joining, and reasoning about relational data — the analyst's primary language.
+  icon: Database
+  display_order: 2
+- slug: python
+  name: Python
+  description: Pandas, NumPy, and scripting for data cleaning, analysis, and automation.
+  icon: Code2
+  display_order: 3
+- slug: excel
+  name: Excel
+  description: Spreadsheet modeling, formulas, and pivot analysis for fast, ad-hoc business work.
+  icon: Table2
+  display_order: 4
+- slug: statistics
+  name: Statistics
+  description: Distributions, hypothesis testing, and inference for defensible conclusions.
+  icon: Sigma
+  display_order: 5
+- slug: data-visualization
+  name: Data Visualization
+  description: Communicating findings clearly through charts, dashboards, and narrative.
+  icon: LineChart
+  display_order: 6
+- slug: business-analytics
+  name: Business Analytics
+  description: Translating business questions into metrics, models, and recommendations.
+  icon: Briefcase
+  display_order: 7
+- slug: product-analytics
+  name: Product Analytics
+  description: Funnels, retention, experimentation, and product metrics for digital products.
+  icon: Rocket
+  display_order: 8
+- slug: data-engineering
+  name: Data Engineering
+  description: Pipelines, ETL/ELT, and the plumbing that keeps analytics data flowing.
+  icon: Workflow
+  display_order: 9
+- slug: data-warehousing
+  name: Data Warehousing
+  description: Warehouse architecture, star schemas, and modern cloud warehouse platforms.
+  icon: Warehouse
+  display_order: 10
+- slug: data-modeling
+  name: Data Modeling
+  description: Designing dimensional and relational models that scale with the business.
+  icon: Boxes
+  display_order: 11
+- slug: machine-learning
+  name: Machine Learning
+  description: Foundational ML concepts relevant to analyst-adjacent modeling work.
+  icon: BrainCircuit
+  display_order: 12
+- slug: modern-data-stack
+  name: Modern Data Stack
+  description: dbt, Airflow, and the tools powering today's analytics engineering workflows.
+  icon: Layers
+  display_order: 13
+- slug: case-studies
+  name: Case Studies
+  description: End-to-end, real-world business problems solved with data.
+  icon: FileSearch
+  display_order: 14
+- slug: projects
+  name: Projects
+  description: Portfolio-grade projects that demonstrate independent analytical ability.
+  icon: FolderKanban
+  display_order: 15
+- slug: interview-preparation
+  name: Interview Preparation
+  description: SQL, product sense, and case interview practice for Data Analyst roles.
+  icon: MessagesSquare
+  display_order: 16
+- slug: experimentation
+  name: Experimentation & A/B Testing
+  description: Designing experiments, analyzing results, and avoiding the pitfalls that invalidate them.
+  icon: FlaskConical
+  display_order: 17

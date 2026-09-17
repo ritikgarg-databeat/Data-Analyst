@@ -1,0 +1,108 @@
+slug: sales-pipeline-analytics
+title: Sales Pipeline Analytics
+category: BUSINESS_ANALYTICS
+business_context: >
+  Note on framing: this project reuses the platform's e-commerce order dataset (orders, order_items,
+  products, categories) as a proxy sales pipeline — treat each order's lifecycle from pending to
+  completed or cancelled as a stand-in for a deal moving through a sales funnel, and each order's
+  channel as a proxy sales channel, rather than a literal CRM/opportunity dataset.
+
+  You're the analyst supporting the Sales Operations team at a business whose "pipeline" is really
+  the flow of orders from pending through to completed or cancelled. Sales Ops suspects too many
+  pending orders never convert, that deal size (order value) varies a lot by channel and category,
+  and that there's real value leaking out of the process somewhere — but nobody has quantified where.
+objective: >
+  Analyze the order lifecycle as a sales pipeline: quantify the pending-to-completed conversion rate,
+  analyze deal-size (order value) trends by channel and category, identify where value is leaking out
+  of the process, and recommend where the sales/fulfillment process should be fixed, backed by a
+  pipeline dashboard.
+requirements:
+  - "A data-discovery summary describing the order-status lifecycle (pending/completed/cancelled/refunded) as a pipeline funnel, and how order value is computed from order_items"
+  - "A pipeline-conversion analysis quantifying the pending-to-completed rate overall and its trend over time"
+  - "A deal-size (average order value) analysis broken down by channel and by product category"
+  - "A leakage analysis identifying the specific pipeline stage(s) or segments where the most value is lost (e.g. highest cancellation rate segments, or lowest-converting channels)"
+  - "A pipeline dashboard with at least 4 charts covering conversion rate, deal-size trends, and channel/category breakdowns"
+  - "A written recommendation identifying where in the sales/fulfillment process the business should intervene to recover the most value"
+suggested_datasets:
+  - ecommerce
+milestones:
+  - title: Understand the Business
+    description: Frame the order lifecycle as a sales pipeline and clarify what "leaking value" means for this business.
+  - title: Data Discovery
+    description: Profile orders, order_items, products, and categories, and confirm how order status and order value should be interpreted as pipeline stage and deal size.
+  - title: Build the Pipeline-Conversion View
+    description: Quantify the pending-to-completed conversion rate and how it trends over time.
+  - title: Deal-Size Analysis
+    description: Analyze average order value (deal size) trends broken down by channel and product category.
+  - title: Leakage Analysis
+    description: Identify which pipeline stages, channels, or categories account for the most lost value.
+  - title: Build the Pipeline Dashboard
+    description: Design and build a dashboard summarizing pipeline conversion, deal size, and leakage for Sales Ops.
+  - title: Insights and Recommendation
+    description: Synthesize the findings into a recommendation for where the sales/fulfillment process should be fixed first.
+  - title: Final Presentation
+    description: Present the pipeline analysis and recommendation to Sales Operations leadership.
+required_skills:
+  - sql-fundamentals
+  - advanced-sql
+  - business-metrics
+  - exploratory-data-analysis
+  - data-visualization
+  - root-cause-analysis
+  - communication
+rubric:
+  - category: Business Understanding
+    weight: 10
+    criteria:
+      - criterion: Correctly maps the order-status lifecycle onto a sales-pipeline framing
+        points: 10
+      - criterion: Is transparent about the pipeline framing being a proxy over e-commerce order data, not a literal CRM dataset
+        points: 10
+  - category: Technical Execution
+    weight: 25
+    is_technical: true
+    criteria:
+      - criterion: Pending-to-completed conversion rate is computed correctly, including its trend over time
+        points: 10
+      - criterion: Deal-size (order value) calculation correctly aggregates from order_items
+        points: 10
+  - category: Analytical Reasoning
+    weight: 25
+    criteria:
+      - criterion: Correctly identifies where the pipeline leaks the most value (stage, channel, or category)
+        points: 10
+      - criterion: Deal-size breakdown reveals genuine, non-spurious differences across channel/category
+        points: 10
+      - criterion: Distinguishes low-conversion segments from low-value segments as different problems
+        points: 5
+  - category: Visualization
+    weight: 15
+    criteria:
+      - criterion: Dashboard clearly shows conversion rate, deal-size trends, and leakage points
+        points: 10
+      - criterion: Chart choices make the highest-leakage segments immediately visible
+        points: 5
+  - category: Recommendations
+    weight: 25
+    criteria:
+      - criterion: Recommendation identifies a specific, prioritized intervention point in the pipeline
+        points: 10
+      - criterion: Recommendation is quantified in terms of potential value recovered
+        points: 10
+      - criterion: Recommendation is realistic given the process constraints implied by the data
+        points: 5
+learning_objectives:
+  - Translate an order-lifecycle dataset into a sales-pipeline conversion framing
+  - Analyze deal-size trends across sales channels and product categories
+  - Identify where value leaks out of a multi-stage business process
+  - Design a pipeline-monitoring dashboard
+  - Recommend a prioritized process intervention backed by quantified value impact
+estimated_hours: 6.5
+tags:
+  - sql
+  - business-analytics
+  - e-commerce
+  - eda
+  - root-cause
+  - intermediate
+version: 1

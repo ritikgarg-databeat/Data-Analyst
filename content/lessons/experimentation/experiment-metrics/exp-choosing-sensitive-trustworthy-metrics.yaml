@@ -1,0 +1,109 @@
+slug: exp-choosing-sensitive-trustworthy-metrics
+module_slug: experiment-metrics
+title: Picking Metrics That Are Sensitive, Trustworthy, and Hard to Game
+description: >
+  Three properties a good experiment metric needs — enough to detect a real effect at reasonable sample
+  sizes, resistant to being distorted by one weird user, and hard to move without genuinely improving the
+  product — with a concrete comparison of two candidate metrics.
+difficulty: INTERMEDIATE
+estimated_minutes: 15
+display_order: 1
+objectives:
+  - Explain why a binary "did it happen" metric is usually more sensitive (detectable at smaller sample sizes) than a highly variable dollar metric
+  - Identify when a metric is "gameable" — movable by an easy shortcut that doesn't reflect real improvement
+  - Choose between two candidate metrics for a given experiment based on sensitivity, trustworthiness, and gameability
+prerequisites: [exp-primary-secondary-guardrail-metrics]
+skills: [experimentation, statistical-reasoning, metric-definition]
+datasets: [saas-product]
+tags: [experimentation, ab-testing, saas, intermediate]
+key_takeaways:
+  - "Sensitivity: a metric with low variance relative to the effect you're hoping for needs a smaller sample to detect that effect — a binary conversion rate is usually far more sensitive than a skewed dollar-value metric like revenue per user."
+  - "Trustworthiness: a good metric isn't dominated by a handful of extreme values — one whale's $50,000 order shouldn't be able to single-handedly decide which variant 'wins.'"
+  - "Hard to game: a metric should only move when the underlying behavior genuinely improves, not when a team finds an easy shortcut that inflates the number without helping the user or the business."
+common_mistakes:
+  - Choosing "revenue per user" as a primary metric for a small-sample test, not realizing its variance (driven by a few large orders) means the test would need a far larger sample than a conversion-rate metric to detect the same underlying effect.
+  - Picking a metric like "clicks on the upgrade button" that can be inflated by making the button more annoying or harder to dismiss, without the underlying upgrade rate actually improving.
+blocks:
+  - type: heading
+    text: Not all metrics are equally useful for an experiment
+  - type: text
+    body: >
+      Two metrics can both be reasonable descriptions of "success," but be very different experiment
+      metrics. A good experiment metric needs three properties together — it has to be **sensitive**
+      enough to detect a real effect without an enormous sample, **trustworthy** enough that it isn't
+      dominated by a few extreme values, and **hard to game**, so that the only way to move it is to
+      genuinely change user behavior for the better.
+  - type: heading
+    text: Sensitivity — binary metrics beat skewed dollar metrics
+    level: 3
+  - type: text
+    body: >
+      A metric's sensitivity is about its variance relative to the size of effect you're trying to
+      detect. A conversion rate (did the user check out — yes or no) has bounded, well-understood
+      variance. A metric like "revenue per user" can have enormous variance because a handful of large
+      orders pull it around — which means, all else equal, you'd need a much bigger sample to reliably
+      detect the same-sized *real* improvement in revenue per user as you would in conversion rate. This
+      connects directly to the Sample Size module: variance is one of the two inputs (along with the
+      minimum effect worth detecting) that determines how many users an experiment needs.
+  - type: example
+    title: "checkout_redesign: conversion rate as the sensitive choice"
+    body: >
+      For the checkout redesign test, conversion rate (11.3% control vs. 12.5% treatment, on 1,000 users
+      per group) is a bounded, binary metric — every user contributes a 0 or a 1. If the team had instead
+      chosen "average order value" as the primary metric, a handful of unusually large enterprise
+      customers randomly landing in one group could swing the average dramatically, even if the
+      redesign's real effect on typical users was identical in both groups. Conversion rate is the more
+      sensitive, more trustworthy choice for this hypothesis.
+  - type: table
+    caption: Two candidate metrics for the same test
+    headers: ["Property", "Conversion rate (binary)", "Revenue per user (dollar amount)"]
+    rows:
+      - ["Variance", "Low — bounded between 0 and 1", "Often high — driven by a small number of large orders"]
+      - ["Sample size needed to detect a given real effect", "Smaller", "Larger, sometimes much larger"]
+      - ["Sensitive to one extreme user", "No — one user contributes at most 1", "Yes — one large order can shift the group average"]
+  - type: heading
+    text: Hard to game
+    level: 3
+  - type: text
+    body: >
+      A metric is gameable if there's an easy way to move it that doesn't reflect the outcome you
+      actually care about. "Clicks on the upgrade button" can be inflated by making the button bigger,
+      more annoying, or harder to dismiss — none of which means more people actually want to upgrade.
+      "Signup-to-paid conversion within 24 hours" is harder to game, because the only realistic way to
+      move it is to genuinely make more people want to pay faster.
+  - type: callout
+    variant: tip
+    title: Ask "how could I move this number without actually helping the user?"
+    body: >
+      Before locking in a primary metric, it's worth explicitly trying to think of a cheap way to move
+      it that wouldn't reflect real improvement. If one comes to mind easily, the metric is probably too
+      gameable to trust on its own — pair it with a guardrail that would catch the shortcut (e.g., a
+      "clicks" metric paired with a downstream "completed purchase" guardrail).
+  - type: question
+    prompt: >
+      A team is deciding between "total revenue" and "checkout conversion rate" as the primary metric
+      for a test with 1,000 users per group, where a small number of enterprise customers place orders
+      10-100x larger than typical users. Which is the better primary metric, and why?
+    choices:
+      - "Total revenue, because it's the number that ultimately matters to the business"
+      - "Checkout conversion rate, because with this sample size a metric dominated by a handful of large orders would need a much larger sample to reliably detect a real effect, and a lucky/unlucky enterprise customer in one group could swing the result"
+      - "It doesn't matter — any metric will give the same statistical result at this sample size"
+    correct_index: 1
+    explanation: >
+      Total revenue in the presence of a few very large orders is a high-variance, low-sensitivity
+      metric — at only 1,000 users per group, it's easily dominated by which group happened to receive
+      the large enterprise orders, which has nothing to do with the checkout redesign. Conversion rate is
+      bounded and far less sensitive to any single user, so it's the more trustworthy and more sensitive
+      choice at this sample size. (Revenue impact can still be estimated afterward, e.g. via conversion
+      rate times average order value, once the effect on conversion is established.)
+interview_questions:
+  - question: "What makes a metric a good choice for an experiment's primary metric, beyond just 'it matters to the business'?"
+    answer: >
+      A good primary metric needs to be sensitive (its variance is small enough relative to the effect
+      you're hoping to detect that a reasonable sample size can actually find it — binary conversion
+      metrics are usually far more sensitive than skewed dollar-value metrics), trustworthy (not
+      dominated by a handful of extreme values, so one unusual user in one group can't single-handedly
+      decide the result), and hard to game (the only realistic way to move it is to genuinely improve the
+      underlying behavior, not to find a cheap shortcut that inflates the number without helping the
+      user). A metric that matters to the business but fails on sensitivity or gameability can still make
+      for a bad primary metric.

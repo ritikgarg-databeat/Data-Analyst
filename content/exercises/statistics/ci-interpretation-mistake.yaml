@@ -1,0 +1,47 @@
+slug: ci-interpretation-mistake
+lesson_slug: ci-interpreting-confidence-intervals
+skill: statistical-reasoning
+dataset: saas-product
+title: What Do These Two Overlapping Intervals Actually Tell You?
+description: Given real confidence intervals from the checkout_redesign experiment, state precisely what they mean and what decision they do (and don't) support.
+exercise_type: DATA_INTERPRETATION
+difficulty: INTERMEDIATE
+points: 15
+tags: [statistics, experimentation, ab-testing, intermediate]
+prompt: >
+  The checkout_redesign experiment (1,000 users per arm) produced these 95% confidence intervals:
+  control conversion rate 11.3%, 95% CI (9.5%, 13.4%); treatment conversion rate 12.5%, 95% CI
+  (10.6%, 14.7%). A stakeholder says: "there's a 95% chance the true control rate is between 9.5%
+  and 13.4%, and since the treatment number is higher, we should ship the redesign." Identify every
+  statistical error in that statement, state the technically correct interpretation of a 95%
+  confidence interval, and explain what these two specific intervals do and don't support as a
+  shipping decision.
+hints:
+  - "There are two separable claims in the stakeholder's statement — one about what a confidence interval means in general, and one about whether 'treatment's point estimate is higher' is enough justification to ship on its own. Address both."
+  - "Think about what it means for the two intervals to overlap as heavily as they do here, and how that relates to (without being identical to) the formal hypothesis test result for this same experiment (p = 0.407) covered elsewhere in this domain."
+solution: >
+  Error 1 — the confidence interval interpretation: "there's a 95% chance the true rate is in this
+  interval" is the classic incorrect reading. The correct interpretation is that if this sampling and
+  interval-construction procedure were repeated many times, about 95% of the resulting intervals
+  would contain the true population rate — the 95% describes the long-run reliability of the
+  method, not a probability attached to this one already-computed interval.
+  Error 2 — treating "the point estimate is higher" as sufficient justification to ship: control's
+  interval (9.5%, 13.4%) and treatment's interval (10.6%, 14.7%) overlap heavily — most of
+  treatment's plausible range sits inside control's plausible range. That overlap is a strong visual
+  signal that this sample can't confidently distinguish the two rates, which is exactly confirmed by
+  running the formal two-proportion test on this same data (p = 0.407, not significant). A higher
+  point estimate alone, without accounting for the uncertainty each interval represents, is not
+  sufficient evidence that treatment truly outperforms control.
+  What this data does and doesn't support: it doesn't provide strong evidence to ship the redesign
+  on statistical grounds alone. It also doesn't prove the redesign has no effect — a companion power
+  calculation shows this test (1,000 users/arm) had only about 43% power to detect the effect size
+  actually being tested for. The defensible recommendation is to extend the test to a properly
+  calculated sample size (roughly 2,500 users per arm) rather than either shipping based on the
+  point estimate or abandoning the idea based on the non-significant result.
+explanation: >
+  A strong answer separates the *interpretation* error (what a CI formally means) from the
+  *decision* error (whether a higher point estimate alone justifies shipping), and connects the
+  overlapping intervals to the underlying hypothesis test result rather than treating them as two
+  unrelated facts. A weaker answer either only corrects the CI wording without addressing the
+  shipping decision, or jumps straight to "don't ship" without acknowledging that this test may
+  simply be underpowered rather than showing a genuinely null result.

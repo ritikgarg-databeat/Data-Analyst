@@ -1,0 +1,138 @@
+slug: ecommerce-repeat-purchase-decline
+title: "Is Repeat Purchasing Actually Falling?"
+category: CUSTOMER_ANALYTICS
+difficulty: ADVANCED
+estimated_minutes: 90
+
+company_context: >
+  Verdant Home & Goods has been growing its customer base steadily for the last two years, with
+  new-customer signups happening every month alongside an expanding base of returning shoppers.
+stakeholder_name: "Marcus Ellison"
+stakeholder_role: "Head of Retention Marketing"
+problem_statement: >
+  "Something's been bugging me. Our repeat purchase rate looks like it's dropping when I glance at
+  recent months, and a couple of people on the leadership team have started asking about it too.
+  I don't have a clean explanation for why, and I don't want to walk into next week's review
+  either dismissing it or overreacting to it. Can you dig into whether this is actually happening,
+  and if it is, what's driving it? I'd rather hear 'it's not actually a problem' backed by real
+  numbers than a nervous guess in either direction."
+business_context: >
+  Retention marketing is deciding whether to launch a reactivation campaign targeting lapsed
+  customers next quarter. That decision — and its budget — hinges on whether repeat purchasing is
+  genuinely weakening, holding steady, or actually fine, so the read needs to be right, not just
+  fast.
+objective: >
+  Determine, using real order history, whether Verdant's repeat purchase rate is genuinely
+  declining, and if so, for which customers and over what time frame — producing a conclusion
+  Marcus can defend in front of leadership either way.
+initial_information: >
+  You have access to the full e-commerce schema: customers (with signup_date), orders (with
+  order_date and status), order_items, products, categories, payments, sessions, and
+  marketing_campaigns. The business has been actively acquiring new customers every month across
+  the full date range available in the data.
+constraints:
+  - "Only completed orders should count as a realized purchase."
+  - "The business has been growing its customer base throughout the period covered by the data — any time-based comparison needs to account for that, not just eyeball a raw monthly total."
+  - "Marcus needs a conclusion that holds up under scrutiny either way — 'it's declining' and 'it's not declining' both need to be backed by a metric that is fair to compare across time."
+available_datasets: ["ecommerce"]
+expected_deliverables:
+  - "A clearly defined repeat purchase rate metric, stated precisely (what counts as a 'repeat', over what window, for which population)"
+  - "At least one naive/raw view of the trend over time, and an explanation of why it may or may not be trustworthy on its own"
+  - "A cohort- or time-window-controlled view that fairly compares customers of similar tenure/age to each other"
+  - "A clear, direct answer to Marcus's question, with the reasoning that supports it"
+learning_objectives:
+  - "Recognize when a growing population can distort a naive time-series metric, even without any real change in underlying behavior"
+  - "Build a cohort-controlled or fixed-window metric to make a fair apples-to-apples comparison over time"
+  - "Distinguish a genuine trend from an artifact of business growth, censoring, or metric definition"
+  - "Deliver an honest conclusion even when it contradicts the stakeholder's initial impression"
+stages: [CLARIFY, FRAME, EXPLORE, ANALYZE, VALIDATE, INSIGHTS, RECOMMEND, SUBMIT]
+required_exercise_slugs: []
+tags: [e-commerce, retention, cohort, customer-analytics, business-analytics, case-study, real-world, advanced]
+skills: [exploratory-data-analysis, statistical-reasoning, data-interpretation, root-cause-analysis, decision-making]
+
+clarification_guidance:
+  - "A good clarifying question asks precisely what 'repeat purchase rate' means here — repeat within what time window, out of which population (all customers, or only those who've bought at least once)?"
+  - "A good clarifying question asks whether the customer base has been growing over the period in question, since a growing population can distort a naive month-over-month metric even if nothing has changed."
+  - "A good clarifying question asks what time window Marcus is actually looking at when he says it 'looks like it's dropping' — the most recent one or two months, or a longer trend?"
+  - "A good clarifying question asks whether newer customers should be compared against older customers on equal footing (e.g., same number of days since signup/first purchase), rather than compared as of the same calendar date."
+rubric:
+  - category: "Problem Framing & Clarification"
+    weight: 15
+    criteria:
+      - criterion: "Defines repeat purchase rate precisely (numerator, denominator, time window) before computing anything"
+        points: 8
+      - criterion: "Identifies that a growing customer base can distort naive time-series comparisons and that this needs to be checked, not assumed away"
+        points: 7
+  - category: "Technical Analysis"
+    weight: 35
+    is_technical: true
+    criteria:
+      - criterion: "Computes an overall repeat purchase rate correctly (customers with >1 completed order divided by customers with >=1 completed order)"
+        points: 8
+      - criterion: "Computes a naive time-based view (e.g., monthly repeat share of orders or active customers) and observes its trend"
+        points: 10
+      - criterion: "Builds a cohort-controlled or fixed-window comparison (e.g., a fixed N-day repeat-purchase window measured from each cohort's first purchase or signup) that fairly compares customers of different tenure"
+        points: 17
+  - category: "Insight Quality"
+    weight: 20
+    criteria:
+      - criterion: "Correctly explains why the naive and cohort-controlled views can tell different stories, and identifies which one actually answers Marcus's question"
+        points: 10
+      - criterion: "Accounts for right-censoring of the newest customers (who haven't had time to repeat-purchase yet) when interpreting the most recent months"
+        points: 10
+  - category: "Recommendation & Business Judgment"
+    weight: 20
+    criteria:
+      - criterion: "Gives a direct, defensible answer to whether repeat purchasing is genuinely declining, holding steady, or improving — not a hedge"
+        points: 12
+      - criterion: "Connects the conclusion to the actual decision at hand (whether to fund a reactivation campaign) rather than stopping at the metric"
+        points: 8
+  - category: "Communication"
+    weight: 10
+    criteria:
+      - criterion: "Clearly communicates the distinction between the naive metric and the cohort-controlled metric to a non-technical stakeholder, including why the naive one can mislead"
+        points: 10
+hints:
+  - "Start with the simplest version of the metric — repeat purchase rate across the whole customer base, all-time — as a baseline before looking at any trend over time."
+  - "If you plot repeat share by calendar month, ask yourself what that trend would look like even if nothing about customer behavior changed at all, given that the company has been adding new customers every month. A metric that mechanically rises (or falls) as a business grows isn't telling you what you think it's telling you."
+  - "Try comparing customers on equal footing — for example, the share of each signup or first-purchase cohort that placed a second order within a fixed number of days of their first (e.g., 90 days) — but only for cohorts old enough that the full window has already passed. Cohorts that haven't had time to mature yet will look artificially weak if you don't exclude or flag them."
+  - "Once you have a cohort-controlled number, compare an early cohort to a recent (but still mature) cohort directly, rather than eyeballing a chart — a specific side-by-side comparison is more convincing than a trend line."
+reference_solution:
+  summary: >
+    The data does not support a genuine decline in repeat purchasing. Overall, of 1,261 customers
+    with at least one completed order, 778 (61.7%) have placed more than one — a healthy repeat
+    rate. A naive monthly view (share of each month's completed orders, or each month's active
+    customers, that come from a repeat purchaser) does trend upward over time — from near 0% in
+    early 2024 to roughly 64-77% by late 2025 — but this is a growth artifact, not a behavior
+    change: the business had almost no purchase history to repeat against in its first few months,
+    so the raw monthly repeat share was mechanically low early on and mechanically rises as the
+    customer base matures, regardless of any real change in individual customer behavior. A fair,
+    cohort-controlled comparison — the share of each first-purchase-month cohort that placed a
+    second completed order within 90 days of their first, computed only for cohorts old enough
+    that the 90-day window has fully elapsed (first purchase on or before 2025-10-02) — is noisy
+    (ranging roughly 23% to 61% month to month) but shows no clear downward trend: the average
+    across the first six mature cohorts (Jan-Jun 2024) is 40.3%, versus 44.1% across the most
+    recent six fully mature cohorts (Apr-Sep 2025) — slightly higher, not lower. Separately, about
+    182 of 1,500 customers (12%) signed up in the final three months of the available data
+    (Oct-Dec 2025) and are too new for a 90-day repeat window to have even completed yet — anyone
+    eyeballing raw recent-month repeat counts without accounting for this right-censoring would see
+    an artificially low number for the newest cohorts and could easily mistake it for a decline.
+  key_insights:
+    - "Overall lifetime repeat purchase rate is 61.7% (778 of 1,261 customers with a completed order have placed more than one) — a healthy baseline, not evidence of a problem."
+    - "A naive month-over-month repeat-share metric rises sharply over the period (from near 0% to ~70%+), but this is a mechanical artifact of the customer base maturing during a growth phase, not a real improvement or decline in individual behavior."
+    - "A cohort-controlled 90-day repeat-purchase rate, computed fairly across mature cohorts only, shows no real decline: recent mature cohorts (Apr-Sep 2025 average 44.1%) are comparable to or slightly better than cohorts from a year earlier (Jan-Jun 2024 average 40.3%)."
+    - "About 12% of the customer base signed up in the final three months of the data and hasn't had time to complete a 90-day repeat window — looking at raw, uncontrolled recent-month numbers without accounting for this would create a false impression of decline."
+  recommendation: >
+    Tell leadership directly that the data does not support a genuine decline in repeat purchasing
+    — the apparent drop is best explained by looking at raw, un-cohort-adjusted numbers for the
+    newest, not-yet-mature customer cohorts, combined with a naive monthly metric that is
+    mechanically distorted by the company's own growth. Recommend against funding a broad emergency
+    reactivation campaign on the basis of "declining repeat purchasing," since that premise doesn't
+    hold up. If Marcus still wants a proactive retention play, recommend one targeted at monitoring
+    the newest cohorts as they mature (rather than reacting to them prematurely) and continuing to
+    track the cohort-controlled 90-day metric on an ongoing basis so any real future shift is caught
+    on a fair, apples-to-apples basis.
+  acceptable_alternatives:
+    - "A recommendation that also proposes extending the cohort window beyond 90 days (e.g., 180 days) to double-check the conclusion, provided the core finding — no real decline in the cohort-controlled view — is supported with the actual computed numbers."
+    - "A recommendation that flags the month-to-month noise in the cohort-controlled rate (23%-61%) as itself worth monitoring for stability, even while concluding there is no clear downward trend."
+version: 1

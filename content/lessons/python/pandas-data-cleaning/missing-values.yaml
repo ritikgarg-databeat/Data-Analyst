@@ -1,0 +1,170 @@
+slug: missing-values
+module_slug: pandas-data-cleaning
+title: Missing Values
+description: "Finding missing data with .isna()/.isnull(), counting it per column, and deciding between .dropna() and .fillna()."
+difficulty: BEGINNER
+estimated_minutes: 13
+display_order: 1
+objectives:
+  - "Detect missing values with .isna() and count them per column with .sum()"
+  - "Remove rows or columns with missing data using .dropna(), with subset and how"
+  - "Fill missing values with .fillna() using a constant, forward-fill, or a summary statistic like the mean"
+prerequisites: [indexing-in-pandas]
+skills: [pandas]
+datasets: [ecommerce]
+tags: [python, beginner, real-world]
+key_takeaways:
+  - "df.isna().sum() is the single most useful line for a first look at data quality — it turns a wall of True/False values into one clean count of missing values per column."
+  - "Missing data is not always a mistake — a NULL customer_id on a session can genuinely mean 'this visitor hadn't logged in yet,' not 'the data pipeline broke.' Understand why a value is missing before deciding how to handle it."
+  - ".dropna() removes rows (or columns), which is safe when missing rows are rare and unbiased, but throws away information; .fillna() keeps every row but requires you to make an explicit, defensible choice about what value should stand in for 'unknown.'"
+  - "fillna's forward-fill (df.ffill()) carries the last valid value forward — useful for data that's naturally ordered, like a running status, but nonsensical for something like a customer ID that has no 'previous' logical value."
+common_mistakes:
+  - "Running .dropna() on a whole DataFrame without a subset, and silently losing far more rows than intended because one column with a lot of legitimate missingness (like an optional field) drags every row containing it out of the dataset."
+  - "Filling a numeric column's missing values with 0 by default, when 0 is actually a plausible real value in that column — turning 'we don't know' into 'we know it's zero,' which quietly biases any calculation downstream."
+  - "Confusing .isna() (are these values missing) with .dropna()/.fillna() (do something about missing values) — .isna() alone doesn't remove or fix anything, it just flags."
+blocks:
+  - type: text
+    body: >
+      Real data has gaps. A customer skips an optional field, a session is anonymous, an integration
+      fails to backfill a value — missing data shows up constantly, and pandas represents it as `NaN`
+      (Not a Number) for numeric columns, or `None`/`NaN` for other types. Before you can clean it up, you
+      need to find it.
+  - type: heading
+    text: "Finding missing values: .isna() and .isnull()"
+  - type: code
+    language: python
+    code: |
+      import pandas as pd
+
+      sessions = pd.read_csv("data/sample/ecommerce/sessions.csv")
+      print(sessions[["customer_id", "marketing_campaign_id"]].head(5))
+    caption: "Two genuinely nullable columns — an anonymous session has no customer_id, and organic/direct traffic has no marketing_campaign_id"
+  - type: output
+    body: |
+         customer_id  marketing_campaign_id
+         0       1011.0                    NaN
+         1        196.0                    NaN
+         2          NaN                    1.0
+         3          NaN                    7.0
+         4       1192.0                    NaN
+  - type: text
+    body: >
+      `.isna()` (an exact synonym of `.isnull()` — use whichever reads better to you) returns a DataFrame
+      or Series of True/False, matching the shape of what you called it on, True wherever a value is
+      missing.
+  - type: heading
+    text: "Counting missing values per column"
+  - type: code
+    language: python
+    code: |
+      print(sessions.isna().sum())
+    caption: "Summing a column of True/False treats True as 1 — this counts missing values per column"
+  - type: output
+    body: |
+      session_id                   0
+      customer_id                4174
+      session_start                  0
+      session_end                    0
+      device                          0
+      landing_page                    0
+      marketing_campaign_id        7170
+      converted                      0
+      dtype: int64
+  - type: callout
+    variant: important
+    title: "12,000 sessions — 4,174 anonymous, 7,170 with no campaign"
+    body: >
+      customer_id is missing for 4,174 of 12,000 sessions (about 35%) — those are visits from people who
+      weren't logged in. marketing_campaign_id is missing for 7,170 (about 60%) — organic search and
+      direct traffic simply have no campaign to attribute. Neither of these is a data quality bug: both
+      columns are missing *by design*, which is exactly why understanding the business meaning of a gap
+      matters before deciding what to do with it.
+  - type: heading
+    text: ".dropna() — removing rows with missing data"
+  - type: code
+    language: python
+    code: |
+      print(len(sessions))
+      print(len(sessions.dropna()))
+      print(len(sessions.dropna(subset=["customer_id"])))
+    caption: "dropna() with no arguments drops a row if ANY column is missing; subset limits which columns count"
+  - type: output
+    body: |
+      12000
+      3179
+      7826
+  - type: callout
+    variant: warning
+    title: Dropping on every column at once is rarely what you want
+    body: >
+      sessions.dropna() dropped over two-thirds of the rows (12,000 down to 3,179) because it drops a row
+      if EITHER customer_id OR marketing_campaign_id is missing, and between the two, most rows are
+      missing at least one. If your actual goal is "sessions from identified customers," dropna(subset=
+      ['customer_id']) is the right, much less destructive tool — it drops only on the column you
+      actually care about.
+  - type: heading
+    text: ".fillna() — filling in a value instead of dropping the row"
+  - type: code
+    language: python
+    code: |
+      filled = sessions.copy()
+      filled["customer_id"] = filled["customer_id"].fillna(-1)
+      filled["marketing_campaign_id"] = filled["marketing_campaign_id"].fillna(0)
+      print(filled[["customer_id", "marketing_campaign_id"]].isna().sum())
+    caption: "-1 and 0 as sentinel values meaning 'no customer' / 'no campaign' — chosen because neither is a real id"
+  - type: output
+    body: |
+      customer_id               0
+      marketing_campaign_id     0
+      dtype: int64
+  - type: text
+    body: >
+      A constant is only one option. Two others come up constantly: **forward-fill**, which carries the
+      last valid value forward (`.ffill()`), and filling with a **summary statistic** like the mean or
+      median, typically for a genuinely numeric measurement rather than an id.
+  - type: code
+    language: python
+    code: |
+      import numpy as np
+
+      prices = pd.Series([19.99, np.nan, 24.50, 31.00, np.nan, 22.25])
+
+      print(prices.ffill())
+      print()
+      print(prices.fillna(prices.mean()))
+    caption: "Forward-fill carries index 0's 19.99 into index 1; mean-fill uses the same 24.435 average for every gap"
+  - type: output
+    body: |
+      0    19.99
+      1    19.99
+      2    24.50
+      3    31.00
+      4    31.00
+      5    22.25
+      dtype: float64
+
+      0    19.990
+      1    24.435
+      2    24.500
+      3    31.000
+      4    24.435
+      5    22.250
+      dtype: float64
+  - type: table
+    headers: ["Strategy", "Call", "Good fit for"]
+    rows:
+      - ["Drop the row", "df.dropna(subset=[...])", "Missing rows are rare and not systematically different from the rest"]
+      - ["Fill with a constant", "df['col'].fillna(-1)", "An id/category column where 'unknown' is a meaningful category of its own"]
+      - ["Forward-fill", "df['col'].ffill()", "Naturally ordered data (time series, running status) where the last known value is a reasonable stand-in"]
+      - ["Fill with mean/median", "df['col'].fillna(df['col'].mean())", "A numeric measurement, when you want to keep the row without letting the gap skew a sum badly"]
+  - type: question
+    prompt: "sessions.dropna() drops a row from the DataFrame if..."
+    choices:
+      - "Any column in that row has a missing value"
+      - "Every column in that row has a missing value"
+      - "The customer_id column specifically has a missing value"
+    correct_index: 0
+    explanation: >
+      With no arguments, .dropna() drops a row the moment ANY single column is missing — which is why it
+      removed over two-thirds of the sessions rows here. Passing subset=['col', ...] restricts the check
+      to only the listed columns.

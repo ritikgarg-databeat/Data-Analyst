@@ -1,0 +1,21 @@
+slug: biz-break-even-analysis
+skill: business-metrics
+title: Break-Even Point Concept
+description: A product has $50 in fixed costs per unit-equivalent period and a $10 contribution margin per unit
+  sold. Roughly how many units must be sold to break even?
+exercise_type: MULTIPLE_CHOICE
+difficulty: INTERMEDIATE
+points: 5
+tags:
+- unit-economics
+- profitability
+prompt: A product has $50 in fixed costs per unit-equivalent period and a $10 contribution margin per unit sold.
+  Roughly how many units must be sold to break even?
+correct_answer: 5 units (fixed costs / contribution margin per unit)
+explanation: Break-even units = fixed costs / contribution margin per unit = 50/10 = 5 -- the point at which cumulative
+  contribution margin exactly offsets fixed costs, before any unit sold beyond that point contributes to profit.
+choices:
+- 5 units (fixed costs / contribution margin per unit)
+- 50 units
+- 10 units
+- 500 units

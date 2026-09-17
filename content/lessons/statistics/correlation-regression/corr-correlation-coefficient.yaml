@@ -1,0 +1,92 @@
+slug: corr-correlation-coefficient
+module_slug: correlation-regression
+title: The Correlation Coefficient
+description: Measuring how strongly two numeric variables move together, computed and verified on real order-level data.
+difficulty: ADVANCED
+estimated_minutes: 12
+display_order: 1
+objectives:
+  - Compute the Pearson correlation coefficient between two numeric variables and interpret its sign and magnitude.
+  - Recognize that a strong correlation between two variables constructed from the same underlying data (e.g., quantity and revenue) can be expected, not surprising.
+skills: [statistics, statistical-reasoning]
+datasets: [ecommerce]
+tags: [statistics, advanced, e-commerce]
+prerequisites: [test-anova]
+key_takeaways:
+  - "The Pearson correlation coefficient r ranges from -1 (perfect negative relationship) to +1 (perfect positive relationship), with 0 meaning no linear relationship."
+  - "r only measures *linear* association — two variables can have a strong non-linear relationship (a curve) and still produce a correlation coefficient near 0."
+  - A correlation's statistical significance (its p-value) and its practical strength (the magnitude of r) are different questions — with enough data, even a very weak r can be \"statistically significant.\"
+common_mistakes:
+  - Reading a correlation's p-value as if it tells you how strong the relationship is — with a large enough sample, even r = 0.05 can produce a tiny p-value; strength is about the magnitude of r, not its significance.
+  - Assuming correlation always implies a straightforward, "natural" business story, without checking whether the two variables are mechanically linked by how they're calculated (covered in the next lesson).
+interview_questions:
+  - question: An order-level dataset shows a Pearson correlation of 0.83 between total quantity of items and order revenue. Is this surprising, and what does the magnitude tell you?
+    answer: >
+      Not especially surprising — revenue is directly built from quantity and price, so a strong
+      positive relationship between quantity and revenue is close to mechanically expected, not a
+      novel business discovery. The magnitude (0.83, closer to 1 than 0) says the linear relationship
+      is strong: knowing an order's total quantity gets you most of the way to predicting its
+      revenue, though not perfectly, since price varies across items too.
+blocks:
+  - type: heading
+    text: What the correlation coefficient measures
+  - type: text
+    body: >
+      The **Pearson correlation coefficient (r)** measures the strength and direction of a *linear*
+      relationship between two numeric variables. It ranges from -1 (as one goes up, the other goes
+      down, perfectly linearly) through 0 (no linear relationship) to +1 (as one goes up, so does the
+      other, perfectly linearly).
+  - type: formula
+    expression: "r = covariance(x, y) / (standard_deviation(x) * standard_deviation(y))"
+    description: Standardizing the covariance by both variables' spreads keeps r on a fixed -1 to +1 scale regardless of the variables' original units.
+  - type: example
+    title: Order size and order revenue, at the order level
+    body: >
+      Aggregating the ecommerce dataset's order_items to the order level (4,205 orders), the
+      correlation between total quantity of items in an order and the order's net revenue is
+      r = 0.833. A slightly weaker but still strong relationship holds between the *number* of
+      distinct line items and revenue: r = 0.735.
+  - type: code
+    language: python
+    code: |
+      from scipy import stats
+
+      oi = order_items.copy()
+      oi["line_net"] = oi["quantity"] * oi["unit_price"] - oi["discount"] * oi["quantity"]
+      order_agg = (
+          oi.groupby("order_id")
+          .agg(total_qty=("quantity", "sum"), revenue=("line_net", "sum"))
+          .reset_index()
+      )
+      corr, p_value = stats.pearsonr(order_agg["total_qty"], order_agg["revenue"])
+      print(round(corr, 3), p_value)  # 0.833, ~0.0
+    caption: "r = 0.833 with an effectively zero p-value at n = 4,205 orders — a strong, highly significant linear relationship."
+  - type: table
+    caption: A rough (not universal) rule of thumb for interpreting |r|
+    headers: ["|r| range", "Typical interpretation"]
+    rows:
+      - ["0.0 - 0.1", "Negligible linear relationship"]
+      - ["0.1 - 0.3", "Weak"]
+      - ["0.3 - 0.5", "Moderate"]
+      - ["0.5 - 1.0", "Strong"]
+  - type: callout
+    variant: common_mistake
+    title: Significance is not the same as strength
+    body: >
+      With 4,205 orders, even a much weaker relationship (say, r = 0.05) would likely produce a
+      "statistically significant" p-value — large samples make it easy to detect small effects as
+      real. Always look at the magnitude of r itself to judge practical strength; the p-value only
+      tells you whether r is distinguishable from zero, not how big it is.
+  - type: question
+    prompt: >
+      With a sample of 50,000 rows, a correlation test reports r = 0.04, p < 0.001. How should this
+      be described to a stakeholder?
+    choices:
+      - "A strong, highly significant relationship worth building a strategy around"
+      - "A statistically detectable but practically negligible relationship — the large sample made even a very weak association 'significant'"
+      - "The result is invalid because r is close to zero"
+    correct_index: 1
+    explanation: >
+      r = 0.04 is a negligible linear relationship by almost any practical standard, even though the
+      large sample size makes it statistically distinguishable from zero. The honest framing
+      separates "detectable" (significance) from "meaningful" (magnitude).

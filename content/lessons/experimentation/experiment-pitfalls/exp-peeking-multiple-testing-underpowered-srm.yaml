@@ -1,0 +1,130 @@
+slug: exp-peeking-multiple-testing-underpowered-srm
+module_slug: experiment-pitfalls
+title: "Pitfalls, Part 1: Peeking, Multiple Testing, Underpowered Tests, and Sample Ratio Mismatch"
+description: >
+  Four ways an experiment's *statistical validity* gets undermined — checking results too often,
+  testing too many metrics, running with too little data, and a broken assignment split — with a real
+  chi-square check for the last one.
+difficulty: ADVANCED
+estimated_minutes: 30
+display_order: 1
+objectives:
+  - Explain why checking a test's p-value repeatedly and stopping as soon as it crosses 0.05 inflates the false-positive rate, even with correct code
+  - Explain why declaring many metrics "primary" and reporting whichever one is significant is a form of multiple testing
+  - Run a chi-square sample ratio mismatch (SRM) check and interpret the result
+prerequisites: [exp-practical-vs-statistical-significance]
+skills: [experimentation, statistical-reasoning]
+datasets: [saas-product]
+tags: [experimentation, ab-testing, saas, advanced]
+key_takeaways:
+  - "Peeking (checking significance repeatedly and stopping the first time p < 0.05) inflates the true false-positive rate well above the nominal 5%, because you're effectively giving chance many attempts to cross the line."
+  - "Multiple testing (checking many metrics, or many segments, and reporting whichever came back significant) has the same root cause as peeking — many chances for a spurious result, without correcting for how many chances were taken."
+  - "A sample ratio mismatch (SRM) — an assignment split that deviates from the intended ratio by more than chance would explain — invalidates the rest of the analysis until its cause is found, because it signals something upstream (assignment, logging, or filtering) is broken."
+common_mistakes:
+  - Checking a live dashboard every morning and calling the test the moment it first crosses significance, instead of waiting for the pre-committed sample size or duration.
+  - Skipping the sample ratio mismatch check because the split "looks close enough" without running the actual statistical test.
+blocks:
+  - type: heading
+    text: Peeking — checking results too often
+  - type: text
+    body: >
+      Suppose a test is checked for significance every single day it runs, and stopped the first day
+      p < 0.05 shows up. Even if there's truly no effect at all, random noise will cross the 0.05 line
+      *at some point* far more often than 5% of the time, simply because you gave it many independent
+      chances to do so. This is **peeking**, and it's one of the most common ways a nominally "5%
+      significant" result is actually far less trustworthy than it looks — the fix is to commit to a
+      sample size or duration in advance (Sample Size module) and only look once you get there, or to use
+      a sequential-testing method built to allow continuous monitoring safely (Advanced Experimentation
+      module).
+  - type: heading
+    text: Multiple testing — checking too many things
+    level: 3
+  - type: text
+    body: >
+      The same root problem shows up in a different costume when a team checks many metrics (or many
+      user segments) and reports whichever one happened to be significant. If you check 20 unrelated
+      metrics at a 5% significance threshold, you'd expect about one of them to look "significant" by
+      chance alone, even with zero real effects anywhere. This is exactly why the Hypothesis Design
+      module insists on declaring one primary metric *before* the test runs — deciding after the fact
+      which of several metrics "counts" is multiple testing without the correction that would normally be
+      applied for it.
+  - type: heading
+    text: Underpowered tests — a quick recap
+    level: 3
+  - type: text
+    body: >
+      Covered in full in the Statistical Power module: a test with too little sample size relative to
+      its effect size and metric variance is unlikely to detect a real effect even if one exists. The
+      real checkout_redesign test (1,000 users/group, ~13% power against its own observed effect) is the
+      running example — its non-significant p-value doesn't mean "no effect," it means "this test
+      couldn't reliably tell either way."
+  - type: heading
+    text: Sample ratio mismatch (SRM) — checking the split itself
+    level: 3
+  - type: text
+    body: >
+      Before trusting any metric comparison, check whether the actual assignment split matches the
+      intended ratio more rigorously than "it looks about right." A chi-square goodness-of-fit test
+      compares the observed counts per variant to what the intended ratio would predict, and returns a
+      p-value — a *small* SRM p-value (conventionally < 0.01, since even a real experiment can wobble a
+      bit) is the alarm bell, because it means the observed imbalance is unlikely to be explained by
+      chance, pointing at a bug somewhere upstream (Randomization module).
+  - type: code
+    language: python
+    code: |
+      from scipy import stats
+
+      # checkout_redesign: real assignment counts
+      n_control, n_treatment = 1000, 1000
+      total = n_control + n_treatment
+      chi2, p_value = stats.chisquare([n_control, n_treatment], f_exp=[total / 2, total / 2])
+      print(round(chi2, 4), round(p_value, 4))  # -> 0.0 1.0
+    caption: >
+      Run for real on both saas-product experiments: checkout_redesign (1,000 vs. 1,000) and
+      onboarding_email (500 vs. 500) both come back chi2 = 0, p = 1.0 — an exact 50/50 split, no SRM. If
+      instead a test intended as 50/50 came back as, say, 5,412 vs. 4,588 out of 10,000, the same test
+      would return a p-value well under 0.01 — a clear SRM signal that would need to be resolved before
+      trusting the primary metric result at all.
+  - type: table
+    caption: The four pitfalls in this lesson, at a glance
+    headers: ["Pitfall", "What breaks", "The fix"]
+    rows:
+      - ["Peeking", "The true false-positive rate is much higher than the nominal 5%", "Commit to a sample size/duration in advance; only analyze once reached, or use a sequential method built for continuous monitoring"]
+      - ["Multiple testing", "Same false-positive inflation, across metrics/segments instead of across time", "Declare one primary metric before launch; treat secondary findings as exploratory, not conclusive"]
+      - ["Underpowered test", "A real effect is likely to be missed (non-significant result is ambiguous, not conclusive)", "Compute the required sample size from the MDE before launch, and don't stop early"]
+      - ["Sample ratio mismatch", "The whole comparison may be invalid — a bug is contaminating who ends up in each group", "Run a chi-square check on the assignment split before trusting any other result"]
+  - type: callout
+    variant: warning
+    title: An SRM failure invalidates everything downstream
+    body: >
+      If the SRM check fails, don't try to "correct for it" statistically and proceed — treat it as a
+      signal that assignment, logging, or filtering is broken, find the cause, and only trust the
+      experiment's other metrics once it's fixed. A significant primary-metric result sitting on top of
+      an SRM failure is not a trustworthy win.
+  - type: question
+    prompt: >
+      A test intended as a 50/50 split logs 6,140 control and 4,860 treatment out of 11,000 users, and a
+      chi-square goodness-of-fit test against the 50/50 expectation returns p = 0.0002. What should happen
+      next?
+    choices:
+      - "Proceed with the primary metric analysis as planned — an 11,000-user test is large enough that a small split imbalance doesn't matter"
+      - "Treat this as a sample ratio mismatch: the imbalance is far too unlikely to be chance (p = 0.0002), so investigate the assignment/logging/filtering pipeline for a bug before trusting any other result from this test"
+      - "Re-run the significance test on the primary metric using weights that correct for the 6,140/4,860 split"
+    correct_index: 1
+    explanation: >
+      A p-value this small means an imbalance this large (or larger) would be extremely unlikely if
+      assignment were truly working as a fair 50/50 split — far more likely explanation is a bug
+      somewhere in assignment, logging, or post-assignment filtering. Re-weighting doesn't fix the
+      underlying problem (whichever users are missing or misassigned may differ systematically from
+      those who aren't), so the right move is to find and fix the cause first.
+interview_questions:
+  - question: "What is peeking, and why does 'we just checked the dashboard, it happened to be significant' understate the actual false-positive risk?"
+    answer: >
+      Peeking is checking an experiment's significance repeatedly during the test and stopping as soon
+      as it first crosses the significance threshold, instead of waiting for a pre-committed sample size
+      or duration. Even with a truly null effect, random noise fluctuates the p-value over time, and
+      checking it many times gives chance many independent opportunities to dip below 0.05 at some point
+      — so the actual probability of a false "significant" result, across the whole monitoring period, is
+      considerably higher than the nominal 5% any single check implies. The fix is either to commit to
+      looking only once, at a pre-planned sample size, or to use a sequential-testing method explicitly
+      designed to control the false-positive rate under continuous monitoring.

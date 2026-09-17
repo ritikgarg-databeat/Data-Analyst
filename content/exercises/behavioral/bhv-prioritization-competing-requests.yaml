@@ -1,0 +1,35 @@
+slug: bhv-prioritization-competing-requests
+skill: behavioral-interviewing
+title: Prioritizing Competing Requests
+description: Tell me about a time you had multiple competing analytics requests and had to prioritize.
+exercise_type: INTERVIEW_RESPONSE
+difficulty: INTERMEDIATE
+points: 10
+tags:
+- behavioral
+- star-method
+- prioritization
+prompt: Tell me about a time you had multiple competing analytics requests and had to prioritize.
+hints:
+- The STAR framework (Situation, Task, Action, Result) is a useful structure, not a script -- use it to
+  make sure you cover what actually happened, in what context, what you personally did, and what came
+  of it.
+- Interviewers are listening for a specific, real example -- a vague 'sometimes this happens on my team'
+  answer is much weaker than one concrete story with real details.
+rubric:
+- criterion: Describes one specific, real situation rather than a hypothetical or a generic pattern
+  points: 25
+- criterion: Clearly states the task or goal and the person's own specific role in it
+  points: 20
+- criterion: Explains concrete actions the person personally took, not just what the team did
+  points: 30
+- criterion: States a clear, ideally measurable outcome and what was learned from it
+  points: 25
+solution: 'I once had three stakeholders each asking for urgent analysis in the same week: a pricing question
+  from finance, a churn question from the CS lead, and a dashboard fix from marketing. I asked each for
+  the specific decision or deadline their request was tied to, rather than taking ''urgent'' at face value.
+  The pricing question turned out to feed a board meeting in two days, the churn question had no fixed
+  deadline, and the dashboard fix was blocking a live campaign. I sequenced pricing first, dashboard fix
+  second, and churn analysis after, and told each stakeholder the plan and why.'
+explanation: The core skill shown is converting each stakeholder's self-reported urgency into an actual
+  deadline or decision dependency, which is what makes prioritization defensible rather than just a guess.

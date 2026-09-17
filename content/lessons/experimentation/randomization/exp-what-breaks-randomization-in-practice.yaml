@@ -1,0 +1,106 @@
+slug: exp-what-breaks-randomization-in-practice
+module_slug: randomization
+title: What Breaks Randomization in Practice
+description: >
+  Randomization is simple in theory and full of ways to quietly fail in practice — bucketing bugs,
+  bot traffic, re-randomization on repeat visits, and interference between units.
+difficulty: INTERMEDIATE
+estimated_minutes: 20
+display_order: 2
+objectives:
+  - List at least three concrete ways real-world assignment systems break the "clean coin flip" assumption
+  - Explain why re-randomizing a returning user on every visit is a bug, not a feature
+  - Describe what a sample ratio mismatch looks like as a symptom of broken randomization
+prerequisites: [exp-how-randomization-creates-comparable-groups]
+skills: [experimentation, statistical-reasoning]
+datasets: [saas-product]
+tags: [experimentation, ab-testing, saas, intermediate]
+key_takeaways:
+  - "Bucketing bugs (e.g. a hash function that isn't uniform, or logic that excludes some users from being eligible for randomization in a biased way) can silently break comparability even though 'random assignment' code ran."
+  - Re-randomizing the same user on every visit instead of persisting their original assignment means a returning user could experience both variants, contaminating what "their outcome" even means.
+  - A sample ratio mismatch (the observed split deviates from the intended ratio by more than chance would explain) is usually the first visible symptom that something upstream of analysis is broken.
+common_mistakes:
+  - Excluding "problem" users (e.g., those who hit an error) differently by variant, without realizing this systematically changes which users remain in each group.
+  - Assuming a bucketing/hashing scheme is uniform without ever checking the actual resulting split against the intended ratio.
+blocks:
+  - type: heading
+    text: The gap between "randomize" and "randomized correctly"
+  - type: text
+    body: >
+      Writing `random.choice(['control', 'treatment'])` is the easy part. In a real production system,
+      several things can quietly undermine that randomness before an analyst ever sees the data.
+  - type: heading
+    text: Three concrete failure modes
+    level: 3
+  - type: text
+    body: >
+      **Bucketing bugs**: many systems hash a user ID into a number and use that number to assign a
+      variant, for consistency across sessions — if that hash isn't uniformly distributed, or if it's
+      correlated with something else (like signup cohort), the resulting split can look close to 50/50
+      in aggregate while still being subtly non-random for specific segments. **Re-randomization**: if a
+      returning user's variant isn't persisted (e.g., a cookie gets cleared, or the assignment logic
+      re-rolls on every visit instead of checking for an existing assignment), the same person can
+      experience both variants over the life of the test, which breaks the idea of "their outcome" being
+      attributable to a single variant. **Differential exclusion**: if error-prone requests, bots, or
+      users who hit a bug are filtered out of the analysis *after* assignment, and that filtering happens
+      to remove a different fraction of each variant (e.g., a treatment-only bug crashes some sessions),
+      the surviving users are no longer a random sample of who was originally assigned.
+  - type: example
+    title: How this shows up in the data
+    body: >
+      None of these bugs are visible by reading the experiment's code — they show up as symptoms in the
+      assignment data itself. The most direct symptom is a split that doesn't match what was intended: if
+      a test was configured as 50/50 but the logged assignment counts come back closer to 54/46, that's
+      a red flag worth investigating before trusting the conversion-rate comparison at all.
+  - type: code
+    language: sql
+    code: |
+      SELECT
+        experiment_id,
+        variant,
+        COUNT(*) AS users,
+        ROUND(100.0 * COUNT(*) / SUM(COUNT(*)) OVER (PARTITION BY experiment_id), 2) AS pct_of_experiment
+      FROM experiment_assignments
+      GROUP BY experiment_id, variant
+      ORDER BY experiment_id, variant;
+    caption: >
+      A quick health check across both real experiments in this dataset. Both come back essentially
+      exactly 50.00% / 50.00% (checkout_redesign: 1,000/1,000; onboarding_email: 500/500) — a healthy
+      sign that assignment worked as intended here. (The formal statistical test for when a split is
+      close-but-not-quite the intended ratio — a sample ratio mismatch check — is covered in the
+      Experiment Pitfalls module.)
+  - type: callout
+    variant: warning
+    title: A clean split doesn't rule out every failure mode
+    body: >
+      A perfectly balanced 50/50 count doesn't prove re-randomization or differential exclusion didn't
+      happen — those failures can leave the topline counts looking fine while still contaminating who
+      ended up representing each group. A balanced split is a necessary sanity check, not a complete
+      guarantee that assignment was clean.
+  - type: question
+    prompt: >
+      An engineer notices that a bug in the treatment variant of a new feature caused about 8% of
+      treatment sessions to crash and get silently excluded from the logged results, while control had no
+      equivalent crash. What's the risk to the experiment's conclusions?
+    choices:
+      - "No risk — 8% is a small enough fraction to safely ignore"
+      - "The surviving treatment users are no longer a random sample of everyone originally assigned to treatment — users prone to the crash are missing, which can bias the comparison in an unpredictable direction"
+      - "The risk is only that the treatment group's sample size is now slightly smaller, which just needs a bigger overall test to compensate"
+    correct_index: 1
+    explanation: >
+      This is differential exclusion: because the crash only affected one variant, the users who remain
+      in the treatment group's data are not a random subset of everyone originally assigned to it —
+      whichever users or conditions triggered the crash are systematically missing. That can bias the
+      comparison in either direction and isn't fixed by simply collecting more data; the crash needs to be
+      fixed (or the affected sessions handled explicitly) before the result can be trusted.
+interview_questions:
+  - question: "Besides a biased random number generator, what are some realistic ways an A/B test's randomization can end up broken?"
+    answer: >
+      A few common ones: a bucketing/hashing scheme that isn't actually uniform, or that's correlated
+      with something else about the user; re-randomizing a returning user instead of persisting their
+      original assignment, so the same person experiences both variants; and differential exclusion,
+      where a bug or crash removes a different fraction of each variant's users after assignment, so the
+      users who remain in the data are no longer representative of who was originally randomized. All
+      three can leave the topline assignment counts looking approximately correct while still
+      contaminating the comparison, which is why checking the assignment counts is necessary but not
+      sufficient.

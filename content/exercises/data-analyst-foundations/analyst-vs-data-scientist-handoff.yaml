@@ -1,0 +1,23 @@
+slug: analyst-vs-data-scientist-handoff
+lesson_slug: data-analyst-vs-data-scientist-vs-data-engineer
+skill: business-problem-solving
+title: When to Loop In a Data Scientist
+description: Decide whether a request is core Data Analyst work or needs a Data Scientist.
+exercise_type: MULTIPLE_CHOICE
+difficulty: BEGINNER
+points: 10
+tags: [foundations, beginner]
+prompt: >
+  A subscription company's retention team asks: "Build us something that flags, every Monday, which
+  currently active customers are most likely to cancel in the next 30 days, so we can proactively reach
+  out." Which role is this request primarily suited to?
+choices:
+  - A Data Analyst, since it starts with pulling historical cancellation data
+  - A Data Scientist, since it requires building a predictive model that scores individual customers going forward
+  - A Data Engineer, since the output needs to run automatically every Monday
+correct_answer: A Data Scientist, since it requires building a predictive model that scores individual customers going forward
+explanation: >
+  Explaining past cancellations — why these customers churned — is core Analyst work. Producing an
+  ongoing, per-customer prediction of who is likely to churn next is a modeling problem suited to a Data
+  Scientist, though a Data Engineer would likely be needed later to productionize and schedule it, and an
+  Analyst would likely validate the model's real-world impact once it ships.

@@ -1,0 +1,110 @@
+slug: biz-aov-vs-arpu
+module_slug: revenue-analytics
+title: "AOV vs. ARPU: Two Averages That Answer Different Questions"
+description: Why Average Order Value and Average Revenue Per User measure fundamentally different things, and which one to reach for depending on the business model.
+difficulty: INTERMEDIATE
+estimated_minutes: 12
+display_order: 2
+objectives:
+  - Compute Average Order Value (AOV) and explain what it measures
+  - Compute Average Revenue Per User/Account (ARPU) and explain how it differs from AOV
+  - Choose the correct metric — and the correct denominator — for a given business question
+prerequisites: [biz-business-models-and-revenue]
+skills: [business-analytics, business-metrics]
+datasets: [ecommerce, saas-product]
+tags: [business-analytics, intermediate, e-commerce, saas]
+key_takeaways:
+  - "AOV = total revenue / number of orders — it measures the size of a single transaction, and is most natural for transactional businesses."
+  - "ARPU = total revenue / number of active users or accounts over a period — it measures how much value one customer relationship generates over time, and is most natural for recurring-revenue businesses."
+  - The two metrics can move in opposite directions at once (e.g. AOV falling while ARPU rises, if customers buy smaller but more frequent orders), so tracking only one can hide what's really happening to the other.
+common_mistakes:
+  - Computing AOV by dividing revenue by customer count instead of order count, which conflates "size of one order" with "value of one customer over the period" — two different metrics wearing the same formula.
+  - Reporting ARPU without stating the time window it covers (monthly ARPU vs. annual ARPU are not comparable numbers).
+blocks:
+  - type: heading
+    text: Same shape, different denominator
+  - type: formula
+    expression: "AOV = Total Revenue / Number of Orders          ARPU = Total Revenue / Number of Active Users (over a stated period)"
+    description: >
+      Both formulas divide revenue by a count — the entire difference is what's being counted. AOV counts
+      transactions; ARPU counts people (or accounts). Confusing the two denominators produces a number
+      that looks plausible but answers neither question correctly.
+  - type: example
+    title: AOV on a real transactional dataset
+    body: >
+      Across 3,441 completed orders in this platform's ecommerce dataset, Average Order Value is
+      $1,686.32 — the typical dollar size of one checkout. AOV barely differs by order channel (web
+      $1,695.49, mobile $1,695.49, marketplace $1,605.86), which tells a very specific story: whatever
+      drives basket size here, it isn't which channel the customer checked out on.
+    code: |
+      SELECT o.channel,
+             COUNT(*) AS completed_orders,
+             ROUND(AVG(order_total), 2) AS aov
+      FROM (
+        SELECT o.order_id, o.channel,
+               SUM(i.quantity * (i.unit_price - i.discount)) AS order_total
+        FROM orders o JOIN order_items i USING (order_id)
+        WHERE o.status = 'completed'
+        GROUP BY o.order_id, o.channel
+      ) o
+      GROUP BY o.channel
+      ORDER BY aov DESC;
+    language: sql
+  - type: example
+    title: ARPU on a real recurring-revenue dataset
+    body: >
+      In this platform's saas-product dataset, 139 subscriptions were active as of January 2026, together
+      generating $11,571 in Monthly Recurring Revenue — an ARPU of $83.24 per active account for that
+      month. Unlike AOV, this number is meaningless without the "per month" qualifier: the same $11,571
+      MRR implies roughly $999 of annualized revenue per account (ARPU × 12), a very different-looking
+      figure for the exact same underlying customer base.
+    code: |
+      SELECT
+        COUNT(*) AS active_subscriptions,
+        SUM(mrr) AS total_mrr,
+        ROUND(SUM(mrr) / COUNT(*), 2) AS arpu_monthly
+      FROM subscriptions
+      WHERE status = 'active';
+    language: sql
+  - type: heading
+    text: When AOV and ARPU tell different stories
+    level: 3
+  - type: text
+    body: >
+      Because AOV counts orders and ARPU counts customers, they can diverge in revealing ways. A customer
+      who used to place one $200 order per quarter and now places four $60 orders per quarter has a
+      *lower* AOV (from $200 to $60) but a *higher* per-customer revenue contribution ($200 to $240 per
+      quarter) — a pattern AOV alone would misread as decline. This is exactly why a revenue dashboard
+      that reports only AOV, with no order-frequency or ARPU context, can send the wrong signal to a
+      merchandising or pricing team.
+  - type: comparison
+    title: Choosing AOV vs. ARPU
+    columns: ["Question you're actually asking", "Right metric", "Why"]
+    rows:
+      - ["Is the typical shopping basket getting bigger or smaller?", "AOV", "Directly measures per-transaction size"]
+      - ["Is each customer relationship becoming more valuable over time?", "ARPU", "Captures total value regardless of how many transactions it took"]
+      - ["Should we run a free-shipping threshold to encourage bigger carts?", "AOV", "The lever being pulled operates at the order level"]
+      - ["Should we invest more in retention and upsell?", "ARPU (and its trend)", "The lever being pulled operates at the customer-relationship level"]
+  - type: callout
+    variant: common_mistake
+    title: The silent denominator swap
+    body: >
+      A dashboard labeled "Average Order Value: $850" that was actually computed as total revenue divided
+      by *unique customers* (not orders) is quietly reporting something closer to per-customer revenue —
+      inflated relative to true AOV for any customer who placed more than one order. Always check what the
+      denominator actually counted before trusting the label.
+  - type: question
+    prompt: >
+      A subscription company's AOV-equivalent metric (one-time upgrade purchase price) is flat, but ARPU
+      is rising steadily. What's the most likely explanation?
+    choices:
+      - "The two metrics must be computed incorrectly, since they measure the same thing and should move together."
+      - "Customers are generating more total revenue over time — likely through renewals, add-ons, or longer retention — even though any single transaction's size hasn't changed."
+      - "Rising ARPU with flat AOV is only possible if the company is acquiring more customers, which is unrelated to either metric."
+    correct_index: 1
+    explanation: >
+      AOV (or its subscription-world analog, a single transaction's size) and ARPU (revenue per customer
+      over a period) can diverge because ARPU accumulates across every transaction and every month a
+      customer stays, while AOV describes only one transaction in isolation. Rising ARPU with flat AOV is a
+      classic signature of retention or expansion driving value — customers are worth more not because any
+      single purchase grew, but because there are more of them stacking up per customer over time.

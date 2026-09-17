@@ -1,0 +1,56 @@
+slug: ex-ref-order-customer-join
+skill: dbt
+dataset: ecommerce
+title: "dbt Exercise: Joining Models with ref()"
+description: Build a model that joins two upstream staging models with ref() — the same DAG-building mechanic every real dbt project relies on.
+exercise_type: DBT
+difficulty: BEGINNER
+points: 15
+tags: [dbt, models, ref, real-execution]
+business_context: >
+  Support keeps asking "what segment is this order's customer in?" without wanting to write the join
+  themselves every time. A small model joining orders to their customer's segment answers that once,
+  for everyone downstream.
+prompt: >
+  Write a dbt model named `ex_order_customer_segment` that joins `{{ ref('stg_orders') }}` to
+  `{{ ref('stg_customers') }}` on `customer_id`, returning `order_id`, `customer_id`,
+  `customer_segment`, and `status`. Using `ref()` (not the raw source) is what makes dbt understand
+  this model depends on both staging models — that dependency is exactly what powers the lineage
+  graph you'll see in the dbt Lab.
+hints:
+  - "{{ ref('stg_orders') }} and {{ ref('stg_customers') }} — never reference a source directly once a staging model already exists for it."
+  - "This is a plain inner join on customer_id."
+dbt_model_name: ex_order_customer_segment
+dbt_starter_sql: |
+  select
+      o.order_id,
+      o.customer_id,
+      -- TODO: bring in customer_segment from stg_customers
+      o.status
+  from {{ ref('stg_orders') }} as o
+dbt_schema_yml: |
+  columns:
+    - name: order_id
+      tests: [unique, not_null]
+    - name: customer_id
+      tests:
+        - not_null
+        - relationships:
+            arguments:
+              to: ref('stg_customers')
+              field: customer_id
+    - name: customer_segment
+      tests: [not_null]
+solution: |
+  select
+      o.order_id,
+      o.customer_id,
+      c.customer_segment,
+      o.status
+  from {{ ref('stg_orders') }} as o
+  inner join {{ ref('stg_customers') }} as c
+      on o.customer_id = c.customer_id
+explanation: >
+  Every order in stg_orders has a customer_id that exists in stg_customers (that's exactly what the
+  relationships test above checks), so an inner join here doesn't silently drop any real orders — it
+  just requires actually adding the join, which is the one piece the starter code left out.

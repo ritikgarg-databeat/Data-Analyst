@@ -1,0 +1,17 @@
+# Seed data for the `assessments` (+ assessment_questions) tables.
+# exercise_slug values must reference exercises already synced from content/exercises/**
+# (i.e. this file is loaded by seed.py AFTER app.content.sync runs).
+- module_slug: sql-fundamentals
+  slug: sql-fundamentals-assessment
+  title: SQL Fundamentals Assessment
+  description: A short check on SELECT, WHERE, NULL handling, and HAVING before moving on to aggregation.
+  time_limit_minutes: 15
+  passing_score: 80
+  retry_policy: UNLIMITED
+  questions:
+    - exercise_slug: select-star-tradeoffs
+      points: 10
+    - exercise_slug: null-equality-check
+      points: 10
+    - exercise_slug: where-vs-having
+      points: 10

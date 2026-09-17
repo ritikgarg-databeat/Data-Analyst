@@ -1,0 +1,36 @@
+slug: bhv-deadlines-tight-scope
+skill: behavioral-interviewing
+title: Managing Scope Under a Tight Deadline
+description: Tell me about a time you had to deliver an analysis under a tight deadline. How did you manage
+  scope?
+exercise_type: INTERVIEW_RESPONSE
+difficulty: INTERMEDIATE
+points: 10
+tags:
+- behavioral
+- star-method
+- deadlines
+prompt: Tell me about a time you had to deliver an analysis under a tight deadline. How did you manage
+  scope?
+hints:
+- The STAR framework (Situation, Task, Action, Result) is a useful structure, not a script -- use it to
+  make sure you cover what actually happened, in what context, what you personally did, and what came
+  of it.
+- Interviewers are listening for a specific, real example -- a vague 'sometimes this happens on my team'
+  answer is much weaker than one concrete story with real details.
+rubric:
+- criterion: Describes one specific, real situation rather than a hypothetical or a generic pattern
+  points: 25
+- criterion: Clearly states the task or goal and the person's own specific role in it
+  points: 20
+- criterion: Explains concrete actions the person personally took, not just what the team did
+  points: 30
+- criterion: States a clear, ideally measurable outcome and what was learned from it
+  points: 25
+solution: I had one day to deliver a competitive-pricing analysis before a leadership offsite. Rather
+  than trying to cover every dimension I'd normally include, I identified the two questions leadership
+  actually needed answered for the decision at hand, and scoped the analysis to just those, explicitly
+  noting what I was leaving out and why. I delivered a focused two-page summary on time instead of an
+  incomplete comprehensive report.
+explanation: Explicitly narrowing scope to the decision-relevant questions, and being transparent about
+  what was intentionally left out, is what makes a rushed deliverable trustworthy rather than just incomplete.

@@ -1,0 +1,107 @@
+slug: de-analyst-de-boundary
+module_slug: data-engineering-for-analysts
+title: "The Boundary: Own, Recognize, or Hand Off"
+description: A practical map of what a data analyst should know deeply, what they should recognize but not need to build, and what belongs entirely to a data engineer.
+difficulty: INTERMEDIATE
+estimated_minutes: 20
+display_order: 1
+objectives:
+  - Sort a list of concrete data engineering tasks into "own," "recognize," and "hand off" for a typical data analyst
+  - Explain why "recognize" is its own category, distinct from both full ownership and total ignorance
+  - Apply the boundary to a realistic scenario involving a broken pipeline
+prerequisites: [de-foundations-what-is-data-engineering, de-orchestration-and-scheduling, de-data-quality-dimensions]
+skills: [data-engineering-fundamentals, pipeline-troubleshooting]
+datasets: [ecommerce]
+tags: [analyst-boundary, data-engineering, foundations, intermediate]
+key_takeaways:
+  - "This entire domain was never about turning you into a data engineer — it's about giving you enough fluency to recognize what's happening beneath your queries, without needing to build or maintain any of it yourself."
+  - "\"Recognize\" is the most valuable and most overlooked category: you don't need to write a DAG, but you do need to look at one and understand what a failed upstream step implies about your dashboard's numbers today."
+  - "Owning something you don't need to own (rebuilding a pipeline yourself because \"it'll be faster\") and ignoring something you should recognize (treating a stale table as just as trustworthy as a fresh one) are both real, common failure modes — not just theoretical ones."
+common_mistakes:
+  - "Assuming that not owning pipeline infrastructure means it's totally irrelevant to your work — a stale, broken, or subtly wrong pipeline directly corrupts every analysis built on top of it, whether or not you were the one who built the pipeline."
+  - "Overcorrecting by trying to become the pipeline's owner yourself — writing ad hoc scripts to \"just fix\" a data quality issue in a report, rather than routing it to whoever actually owns that data's reliability, which usually just moves the same bug somewhere less visible and less maintained."
+interview_questions:
+  - question: "As a data analyst, how deeply do you think you need to understand a pipeline that feeds your reporting?"
+    answer: >
+      Deeply enough to recognize its shape and failure modes, not deeply enough to build or maintain
+      it. Concretely: I should know that my reporting depends on a scheduled pipeline with
+      dependencies, that a failure upstream means my numbers are stale (not just "different"), and
+      roughly which layer (raw, staging, mart) a given table sits in — enough to ask a specific,
+      useful question when something looks wrong, like "did last night's load for `orders`
+      succeed?" I don't need to be able to write the Airflow DAG or dbt model myself; that's a data
+      engineer's specialty, and trying to own that work myself would mean maintaining infrastructure
+      I'm not best positioned to keep reliable.
+blocks:
+  - type: heading
+    text: A map, not a wall
+  - type: text
+    body: >
+      Every lesson in this domain has been building toward one practical map: which parts of data
+      engineering an analyst should genuinely **own**, which parts they should **recognize** without
+      needing to build, and which parts should be handed off entirely to a data engineer. This isn't
+      a hard wall between two disconnected jobs — it's a guide for where your judgment and effort are
+      actually best spent.
+  - type: table
+    headers: ["Category", "What it means", "Examples"]
+    rows:
+      - ["Own", "You should be able to do this yourself, confidently", "Writing the SQL that queries warehouse tables; spotting an obviously wrong number in a report; defining what a metric should mean"]
+      - ["Recognize", "You don't build this, but you understand it well enough to reason about it and ask the right question", "Reading a DAG and understanding what an upstream failure implies; knowing the difference between a stale table and a genuinely empty one; understanding why a number might be a day behind"]
+      - ["Hand off", "This is a data engineer's specialty — flag it, don't attempt it yourself", "Writing and maintaining an Airflow DAG from scratch; choosing and standing up CDC infrastructure; deciding a warehouse's physical partitioning strategy"]
+  - type: example
+    title: "Applying the map to a stale dashboard"
+    body: >
+      A revenue dashboard built on the `ecommerce` dataset's `orders` and `payments` tables hasn't
+      updated in two days. **Own**: noticing the numbers haven't moved and confirming it's not just
+      that the business happened to be quiet (a quick sanity check against a known-different metric,
+      or simply checking `MAX(order_date)` in the underlying table). **Recognize**: understanding
+      that this pattern — a report frozen while everything else seems to work — usually means an
+      upstream pipeline step failed or a scheduled job silently stopped running, not that revenue
+      actually stopped. **Hand off**: actually debugging *why* the pipeline failed (a credential
+      expired, an orchestrator's retry logic exhausted, a source API changed shape) and fixing it —
+      that's squarely a data engineer's job, and attempting to work around it yourself (like manually
+      re-uploading a file) risks masking the real problem instead of getting it properly fixed.
+  - type: callout
+    variant: important
+    title: "\"Recognize\" is the category that actually matters day to day"
+    body: >
+      It's easy to think of the boundary as a binary — either you know how to build pipelines, or
+      you don't and it's irrelevant to you. The middle category is where an analyst's real leverage
+      lives: you don't need to write a DAG to look at one and understand that a failed
+      `extract_payments` step means today's revenue numbers can't be trusted yet. That single piece
+      of recognition turns a confusing, wrong-looking dashboard into a specific, well-framed question
+      for the right person.
+  - type: heading
+    text: The failure modes on both sides
+  - type: text
+    body: >
+      Two opposite mistakes are both common, and both worth naming explicitly. Under-recognizing
+      looks like treating every table as equally trustworthy regardless of freshness or pipeline
+      health — building an analysis on top of data you never checked was actually current.
+      Over-owning looks like an analyst writing an ad hoc script to patch a data quality issue
+      directly inside a report, rather than flagging it to whoever owns the underlying pipeline —
+      which fixes the symptom once, in one place, while the same root cause keeps quietly producing
+      the same bug everywhere else that data is used.
+  - type: checklist
+    title: "A quick self-check before touching a data engineering task"
+    items:
+      - "Can I do this confidently myself, and is doing it myself actually the best use of my time? (Own)"
+      - "Do I understand this well enough to reason about what's happening and ask a specific question, even though I'm not the one building it? (Recognize)"
+      - "Is this genuinely a specialty — infrastructure, orchestration, or platform decisions — that belongs to whoever owns pipeline reliability? (Hand off — flag it clearly instead of working around it)"
+  - type: question
+    prompt: >
+      An analyst notices a dashboard's numbers look frozen and, after confirming the underlying
+      table hasn't received new rows in two days, decides the fastest path forward is to write a
+      Python script that scrapes the source website directly and manually loads fresh rows into the
+      table themselves. What's the issue with this approach?
+    choices:
+      - "There is no issue — this is exactly the kind of initiative an analyst should take"
+      - "This oversteps from \"recognize\" into \"own\" territory that belongs to a data engineer — the manual workaround likely bypasses the pipeline's data quality checks and doesn't fix the actual, probably recurring, root cause"
+      - "The analyst should have instead ignored the stale data entirely and reported the old numbers as current"
+    correct_index: 1
+    explanation: >
+      Correctly noticing the staleness (recognize) was the right instinct. But building an ad hoc
+      replacement pipeline is a step into "hand off" territory — it likely skips validation the real
+      pipeline applies, won't be maintained the way the real pipeline is, and does nothing to fix
+      whatever actually broke, which will keep failing again. The better move is flagging the
+      specific failure (which table, since when, what's downstream-blocked) to whoever owns that
+      pipeline.

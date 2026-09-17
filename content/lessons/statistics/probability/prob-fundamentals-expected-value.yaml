@@ -1,0 +1,98 @@
+slug: prob-fundamentals-expected-value
+module_slug: probability
+title: Probability & Expected Value
+description: What probability actually measures, how to compute it from real counts, and how expected value turns "how likely" into "how many" for a business decision.
+difficulty: BEGINNER
+estimated_minutes: 12
+display_order: 1
+objectives:
+  - Compute a probability directly from counts in a real dataset and state it as a rate between 0 and 1.
+  - Calculate expected value and use it to answer "how many should we expect" business questions, without mistaking it for a guarantee.
+skills: [statistics]
+datasets: [ecommerce]
+tags: [statistics, beginner, foundations, e-commerce]
+key_takeaways:
+  - Probability is a proportion — favorable outcomes divided by total outcomes — always between 0 and 1, and it's usually just a rate you already know how to compute with COUNT and AVG.
+  - Expected value (n times p) tells you what to expect *on average* across many repetitions. It is a planning number, not a prediction for any single case.
+  - Reporting a count instead of a rate ("3 conversions expected out of 20 visits") is often the more useful business translation of a probability.
+common_mistakes:
+  - Treating an expected value as a guaranteed outcome for the very next event, rather than a long-run average.
+  - Reporting a probability as a percentage of the wrong denominator (e.g., "15% of orders" when the 15% was actually computed over sessions, not orders) — always state what population the rate is over.
+interview_questions:
+  - question: A checkout page converts 15% of visits into a purchase. If 200 people visit the page tomorrow, how many purchases should you expect, and why might the actual number differ?
+    answer: >
+      Expected purchases = 200 x 0.15 = 30. That's the long-run average, not a promise — the actual
+      count tomorrow will bounce around 30 because each visit is a separate random outcome (some
+      days you'll get 25, some days 35). The spread around that expected value is exactly what later
+      lessons on sampling distributions and confidence intervals quantify.
+blocks:
+  - type: heading
+    text: What probability actually measures
+  - type: text
+    body: >
+      **Probability** is nothing more exotic than a proportion: the number of times something
+      happens, divided by the number of times it could have happened. It's always a number between
+      0 (never happens) and 1 (always happens), and analysts usually just call it a "rate" —
+      conversion rate, churn rate, click-through rate are all probabilities wearing a business
+      costume.
+  - type: formula
+    expression: "P(event) = (number of outcomes where the event happens) / (total number of outcomes)"
+    description: Every probability you'll compute as an analyst reduces to this ratio.
+  - type: example
+    title: The ecommerce dataset's real conversion rate
+    body: >
+      The `sessions` table has 12,000 recorded browsing sessions, and 1,827 of them ended in a
+      purchase (`converted = TRUE`). The probability that a random session converts is
+      1,827 / 12,000 = 0.1522, or about 15.2%. That's it — no special formula, just a count over a
+      count.
+  - type: code
+    language: sql
+    code: |
+      SELECT
+        COUNT(*) AS total_sessions,
+        SUM(CASE WHEN converted THEN 1 ELSE 0 END) AS conversions,
+        ROUND(AVG(CASE WHEN converted THEN 1.0 ELSE 0.0 END), 4) AS conversion_probability
+      FROM sessions;
+    caption: "Result: 12,000 total sessions, 1,827 conversions, probability = 0.1523 (rounding)."
+  - type: heading
+    text: Expected value — turning "how likely" into "how many"
+  - type: text
+    body: >
+      Once you have a probability, **expected value** answers the question a stakeholder actually
+      asks: "okay, but how many?" For a count of successes across `n` independent trials, expected
+      value is simply `n x p`. It's the average outcome you'd see if you could replay the same
+      situation over and over — useful for planning, not for predicting any single instance.
+  - type: formula
+    expression: "E[number of successes] = n * p"
+    description: n is the number of opportunities (trials), p is the probability of success on each one.
+  - type: example
+    title: Staffing for tomorrow's traffic
+    body: >
+      If the site expects 20 sessions in the next hour and the conversion probability is 0.1522,
+      the expected number of purchases is 20 x 0.1522 = 3.05 — "about 3." The actual number in any
+      given hour might be 1, or 5, or 0; 3 is what it averages out to over many such hours, which is
+      exactly what you'd plan staffing or inventory around.
+  - type: callout
+    variant: common_mistake
+    title: Expected value is a planning number, not a promise
+    body: >
+      "We expect 3 conversions in the next 20 visits" does not mean exactly 3 will occur. Treating
+      an expected value as a guaranteed outcome leads to false alarms every time the actual count is
+      1 or 5 instead of 3 — both of which are perfectly normal outcomes around that average. Later
+      lessons on distributions and confidence intervals quantify exactly how much that swing should
+      be expected to be.
+  - type: question
+    prompt: >
+      A support team expects to receive an average of 8 tickets per hour (a probability-based
+      expected value). In one particular hour, they receive 13 tickets. What's the most reasonable
+      conclusion?
+    choices:
+      - The expected-value estimate of 8 must be wrong and should be recalculated immediately
+      - A single hour's count naturally varies around the average — one high hour alone isn't strong evidence the underlying rate changed
+      - Every future hour should now be staffed for exactly 13 tickets
+    correct_index: 1
+    explanation: >
+      Expected value describes the long-run average, not a ceiling. A single hour landing above (or
+      below) 8 is completely consistent with an average of 8 — real counts fluctuate around their
+      expected value. Concluding the rate itself changed would require looking at a pattern across
+      many hours, not just one.

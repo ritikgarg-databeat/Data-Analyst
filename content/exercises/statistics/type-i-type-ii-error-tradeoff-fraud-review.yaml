@@ -1,0 +1,47 @@
+slug: type-i-type-ii-error-tradeoff-fraud-review
+lesson_slug: hyp-type-i-type-ii-errors-power
+skill: statistical-reasoning
+title: "Setting the Fraud Model's Threshold: Whose Error Costs More?"
+description: Reason about which type of error (false positive vs. false negative) a fraud-review process should be tuned to minimize, and why the answer depends on the costs involved.
+exercise_type: DATA_INTERPRETATION
+difficulty: INTERMEDIATE
+points: 15
+tags: [statistics, intermediate, root-cause]
+prompt: >
+  A fraud-detection model's flagging threshold can be tuned: a stricter threshold flags fewer orders
+  overall (fewer false positives, i.e., fewer legitimate orders wrongly flagged, but more false
+  negatives — more real fraud slips through unflagged), while a looser threshold flags more orders
+  (catches more real fraud, but wrongly flags more legitimate orders too). The fraud team wants a
+  single recommendation for where to set the threshold. What additional information do you need
+  before recommending a threshold, and how would the presence of a cheap, fast human-review step for
+  flagged orders change your recommendation compared to a policy that auto-rejects every flag?
+hints:
+  - "Frame this explicitly as a Type I error (false positive: legitimate order wrongly flagged) versus Type II error (false negative: real fraud not caught) tradeoff, and ask what each error actually costs the business in dollars or customer relationships."
+  - "The cost of a false positive is very different depending on what happens *after* a flag — an auto-reject makes a false positive costly (a lost legitimate sale); a cheap review step makes it much less costly."
+solution: >
+  Before recommending a threshold, you need the actual cost of each error type, not just their
+  rates: the dollar cost of a Type II error (a fraudulent order that goes through — the value of the
+  fraudulent goods/chargebacks/fees) versus the cost of a Type I error (a legitimate order wrongly
+  flagged — which depends entirely on what happens next). You also need the base rate of fraud and
+  the volume of orders, since those determine how many of each error type a given threshold will
+  actually produce in absolute terms (the same base-rate math as the Bayes' theorem fraud example
+  elsewhere in this domain).
+  The presence of a human-review step changes the recommendation substantially: if a flagged order
+  goes to a fast, cheap review (a few minutes of a reviewer's time) rather than being auto-rejected,
+  the cost of a Type I error (false positive) drops to roughly that small review cost — a minor
+  inconvenience, not a lost sale. In that case, it's usually worth setting a *looser* threshold that
+  catches more real fraud (lower Type II error / false negatives) even at the cost of more false
+  positives, since the review step absorbs most of that cost cheaply.
+  If instead the policy is to auto-reject every flag with no review step, a Type I error directly
+  costs a lost legitimate sale and a possibly frustrated customer — a much higher cost per false
+  positive — which argues for a *stricter* threshold that flags fewer orders overall, accepting more
+  fraud slipping through (higher Type II error) to avoid alienating legitimate customers. There's no
+  single universally correct threshold; the right one depends on comparing the actual dollar and
+  relationship costs of each error type under the specific downstream process in place.
+explanation: >
+  A strong answer explicitly names Type I and Type II errors, identifies that the *cost* of each
+  (not just their rate) is what actually should drive the threshold decision, and correctly reasons
+  that adding a cheap review step lowers the cost of false positives specifically — which should push
+  the threshold looser, not stricter. A weaker answer picks a threshold "in the middle" without
+  grounding the choice in relative costs, or ignores how the review step changes the calculus
+  entirely.

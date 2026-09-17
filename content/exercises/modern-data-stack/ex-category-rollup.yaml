@@ -1,0 +1,49 @@
+slug: ex-category-rollup
+skill: data-lineage
+dataset: ecommerce
+title: "dbt Exercise: Two-Hop Lineage"
+description: Chain two ref()s together and see the resulting two-hop dependency in the real lineage graph.
+exercise_type: DBT
+difficulty: INTERMEDIATE
+points: 15
+tags: [dbt, ref, lineage, real-execution]
+business_context: >
+  A category-level rollup needs both the product's own attributes and its category's name — data that
+  lives in two different staging models. Building it means the resulting model has two upstream
+  dependencies, exactly what the dbt Lab's lineage DAG is built to visualize.
+prompt: >
+  Write a dbt model named `ex_product_category_rollup` that joins `{{ ref('stg_products') }}` to
+  `{{ ref('stg_categories') }}` on `category_id`, returning `product_id`, `product_name`,
+  `category_name`, and `unit_price`. After this builds, open the dbt Lab's lineage view for this
+  model — you should see two upstream edges, one to each staging model, plus the raw sources further
+  back.
+hints:
+  - "Two ref()s, one join, on category_id."
+  - "Use a left join so a product with a missing/unmatched category_id doesn't get silently dropped from the result."
+dbt_model_name: ex_product_category_rollup
+dbt_starter_sql: |
+  select
+      p.product_id,
+      p.product_name,
+      -- TODO: bring in category_name from stg_categories
+      p.unit_price
+  from {{ ref('stg_products') }} as p
+dbt_schema_yml: |
+  columns:
+    - name: product_id
+      tests: [unique, not_null]
+    - name: category_name
+      tests: [not_null]
+solution: |
+  select
+      p.product_id,
+      p.product_name,
+      c.category_name,
+      p.unit_price
+  from {{ ref('stg_products') }} as p
+  left join {{ ref('stg_categories') }} as c
+      on p.category_id = c.category_id
+explanation: >
+  A left join is the safer default whenever a foreign key *could* fail to match — it keeps every
+  product row even if a category_id turns out to be missing from stg_categories, which an inner join
+  would silently hide by dropping the row entirely.

@@ -1,0 +1,26 @@
+slug: pa-retention-curve-smile
+skill: product-metrics
+title: Reading a Retention Curve's Shape
+description: A cohort retention curve declines for the first few weeks, then flattens and even ticks up slightly
+  ('smile curve') around week 8. What does this pattern usually suggest?
+exercise_type: MULTIPLE_CHOICE
+difficulty: ADVANCED
+points: 5
+tags:
+- retention
+- cohort
+- product-analytics
+prompt: A cohort retention curve declines for the first few weeks, then flattens and even ticks up slightly ('smile
+  curve') around week 8. What does this pattern usually suggest?
+correct_answer: A stable core group of users has found lasting value and their retention has stabilized (or a resurrection/reactivation
+  effect is showing up), after less-engaged users have already churned out
+explanation: 'A ''smile curve'' is a well-known, generally healthy retention pattern: early drop-off reflects users
+  who tried the product and didn''t find fit, while the plateau (or slight uptick, often from win-back campaigns
+  or habitual return usage) reflects the users who did find lasting value -- very different from a curve that keeps
+  declining toward zero.'
+choices:
+- A stable core group of users has found lasting value and their retention has stabilized (or a resurrection/reactivation
+  effect is showing up), after less-engaged users have already churned out
+- The data must contain an error, since retention can never increase
+- The product is failing across the board
+- It means the cohort size grew after week 8

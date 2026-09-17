@@ -1,0 +1,69 @@
+slug: data-analyst-vs-data-scientist-vs-data-engineer
+module_slug: what-a-data-analyst-does
+title: Data Analyst vs. Data Scientist vs. Data Engineer
+description: A comparison of Data Analyst, Data Scientist, and Data Engineer — what each role focuses on and how they work together day to day.
+difficulty: BEGINNER
+estimated_minutes: 10
+display_order: 2
+objectives:
+  - Compare the primary focus and typical output of Data Analysts, Data Scientists, and Data Engineers
+  - Explain how the three roles typically hand off work to each other on a shared project
+prerequisites: [role-of-a-data-analyst]
+skills: [business-problem-solving, communication]
+tags: [foundations, beginner]
+key_takeaways:
+  - The three roles differ mainly in the question each is built to answer — "what happened and why" (Analyst), "what will happen, or what should decide automatically" (Scientist), "how does data flow and stay reliable" (Engineer).
+  - The roles are complementary, not a hierarchy — a Data Scientist is not a "senior" Data Analyst.
+  - One project often touches all three roles in sequence — an Engineer builds the pipeline, an Analyst frames and sizes the problem, a Scientist builds a model if one is warranted.
+  - Titles vary a lot by company size; at a small startup, one "Data Analyst" may informally do pieces of all three jobs.
+common_mistakes:
+  - Assuming Data Scientist is a more advanced or senior version of Data Analyst — they're different skill trees, not a ladder.
+  - Assuming Data Engineers make analytical decisions — they build and maintain the infrastructure an Analyst's SQL runs against, but typically don't interpret the business question themselves.
+blocks:
+  - type: heading
+    text: Same data team, different jobs
+  - type: text
+    body: >
+      These three roles are often lumped together as "the data team," but they're built to answer
+      different kinds of questions. Confusing them leads to miscasted hires and requests routed to the
+      wrong person.
+  - type: comparison
+    title: Data Analyst vs. Data Scientist vs. Data Engineer
+    columns: ["Role", "Primary focus", "Typical output", "Core tools"]
+    rows:
+      - ["Data Analyst", "What happened, and why, right now", "Dashboards, ad hoc analysis, a decision-ready recommendation", "SQL, spreadsheets, BI tools, some Python"]
+      - ["Data Scientist", "What will happen, or building something that decides automatically", "Predictive models, experiment design, causal inference", "Python/R, statistics, ML libraries"]
+      - ["Data Engineer", "How data flows reliably from source systems into a usable warehouse", "Pipelines, data models, infrastructure", "SQL, Python, orchestration tools, cloud data warehouses"]
+  - type: heading
+    text: How they hand off work
+  - type: example
+    title: Launching a new recommendation feature
+    body: >
+      A product team wants to launch a "customers also bought" feature. The Data Engineer builds and
+      maintains the pipeline that lands clickstream and order events in the warehouse reliably. The
+      Data Analyst explores existing purchase patterns, frames the business question — would this
+      actually lift average order value enough to be worth building? — and sizes the opportunity from
+      historical data. If the answer is "yes, and it's worth testing," a Data Scientist may then design
+      the experiment and build the recommendation model itself. The Analyst is usually the one who
+      reads the resulting experiment results and translates them into a go/no-go recommendation for
+      the business.
+  - type: callout
+    variant: common_mistake
+    title: "Scientist is not a senior Analyst"
+    body: >
+      The two roles use overlapping tools but solve different problems. An Analyst who wants to grow
+      into modeling and experiment design is learning a genuinely new skill set, not simply getting
+      "more senior" at the same job.
+  - type: question
+    prompt: >
+      A stakeholder says "we need a Data Scientist to figure out why churn increased last month." What's
+      the most accurate response?
+    choices:
+      - Agree — diagnosing why a metric moved is a modeling problem that requires a Data Scientist
+      - Push back gently — diagnosing why churn moved is usually Data Analyst work; a Data Scientist would be needed if you wanted to build a model that predicts who will churn next
+      - Disagree — that work belongs entirely to the Data Engineer, since it starts with pulling data
+    correct_index: 1
+    explanation: >
+      Explaining what already happened is core Analyst work. Data Science is more often needed for
+      predictive or causal modeling — like building a churn-prediction model or designing a retention
+      experiment — not for diagnosing a metric move after the fact.

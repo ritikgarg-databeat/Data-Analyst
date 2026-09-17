@@ -1,0 +1,20 @@
+slug: de-ex-lakehouse-tf
+lesson_slug: de-lakes-warehouses-lakehouses
+skill: modern-data-stack
+title: "True or False: What a Lakehouse Combines"
+description: Test the core claim a lakehouse architecture makes about combining lake and warehouse properties.
+exercise_type: TRUE_FALSE
+difficulty: BEGINNER
+points: 5
+tags: [lakehouse, data-lake, data-warehouse, architecture, data-engineering, beginner]
+prompt: >
+  True or False: A lakehouse architecture aims to provide warehouse-like reliability guarantees
+  (enforced schemas, transactional consistency, fast SQL) directly on top of cheap, lake-style
+  object storage, rather than requiring two separate systems kept in sync.
+choices: ["True", "False"]
+correct_answer: "True"
+explanation: >
+  This is precisely what a lakehouse is trying to achieve — combining a lake's cheap, flexible
+  storage with a warehouse's structure and reliability guarantees in one system, using an open
+  table format as the bridge, instead of maintaining a separate lake and warehouse with data
+  duplicated between them.

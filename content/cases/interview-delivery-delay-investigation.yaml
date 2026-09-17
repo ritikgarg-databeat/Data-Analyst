@@ -1,0 +1,113 @@
+slug: interview-delivery-delay-investigation
+title: Why Are Deliveries Running Late This Month?
+category: OPERATIONS
+difficulty: BEGINNER
+estimated_minutes: 25
+company_context: An online retailer tracked via the ecommerce schema.
+stakeholder_name: Robin Patel
+stakeholder_role: Customer Experience Lead
+problem_statement: '"We''re getting a spike in ''where''s my order'' complaints this month. Can you find out what''s
+  going on with delivery times?"'
+business_context: Robin needs to know whether this is isolated to a specific segment (region, product category,
+  carrier) or a broad issue.
+objective: Localize where the delivery delay is concentrated and recommend next steps.
+initial_information: You have access to orders and order_items.
+constraints:
+- Robin needs an answer focused enough to act on, not just 'deliveries are slower.'
+available_datasets:
+- ecommerce
+expected_deliverables:
+- A comparison of delivery timing across relevant segments (e.g. region, category, channel)
+- Identification of where the delay concentrates
+- A recommendation
+learning_objectives:
+- Segment an operational metric to localize a problem
+- Avoid concluding a broad-based issue without checking for concentration
+- Recommend a fix scoped to the specific finding
+stages:
+- CLARIFY
+- ANALYZE
+- INSIGHTS
+- RECOMMEND
+- SUBMIT
+tags:
+- interview
+- operations
+- case-study
+skills:
+- root-cause-analysis
+- communication
+clarification_guidance:
+- A good clarifying question asks over what exact window delivery times have worsened.
+- A good clarifying question asks whether the increase is uniform or concentrated in one region/category/channel.
+rubric:
+- category: Problem Framing & Clarification
+  weight: 20
+  criteria:
+  - criterion: Establishes the comparison window before analyzing
+    points: 20
+- category: Technical Analysis
+  weight: 35
+  is_technical: true
+  criteria:
+  - criterion: Segments delivery timing by region, category, or channel
+    points: 25
+  - criterion: Correctly identifies where the delay concentrates
+    points: 10
+- category: Insight Quality
+  weight: 20
+  criteria:
+  - criterion: Avoids concluding a broad-based issue without checking segmentation first
+    points: 20
+- category: Recommendation & Business Judgment
+  weight: 15
+  criteria:
+  - criterion: Recommends a fix scoped to the specific segment/cause found
+    points: 15
+- category: Communication
+  weight: 10
+  criteria:
+  - criterion: Explains the finding in terms Robin could use to respond to customers
+    points: 10
+hints:
+- Segment delivery timing by region, product category, and channel before assuming the whole delivery network has
+  slowed down.
+reference_solution:
+  summary: This schema cannot actually answer Robin's question -- there is no ship date, delivered date, or any
+    fulfillment/carrier timestamp anywhere in the ecommerce data -- orders.order_date is the only date field on the
+    orders table, and order_items has no dates at all. So 'delivery timing' cannot be measured, let alone segmented
+    by region, category, or channel, no matter how the data is sliced. The closest available proxy is
+    orders.status -- a 'pending' order is one that hasn't resolved to completed, cancelled, or refunded, which is a
+    rough, not literal, stand-in for 'not yet fulfilled.' By that proxy, pending orders are 127 of 4,205 (3.02%)
+    overall, and by channel the pending rate is actually LOWEST for marketplace (1.92%, 8 of 417) versus mobile
+    (3.21%, 48 of 1,494) and web (3.10%, 71 of 2,294) -- so if anything, the only fulfillment-adjacent signal
+    available in this data points away from any channel being a standout delay driver, not toward one. This means
+    the specific, actionable, channel/region/category-level answer Robin is asking for genuinely cannot be produced
+    from what this schema captures today.
+  key_insights:
+  - orders.order_date is the only date field on the orders table (order_items has none at all) -- there is no ship
+    date, delivered date, or carrier/fulfillment timestamp anywhere in this schema, so how long deliveries are
+    taking cannot be computed, regardless of how the data is segmented.
+  - The closest available proxy, orders.status = 'pending', shows an overall rate of 3.02% (127 of 4,205 orders),
+    and by channel, marketplace has the LOWEST pending rate (1.92%) of the three channels (mobile 3.21%, web 3.10%)
+    -- the only fulfillment-adjacent signal in the data does not point to any channel as a standout driver.
+  - Because this proxy is a static status flag, not a duration, it cannot distinguish normal in-flight processing
+    lag from stuck-and-overdue, and it cannot be broken down by region at all (customers.country exists but has no
+    join to any fulfillment event).
+  recommendation: Tell Robin directly that this data cannot answer the where-are-deliveries-running-late question
+    as asked, because no ship or delivery timestamp is captured anywhere in the schema -- the first, most important
+    recommendation is to instrument an actual fulfillment event (a ship date and/or delivered date) so a real
+    delivery-time metric can be computed and segmented going forward. In the interim, note that the nearest proxy
+    available (pending-order rate by channel) does not implicate any single channel -- marketplace is actually the
+    lowest, not the highest -- so if complaints are concentrated somewhere specific, that concentration is not
+    visible in this platform's current order-status data, and confirming it will likely require pulling data
+    directly from the fulfillment/carrier system rather than this analytics schema.
+  acceptable_alternatives:
+  - A learner who, lacking channel-level fulfillment data, instead checks whether cancellation rate (a status that
+    could reflect a fulfillment failure) varies meaningfully by channel or category, while being explicit that
+    cancellation is not the same thing as delivery delay, should receive credit for a reasonable secondary proxy
+    attempt.
+  - A learner whose primary deliverable is the recommendation to instrument real ship/delivery timestamps --
+    treating the data limitation itself as the headline finding rather than forcing a specific segment-level answer
+    -- should receive full credit.
+version: 1

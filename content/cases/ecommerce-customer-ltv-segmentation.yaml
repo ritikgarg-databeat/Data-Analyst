@@ -1,0 +1,130 @@
+slug: ecommerce-customer-ltv-segmentation
+title: "Where Should Retention Dollars Actually Go?"
+category: CUSTOMER_ANALYTICS
+difficulty: INTERMEDIATE
+estimated_minutes: 60
+
+company_context: >
+  Verdant Home & Goods is a mid-sized online retailer selling across several product categories to
+  both individual shoppers and small-business buyers. Customers are recorded with a
+  customer_segment label of either "business" or "consumer" at signup.
+stakeholder_name: "Dana Whitfield"
+stakeholder_role: "CMO"
+problem_statement: >
+  "We're planning next quarter's retention budget, and I keep getting told we should be pouring it
+  into our business customers because 'B2B is where the real value is.' Nobody's actually shown me
+  the numbers behind that, and I don't want to commit budget on a hunch. Can you tell me which
+  customers we should actually be focusing retention spend on? I need something more specific than
+  'our best customers' — I need to know who they actually are."
+business_context: >
+  Marketing has a fixed retention budget for next quarter and needs to decide how to allocate it
+  across the customer base — for example, by customer type, by spend tier, or some other cut
+  entirely. Dana has heard the "business segment is more valuable" claim repeated in planning
+  meetings but has not seen it verified.
+objective: >
+  Determine which customers actually generate the most value for Verdant, using real order and
+  payment history, and recommend how retention budget should be targeted — including whether the
+  business-vs-consumer distinction is actually a useful basis for that decision.
+initial_information: >
+  You have access to the full e-commerce schema: customers (including a customer_segment field
+  of "business" or "consumer"), orders, order_items, products, categories, payments, sessions, and
+  marketing_campaigns. Order status includes completed, cancelled, refunded, and pending.
+constraints:
+  - "The retention budget decision needs a specific targeting basis (a segment, tier, or rule), not a list of individual customer IDs."
+  - "Only completed orders should be counted as realized revenue — cancelled, refunded, and pending orders should not be treated as spend."
+  - "Discount values in order_items are percentages (e.g. 16.6 means 16.6% off), not fractions — check this before computing order value."
+available_datasets: ["ecommerce"]
+expected_deliverables:
+  - "A clear definition of customer lifetime value (or an equivalent spend/frequency measure) computed from completed orders"
+  - "A comparison of value between the 'business' and 'consumer' customer_segment groups"
+  - "An alternative segmentation of customers by actual spend or order frequency, compared to the segment-label comparison"
+  - "A specific recommendation for how retention budget should be targeted, with reasoning"
+learning_objectives:
+  - "Translate an ambiguous 'which customers matter most' question into a measurable lifetime-value definition"
+  - "Test an assumed segment label against actual computed value rather than accepting it at face value"
+  - "Build a value-based customer segmentation (e.g., by spend or frequency) and compare it to a label-based one"
+  - "Recommend a specific, defensible targeting basis for a limited budget"
+stages: [CLARIFY, FRAME, EXPLORE, ANALYZE, INSIGHTS, RECOMMEND, SUBMIT]
+required_exercise_slugs: []
+tags: [e-commerce, customer-analytics, retention, business-analytics, case-study, real-world, intermediate]
+skills: [business-metrics, exploratory-data-analysis, data-interpretation, root-cause-analysis, decision-making]
+
+clarification_guidance:
+  - "A good clarifying question asks how 'value' or 'best customers' should be defined — total historical spend, order frequency, average order value, or something forward-looking?"
+  - "A good clarifying question asks whether the existing customer_segment label (business/consumer) should be treated as a given, reliable grouping, or as something to verify against actual behavior."
+  - "A good clarifying question asks what time window of order history is relevant, and whether cancelled/refunded/pending orders should count."
+  - "A good clarifying question asks what form the final recommendation needs to take — a segment, a percentile cut, a specific rule — since 'retention budget' has to be allocated against something concrete."
+rubric:
+  - category: "Problem Framing & Clarification"
+    weight: 15
+    criteria:
+      - criterion: "Defines a specific, computable value metric (e.g., total completed-order spend per customer) rather than treating 'value' as self-evident"
+        points: 8
+      - criterion: "Recognizes that the business/consumer label is an assumption to test, not a given fact"
+        points: 7
+  - category: "Technical Analysis"
+    weight: 35
+    is_technical: true
+    criteria:
+      - criterion: "Correctly restricts revenue calculations to completed orders and correctly handles the discount field as a percentage"
+        points: 10
+      - criterion: "Computes per-customer value (spend and/or order frequency) and compares it across the business/consumer segment label"
+        points: 12
+      - criterion: "Builds an alternative segmentation based on actual spend or frequency (e.g., quartiles or an RFM-style cut) and reports what share of total revenue the top tier represents"
+        points: 13
+  - category: "Insight Quality"
+    weight: 20
+    criteria:
+      - criterion: "Correctly states whether the business/consumer label actually predicts customer value, based on the computed comparison"
+        points: 10
+      - criterion: "Identifies what does meaningfully separate high- and low-value customers when the label-based cut does not"
+        points: 10
+  - category: "Recommendation & Business Judgment"
+    weight: 20
+    criteria:
+      - criterion: "Gives a specific targeting basis for the retention budget (e.g., a spend/frequency tier) rather than a generic 'focus on loyal customers' statement"
+        points: 12
+      - criterion: "Explicitly addresses whether the original 'business customers are more valuable' claim should be acted on, with reasoning"
+        points: 8
+  - category: "Communication"
+    weight: 10
+    criteria:
+      - criterion: "States at least one limitation of the analysis (e.g., that historical spend is backward-looking and may not predict future retention risk or response to outreach)"
+        points: 10
+hints:
+  - "Before comparing anything, decide exactly which orders count as 'value' — check the order status field and the discount field's units before summing anything, since both can quietly distort a spend total."
+  - "Compute the same value metric for the business segment and the consumer segment separately and compare them directly, rather than assuming the label matters."
+  - "If the label-based comparison turns out to be less clear-cut than expected, try cutting customers a different way — for instance, by ranking them on actual total spend or order count — and see whether that produces a sharper, more usable split."
+  - "Once you have a high-value tier, check what fraction of total customers it contains versus what fraction of total revenue it represents — that gap is often the most persuasive number in the recommendation."
+reference_solution:
+  summary: >
+    The "business customers are more valuable" claim does not hold up against the actual order
+    data. Of 1,500 customers, 435 are labeled "business" and 1,065 "consumer"; 1,261 customers have
+    at least one completed order. Average lifetime spend on completed orders is $3,187.72 for
+    business customers versus $3,143.71 for consumer customers (about a 1.4% difference), and
+    average order count is nearly identical (2.35 vs 2.27 orders per customer) — the segment label
+    does not meaningfully separate high- and low-value customers. What does separate them is actual
+    purchase behavior: ranking all 1,500 customers into spend quartiles based on real completed-order
+    revenue shows the top quartile (375 customers, 25% of the base) averaging 5.37 completed orders
+    and $8,254.78 in lifetime spend each, and together accounting for about 65.4% of Verdant's total
+    completed-order revenue (~$3.10M of ~$4.73M) — while the bottom quartile averages under 0.4
+    orders and $133 in spend. Critically, the top spend quartile is only 27.7% "business" customers,
+    almost exactly the 29% population share of business customers overall, confirming the segment
+    label carries no real signal for who the top quartile actually is.
+  key_insights:
+    - "The business vs. consumer customer_segment label is not a meaningful predictor of customer value: average spend and order frequency are nearly identical between the two groups ($3,187.72 vs $3,143.71 average lifetime spend)."
+    - "A small share of customers drives most of the revenue: the top quartile by actual completed-order spend (25% of customers) accounts for roughly 65.4% of total completed revenue."
+    - "The top-value quartile is not disproportionately 'business' customers (27.7% business, versus 29% in the overall population) — so segment label and actual value are effectively unrelated in this data."
+    - "Order frequency correlates strongly with total spend (customers who order more often are the ones who spend more), which is a more useful targeting signal than the segment label."
+  recommendation: >
+    Recommend that Verdant target retention budget by actual purchase behavior — for example, the
+    top spend/frequency quartile of customers (roughly 375 of 1,500, contributing ~65% of completed
+    revenue) — rather than by the business/consumer segment label. The label should not be used as
+    a retention-targeting basis on its own, since it does not correlate with realized customer
+    value in the data. If the business relationship still wants a segment-flavored narrative for
+    stakeholders, it should be paired with an actual spend/frequency cut within that segment, not
+    used in place of one.
+  acceptable_alternatives:
+    - "A recommendation using a slightly different value cut (e.g., top 20% by spend, or an RFM score combining recency/frequency/monetary value) as long as it is grounded in actual computed spend/order data rather than the segment label."
+    - "A recommendation that also flags average order value or repeat-purchase rate as a secondary targeting signal, provided the core conclusion — that the business/consumer label is not predictive of value — is stated and supported with real numbers."
+version: 1

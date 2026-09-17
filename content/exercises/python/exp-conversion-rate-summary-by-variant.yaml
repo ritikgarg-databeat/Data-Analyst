@@ -1,0 +1,71 @@
+slug: exp-conversion-rate-summary-by-variant
+lesson_slug: exp-what-is-an-experiment
+skill: experimentation
+dataset: saas-product
+title: Conversion Rate by Experiment and Variant
+description: Summarize user counts, conversions, and conversion rate for every experiment/variant combination in experiment_assignments.
+exercise_type: PYTHON
+difficulty: BEGINNER
+points: 10
+tags: [python, experimentation, ab-testing, saas, beginner]
+business_context: >
+  Before analyzing any single experiment in depth, an analyst first builds a quick summary table across
+  every experiment currently running, so anyone on the team can see at a glance how many users are in
+  each arm and what each arm's raw conversion rate looks like.
+prompt: >
+  Using `experiment_assignments` (columns: `experiment_id`, `user_id`, `variant`, `assigned_at`,
+  `converted`), group by `experiment_id` and `variant` and compute, for each group: the number of users
+  (`n_users`), the number of conversions (`conversions`, the sum of `converted`), and the conversion rate
+  (`conversion_rate`, conversions divided by n_users, rounded to 4 decimal places). Store your answer in
+  a variable named `result`: a DataFrame with columns `experiment_id`, `variant`, `n_users`,
+  `conversions`, `conversion_rate`, sorted ascending by `experiment_id` then `variant`.
+python_datasets: [experiment_assignments]
+python_starter_code: |
+  # experiment_assignments is already loaded as a DataFrame.
+  # Explore it first:
+  experiment_assignments.head()
+python_solution_code: |
+  result = (
+      experiment_assignments.groupby(["experiment_id", "variant"])
+      .agg(n_users=("user_id", "count"), conversions=("converted", "sum"))
+      .reset_index()
+  )
+  result["conversion_rate"] = (result["conversions"] / result["n_users"]).round(4)
+  result = result.sort_values(["experiment_id", "variant"]).reset_index(drop=True)
+python_result_variable: result
+python_row_order_matters: true
+python_numeric_tolerance: 0.001
+python_hidden_tests:
+  - name: "checkout_redesign treatment row matches a live recomputation"
+    code: |
+      row = result[
+          (result["experiment_id"] == "checkout_redesign") & (result["variant"] == "treatment")
+      ].iloc[0]
+      sub = experiment_assignments[
+          (experiment_assignments["experiment_id"] == "checkout_redesign")
+          & (experiment_assignments["variant"] == "treatment")
+      ]
+      assert int(row["n_users"]) == len(sub), f"Expected n_users={len(sub)}, got {row['n_users']}"
+      assert int(row["conversions"]) == int(sub["converted"].sum()), "conversions doesn't match a fresh recomputation"
+      expected_rate = round(sub["converted"].sum() / len(sub), 4)
+      assert abs(float(row["conversion_rate"]) - expected_rate) < 0.001, "conversion_rate doesn't match a fresh recomputation"
+hints:
+  - "`groupby([\"experiment_id\", \"variant\"])` followed by `.agg(...)` lets you compute n_users (a count) and conversions (a sum) in one step."
+  - "Conversion rate is just conversions / n_users on the aggregated result — compute it as a new column after the groupby, not inside `.agg()`."
+solution: |
+  ```python
+  result = (
+      experiment_assignments.groupby(["experiment_id", "variant"])
+      .agg(n_users=("user_id", "count"), conversions=("converted", "sum"))
+      .reset_index()
+  )
+  result["conversion_rate"] = (result["conversions"] / result["n_users"]).round(4)
+  result = result.sort_values(["experiment_id", "variant"]).reset_index(drop=True)
+  ```
+explanation: >
+  Grouping by `experiment_id` and `variant` together gives one row per arm of every experiment.
+  `.agg(n_users=("user_id", "count"), conversions=("converted", "sum"))` computes both aggregates in a
+  single pass, and dividing the two afterward gives conversion rate. Run against the real data, this
+  confirms checkout_redesign's control converted 113/1,000 users (11.3%) and treatment converted
+  125/1,000 users (12.5%), while onboarding_email's control converted 162/500 (32.4%) and treatment
+  converted 157/500 (31.4%) — the starting point for every deeper analysis in this domain.

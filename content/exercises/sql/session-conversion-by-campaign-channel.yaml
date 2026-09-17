@@ -1,0 +1,59 @@
+slug: session-conversion-by-campaign-channel
+skill: advanced-sql
+dataset: ecommerce
+title: Compare Conversion Rate by Campaign Channel
+description: Join sessions to marketing_campaigns and aggregate to find the conversion rate for each marketing channel.
+exercise_type: SQL
+difficulty: INTERMEDIATE
+points: 20
+tags: [sql, intermediate, business-analytics]
+business_context: >
+  Marketing is deciding how to reallocate next quarter's ad spend across channels and wants to know,
+  among sessions that arrived through a paid campaign, which channel — display, email, search, or
+  social — actually converts visitors at the highest rate.
+prompt: >
+  Using the `sessions` and `marketing_campaigns` tables, write a query that returns the conversion
+  rate for each campaign channel, considering only sessions that arrived via some campaign
+  (`marketing_campaign_id IS NOT NULL`). Conversion rate is the percentage of sessions where
+  `converted = true`, rounded to 1 decimal place. Return `channel` and `conversion_rate`, ordered from
+  the highest conversion rate to the lowest.
+sql_tables: [sessions, marketing_campaigns]
+sql_starter_query: |
+  -- channel lives on marketing_campaigns, not sessions — you'll need to join
+  SELECT * FROM sessions LIMIT 20;
+sql_solution_query: |
+  SELECT
+    mc.channel,
+    ROUND(100.0 * SUM(CASE WHEN s.converted THEN 1 ELSE 0 END) / COUNT(*), 1) AS conversion_rate
+  FROM sessions s
+  JOIN marketing_campaigns mc ON mc.campaign_id = s.marketing_campaign_id
+  WHERE s.marketing_campaign_id IS NOT NULL
+  GROUP BY mc.channel
+  ORDER BY conversion_rate DESC;
+sql_row_order_matters: true
+sql_numeric_tolerance: 0.1
+hints:
+  - "channel isn't a column on sessions — it lives on marketing_campaigns, so you'll need to join the two tables on marketing_campaign_id / campaign_id before you can group by channel. Also make sure to exclude organic/direct sessions, which have a NULL marketing_campaign_id."
+  - "Join sessions to marketing_campaigns, filter to marketing_campaign_id IS NOT NULL, then GROUP BY channel and compute `100.0 * SUM(CASE WHEN converted THEN 1 ELSE 0 END) / COUNT(*)` rounded to 1 decimal place. Finish with ORDER BY conversion_rate DESC."
+solution: >
+  ```sql
+  SELECT
+    mc.channel,
+    ROUND(100.0 * SUM(CASE WHEN s.converted THEN 1 ELSE 0 END) / COUNT(*), 1) AS conversion_rate
+  FROM sessions s
+  JOIN marketing_campaigns mc ON mc.campaign_id = s.marketing_campaign_id
+  WHERE s.marketing_campaign_id IS NOT NULL
+  GROUP BY mc.channel
+  ORDER BY conversion_rate DESC;
+  ```
+explanation: >
+  A strong answer joins sessions to marketing_campaigns to pull in channel (a session only carries a
+  foreign key, marketing_campaign_id, not the channel name itself), and filters to
+  marketing_campaign_id IS NOT NULL so organic/direct traffic — which never went through a campaign at
+  all — doesn't get folded into channel-level performance. It computes the rate as a percentage of
+  converted sessions per group using SUM(CASE WHEN converted THEN 1 ELSE 0 END) / COUNT(*) rather than
+  COUNT(converted), since converted is a boolean column where COUNT would count every non-NULL row
+  (both true and false) instead of just the true ones. A common mistake is using an INNER JOIN without
+  the NULL check and assuming it already excludes organic traffic — that happens to work here only
+  because the JOIN itself drops NULL keys, but relying on that instead of an explicit WHERE makes the
+  intent to exclude organic traffic implicit rather than clear.

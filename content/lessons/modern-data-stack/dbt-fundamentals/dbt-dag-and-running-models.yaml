@@ -1,0 +1,125 @@
+slug: dbt-dag-and-running-models
+module_slug: dbt-fundamentals
+title: "The DAG in Practice: Building fct_orders"
+description: >-
+  How dbt turns ref() calls into a dependency graph, and what actually
+  happens when you run this repo's real project — traced through
+  fct_orders.sql's four real upstream dependencies.
+difficulty: INTERMEDIATE
+estimated_minutes: 25
+display_order: 2
+prerequisites: [dbt-models-refs-and-sources]
+objectives:
+  - Trace fct_orders.sql's real ref() calls back to its four upstream dependencies and describe the DAG dbt builds from them.
+  - Explain what `dbt run` and `dbt build` actually do — compile Jinja to raw SQL, then execute models in dependency order.
+  - Use model selection syntax (--select model_name, +model_name, model_name+) to run a chosen subset of the DAG.
+skills: [dbt, data-lineage, modern-data-stack]
+datasets: [ecommerce]
+tags: [dbt, models, ref, lineage, modern-data-stack, real-execution, intermediate]
+key_takeaways:
+  - "dbt never asks you to declare execution order anywhere — it derives the entire DAG purely from which models call ref()/source() on which, then topologically sorts that graph before running anything."
+  - "`dbt run` compiles every model's Jinja into plain SQL and executes it in dependency order; `dbt build` does the same but also runs each model's tests right after it, so a broken model is caught before anything downstream builds on top of it."
+  - "Model selection syntax (--select fct_orders, +fct_orders, fct_orders+) lets you run a precise slice of the DAG — everything upstream of a model, everything downstream, or just the model itself — instead of always rebuilding the whole project."
+common_mistakes:
+  - "Assuming a model with more ref() calls always runs 'later' than one with fewer — order is determined by the actual dependency edges, not by how complex a model looks; a simple model with no dependencies on anything else always runs first regardless of how many other models exist."
+  - "Running --select fct_orders expecting it to also rebuild stale upstream models — that flag only builds the named model itself; use +fct_orders to include everything upstream of it too."
+blocks:
+  - type: heading
+    text: "Reading fct_orders.sql as a map of dependencies"
+  - type: text
+    body: >
+      `fct_orders.sql` is this project's central order-grain fact table, and its `ref()` calls are a
+      direct map of what has to exist before it can build. Read through it and you can list its
+      dependencies without running anything at all.
+  - type: code
+    language: sql
+    code: |
+      -- dbt/models/marts/fct_orders.sql (abridged)
+      with order_items_agg as (
+          select
+              order_id,
+              count(*) as item_count,
+              sum(quantity) as total_quantity,
+              sum(line_revenue) as gross_revenue,
+              sum(line_margin) as gross_margin
+          from {{ ref('int_order_items_priced') }}
+          group by order_id
+      )
+
+      select
+          o.order_id,
+          o.customer_id,
+          o.order_date,
+          o.status,
+          o.channel,
+          cl.channel_display_name,
+          coalesce(oi.item_count, 0) as item_count,
+          coalesce(oi.gross_revenue, 0) as gross_revenue,
+          {{ pct_of('oi.gross_margin', 'oi.gross_revenue') }} as gross_margin_pct,
+          coalesce(op.amount_paid, 0) as amount_paid
+      from {{ ref('stg_orders') }} as o
+      left join order_items_agg as oi
+          on o.order_id = oi.order_id
+      left join {{ ref('int_order_payments') }} as op
+          on o.order_id = op.order_id
+      left join {{ ref('seed_channel_labels') }} as cl
+          on o.channel = cl.channel
+    caption: "Four ref() calls: stg_orders, int_order_items_priced, int_order_payments, and the seed_channel_labels seed — all four must build before fct_orders can."
+  - type: table
+    headers: ["Layer", "Models at this layer (this project)", "Depends on"]
+    rows:
+      - ["Sources (raw)", "raw.orders, raw.customers, raw.order_items, raw.payments, raw.products, raw.categories", "Nothing — these are the CSVs sources.yml declares"]
+      - ["Staging", "stg_orders, stg_customers, stg_order_items, stg_payments, stg_products, stg_categories", "One source table each"]
+      - ["Intermediate", "int_order_items_priced, int_order_payments", "Two or more staging models each"]
+      - ["Marts", "fct_orders, dim_customers, dim_products", "Staging + intermediate models"]
+      - ["Marts (incremental)", "fct_daily_revenue", "fct_orders"]
+  - type: text
+    body: >
+      Stack those rows and you get the full DAG for this corner of the project: raw sources feed staging
+      models, staging models feed intermediate models, intermediate models feed marts, and one mart
+      (`fct_daily_revenue`, covered in module 5) is itself built on top of another mart (`fct_orders`).
+      Nobody wrote that order down anywhere — dbt parsed every `ref()`/`source()` call in every model file
+      and reconstructed it.
+  - type: heading
+    text: "What dbt run and dbt build actually do"
+  - type: text
+    body: >
+      `dbt run` does two things, in order: it compiles every model's Jinja (`{{ ref(...) }}`,
+      `{{ pct_of(...) }}`, and so on) down into plain SQL, then executes each compiled model against the
+      warehouse in dependency order — upstream models always finish before anything that reads from them
+      starts. `dbt build` does the same compile-and-execute pass, but also runs each model's own tests
+      immediately after that model builds, rather than waiting until every model has finished. That means
+      a broken test on `stg_orders` can stop `dbt build` before `fct_orders` ever builds on top of
+      possibly-bad staging data — the dbt Lab's Build button runs this exact sequence against this exact
+      project.
+  - type: heading
+    text: "Selecting a slice of the DAG"
+  - type: table
+    headers: ["Command", "What it builds"]
+    rows:
+      - ["dbt run --select fct_orders", "Only fct_orders itself (assumes everything upstream is already built and current)"]
+      - ["dbt run --select +fct_orders", "fct_orders and everything upstream of it (stg_orders, int_order_items_priced, int_order_payments, etc.)"]
+      - ["dbt run --select fct_orders+", "fct_orders and everything downstream of it (fct_daily_revenue, since it's built on fct_orders)"]
+      - ["dbt run", "The entire project, in full dependency order"]
+  - type: callout
+    variant: tip
+    title: "The DAG is inferred, never declared"
+    body: >
+      There is no file anywhere in this project that lists "run stg_orders before int_order_items_priced
+      before fct_orders." That ordering exists only as a byproduct of which models call `ref()` on which
+      — which is exactly why the dbt Lab's lineage graph (built from dbt's own manifest.json, covered in
+      module 4) is a trustworthy, always-current picture of the project rather than a diagram someone drew
+      by hand and forgot to update.
+  - type: question
+    prompt: "You just fixed a bug in stg_orders.sql and want to rebuild it plus everything downstream that depends on it, without rebuilding unrelated parts of the project. What do you run?"
+    choices:
+      - "dbt run --select stg_orders"
+      - "dbt run --select +stg_orders"
+      - "dbt run --select stg_orders+"
+      - "dbt run"
+    correct_index: 2
+    explanation: >
+      The trailing + means "this model and everything downstream of it." --select stg_orders alone would
+      only rebuild stg_orders itself, leaving fct_orders and everything else built on the old, buggy
+      version. +stg_orders (leading plus) would instead pull in everything upstream of stg_orders, which
+      isn't what's needed here since stg_orders has no dbt-model dependencies of its own.

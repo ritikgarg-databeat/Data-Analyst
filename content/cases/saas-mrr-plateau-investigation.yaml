@@ -1,0 +1,166 @@
+slug: saas-mrr-plateau-investigation
+title: "Case: Why Has MRR Growth Stalled?"
+category: BUSINESS_ANALYTICS
+difficulty: INTERMEDIATE
+
+estimated_minutes: 75
+company_context: >
+  Beacon Metrics is a B2B SaaS analytics product sold on three subscription tiers — starter, pro,
+  and enterprise. The company tracks every subscription's plan, monthly recurring revenue (MRR),
+  start date, end date, and current status (active or churned). Leadership is preparing the next
+  investor/board update on the business's growth trajectory.
+stakeholder_name: Grace Kim
+stakeholder_role: Chief Financial Officer
+problem_statement: >
+  "Our total MRR number has basically gone flat over the last couple of months, after growing
+  steadily for most of the year. As of our latest snapshot we have 140 active subscriptions worth
+  $11,600 in combined monthly recurring revenue — but I don't have a breakdown by plan tier, and I
+  haven't looked at whether new signups have slowed down, whether cancellations have picked up, or
+  both. I need to understand what's actually going on before I finalize the growth story for the
+  board, and I don't want to just say 'growth slowed' without knowing why."
+business_context: >
+  Subscriptions are recorded at three tiers (starter, pro, enterprise), each with its own fixed
+  monthly price. The only data available is the subscriptions table itself — there's no support
+  ticket history, product usage data, or acquisition-channel data for this investigation. The CFO
+  has not pre-judged whether the plateau is a new-business (acquisition) problem, a retention
+  (churn) problem, or something specific to one plan tier.
+objective: >
+  Determine whether the recent MRR plateau is being driven by fewer new subscriptions starting,
+  more subscriptions churning, or a specific plan tier's outsized contribution to revenue swings —
+  and give the CFO a specific, evidence-based explanation and recommendation.
+initial_information: >
+  The subscriptions table records subscription_id, user_id, plan (starter/pro/enterprise), mrr,
+  start_date, end_date, and status (active/churned). As of the latest snapshot there are 140 active
+  subscriptions and $11,600 in combined active MRR. No breakdown by plan, and no view of new
+  signups versus cancellations over time, has been produced yet — only the flat topline number.
+constraints:
+  - "Only the subscriptions table is available for this investigation — no usage/event logs, support data, or acquisition-channel data this time."
+  - "The CFO wants a plan-tier-aware and time-trend-aware explanation, not a restatement of the single flat MRR number."
+  - "A specific, prioritized recommendation is required — 'grow faster' or 'reduce churn' on their own are not acceptable answers without naming which tier or driver to focus on."
+available_datasets:
+  - saas-product
+expected_deliverables:
+  - "Active MRR broken out by plan tier, along with each tier's active subscriber count"
+  - "A month-by-month view of new subscriptions started versus subscriptions churned, to determine whether the plateau is a new-business problem, a retention problem, or both"
+  - "An identification of which plan tier contributes disproportionately to MRR relative to its account count, and how that interacts with each tier's churn rate"
+  - "A specific, prioritized recommendation for what to focus on to reaccelerate MRR growth"
+learning_objectives:
+  - "Compute and interpret MRR broken down by a categorical dimension (plan tier), not just as a single aggregate number"
+  - "Distinguish a new-business (acquisition) slowdown from a retention (churn) problem using time-series signup and churn data"
+  - "Recognize that account count and revenue contribution can rank very differently across segments, and why that matters for prioritization"
+  - "Build a specific, evidence-based recommendation rather than a generic 'grow faster' or 'reduce churn' statement"
+stages:
+  - CLARIFY
+  - FRAME
+  - EXPLORE
+  - ANALYZE
+  - INSIGHTS
+  - RECOMMEND
+  - SUBMIT
+required_exercise_slugs: []
+tags:
+  - saas
+  - business-analytics
+  - churn
+  - customer-analytics
+  - finance
+  - sql
+  - python
+  - case-study
+  - real-world
+  - intermediate
+  - root-cause
+skills:
+  - business-analytics
+  - business-metrics
+  - exploratory-data-analysis
+  - root-cause-analysis
+  - data-interpretation
+  - communication
+clarification_guidance:
+  - "Asks for the exact MRR figures being compared (which months or snapshots) rather than accepting 'growth has stalled' as self-evident"
+  - "Asks whether the plateau is driven by fewer new signups, more churn, or both, rather than assuming one without checking"
+  - "Asks whether all plan tiers are behaving the same way or whether the effect is concentrated in one tier"
+  - "Asks what data is and isn't available (e.g., no usage or support data) before proposing a diagnosis that would require it"
+rubric:
+  - category: "Problem Framing"
+    weight: 15
+    criteria:
+      - criterion: "Frames the investigation around both a plan-tier breakdown and a time-trend (signups vs. churn) view, rather than treating the flat MRR number as sufficient on its own"
+        points: 8
+      - criterion: "Explicitly avoids assuming, before checking, whether the cause is an acquisition problem or a retention problem"
+        points: 7
+  - category: "Analytical Approach"
+    weight: 20
+    criteria:
+      - criterion: "Plans to compute active MRR and active subscriber count separately by plan tier"
+        points: 10
+      - criterion: "Plans to examine new subscriptions started and subscriptions churned by month, not just the current snapshot"
+        points: 10
+  - category: "Technical Analysis"
+    weight: 25
+    is_technical: true
+    criteria:
+      - criterion: "Correctly computes active MRR and active subscriber count by plan tier"
+        points: 10
+      - criterion: "Correctly computes new subscriptions and churned subscriptions by month from start_date and end_date"
+        points: 10
+      - criterion: "Correctly computes churn rate by plan tier"
+        points: 5
+  - category: "Insight Quality"
+    weight: 25
+    criteria:
+      - criterion: "Correctly identifies that enterprise, despite having the fewest active accounts, contributes the most MRR of the three tiers on a per-account basis"
+        points: 10
+      - criterion: "Correctly identifies whether the recent plateau is primarily a new-signup slowdown, a churn spike, or both, using the month-by-month data rather than the snapshot alone"
+        points: 15
+  - category: "Recommendation"
+    weight: 15
+    criteria:
+      - criterion: "Names a specific plan tier or driver (not just 'reduce churn' in general) as the priority, with reasoning tied to the numbers"
+        points: 8
+      - criterion: "Proposes a concrete next step (e.g., a proactive renewal-risk review, or investigating what changed operationally around the period with elevated churn) rather than a vague monitoring statement"
+        points: 7
+hints:
+  - "Compute active MRR broken out by plan tier, along with each tier's active subscriber count — don't stop at the combined $11,600 total."
+  - "Look at new subscriptions started and subscriptions churned by month (using start_date and end_date), not just the current snapshot — a flat total can hide two large, offsetting flows."
+  - "Compare each plan tier's share of active accounts to its share of active MRR — a tier can be small in headcount but large in revenue."
+  - "Once you find the tier with outsized revenue-per-account, check its churn rate too — a small, high-value, high-churn segment can move total MRR by a lot from just a couple of cancellations."
+reference_solution:
+  summary: >
+    Active MRR is $11,600 across 140 active subscriptions, but it's very unevenly distributed by
+    plan: starter has the most accounts (78 active, 56% of the base) but only $2,262 in MRR ($29
+    per account); pro has 46 active accounts and $4,554 in MRR ($99 per account); enterprise has by
+    far the fewest accounts (16, just 11% of the base) but the MOST MRR of the three tiers, $4,784
+    ($299 per account — roughly 10x a starter account). So the topline MRR number is disproportionately
+    sensitive to what happens in the smallest segment. Looking at the month-by-month flow (not just
+    the snapshot) confirms the plateau is real and recent: net new active subscriptions per month,
+    after growing steadily through most of 2025 (net +14 in August 2025, +13 in October 2025), fell
+    to just +2 in January 2026 — the weakest month in the entire 19-month history — because monthly
+    churn hit its historic high (15 subscriptions churned in January 2026, versus a previous high of
+    9 in any other month) at the same time new signups (17 that month) held up reasonably well. This
+    is predominantly a RETENTION problem showing up recently, not a slowing top of funnel: new
+    business did not meaningfully slow down, but churn spiked. Enterprise's churn rate (38.5%, the
+    highest of the three tiers, versus 35.2% for pro and 32.2% for starter) compounds the exposure,
+    since each enterprise cancellation is worth roughly 10x a starter cancellation in MRR — in
+    January 2026 alone, just 2 enterprise cancellations wiped out $598 in MRR, nearly as much as 11
+    starter cancellations combined ($319).
+  key_insights:
+    - "Active MRR ($11,600 across 140 accounts) is unevenly distributed by plan: starter 78 accounts / $2,262 MRR ($29/account), pro 46 accounts / $4,554 MRR ($99/account), enterprise 16 accounts / $4,784 MRR ($299/account) — enterprise has the fewest accounts of the three tiers but contributes the most MRR."
+    - "Enterprise's churn rate (38.5%) is the highest of the three plan tiers, versus 35.2% for pro and 32.2% for starter — churn rate rises with plan tier, the opposite of a 'bigger customers are stickier' assumption."
+    - "Net new active subscriptions per month fell from +14 (August 2025) and +13 (October 2025) to just +2 in January 2026, the weakest month in the full 19-month history."
+    - "January 2026 saw 15 subscriptions churn — the highest monthly churn count in the entire dataset (previous high was 9) — while new signups that month (17) remained reasonably healthy, pointing to a retention spike rather than an acquisition slowdown as the primary cause of the plateau."
+    - "In January 2026, 2 enterprise cancellations alone removed $598 in MRR, nearly matching the $319 removed by 11 starter cancellations combined — illustrating how concentrated enterprise's revenue impact is despite its small headcount."
+  recommendation: >
+    Prioritize retention efforts, especially for enterprise accounts, over new-business acquisition
+    — new signups have not meaningfully slowed, but January 2026's churn spike (15 subscriptions,
+    the highest of any month on record) is what actually stalled MRR growth, and enterprise's
+    combination of the highest churn rate (38.5%) and highest per-account revenue ($299/month) makes
+    it the tier where losing even a couple of accounts moves the topline the most. Recommend a
+    proactive renewal-risk review of currently active enterprise accounts specifically, and a
+    broader investigation into what changed operationally or in the product around January 2026
+    that could explain the spike in cancellations that month across all tiers.
+  acceptable_alternatives:
+    - "A learner who focuses the recommendation on investigating the January 2026 churn spike broadly across all tiers, rather than enterprise specifically, is also a reasonable and defensible answer, since the spike affected starter in the largest raw count (11 cancellations that month)."
+    - "A learner who notes that new-signup counts (17 in January 2026, 19 in December 2025) look healthy and are NOT the primary driver, correctly ruling out a top-of-funnel/acquisition explanation, should receive full credit for that reasoning even without going further into the enterprise-specific angle."
+version: 1

@@ -1,0 +1,167 @@
+slug: relationships-and-correlation
+module_slug: exploratory-data-analysis
+title: "Relationships and Correlation: What Moves Together, and Why That's Not Proof"
+description: .corr(), reading a correlation matrix, and the gap between correlation and causation — with a real, concrete business example of a confound, not the ice-cream-and-shark-attacks cliché.
+difficulty: INTERMEDIATE
+estimated_minutes: 12
+display_order: 5
+objectives:
+  - Compute and interpret a correlation matrix with .corr()
+  - Distinguish a strong, expected correlation from a weak or coincidental one, using real data
+  - Explain correlation vs. causation with a concrete business confound, and recognize when an observed gap is small enough to be noise
+prerequisites: [understanding-distributions]
+skills: [pandas]
+datasets: [ecommerce]
+tags: [python, intermediate, real-world]
+key_takeaways:
+  - ".corr() computes pairwise correlation coefficients (Pearson by default) between numeric columns — values near +1 mean strongly move-together, near -1 mean strongly move-opposite, near 0 mean no linear relationship."
+  - "In this dataset, product unit_price and cost correlate at 0.938 — strong and expected, since prices are set as a markup on cost. quantity and unit_price correlate at essentially 0.007 — no relationship, which is just as informative a finding as a strong one."
+  - "Correlation tells you two variables move together. It says nothing about which one (if either) is causing the other, or whether a third factor is driving both — that gap is exactly where 'correlation is not causation' comes from, and it's the single most important caveat in exploratory analysis."
+  - "A small observed difference between two groups isn't automatically a real pattern — this dataset's own campaign vs. organic conversion rates (14.3% vs 15.9%) look different at a glance but are well within the range you'd expect from ordinary sampling noise on these group sizes, not evidence that campaigns hurt conversion."
+common_mistakes:
+  - "Treating any nonzero correlation as meaningful without checking its strength — a correlation of 0.05 between two columns is close enough to zero that it shouldn't change any decision, even though it's technically 'not zero.'"
+  - "Assuming a correlation implies the direction of causation ('A correlates with B, so A causes B') without considering that B could cause A, or that a third variable could cause both."
+  - "Reading a small gap between two group averages or rates as a real, actionable difference without asking whether the group sizes are large enough for that gap to mean anything — small samples produce noisy percentages that look like patterns even when nothing is actually different."
+practical_applications:
+  - "Running .corr() early in an EDA pass to quickly spot which numeric variables are worth exploring further, and which are redundant with each other (very highly correlated columns are near-duplicates of the same information)."
+  - "Pausing before presenting a correlation-based finding to stakeholders to ask 'what third factor could be driving both of these,' catching a confound before it turns into a bad recommendation."
+interview_questions:
+  - question: "Explain correlation vs. causation with an example, without using ice cream and shark attacks."
+    answer: "A SaaS company might observe that customers acquired through referrals have meaningfully higher lifetime value than customers acquired through paid search, and conclude referrals are simply a better channel. But if the referral program launched much more recently and skews toward friends of the most loyal existing customers, while paid search brings in a steady stream of very recent signups, the LTV gap can be mostly explained by tenure and cohort composition rather than channel quality — recent signups haven't had time to spend as much yet, regardless of channel. Comparing LTV at the same tenure, per channel, would be needed to see whether the channel effect survives once that confound is controlled for."
+  - question: "How do you decide whether an observed correlation or group difference is worth acting on?"
+    answer: "First, check the correlation's strength (values close to zero aren't meaningful regardless of statistical significance) or, for a group comparison, whether the sample sizes are large enough that the observed gap is unlikely to be pure noise. Then think through plausible confounds — other variables that could be driving both sides of the relationship. Only after both checks would I treat the pattern as something to build a recommendation on, and even then I'd frame it as correlational unless there's a clear causal mechanism or an actual experiment behind it."
+resources:
+  - title: "Pandas documentation — DataFrame.corr"
+    url: "https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.corr.html"
+blocks:
+  - type: text
+    body: >
+      Once you understand individual columns' distributions, the next natural EDA question is how they
+      relate to *each other*. Do larger orders also have more items in them? Does a higher price mean
+      lower quantity sold? `.corr()` answers "do these two move together," fast — but reading it well
+      means understanding exactly what it does and does not tell you.
+  - type: heading
+    text: ".corr(): a strong, expected relationship"
+  - type: code
+    language: python
+    code: |
+      import pandas as pd
+
+      products = pd.read_csv("data/sample/ecommerce/products.csv")
+      print(products[["unit_price", "cost"]].corr())
+    caption: Products' selling price vs. their cost
+  - type: output
+    body: |
+      unit_price      cost
+      unit_price    1.000000  0.937891
+      cost          0.937891  1.000000
+    caption: Real output — a strong positive correlation
+  - type: text
+    body: >
+      0.938 is a strong positive correlation — as `cost` goes up, `unit_price` tends to go up right
+      along with it. That's exactly what you'd expect for a catalog priced as a markup on cost, and it's
+      a good example of a correlation that's both strong *and* has an obvious, defensible mechanism
+      behind it: businesses price products relative to what they cost to source.
+  - type: heading
+    text: "A weak relationship is just as informative"
+  - type: code
+    language: python
+    code: |
+      order_items = pd.read_csv("data/sample/ecommerce/order_items.csv")
+      print(order_items[["quantity", "unit_price"]].corr())
+    caption: Does the number of units ordered relate to the item's price?
+  - type: output
+    body: |
+      quantity  unit_price
+      quantity    1.000000    0.006849
+      unit_price  0.006849    1.000000
+    caption: "Real output — essentially zero correlation"
+  - type: callout
+    variant: tip
+    title: "'No relationship' is a finding, not a null result"
+    body: >
+      0.007 tells you something real: customers don't systematically buy fewer units of expensive items
+      or more units of cheap ones in this data — quantity ordered per line looks essentially independent
+      of unit price. That's worth knowing before you build, say, a pricing-elasticity story that assumes
+      the opposite.
+  - type: heading
+    text: "The gap between correlation and causation"
+  - type: text
+    body: >
+      A correlation coefficient tells you two variables move together. It cannot tell you *why* — and
+      there are always at least three possible explanations for any correlation: A causes B, B causes
+      A, or some third factor C causes both (a **confound**). Here's a concrete business example that
+      isn't the usual ice-cream-and-shark-attacks cliché.
+  - type: example
+    title: "The referral-channel LTV trap"
+    body: >
+      A subscription business notices that customers acquired through its referral program have
+      meaningfully higher lifetime value than customers acquired through paid search, and the natural
+      read is "referrals bring better customers — let's shift budget there." But the referral program
+      launched more recently and skews toward friends of the company's most loyal existing customers,
+      while paid search has been running steadily and includes a constant stream of very recent
+      signups. Recent signups — regardless of channel — simply haven't had the calendar time to
+      accumulate as much spend yet. Some or all of the "referrals are better" gap can be explained by
+      tenure and cohort composition rather than the channel itself. The fix isn't to distrust the
+      finding outright — it's to compare LTV at matched tenure (e.g. LTV in each customer's first 90
+      days, by channel) before concluding the channel effect is real.
+  - type: callout
+    variant: important
+    title: "Why this trap is so common in practice"
+    body: >
+      Confounds like this are everywhere in business data specifically because so many things move
+      together with *time* — tenure, seasonality, company growth — without one causing the other.
+      Whenever a correlation involves a variable that's related to "how long something has existed" or
+      "when it started," a tenure or cohort confound is one of the first things worth ruling out before
+      trusting the relationship.
+  - type: heading
+    text: "Small gaps can just be noise — a real check on this exact dataset"
+  - type: code
+    language: python
+    code: |
+      sessions = pd.read_csv("data/sample/ecommerce/sessions.csv")
+      sessions["has_campaign"] = sessions["marketing_campaign_id"].notna()
+      print(sessions.groupby("has_campaign")["converted"].mean().mul(100).round(2))
+      print(sessions.groupby("has_campaign").size())
+    caption: Comparing conversion rate for campaign-attributed vs. organic sessions
+  - type: output
+    body: |
+      has_campaign
+      False    15.86
+      True     14.29
+      Name: converted, dtype: float64
+
+      has_campaign
+      False    7170
+      True     4830
+      dtype: int64
+    caption: Real output
+  - type: callout
+    variant: warning
+    title: "Resist the urge to write 'campaigns hurt conversion' from this alone"
+    body: >
+      15.86% vs. 14.29% looks like a real gap at a glance — but on samples of 7,170 and 4,830 sessions,
+      a difference this size is well within the range you'd expect to see just from ordinary random
+      variation, even if the true underlying conversion rate were identical for both groups. Checking
+      device mix and landing-page mix between the two groups here shows no meaningful difference either
+      — nothing points to a real driving mechanism. This is exactly the discipline correlation vs.
+      causation is asking for: don't build a story on top of a gap until you've asked whether it's even
+      likely to be a real pattern in the first place. (A formal hypothesis test, covered in the
+      Statistics module, is the rigorous version of this same check.)
+  - type: text
+    body: >
+      Seeing these relationships visually — scatter plots for two continuous variables, in particular —
+      often makes a pattern (or its absence) much more obvious than a single correlation number can.
+      That's covered in depth in the Visualization module's scatter plot lesson; the reasoning you've
+      practiced here about strength and confounds applies directly once you get there.
+  - type: question
+    prompt: "unit_price and cost correlate at 0.938; quantity and unit_price correlate at 0.007. What's the correct way to interpret the second number?"
+    choices:
+      - "It's a real, informative finding — quantity ordered per line is essentially unrelated to the item's price in this data"
+      - "It means the correlation calculation failed and should be re-run"
+      - "It means quantity and unit_price are strongly negatively related"
+    correct_index: 0
+    explanation: >
+      A correlation near zero is a legitimate result, not a failure — it tells you the two variables
+      don't move together in this data. That's just as useful to know as a strong correlation, especially
+      if you were about to build an analysis that assumed a relationship existed.

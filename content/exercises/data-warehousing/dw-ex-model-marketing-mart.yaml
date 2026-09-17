@@ -1,0 +1,84 @@
+slug: dw-ex-model-marketing-mart
+lesson_slug: dw-data-marts
+skill: dimensional-modeling
+dataset: ecommerce
+title: "Design: A Marketing Campaign Performance Mart"
+description: Design, in prose, a star schema for a marketing-scoped mart answering which campaigns actually drive conversions efficiently — grain, dimensions, measures, and one SCD-relevant attribute.
+exercise_type: MODELING
+difficulty: ADVANCED
+points: 30
+tags: [data-marts, star-schema, data-modeling, case-study]
+business_context: >
+  The marketing team wants their own mart, scoped to their questions, rather than pulling from the
+  general-purpose warehouse each time. The `sessions` table records 12,000 sessions, 1,827 of which
+  converted (an overall 15.23% conversion rate), and 15 rows exist in `marketing_campaigns`, ranging
+  from a $2,146.67 budget up to $19,829.92 (total budget across all 15 campaigns: $164,918.98).
+  Comparing two real campaigns: Social Campaign 9 has a $8,241.03 budget, 352 attributed sessions,
+  and 42 conversions (11.93% conversion rate); Social Campaign 12 has a much smaller $2,720.38
+  budget, 343 attributed sessions, and 57 conversions (16.62% conversion rate) — a smaller-budget
+  campaign outperforming a larger one on conversion rate is exactly the kind of comparison this mart
+  needs to make easy.
+stakeholder: "Head of Marketing Analytics"
+constraints:
+  - "You have access to sessions (session_id, customer_id, session_start, session_end, device, landing_page, marketing_campaign_id, converted) and marketing_campaigns (campaign_id, campaign_name, channel, start_date, end_date, budget) — no ad-platform spend data or attribution beyond what marketing_campaign_id already links."
+  - "The mart needs to make \"conversion rate by campaign\" and \"budget efficiency by campaign\" fast, one-join questions for a marketing analyst who doesn't want to learn the full warehouse schema."
+expected_deliverables:
+  - "The fact table's name and a precisely stated grain (what one row represents)"
+  - "The dimension tables the fact table joins to, and which foreign key connects each one"
+  - "At least one measure explicitly classified as additive vs. non-additive, with the correct way to roll up the non-additive one named explicitly"
+  - "At least one dimension attribute identified as SCD-relevant, with a stated reason and a recommended SCD type"
+prompt: >
+  Design a star schema for a marketing-scoped mart that makes "which campaigns convert efficiently"
+  fast to answer. State the fact table's name and precise grain, the dimensions it joins to (and via
+  which foreign keys), classify at least one measure as additive or non-additive (and state how the
+  non-additive one should actually be rolled up), and identify at least one dimension attribute that
+  is SCD-relevant, with your reasoning and recommended SCD type.
+hints:
+  - "Start from the grain, not the columns: is one row a session, a campaign, or a campaign-day? sessions is already at a natural, fine grain (1 row = 1 session) that a conversion-rate mart can aggregate up from however it needs, without losing information a coarser grain would discard."
+  - "conversion (0/1, or true/false) is additive — SUM(converted) gives a conversion count. conversion_rate is not — it must be recomputed as SUM(converted) / COUNT(*) after aggregating, never averaged or summed directly across campaigns of different sizes."
+rubric:
+  - criterion: "States a fact table name and a precise, correctly justified grain (e.g., \"1 row = 1 session\"), explaining why that grain (rather than a coarser one like 1 row per campaign) preserves the ability to answer both aggregate and drill-down questions"
+    points: 25
+  - criterion: "Names the correct dimensions (at minimum a campaign dimension and a customer dimension) and states the specific foreign key connecting each to the fact table"
+    points: 25
+  - criterion: "Correctly classifies at least one measure as additive (e.g., a conversion count or session count) and at least one as non-additive (e.g., conversion rate), and explicitly states the correct way to roll up the non-additive one (recompute from summed components, not averaged/summed directly)"
+    points: 25
+  - criterion: "Identifies a specific SCD-relevant dimension attribute (e.g., a campaign's budget, if it can be revised after launch) with a concrete reason tied to a real analytical question, and recommends an appropriate SCD type"
+    points: 25
+solution: >
+  Fact table: `fct_campaign_sessions`. Grain: 1 row = 1 session (matching the grain of the source
+  `sessions` table directly — the finest grain available, so any coarser rollup, like sessions per
+  campaign per day, can always be derived from it later without having thrown away information).
+  Dimensions: `dim_campaigns` (joined via `marketing_campaign_id`, carrying campaign_name, channel,
+  budget, start_date, end_date) and `dim_customers` (joined via `customer_id`, reusing the existing
+  customer dimension rather than duplicating it). A `dim_date` on `session_start` would be a
+  reasonable addition if trend-over-time questions are common, though not strictly required at this
+  scope.
+
+  Measures: `converted` (stored as 0/1) is additive — SUM(converted) across any slice (by campaign,
+  by channel, by month) gives a correct conversion count, and COUNT(*) gives the corresponding session
+  count. `conversion_rate` is non-additive and must never be summed or averaged directly across
+  campaigns — comparing Social Campaign 9 (42/352 = 11.93%) and Social Campaign 12 (57/343 = 16.62%)
+  makes this concrete: averaging those two rates (14.28%) doesn't represent a real, correctly-weighted
+  combined rate. The correct rollup is always SUM(converted) / COUNT(*), computed after aggregating,
+  e.g. (42+57)/(352+343) = 14.25% for the two campaigns combined — close to the naive average here
+  only because the two campaigns happen to be similar in size, which won't hold in general.
+
+  SCD-relevant attribute: `dim_campaigns.budget`. If a campaign's budget is revised mid-flight (a
+  realistic scenario — marketing budgets get reallocated), overwriting it in place (SCD Type 1) would
+  make any historical "cost per conversion so far" calculation silently apply today's budget
+  retroactively to sessions that happened under a different budget. Since budget-efficiency-over-time
+  is exactly the kind of question this mart exists to answer, `budget` is a strong candidate for SCD
+  Type 2 tracking (validity date ranges, the same mechanism this project's `customer_segment_snapshot`
+  uses for `customer_segment`) rather than a simple overwrite.
+explanation: >
+  A strong answer keeps the grain at the finest available level (1 row = 1 session) rather than
+  prematurely aggregating to campaign-level, since a coarser grain can always be derived later but a
+  too-coarse original grain can't be un-aggregated. It correctly treats conversion count as additive
+  and conversion rate as non-additive, using the real Social Campaign 9 vs. 12 numbers to show
+  concretely why naively averaging rates across campaigns of different sizes gives a misleading
+  answer. It identifies a genuinely SCD-relevant attribute (budget) tied to a real, stated business
+  question (efficiency over time) rather than picking an arbitrary column. A weaker answer either
+  aggregates to campaign grain prematurely, treats conversion_rate as summable, or names an SCD
+  attribute without connecting it to why the history actually matters for a real question this mart
+  needs to answer.

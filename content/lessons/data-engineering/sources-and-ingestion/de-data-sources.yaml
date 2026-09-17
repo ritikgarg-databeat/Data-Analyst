@@ -1,0 +1,102 @@
+slug: de-data-sources
+module_slug: sources-and-ingestion
+title: Where Data Actually Comes From
+description: The handful of source types behind almost every dataset an analyst touches — operational databases, APIs, files, and event streams — and what makes each one easy or hard to pull from.
+difficulty: BEGINNER
+estimated_minutes: 22
+display_order: 1
+objectives:
+  - Name the four common categories of data sources and give a real example of each
+  - Explain why an operational (OLTP) database is not simply queried directly for analytics
+  - Predict which extraction challenges (rate limits, schema drift, volume) come with each source type
+prerequisites: [de-foundations-what-is-data-engineering]
+skills: [data-engineering-fundamentals]
+datasets: [ecommerce]
+tags: [data-engineering, ingestion, foundations, beginner]
+key_takeaways:
+  - "Almost every dataset traces back to one of four source types: operational databases, third-party APIs, files, or event streams — each with a different shape, delivery pattern, and failure mode."
+  - "Production (OLTP) databases power the live application first; analytics is a secondary, read-only concern that has to be extracted out, not queried directly against production."
+  - "The `ecommerce` dataset's tables are a snapshot of exactly this: `orders` and `payments` likely originate in an operational database, `sessions` looks event-like, and `marketing_campaigns` has the shape of data pulled from an ad platform's API."
+common_mistakes:
+  - "Assuming all source data arrives the same way — a nightly database extract, a rate-limited API, and a stream of click events fail differently and need different handling, not one universal ingestion approach."
+  - "Querying a production application database directly for a large analytical report, which can slow down or even take down the live application serving real customers."
+interview_questions:
+  - question: "Why can't an analyst just point a BI tool directly at the production application database instead of a warehouse?"
+    answer: >
+      Production databases are tuned for OLTP workloads — many small, fast reads and writes that
+      keep the live application responsive. A heavy analytical query (scanning millions of rows,
+      joining several large tables) competes for the same resources and can slow down or lock the
+      application for real customers. Extracting data into a separate warehouse, optimized for
+      large scans instead of quick transactions, isolates analytics from production traffic
+      entirely.
+blocks:
+  - type: heading
+    text: Four shapes of "where data comes from"
+  - type: text
+    body: >
+      Every dataset an analyst has ever opened started somewhere. Almost all of those starting
+      points fall into one of four categories, and recognizing which one you're dealing with tells
+      you a lot about how it needs to be handled.
+  - type: table
+    headers: ["Source type", "What it is", "Example", "Typical delivery"]
+    rows:
+      - ["Operational database", "The live database behind an application (OLTP)", "The database recording every order as a customer checks out", "Extracted on a schedule (full or incremental)"]
+      - ["Third-party API", "A hosted service you pull data from over HTTP", "An ad platform's reporting API for campaign spend", "Pulled on a schedule, often rate-limited"]
+      - ["Files", "Flat files dropped somewhere (CSV, JSON, Parquet)", "A vendor emailing a daily CSV export, or a partner's S3 bucket drop", "Arrives on the sender's schedule, not yours"]
+      - ["Events / streams", "A continuous feed of small, timestamped occurrences", "Clickstream events as users browse a product page", "Arrives continuously, consumed as a stream or in small batches"]
+  - type: example
+    title: "Spotting the source type in the ecommerce dataset"
+    body: >
+      Looking at the `ecommerce` sample dataset with this lens: `orders`, `customers`, `order_items`,
+      and `payments` have the shape of tables extracted from an operational database — one row per
+      real-world transaction, with foreign keys (`order_id`, `customer_id`, `product_id`) linking
+      them together. `marketing_campaigns` (with `campaign_id`, `channel`, `budget`, `start_date`,
+      `end_date`) looks like a pull from an ad platform's API. `sessions` — one row per browsing
+      session with a `session_start`/`session_end` timestamp — has the shape of something built
+      from raw event data, aggregated up to session grain before landing in this table.
+  - type: heading
+    text: Why production data isn't just queried directly
+  - type: text
+    body: >
+      A production database exists to serve the application — inserting a new order row the moment
+      a customer checks out, updating an order's `status` the instant a refund is processed. It is
+      tuned for **OLTP** workloads: many small, fast, concurrent transactions. Analytical queries
+      are the opposite shape — a handful of queries that each scan millions of rows and do heavy
+      aggregation. Running that kind of query directly against production risks slowing down or
+      locking the live application for real customers. This is the core reason data has to be
+      **extracted** out into a separate system before an analyst touches it — not just for
+      organization, but to physically protect the production system doing the actual business.
+  - type: callout
+    variant: common_mistake
+    title: "\"It's just a database — why can't I query it directly?\""
+    body: >
+      A database being queryable doesn't mean it's safe to query for analytics. A seemingly
+      innocent `SELECT COUNT(*) FROM orders` with a few joins can be enormously expensive against a
+      production table serving live checkout traffic, especially without the indexes an analytical
+      workload needs. This is exactly why the extraction step exists — even before any
+      transformation happens.
+  - type: heading
+    text: What makes each source type hard
+  - type: checklist
+    title: "Extraction challenges by source type"
+    items:
+      - "Operational databases: extracting without locking production tables or missing updates that happened mid-extract"
+      - "APIs: rate limits, pagination, and the provider changing their response shape without warning"
+      - "Files: inconsistent formats between drops, late or missing files, and no guarantee the sender validates anything before sending"
+      - "Event streams: out-of-order arrival, duplicate events, and needing to decide what \"batch boundary\" even means for a continuously arriving feed"
+  - type: question
+    prompt: >
+      A marketing analyst asks for campaign spend data that currently lives only inside a
+      third-party ad platform's dashboard. Which extraction challenge is most specific to this
+      source type, compared to pulling from an internal operational database?
+    choices:
+      - "The data will need a primary key added to it"
+      - "You're dependent on that platform's API, which may rate-limit requests or change its response format without warning — something an internal database extract doesn't risk"
+      - "The data can only ever be loaded once, never refreshed"
+    correct_index: 1
+    explanation: >
+      Third-party APIs introduce a dependency you don't control: request limits, authentication
+      expiry, pagination quirks, and response formats that can change on the vendor's own timeline.
+      An internal operational database extract still has its own challenges (like avoiding locking
+      production tables), but you at least control the schema and the extraction schedule end to
+      end.

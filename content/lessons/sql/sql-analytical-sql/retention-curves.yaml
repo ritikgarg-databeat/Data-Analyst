@@ -1,0 +1,127 @@
+slug: retention-curves
+module_slug: sql-analytical-sql
+title: Retention Curves
+description: Turning a cohort table into a retention rate — what fraction of a cohort is still active N months after joining — and reading the shape of the resulting curve.
+difficulty: ADVANCED
+estimated_minutes: 12
+display_order: 2
+objectives:
+  - Convert raw active-customer counts per cohort into a retention rate relative to cohort size
+  - Explain why retention is expressed as a percentage of the original cohort rather than a raw count
+  - Read a retention curve and describe what a steep early drop vs. a flattening tail each imply
+prerequisites: [cohort-analysis]
+skills: [advanced-sql]
+datasets: [ecommerce]
+tags: [sql, advanced, business-analytics]
+key_takeaways:
+  - "Retention rate = active customers at month N / the cohort's original size. Dividing by cohort size is what makes cohorts of very different sizes comparable on one chart."
+  - "Retention curves almost always drop fastest early on and then flatten — the flattened tail (sometimes called the 'retention floor') is the more predictive number for long-term value than the first-month spike."
+  - "A denominator that never shrinks (always the original cohort size) is a deliberate choice: it measures 'of everyone who ever joined,' not 'of everyone still around' — the latter would make every cohort look artificially healthy."
+common_mistakes:
+  - "Dividing by the number of customers active last month instead of the original cohort size — that measures month-over-month churn, not cumulative retention, and makes a shrinking cohort look stable when it isn't."
+  - "Forgetting that a customer with zero orders in month N contributes a 0 to that month's numerator, not a missing row — retention math needs every cohort/month combination represented, even ones with no activity, or an average across months will be computed on too few data points."
+practical_applications:
+  - "Deciding whether a product change improved stickiness by comparing the retention curve of cohorts before vs. after the change."
+  - "Setting a realistic long-term revenue forecast using the flattened tail of the curve instead of extrapolating from an early, still-declining slope."
+blocks:
+  - type: heading
+    text: From counts to rates
+  - type: text
+    body: >
+      The previous lesson built a table of active-customer counts per cohort per months-since-signup.
+      That's useful, but raw counts don't compare well across cohorts of different sizes — 7 active
+      customers means something very different for a cohort of 10 than a cohort of 100. A **retention
+      curve** fixes that by expressing each month's active count as a percentage of the cohort's
+      original size.
+  - type: formula
+    expression: "retention_rate(cohort, month N) = active_customers(cohort, month N) / cohort_size(cohort)"
+    description: >
+      The denominator is fixed per cohort — it's always the number of people who originally joined
+      that cohort, never the number still active as of some later month.
+  - type: code
+    language: sql
+    caption: Cohort size, active counts, and retention rate together
+    code: |
+      WITH cohorts AS (
+        SELECT customer_id, DATE_TRUNC('month', signup_date) AS cohort_month
+        FROM customers
+      ),
+      cohort_sizes AS (
+        SELECT cohort_month, COUNT(*) AS cohort_size
+        FROM cohorts
+        GROUP BY cohort_month
+      ),
+      cohort_orders AS (
+        SELECT
+          o.customer_id,
+          c.cohort_month,
+          DATE_DIFF('month', c.cohort_month, DATE_TRUNC('month', o.order_date)) AS months_since_signup
+        FROM orders o
+        JOIN cohorts c ON o.customer_id = c.customer_id
+        WHERE o.status = 'completed'
+      ),
+      active_per_month AS (
+        SELECT cohort_month, months_since_signup, COUNT(DISTINCT customer_id) AS active_customers
+        FROM cohort_orders
+        GROUP BY cohort_month, months_since_signup
+      )
+      SELECT
+        a.cohort_month,
+        a.months_since_signup,
+        a.active_customers,
+        s.cohort_size,
+        ROUND(a.active_customers::DOUBLE / s.cohort_size, 3) AS retention_rate
+      FROM active_per_month a
+      JOIN cohort_sizes s ON a.cohort_month = s.cohort_month
+      ORDER BY a.cohort_month, a.months_since_signup;
+  - type: output
+    caption: The January 2024 cohort (54 customers) across its first several months
+    body: |
+      cohort_month | months_since_signup | active_customers | cohort_size | retention_rate
+      -------------+----------------------+-------------------+-------------+----------------
+      2024-01-01   |                    0 |                 3 |          54 |          0.056
+      2024-01-01   |                    1 |                 4 |          54 |          0.074
+      2024-01-01   |                    2 |                 7 |          54 |          0.130
+      2024-01-01   |                    3 |                 1 |          54 |          0.019
+      2024-01-01   |                    4 |                 7 |          54 |          0.130
+  - type: text
+    body: >
+      Notice `s.cohort_size` never changes across rows for the same cohort — that's what makes this a
+      retention curve and not a churn-of-the-living metric. Dividing by "customers still active last
+      month" instead would make a cohort that lost 90% of its people in month 1 look perfectly healthy
+      in month 2, because the tiny surviving base is easy to retain relative to itself.
+  - type: callout
+    variant: important
+    title: Casting matters before dividing
+    body: >
+      `a.active_customers::DOUBLE / s.cohort_size` casts the numerator to a floating-point type before
+      dividing. Both columns come from COUNT(), which returns an integer — and integer division in
+      many SQL engines truncates the decimal part, silently turning every retention rate below 1.0
+      into 0. Cast at least one side to a floating type whenever you're computing a ratio from integer
+      columns.
+  - type: text
+    body: >
+      Reading the shape of a retention curve matters as much as computing it. Most curves drop fastest
+      in the first month or two (the customers who were never going to come back leave quickly), then
+      flatten into a long, shallow tail. That flattened tail — not the first month's number — is
+      usually the better estimate of a cohort's true long-run value, since it represents customers who
+      have already shown they keep coming back.
+  - type: table
+    headers: ["Curve shape", "What it usually means"]
+    rows:
+      - ["Steep drop, then flat tail", "Normal — a filtering-out of low-intent signups, followed by a stable core of repeat customers"]
+      - ["Steep drop that never flattens (approaches 0)", "The product or offer isn't creating lasting habit — worth investigating onboarding or product-market fit"]
+      - ["Little to no initial drop", "Either genuinely excellent retention, or a sign the cohort is too new/small to have shown attrition yet"]
+  - type: question
+    prompt: "Why is cohort_size used as the denominator for every month's retention rate, instead of recomputing 'customers active last month' each time?"
+    choices:
+      - "It's simpler to write in SQL, with no real analytical reason"
+      - "A shrinking denominator would make a cohort's retention rate look stable even while its absolute active base keeps shrinking, hiding real attrition"
+      - "Cohort size is always the larger number, so it avoids division errors"
+    correct_index: 1
+    explanation: >
+      Using a fixed denominator (the cohort's original size) keeps every month's retention rate
+      measuring the same thing: what fraction of everyone who originally joined is still active. If
+      the denominator shrank to match last month's survivors, a cohort could lose 95% of its customers
+      every month and still show 100% 'retention' relative to its own dwindling base — masking the
+      exact trend the metric exists to reveal.

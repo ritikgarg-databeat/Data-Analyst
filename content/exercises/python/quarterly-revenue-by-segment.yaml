@@ -1,0 +1,81 @@
+slug: quarterly-revenue-by-segment
+skill: pandas
+dataset: ecommerce
+title: Quarterly Revenue by Customer Segment
+description: Join orders, payments, and customers to find each quarter's leading customer segment by revenue.
+exercise_type: PYTHON
+difficulty: INTERMEDIATE
+points: 20
+tags: [python, intermediate, real-world]
+business_context: >
+  The e-commerce team wants to know which customer segment generated the most revenue in each
+  calendar quarter, to help decide where to focus retention spend next year.
+prompt: >
+  Using `orders`, `customers`, and `payments`, compute total revenue (successful payment amounts
+  only — `payments.status == "success"`) by calendar quarter and customer segment. Store your
+  answer in a variable named `result`: a DataFrame with columns `quarter` (a string like
+  `"2024Q1"`, derived from `payment_date`), `customer_segment`, and `revenue` (rounded to 2
+  decimal places), sorted by quarter ascending, then by revenue descending within each quarter.
+python_datasets: [orders, customers, payments]
+python_starter_code: |
+  # orders, customers, and payments are already loaded as DataFrames.
+  # Explore them first:
+  payments.head()
+python_solution_code: |
+  payments_success = payments[payments["status"] == "success"].copy()
+  merged = payments_success.merge(
+      orders[["order_id", "customer_id", "order_date"]], on="order_id"
+  ).merge(customers[["customer_id", "customer_segment"]], on="customer_id")
+  merged["quarter"] = pd.to_datetime(merged["payment_date"]).dt.to_period("Q").astype(str)
+  result = (
+      merged.groupby(["quarter", "customer_segment"])["amount"]
+      .sum()
+      .round(2)
+      .reset_index()
+      .rename(columns={"amount": "revenue"})
+      .sort_values(["quarter", "revenue"], ascending=[True, False])
+      .reset_index(drop=True)
+  )
+python_result_variable: result
+python_row_order_matters: true
+python_numeric_tolerance: 0.01
+python_hidden_tests:
+  - name: "2024Q1's leading segment is correct"
+    code: |
+      top_q1 = result[result["quarter"] == "2024Q1"].sort_values("revenue", ascending=False).iloc[0]
+      assert top_q1["customer_segment"] == "business", (
+          f"Expected 'business' to lead 2024Q1 revenue, got '{top_q1['customer_segment']}'"
+      )
+  - name: "Every quarter has both customer segments represented"
+    code: |
+      counts = result.groupby("quarter").size()
+      assert (counts == 2).all(), "Each quarter should have exactly one row per customer segment (business, consumer)"
+hints:
+  - "You'll need three DataFrames working together: payments has the dollar amounts, orders links a payment to a customer, and customers has the segment. Filter payments to status == 'success' before merging anything."
+  - "pd.to_datetime(...).dt.to_period('Q') buckets a date into its calendar quarter; .astype(str) turns that into a label like '2024Q1'. Group by ['quarter', 'customer_segment'] and sum the amount column, then sort by quarter ascending and revenue descending."
+solution: |
+  ```python
+  payments_success = payments[payments["status"] == "success"].copy()
+  merged = payments_success.merge(
+      orders[["order_id", "customer_id", "order_date"]], on="order_id"
+  ).merge(customers[["customer_id", "customer_segment"]], on="customer_id")
+  merged["quarter"] = pd.to_datetime(merged["payment_date"]).dt.to_period("Q").astype(str)
+  result = (
+      merged.groupby(["quarter", "customer_segment"])["amount"]
+      .sum()
+      .round(2)
+      .reset_index()
+      .rename(columns={"amount": "revenue"})
+      .sort_values(["quarter", "revenue"], ascending=[True, False])
+      .reset_index(drop=True)
+  )
+  ```
+explanation: >
+  A strong answer filters to successful payments before joining anything (payments carries the
+  only trustworthy dollar amounts — pending/cancelled orders never got a payment row), pulls in
+  just the columns it needs from orders and customers to avoid ambiguous overlapping column names
+  after the merge (both orders and payments have their own "status" column), buckets each payment
+  into a calendar quarter with `dt.to_period("Q")`, and aggregates with a two-key groupby. A common
+  mistake is joining the full orders/customers tables without pre-selecting columns, which produces
+  confusing `status_x`/`status_y` columns from pandas' automatic suffixing — a classic real-world
+  merge pitfall.

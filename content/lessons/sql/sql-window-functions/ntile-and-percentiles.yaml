@@ -1,0 +1,132 @@
+slug: ntile-and-percentiles
+module_slug: sql-window-functions
+title: NTILE and Percentile Buckets
+description: Splitting rows into a fixed number of equal-sized groups with NTILE, such as quartiles of customer spend.
+difficulty: ADVANCED
+estimated_minutes: 12
+display_order: 5
+objectives:
+  - Use NTILE(n) to divide the rows of a window into n roughly equal-sized buckets
+  - Interpret what bucket number 1 versus n means, depending on the ORDER BY direction
+  - Explain what "roughly equal" means when the row count doesn't divide evenly by n
+prerequisites: [lag-and-lead]
+skills: [advanced-sql]
+datasets: [ecommerce]
+tags: [sql, advanced]
+key_takeaways:
+  - "NTILE(n) OVER (ORDER BY ...) assigns each row a bucket number from 1 to n, dividing the ordered rows into n groups as evenly as possible."
+  - "Which bucket is 'best' depends entirely on ORDER BY's direction — ORDER BY total_spend ASC puts the lowest spenders in bucket 1 and the highest in bucket n, so pick the direction that matches how you want to talk about the result."
+  - "When the row count doesn't divide evenly by n, NTILE doesn't error or leave a partial bucket — it distributes the remainder by giving some of the earliest buckets one extra row each."
+common_mistakes:
+  - "Assuming bucket 1 always means 'the best' or 'the top' group — it means whatever comes first under the ORDER BY you wrote, so ORDER BY total_spend ASC and ORDER BY total_spend DESC produce mirror-image bucket numbers for the exact same rows."
+  - "Expecting every bucket to have exactly the same number of rows — NTILE guarantees bucket sizes differ by at most one row, not that they're all identical, which only happens when the row count is an exact multiple of n."
+practical_applications:
+  - Splitting customers into spend quartiles or deciles for tiered marketing treatment (e.g. VIP outreach for the top quartile).
+  - Building percentile-style reporting (quartiles, quintiles, deciles) without needing a separate statistics function.
+blocks:
+  - type: heading
+    text: Dividing rows into equal-sized buckets
+  - type: text
+    body: >
+      RANK and DENSE_RANK number rows based on where ties fall. `NTILE(n)` does something different:
+      it ignores individual value comparisons and instead splits the *ordered* rows into exactly `n`
+      groups of roughly equal size, numbering each row 1 through n according to which group it landed
+      in. The classic use is splitting customers into spend quartiles.
+  - type: code
+    language: sql
+    caption: Splitting customers into 4 quartiles by total completed-order spend
+    code: |
+      WITH customer_spend AS (
+        SELECT
+          o.customer_id,
+          SUM(oi.quantity * (oi.unit_price - oi.discount)) AS total_spend
+        FROM orders o
+        JOIN order_items oi ON oi.order_id = o.order_id
+        WHERE o.status = 'completed'
+        GROUP BY o.customer_id
+      )
+      SELECT
+        customer_id,
+        ROUND(total_spend, 2) AS total_spend,
+        NTILE(4) OVER (ORDER BY total_spend ASC) AS spend_quartile
+      FROM customer_spend
+      ORDER BY total_spend ASC;
+  - type: output
+    caption: Lowest spenders first, so quartile 1 is the bottom 25% and quartile 4 is the top 25%
+    body: |
+      customer_id | total_spend | spend_quartile
+      -------------+-------------+-----------------
+             1497  |       19.36 |               1
+              420  |       61.20 |               1
+              281  |       62.56 |               1
+             1494  |       65.59 |               1
+              ...  |         ... |             ...
+  - type: text
+    body: >
+      Because the CTE ordered rows by `total_spend ASC`, the lowest-spending customers fall into
+      quartile 1 and the highest-spending customers fall into quartile 4. Aggregating the result
+      confirms each quartile holds roughly a quarter of all spending customers, with spend ranges that
+      climb steeply toward the top:
+  - type: table
+    headers: ["spend_quartile", "customers", "min total_spend", "max total_spend"]
+    rows:
+      - ["1", "316", "$19.36", "$1,668.29"]
+      - ["2", "315", "$1,668.66", "$3,083.13"]
+      - ["3", "315", "$3,084.65", "$5,712.46"]
+      - ["4", "315", "$5,713.74", "$32,936.81"]
+  - type: callout
+    variant: important
+    title: ORDER BY direction decides what bucket 1 means
+    body: >
+      NTILE has no built-in concept of "top" or "bottom" — it only knows the order you gave it.
+      Writing `ORDER BY total_spend ASC` (as above) makes bucket 1 the *lowest* spenders and bucket 4
+      the *highest*. Flip it to `ORDER BY total_spend DESC` and the same customers get renumbered in
+      reverse — bucket 1 becomes the highest spenders instead. Before reading meaning into "quartile
+      1" or "quartile 4," always check which direction the ORDER BY inside NTILE's OVER() is pointed.
+  - type: heading
+    text: "What happens when n doesn't divide evenly"
+  - type: text
+    body: >
+      1,261 customers split into 4 quartiles doesn't divide evenly (1,261 / 4 = 315.25). Rather than
+      erroring or leaving a leftover group, NTILE distributes the remainder across the earliest
+      buckets — one extra row each, up to the remainder count. That's why quartile 1 above has 316
+      customers while quartiles 2 through 4 have 315 each: bucket sizes are guaranteed to differ by at
+      most one row, not that every bucket is perfectly identical in size.
+  - type: example
+    title: Using NTILE output for tiered treatment
+    body: >
+      Once each customer has a spend_quartile, it's easy to build tiered logic on top of it — for
+      example, filtering down to just the highest-spending quartile as a target list.
+    code: |
+      WITH customer_spend AS (
+        SELECT
+          o.customer_id,
+          SUM(oi.quantity * (oi.unit_price - oi.discount)) AS total_spend
+        FROM orders o
+        JOIN order_items oi ON oi.order_id = o.order_id
+        WHERE o.status = 'completed'
+        GROUP BY o.customer_id
+      ),
+      quartiled AS (
+        SELECT
+          customer_id,
+          total_spend,
+          NTILE(4) OVER (ORDER BY total_spend ASC) AS spend_quartile
+        FROM customer_spend
+      )
+      SELECT customer_id, total_spend
+      FROM quartiled
+      WHERE spend_quartile = 4
+      ORDER BY total_spend DESC;
+    language: sql
+  - type: question
+    prompt: "NTILE(4) OVER (ORDER BY total_spend ASC) is applied to 1,261 customers. What does spend_quartile = 1 represent?"
+    choices:
+      - The 25% of customers who spent the most
+      - "The 25% of customers who spent the least, since ASC puts the smallest values first and NTILE numbers buckets in that order"
+      - An arbitrary, unordered 25% slice of customers
+    correct_index: 1
+    explanation: >
+      NTILE numbers buckets in the order ORDER BY presents the rows. With ORDER BY total_spend ASC,
+      the lowest-spending customers are processed first and land in bucket 1, making it the bottom
+      quartile by spend — the opposite of what DESC would produce for the same underlying data.

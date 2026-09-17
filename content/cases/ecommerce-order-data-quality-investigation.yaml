@@ -1,0 +1,170 @@
+slug: ecommerce-order-data-quality-investigation
+title: "Case: Whose Revenue Dashboard Is Right?"
+category: DATA_QUALITY
+difficulty: INTERMEDIATE
+
+estimated_minutes: 80
+company_context: >
+  Meridian Retail Co. is a multi-category online retailer selling through web, mobile, and
+  marketplace channels. Two different teams each maintain their own revenue dashboard: one built
+  by summing recorded payment amounts, and one built by summing order line items. Both dashboards
+  are used in different weekly meetings, and both teams believe their number is correct.
+stakeholder_name: Jordan Alvarez
+stakeholder_role: Analytics Manager
+problem_statement: >
+  "We have a mess. Team Growth's dashboard sums up payment amounts and reports one revenue number
+  for the month. Team Merchandising's dashboard sums up order line items and reports a different,
+  higher number for the exact same month. Neither team has changed their query recently, and both
+  are adamant they're right. On top of that, someone noticed a large number of orders don't even
+  have a matching payment record at all, which is making people even more nervous that the payments
+  data is broken. I need to know: which number is actually right, why do they disagree, and is the
+  missing-payment thing a real bug or something we should expect? I don't want a guess — I want
+  root cause."
+business_context: >
+  Both dashboards query the same underlying ecommerce database. The gap between them isn't
+  identical every month, but it has shown up consistently for as long as anyone has compared the
+  two. Nobody has systematically reconciled the two data sources at the row level, and nobody has
+  checked whether the "orders with no payment record" observation is actually unusual, or whether
+  it's explained by something else in the data (like order status).
+objective: >
+  Reconcile the two revenue definitions at the row level, quantify exactly how large and how
+  consistent the discrepancy is, determine whether the missing-payment-record observation is a
+  real defect or an expected pattern, and recommend which data source (or which precise
+  definition) should be the source of truth going forward.
+initial_information: >
+  Team Growth's revenue number comes from summing payments.amount. Team Merchandising's comes from
+  summing order_items (quantity times unit_price, minus discount) for completed orders. The gap
+  between the two isn't identical for every order, but Team Growth's number has been consistently
+  lower than Team Merchandising's for every month anyone has checked. The database also includes
+  customers and sessions tables, but neither team's dashboard uses them for this specific
+  revenue calculation.
+constraints:
+  - "Focus the investigation on orders, order_items, and payments — customers and sessions are available but are unlikely to explain a revenue reconciliation gap between these two specific dashboards."
+  - "The Analytics Manager wants row-level, evidence-based root cause — not just a restatement that 'the numbers are different.'"
+  - "Address the missing-payment-record observation explicitly, even if it turns out not to be the real issue — people are already worried about it and will ask."
+available_datasets:
+  - ecommerce
+expected_deliverables:
+  - "A precise count and explanation of orders with no matching payment record, including whether it's explained by order status"
+  - "A quantified discrepancy between payments.amount and the order_items-computed total, for orders that DO have a payment record"
+  - "A check for whether the discrepancy is concentrated in a specific payment method, channel, or segment, or is broad-based"
+  - "A specific recommendation for which revenue definition/source should be treated as correct going forward, and what should happen next"
+learning_objectives:
+  - "Reconcile two data sources that should represent the same real-world quantity, and quantify a mismatch precisely instead of anecdotally"
+  - "Distinguish an expected, explainable data pattern from a genuine data-quality defect using evidence rather than assumption"
+  - "Use set-based comparisons (e.g., anti-joins) and row-level, tolerance-based numeric comparisons to isolate a data-quality issue"
+  - "Communicate a data-quality root cause with a specific, defensible magnitude rather than a vague 'something's off' statement"
+stages:
+  - CLARIFY
+  - FRAME
+  - EXPLORE
+  - ANALYZE
+  - VALIDATE
+  - INSIGHTS
+  - RECOMMEND
+  - SUBMIT
+required_exercise_slugs: []
+tags:
+  - data-quality
+  - e-commerce
+  - sql
+  - python
+  - case-study
+  - real-world
+  - intermediate
+  - root-cause
+  - validation
+skills:
+  - data-quality-engineering
+  - sql-fundamentals
+  - exploratory-data-analysis
+  - data-cleaning
+  - root-cause-analysis
+  - communication
+clarification_guidance:
+  - "Asks for the exact definition each team's dashboard uses for 'revenue' (which table, which filters, which time window) rather than assuming they're computing the same thing"
+  - "Asks how large the discrepancy typically is (dollars or percent) before diving into row-level detail"
+  - "Asks whether the orders missing a payment record share something in common (like order status) before treating that as a bug"
+  - "Asks whether the payment-amount discrepancy is uniform across all orders or concentrated in a subset (payment method, channel, order status)"
+rubric:
+  - category: "Problem Framing"
+    weight: 15
+    criteria:
+      - criterion: "States the two dashboards' exact underlying definitions (payments.amount vs. order_items-computed total) before investigating, rather than treating 'revenue' as one unambiguous thing"
+        points: 8
+      - criterion: "Treats the missing-payment-record observation and the amount-mismatch question as two separate things to check, rather than assuming they're the same issue"
+        points: 7
+  - category: "Analytical Approach"
+    weight: 20
+    criteria:
+      - criterion: "Uses a set-based comparison (e.g., anti-join) to identify orders with no matching payment row, rather than spot-checking individual orders"
+        points: 10
+      - criterion: "Plans to check whether any discrepancy found is broad-based or concentrated in a subset (payment method, channel, status) before concluding a root cause"
+        points: 10
+  - category: "Technical Analysis"
+    weight: 30
+    is_technical: true
+    criteria:
+      - criterion: "Correctly counts orders with no matching payment record and correctly explains it via order status"
+        points: 10
+      - criterion: "Correctly computes the order_items-based total per order and compares it to payments.amount for orders that have both"
+        points: 10
+      - criterion: "Correctly quantifies the aggregate size of the amount discrepancy (both in dollars and as a percentage) across affected orders"
+        points: 10
+  - category: "Insight Quality"
+    weight: 20
+    criteria:
+      - criterion: "Correctly concludes the missing-payment-record pattern is fully explained by order status (cancelled/pending) and is not a defect"
+        points: 8
+      - criterion: "Correctly identifies that payments.amount is systematically lower than the order_items-computed total for the majority of orders that have both, and that the pattern is broad-based rather than concentrated in one payment method, channel, or segment"
+        points: 12
+  - category: "Recommendation"
+    weight: 15
+    criteria:
+      - criterion: "Recommends a specific, defensible interim source of truth for revenue reporting, with reasoning"
+        points: 8
+      - criterion: "Recommends an ongoing reconciliation check rather than treating this as a one-time fix"
+        points: 7
+hints:
+  - "Start by checking whether every order has a matching payment row — but before calling that a bug, check whether the orders missing a payment share something in common, like their status."
+  - "For orders that DO have a payment row, compare the payment's dollar amount to what you'd compute by summing that order's line items (quantity times unit_price, minus discount). Do they usually match exactly?"
+  - "If they don't always match, look at how big the gap is as a percentage of the order rather than only in raw dollars, and check whether the mismatch always points the same direction (always higher, always lower, or mixed)."
+  - "Check whether the size of the gap correlates with payment method, channel, or customer segment — or whether it looks broad-based across all of them, which would point away from a single team or system being responsible."
+reference_solution:
+  summary: >
+    The missing-payment-record observation is NOT a bug. Of the 4,205 orders, exactly 506 have no
+    payment record — and that is exactly the count of orders with status 'cancelled' (379) or
+    'pending' (127), where a payment would never be expected to exist. 100% of cancelled and
+    pending orders lack a payment row, and 0% of completed or refunded orders do — a clean, fully
+    explainable pattern, not a defect. The real, root-cause issue is elsewhere: among the 3,699
+    orders that DO have a payment record, payments.amount is systematically LOWER than the
+    order_items-computed total (quantity times unit_price, minus discount) for 2,636 of them
+    (71.3%) — and never higher, for any order. Summed across all 3,699 orders, payments.amount
+    totals $6,248,160.50 versus $6,562,938.06 computed from order_items — a $314,777.56 gap, i.e.
+    payments-based revenue understates order_items-based revenue by about 4.8% overall (essentially
+    the same, 4.79%, restricting to completed orders only, which is what both dashboards should
+    ultimately be reporting). This is broad-based, not concentrated in one place: the average ratio
+    of payments.amount to the computed total is almost identical across payment method
+    (credit_card 95.6%, paypal 95.6%, gift_card 95.7%), across channel, across country, and across
+    customer segment (business 95.5%, consumer 95.6%) — so no single payment processor, channel,
+    or customer group explains it.
+  key_insights:
+    - "Of 4,205 orders, exactly 506 (379 cancelled + 127 pending) have no payment record — 100% of cancelled/pending orders lack one, 0% of completed/refunded orders do. This is a clean, expected pattern tied directly to order status, not a data-quality defect."
+    - "Among the 3,699 orders with a payment record, payments.amount is lower than the order_items-computed total for 2,636 of them (71.3%) and never higher for any order — a systematic, one-directional discrepancy."
+    - "The aggregate gap is $314,777.56 (payments total $6,248,160.50 vs. order_items-computed total $6,562,938.06), meaning payments-based revenue understates order_items-based revenue by about 4.8% overall, and by essentially the same 4.79% when restricted to completed orders only."
+    - "The size of the discrepancy is broad-based: average payments-to-computed ratio is nearly identical across payment method (95.5-95.7%), channel, country, and customer segment — ruling out a single payment method, channel, or segment as the cause."
+  recommendation: >
+    Treat this as a genuine data-quality defect requiring escalation to whoever owns the checkout/
+    payment-capture pipeline, since a consistent, one-directional, 71%-of-orders discrepancy this
+    size cannot be dismissed as noise or rounding. In the interim, recommend order_items-computed
+    revenue (for completed orders) as the source of truth for both dashboards, since it reflects
+    the transaction as recorded at the point of sale and reconciles cleanly with order status,
+    while flagging the ~4.8% aggregate gap explicitly so both teams stop reporting divergent
+    numbers from the same underlying event. Recommend an ongoing automated reconciliation check
+    (order_items total vs. payments.amount per order, flagged whenever they differ by more than a
+    cent) rather than a one-time fix, since the gap affects the large majority of orders, not a
+    handful of edge cases.
+  acceptable_alternatives:
+    - "A learner who instead recommends payments.amount as the interim source of truth, reasoning that it reflects money actually collected, is defensible IF they explicitly flag the $314,777.56 gap as needing investigation with the payments/checkout team rather than silently accepting the lower number."
+    - "Hypothesizing a plausible upstream cause (e.g., an order-level discount or coupon, or a rounding rule applied at checkout, that isn't captured in order_items.discount) is worth credit as a reasonable, testable hypothesis, even though this dataset alone cannot confirm the exact upstream mechanism — the case requires demonstrating and quantifying the mismatch, not necessarily explaining its full upstream cause."
+version: 1

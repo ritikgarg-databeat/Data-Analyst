@@ -1,0 +1,44 @@
+slug: category-representation-in-cancelled-and-refunded-orders
+lesson_slug: welcome-to-the-challenge-library
+skill: exploratory-data-analysis
+dataset: ecommerce
+title: "Is Any Product Category Over-Represented in Cancelled or Refunded Orders?"
+description: Compare each product category's share of cancelled/refunded order lines against its overall share of order lines, and judge whether the modest spread found is a real signal or within normal variation.
+exercise_type: DATA_INTERPRETATION
+difficulty: ADVANCED
+points: 20
+tags: [eda, real-world, advanced]
+prompt: >
+  Using `orders`, `order_items`, `products`, and `categories`, `orders.status` can be 'completed',
+  'pending', 'cancelled', or 'refunded'. Overall, 15.28% of all order_items lines belong to a cancelled or
+  refunded order. Broken down by category, the cancelled/refunded rate ranges from 13.67% (Sports &
+  Outdoors) to 16.49% (Beauty) — a spread of under 3 percentage points, and category sizes vary quite a bit
+  (Home & Kitchen is the smallest at 4.85% of all lines; Books is the largest at 14.35%). Is this spread
+  large enough to call any category "over-represented" in cancellations, and what would make you more or
+  less confident either way?
+hints:
+  - "A 2.8-point spread (13.67% to 16.49%) sitting around an overall rate of 15.28% is a fairly narrow band — think about what you'd need to know to tell 'real signal' apart from 'the kind of spread you'd expect just from normal variation across 10 categories, especially the smaller ones.'"
+  - "Category size matters here: a rate computed from a small number of lines (like Home & Kitchen, the smallest category) bounces around more from chance alone than a rate computed from a large one (like Books) — the same percentage-point gap means different things depending on how many lines it's based on."
+solution: >
+  This spread (13.67% to 16.49%, versus an overall 15.28%) is narrow enough that I would NOT confidently
+  call any single category "over-represented" in cancellations based on this alone. Every category's rate
+  sits within roughly 1.5-2 points of the overall average — a modest band, especially spread across 10
+  categories where you'd expect some natural variation even if the true underlying cancellation rate were
+  identical everywhere. What would make me more confident either way: first, category size — Beauty's
+  16.49% (the highest) and Home & Kitchen's 14.85% (near the middle despite being the smallest category)
+  are each computed from a different, category-specific line count, and a rate from a smaller category is
+  inherently noisier; I'd want to see this same comparison repeated across a longer time window or a larger
+  sample to see if Beauty's elevated rate holds up or reverts toward the average. Second, a plausible
+  mechanism — is there something specific about Beauty products (e.g. shade/fit mismatches common to
+  cosmetics, a specific vendor issue) that would make a genuinely higher return rate believable, versus no
+  obvious story at all, which would make me lean toward "likely noise." Without either of those additional
+  checks, my honest answer to a stakeholder would be: "the categories look broadly similar on cancellation
+  rate — nothing here clears the bar for a confident 'category X has a return problem' claim yet."
+explanation: >
+  A strong answer resists the pull to declare the highest number (Beauty at 16.49%) a real finding just
+  because it's the highest in the table, and instead reasons about whether a ~3-point spread across 10
+  categories, some of them small, is distinguishable from ordinary variation. It proposes concrete next
+  steps (checking rate stability over a longer window, looking for a plausible mechanism) rather than either
+  overclaiming a "problem category" or dismissing the whole comparison as pointless. A weaker answer either
+  declares Beauty a confirmed over-representation from this single snapshot, or concludes nothing useful can
+  ever be learned from category-level rates without addressing what more would actually be needed.

@@ -1,0 +1,86 @@
+slug: exp-onboarding-email-ztest-pvalue
+lesson_slug: exp-practical-vs-statistical-significance
+skill: statistical-reasoning
+dataset: saas-product
+title: "Two-Proportion Z-Test: onboarding_email"
+description: Run a two-proportion z-test on the onboarding_email experiment and decide what the result actually supports.
+exercise_type: PYTHON
+difficulty: INTERMEDIATE
+points: 15
+tags: [python, statistics, experimentation, ab-testing, saas, intermediate]
+business_context: >
+  The onboarding email test's treatment group converted at a slightly *lower* rate than control. Before
+  concluding the new email hurt conversion, the team needs to know whether that gap is distinguishable
+  from random noise at all.
+prompt: >
+  Using `experiment_assignments`, filter to `experiment_id == 'onboarding_email'`, and run a
+  two-proportion z-test comparing the treatment group's conversion rate to the control group's, using
+  `statsmodels.stats.proportion.proportions_ztest`. Store your answer in a variable named `result`: a
+  dict with keys `z_stat` (rounded to 3 decimal places) and `p_value` (the two-sided p-value, rounded to
+  4 decimal places).
+python_datasets: [experiment_assignments]
+python_starter_code: |
+  from statsmodels.stats.proportion import proportions_ztest
+
+  # experiment_assignments is already loaded as a DataFrame.
+  ob = experiment_assignments[experiment_assignments["experiment_id"] == "onboarding_email"]
+  ob.head()
+python_solution_code: |
+  from statsmodels.stats.proportion import proportions_ztest
+
+  ob = experiment_assignments[experiment_assignments["experiment_id"] == "onboarding_email"]
+  control = ob[ob["variant"] == "control"]
+  treatment = ob[ob["variant"] == "treatment"]
+
+  count = [treatment["converted"].sum(), control["converted"].sum()]
+  nobs = [len(treatment), len(control)]
+
+  z_stat, p_value = proportions_ztest(count, nobs)
+  result = {"z_stat": round(float(z_stat), 3), "p_value": round(float(p_value), 4)}
+python_result_variable: result
+python_numeric_tolerance: 0.001
+python_hidden_tests:
+  - name: "z-stat and p-value match a live recomputation"
+    code: |
+      from statsmodels.stats.proportion import proportions_ztest
+
+      ob = experiment_assignments[experiment_assignments["experiment_id"] == "onboarding_email"]
+      control = ob[ob["variant"] == "control"]
+      treatment = ob[ob["variant"] == "treatment"]
+      count = [treatment["converted"].sum(), control["converted"].sum()]
+      nobs = [len(treatment), len(control)]
+      z_expected, p_expected = proportions_ztest(count, nobs)
+
+      assert abs(result["z_stat"] - z_expected) < 0.005, f"Expected z_stat close to {z_expected:.3f}"
+      assert abs(result["p_value"] - p_expected) < 0.001, f"Expected p_value close to {p_expected:.4f}"
+  - name: "This result should be nowhere near statistically significant"
+    code: |
+      assert result["p_value"] > 0.5, (
+          "onboarding_email's real effect is essentially flat (control slightly higher than treatment) "
+          "— the p-value should be large, not small."
+      )
+hints:
+  - "The setup is identical to a checkout_redesign z-test, just filtered to `experiment_id == 'onboarding_email'` instead — reuse the same pattern."
+  - "Don't be surprised if `z_stat` comes back negative here — it means treatment converted at a *lower* rate than control in this dataset, which is a valid (and informative) real result."
+solution: |
+  ```python
+  from statsmodels.stats.proportion import proportions_ztest
+
+  ob = experiment_assignments[experiment_assignments["experiment_id"] == "onboarding_email"]
+  control = ob[ob["variant"] == "control"]
+  treatment = ob[ob["variant"] == "treatment"]
+
+  count = [treatment["converted"].sum(), control["converted"].sum()]
+  nobs = [len(treatment), len(control)]
+
+  z_stat, p_value = proportions_ztest(count, nobs)
+  result = {"z_stat": round(float(z_stat), 3), "p_value": round(float(p_value), 4)}
+  ```
+explanation: >
+  Run on the real data, control converted 162/500 (32.4%) and treatment converted 157/500 (31.4%),
+  giving z ≈ -0.339 and p ≈ 0.7344 — nowhere close to significant, and the point estimate is even
+  slightly negative (opposite the hypothesized direction). Unlike checkout_redesign, this isn't a
+  promising-but-underpowered result: the effect size is tiny and centered near zero, which is much more
+  consistent with "no real difference" than with "a real effect this test just couldn't detect yet." The
+  practical recommendation is to deprioritize this specific email change rather than chase a larger
+  sample size.

@@ -1,0 +1,65 @@
+slug: product-count-by-category
+lesson_slug: merge-and-join
+skill: pandas
+dataset: ecommerce
+title: Active Product Count by Category
+description: Merge products to categories and count active products per category name.
+exercise_type: PYTHON
+difficulty: INTERMEDIATE
+points: 20
+tags: [python, intermediate, real-world]
+business_context: >
+  Merchandising is reviewing catalog depth ahead of a planning meeting and wants to know how many
+  currently active products fall into each category, ranked from the deepest category down.
+prompt: >
+  Using `products` and `categories`, filter `products` to active products only
+  (`is_active == True`), merge with `categories` on `category_id` to bring in `category_name`,
+  then count active products per category. Store your answer in a variable named `result`: a
+  DataFrame with columns `category_name` and `count`, sorted in descending order by `count`.
+python_datasets: [products, categories]
+python_starter_code: |
+  # products and categories are already loaded as DataFrames.
+  # Explore them first:
+  products.head()
+python_solution_code: |
+  active_products = products[products["is_active"]]
+  merged = active_products.merge(categories, on="category_id")
+  result = (
+      merged.groupby("category_name")
+      .size()
+      .reset_index(name="count")
+      .sort_values("count", ascending=False)
+      .reset_index(drop=True)
+  )
+python_result_variable: result
+python_row_order_matters: true
+python_numeric_tolerance: 0.01
+python_hidden_tests:
+  - name: "Counts add up to the total number of active products"
+    code: |
+      assert result["count"].sum() == products[products["is_active"]].shape[0], (
+          "The category counts should add up to the total number of active products."
+      )
+hints:
+  - "Filter `products` to `is_active == True` before merging — an inactive product shouldn't be counted toward any category's active total."
+  - "`active_products.merge(categories, on='category_id')` brings `category_name` onto each product row. Then group by `category_name` and count rows per group, sorting descending."
+solution: |
+  ```python
+  active_products = products[products["is_active"]]
+  merged = active_products.merge(categories, on="category_id")
+  result = (
+      merged.groupby("category_name")
+      .size()
+      .reset_index(name="count")
+      .sort_values("count", ascending=False)
+      .reset_index(drop=True)
+  )
+  ```
+explanation: >
+  Filtering before merging (rather than after) keeps the merge itself small and avoids any
+  ambiguity about which rows to drop later — every row in `active_products` is already exactly
+  the set of products that should count. The merge is a standard many-to-one join: many products
+  share one `category_id`, so it brings the human-readable `category_name` onto each product row
+  without duplicating any rows (each product has exactly one category). Grouping and counting
+  after that gives one row per category, and sorting descending surfaces the deepest categories
+  first — the ones with the most active SKUs.

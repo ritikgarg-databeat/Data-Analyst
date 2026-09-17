@@ -1,0 +1,93 @@
+slug: date-aggregation
+module_slug: sql-aggregation
+title: Date Aggregation
+description: Grouping rows by month, week, or day using date truncation functions to build time-series summaries.
+difficulty: BEGINNER
+estimated_minutes: 12
+display_order: 7
+objectives:
+  - Use DATE_TRUNC to collapse a timestamp column down to the month, week, or day it falls in
+  - Build a monthly (or weekly/daily) time series with GROUP BY and DATE_TRUNC
+  - Explain why grouping directly by a raw timestamp column produces one group per exact moment instead of per day/month
+prerequisites: [conditional-aggregation]
+skills: [sql-fundamentals, advanced-sql]
+datasets: [orders-sample]
+tags: [sql, beginner]
+key_takeaways:
+  - "DATE_TRUNC('month', order_date) rounds a date down to the first day of its month, which turns \"group by exact date\" into \"group by month.\""
+  - The same DATE_TRUNC + GROUP BY pattern works for any granularity — swap 'month' for 'week' or 'day' to change the time bucket.
+  - Grouping by a raw, unrounded date or timestamp column produces one group per distinct value, which is almost never what a "monthly trend" question actually wants.
+common_mistakes:
+  - "Writing GROUP BY order_date directly against a full timestamp column, expecting a monthly grouping, and getting one group per unique timestamp instead."
+  - Forgetting to also ORDER BY the truncated date, so a monthly trend comes back with months in an arbitrary order instead of chronological order.
+blocks:
+  - type: heading
+    text: From individual dates to time buckets
+  - type: text
+    body: >
+      "Revenue by month" and "orders per week" are two of the most common business questions in
+      analytics, and
+      both need the same trick: rounding a precise date down to the start of whatever bucket you care
+      about (month, week, or day), then grouping by that rounded value instead of the original date.
+      DATE_TRUNC does the rounding.
+  - type: code
+    language: sql
+    caption: Monthly revenue from completed orders
+    code: |
+      SELECT
+        DATE_TRUNC('month', order_date) AS order_month,
+        SUM(order_total) AS monthly_revenue
+      FROM orders
+      WHERE status = 'completed'
+      GROUP BY DATE_TRUNC('month', order_date)
+      ORDER BY order_month;
+  - type: callout
+    variant: warning
+    title: What DATE_TRUNC changes, and why the raw column doesn't work
+    body: >
+      "DATE_TRUNC('month', order_date)" takes a date like 2024-01-15 and rounds it down to 2024-01-01
+      — the first day of that month. Every order placed anywhere in January now shares that same
+      rounded value, so GROUP BY collapses all of January's orders into one row instead of one row
+      per distinct date. "GROUP BY order_date" on the unrounded column, by contrast, groups by the
+      *exact* value in that column — if order_date includes a time component, two orders placed on
+      the same calendar day but at different times end up in different groups entirely, nowhere close
+      to a "per day" summary, let alone "per month."
+  - type: text
+    body: >
+      That same pattern works at any granularity, not just months, by swapping the first argument to
+      DATE_TRUNC. 'day'
+      buckets by calendar day, 'week' buckets by calendar week, 'month' by calendar month — the
+      GROUP BY and SELECT logic stays identical.
+  - type: comparison
+    title: "DATE_TRUNC granularities"
+    columns: ["Granularity", "DATE_TRUNC('...', order_date) rounds down to", "Typical use"]
+    rows:
+      - ["'day'", "Midnight of that calendar day", "Daily active usage, daily order counts"]
+      - ["'week'", "The start of that calendar week", "Weekly trend lines, smoothing out day-of-week noise"]
+      - ["'month'", "The 1st of that calendar month", "Monthly revenue, MoM growth reporting"]
+  - type: example
+    title: Weekly order counts instead of monthly revenue
+    body: >
+      Swapping 'month' for 'week' and SUM(order_total) for COUNT(*) turns the same query into a
+      weekly order-volume trend — the structure of the query doesn't change, only the bucket size and
+      the metric being aggregated.
+    code: |
+      SELECT
+        DATE_TRUNC('week', order_date) AS order_week,
+        COUNT(*) AS orders_placed
+      FROM orders
+      GROUP BY DATE_TRUNC('week', order_date)
+      ORDER BY order_week;
+    language: sql
+  - type: question
+    prompt: A query runs GROUP BY order_date directly on a timestamp column (not DATE_TRUNC'd), trying to get a daily order count. Two orders were placed on the same calendar day but at different times. What happens to them?
+    choices:
+      - They're correctly grouped into the same daily bucket
+      - They land in two separate groups, because their exact timestamp values differ
+      - The query fails, because GROUP BY cannot be used on a timestamp column
+    correct_index: 1
+    explanation: >
+      GROUP BY on a raw, unrounded timestamp groups by the exact value in that column — down to
+      whatever precision the timestamp holds. Two orders on the same calendar day but different times
+      have different exact timestamps, so they end up in separate groups. DATE_TRUNC('day', ...)
+      rounds both down to the same value first, which is what actually produces a daily grouping.

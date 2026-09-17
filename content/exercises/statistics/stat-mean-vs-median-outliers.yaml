@@ -1,0 +1,21 @@
+slug: stat-mean-vs-median-outliers
+skill: statistics
+title: Mean vs. Median With Outliers
+description: A dataset of household incomes has a few extremely high earners. Which measure of central tendency
+  better represents a 'typical' household, and why?
+exercise_type: MULTIPLE_CHOICE
+difficulty: BEGINNER
+points: 5
+tags:
+- statistics
+prompt: A dataset of household incomes has a few extremely high earners. Which measure of central tendency better
+  represents a 'typical' household, and why?
+correct_answer: The median, because it is not pulled toward extreme values the way the mean is
+explanation: A few very high incomes pull the mean upward well past what a typical household earns, while the median
+  (the middle value) is unaffected by how extreme the outliers are, only by how many there are on each side -- this
+  is exactly why household income is usually reported as a median.
+choices:
+- The median, because it is not pulled toward extreme values the way the mean is
+- The mean, because it uses every data point
+- They are always equal for any dataset
+- Neither -- you should use the mode instead

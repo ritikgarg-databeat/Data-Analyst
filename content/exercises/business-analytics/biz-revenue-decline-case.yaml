@@ -1,0 +1,61 @@
+slug: biz-revenue-decline-case
+skill: business-problem-solving
+title: Why Did Revenue Decline 8% Last Quarter?
+description: 'Describe your analytical framework for diagnosing this revenue decline: what you would decompose revenue
+  into, what data you''d pull for each component, what hypotheses you''d test, and how you''d structure your final
+  recommendation. You are not given the actual root cause -- reason through the framework.'
+exercise_type: BUSINESS_REASONING
+difficulty: ADVANCED
+points: 30
+tags:
+- revenue
+- root-cause
+- business-analytics
+business_context: You support the finance team at a mid-size e-commerce company. Last quarter's revenue came in
+  8% below the prior quarter, and the CFO wants a clear explanation and recommendation before the board meeting.
+prompt: 'Describe your analytical framework for diagnosing this revenue decline: what you would decompose revenue
+  into, what data you''d pull for each component, what hypotheses you''d test, and how you''d structure your final
+  recommendation. You are not given the actual root cause -- reason through the framework.'
+stakeholder: null
+constraints:
+- You don't know the cause in advance -- your answer is evaluated on the analytical framework, not on guessing the
+  'right' story.
+- Assume access to order-level transaction data, marketing spend/channel data, pricing history, and customer segment
+  data.
+expected_deliverables:
+- A revenue decomposition (e.g. volume x average order value, or new vs. existing customer revenue, or by channel/segment)
+- Specific hypotheses tied to each decomposition component
+- A plan for which data would confirm or rule out each hypothesis
+- A structure for the final recommendation to the CFO
+rubric:
+- criterion: Decomposes revenue into meaningful components (e.g. orders x AOV, or new-customer vs. existing-customer
+    revenue, or by channel/segment) rather than treating it as one opaque number
+  points: 25
+- criterion: Proposes specific, testable hypotheses for each component (e.g. traffic drop, conversion drop, discounting
+    change, mix shift, customer churn) rather than one vague guess
+  points: 25
+- criterion: Describes what data/analysis would confirm or rule out each hypothesis
+  points: 25
+- criterion: Structures a clear, decision-ready recommendation framework for the CFO (root cause + magnitude + recommended
+    action), acknowledging the analysis is hypothetical until run
+  points: 25
+hints:
+- Decompose first, diagnose second -- revenue = orders x average order value is a natural first cut, and each side
+  of that can be further decomposed (orders = traffic x conversion rate; AOV = units per order x price per unit,
+  or mix shift toward lower-priced items).
+- A strong answer names several genuinely distinct hypotheses (traffic decline, conversion decline, pricing/discount
+  change, product mix shift, customer churn/retention drop) rather than fixating on just one.
+solution: Start by decomposing revenue = orders x average order value (AOV), and further decompose orders = traffic
+  x conversion rate, and AOV = units per order x average price per unit (watching for mix shift toward cheaper items).
+  Pull traffic and conversion by channel to see if the decline concentrates in one acquisition source (paid, organic,
+  email) or is broad-based. Check AOV and discount-rate trends to see if pricing/promotions changed. Check new-vs-existing
+  customer revenue split and retention/repeat-purchase rate to rule out a churn-driven decline. For each hypothesis,
+  name what specific chart or query would confirm or rule it out (e.g. traffic-by-channel over time; conversion-rate-by-channel
+  over time; AOV and discount-rate trend; cohort repeat-purchase-rate). Present the CFO with whichever hypothesis
+  the data actually supports, its estimated magnitude of contribution to the 8% decline, and a recommended action
+  tied specifically to that cause (e.g. a channel-specific fix, a pricing/promotion review, or a retention initiative)
+  -- not a generic 'sales are down, we should improve sales' recommendation.
+explanation: Business-analytics case interviews are evaluated on the analytical FRAMEWORK (decompose, hypothesize,
+  test, recommend) rather than whether the candidate happens to guess the specific cause -- a candidate who systematically
+  decomposes and tests multiple hypotheses is preferred over one who jumps to a single confident-sounding story
+  with no supporting decomposition.

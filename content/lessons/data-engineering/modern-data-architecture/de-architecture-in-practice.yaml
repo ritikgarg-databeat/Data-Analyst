@@ -1,0 +1,94 @@
+slug: de-architecture-in-practice
+module_slug: modern-data-architecture
+title: "A Reference Architecture, End to End"
+description: Stitching ingestion, storage, transformation, and serving into one picture — a full trip from a customer's checkout click to a number on a dashboard.
+difficulty: INTERMEDIATE
+estimated_minutes: 20
+display_order: 2
+objectives:
+  - Trace one piece of data through every layer of a typical analytics architecture, start to finish
+  - Explain why data typically moves through raw, staging, and mart layers rather than being transformed once, directly
+  - Read a simple architecture diagram well enough to say where a given table or file lives
+prerequisites: [de-lakes-warehouses-lakehouses, de-elt-and-modern-warehouses]
+skills: [modern-data-stack, data-warehousing]
+datasets: [ecommerce]
+tags: [architecture, data-warehouse, data-engineering, modern-data-stack, intermediate]
+key_takeaways:
+  - "A typical analytics architecture has four layers: ingestion (getting data in), storage (a lake, warehouse, or lakehouse), transformation (turning raw data into business-ready tables), and serving (BI tools, dashboards, and ad hoc SQL)."
+  - "Data usually moves through raw, staging, and mart layers rather than being transformed once — raw preserves the untouched original, staging does light standardization and joining, and marts hold the final, business-ready, often pre-aggregated tables analysts actually query."
+  - "You'll get hands-on practice with exactly this layered structure (raw sources, staging models, mart models) in the dbt Lab, and you'll be able to sketch a picture like this yourself in the visual architecture tool elsewhere on this platform."
+common_mistakes:
+  - "Assuming an analyst should query the raw layer directly for a business report — raw data hasn't been standardized, deduplicated, or joined yet, and querying it skips all the work the staging and mart layers exist to do."
+  - "Treating \"staging\" and \"mart\" as arbitrary naming conventions rather than a real separation of responsibility — staging tables are typically 1:1 with a source table (lightly cleaned), while mart tables are reshaped and aggregated around a specific business question."
+interview_questions:
+  - question: "Why not just transform raw data directly into its final, business-ready form in one step, instead of staging first?"
+    answer: >
+      Staging separates two different kinds of work: standardizing and lightly cleaning a source
+      table (staging) versus reshaping and aggregating that clean data around a specific business
+      question (marts). Without that separation, cleanup logic (fixing a status column's casing,
+      for instance) ends up duplicated across every downstream mart that needs it, instead of being
+      written once in a staging model that every mart can build on. It also makes debugging easier —
+      if a number's wrong, you can check the staging layer first to rule out (or confirm) a basic
+      data cleanliness issue before suspecting the more complex mart-level aggregation logic.
+blocks:
+  - type: heading
+    text: One click, four layers
+  - type: text
+    body: >
+      Tie together everything from this module and the ones before it by following one real event —
+      a customer completing a checkout in the `ecommerce` dataset — all the way to a number on a
+      dashboard.
+  - type: table
+    headers: ["Layer", "What happens here", "In this example"]
+    rows:
+      - ["Ingestion", "Extract data out of the source system on a schedule (or continuously)", "A nightly job extracts new rows from the production `orders` and `payments` tables"]
+      - ["Storage (raw)", "Land the extracted data, close to its original shape, in the warehouse/lake", "A `raw.orders` table holds exactly what was extracted, untouched"]
+      - ["Transformation (staging)", "Standardize types, casing, and light joins — still roughly 1:1 with source tables", "A `stg_orders` model trims/lowercases `status`, and joins in `payments` at the order grain"]
+      - ["Transformation (marts)", "Reshape and aggregate around a specific business question", "A `fct_daily_revenue` mart aggregates `stg_orders` by `channel` and `order_date`"]
+      - ["Serving", "Business-ready tables get queried by BI tools, dashboards, and ad hoc SQL", "A dashboard queries `fct_daily_revenue` directly to show revenue by channel"]
+  - type: heading
+    text: Why raw, staging, and marts — not just one transformation step
+  - type: text
+    body: >
+      It's tempting to imagine skipping straight from raw source data to a finished dashboard table
+      in one big transformation. Splitting the work into layers instead buys two very concrete
+      things. First, **reuse**: cleanup logic that belongs to a single source table (standardizing
+      `orders.status`, for instance) gets written once in a staging model, and every mart that needs
+      clean order data builds on that same staging model instead of re-implementing the cleanup.
+      Second, **debuggability**: if a number on a dashboard looks wrong, you can check whether the
+      *staging* layer already looks wrong (a basic data cleanliness problem) before assuming the bug
+      is in the more complex mart-level aggregation — narrowing down where to look considerably
+      faster than treating the whole pipeline as one opaque step.
+  - type: example
+    title: "Debugging with layers in mind"
+    body: >
+      Suppose the revenue dashboard shows a channel's revenue as unexpectedly low. Knowing the
+      layered structure gives you an actual investigation path: query `stg_orders` directly — does
+      it show the expected number of orders for that channel? If yes, the raw and staging layers are
+      fine, and the bug is more likely in `fct_daily_revenue`'s aggregation logic (maybe a filter or
+      join condition is excluding rows it shouldn't). If `stg_orders` itself already looks wrong, the
+      problem is further upstream — in the standardization logic, the raw extract, or the source
+      system itself. Without the layers, you'd only have "the dashboard is wrong" and no natural
+      place to start narrowing it down.
+  - type: callout
+    variant: tip
+    title: "This is the real shape of the dbt project you'll build"
+    body: >
+      This raw → staging → marts structure isn't just a diagram — it's exactly how the dbt Lab's
+      project is organized, and it's the same layering the data-warehousing domain covers in more
+      depth as "warehouse architecture." Recognizing the pattern here means it won't be new when you
+      see it as actual folders and models.
+  - type: question
+    prompt: >
+      A staging model and a mart model both reference the `orders` table. What's the key difference
+      in what each one is responsible for?
+    choices:
+      - "There is no real difference — the names are interchangeable"
+      - "The staging model is roughly 1:1 with the source table, doing light standardization/cleanup; the mart model reshapes and aggregates that cleaned data around a specific business question"
+      - "Staging models are always faster to query than mart models"
+    correct_index: 1
+    explanation: >
+      Staging and marts split two different kinds of work: staging keeps a close-to-source, cleaned
+      version of each table (so cleanup logic is written once and reused), while marts reshape and
+      aggregate that clean data into the specific, often pre-aggregated form a business question or
+      dashboard actually needs.

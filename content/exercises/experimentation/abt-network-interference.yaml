@@ -1,0 +1,25 @@
+slug: abt-network-interference
+skill: experimentation
+title: Interference Between Experiment Groups
+description: You're testing a referral-incentive change on a social app where treatment users can invite control
+  users. Why is a simple user-level random split risky here?
+exercise_type: MULTIPLE_CHOICE
+difficulty: ADVANCED
+points: 5
+tags:
+- ab-testing
+- experiment-design
+prompt: You're testing a referral-incentive change on a social app where treatment users can invite control users.
+  Why is a simple user-level random split risky here?
+correct_answer: Treatment users' behavior can spill over and affect control users (network interference), biasing
+  the comparison between groups
+explanation: When users interact with each other, a treatment effect can 'leak' into the control group (e.g. a control
+  user gets invited by a treatment user), violating the assumption that each unit's outcome is independent of which
+  group it was assigned to -- this typically calls for a cluster-level (e.g. by friend-group or geography) randomization
+  instead.
+choices:
+- Treatment users' behavior can spill over and affect control users (network interference), biasing the comparison
+  between groups
+- Random splits are always risky regardless of the product
+- The sample size would automatically be too small
+- This only matters for e-commerce products, not social apps

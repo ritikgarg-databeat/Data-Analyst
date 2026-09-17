@@ -1,0 +1,83 @@
+slug: category-revenue-share
+lesson_slug: pivot-table
+skill: pandas
+dataset: ecommerce
+title: Category Revenue Share
+description: Compute each product category's share of total order-item revenue.
+exercise_type: PYTHON
+difficulty: INTERMEDIATE
+points: 20
+tags: [python, intermediate, real-world]
+business_context: >
+  Merchandising wants to see how revenue is spread across product categories — which categories
+  are carrying the business and which are a small slice — to prioritize catalog and inventory
+  investment for next quarter.
+prompt: >
+  Using `order_items`, `products`, and `categories`, compute each category's total order-item
+  revenue and its share of total revenue across all categories. Line revenue for an order item
+  is `(unit_price - discount) * quantity`. Merge `order_items` to `products` (to get
+  `category_id`) and then to `categories` (to get `category_name`), compute line revenue, and
+  group by `category_name` to sum it. Store your answer in a variable named `result`: a
+  DataFrame with columns `category_name`, `revenue` (summed line revenue, rounded to 2 decimal
+  places), and `pct_of_total` (that category's revenue divided by the grand total across all
+  categories, times 100, rounded to 1 decimal place), sorted descending by revenue.
+python_datasets: [order_items, products, categories]
+python_starter_code: |
+  # order_items, products, and categories are already loaded as DataFrames.
+  # Explore them first:
+  order_items.head()
+python_solution_code: |
+  merged = order_items.merge(products[["product_id", "category_id"]], on="product_id").merge(
+      categories[["category_id", "category_name"]], on="category_id"
+  )
+  merged["line_revenue"] = (merged["unit_price"] - merged["discount"]) * merged["quantity"]
+  cat_rev = (
+      merged.groupby("category_name")["line_revenue"]
+      .sum()
+      .round(2)
+      .reset_index()
+      .rename(columns={"line_revenue": "revenue"})
+  )
+  total = cat_rev["revenue"].sum()
+  cat_rev["pct_of_total"] = (cat_rev["revenue"] / total * 100).round(1)
+  result = cat_rev.sort_values("revenue", ascending=False).reset_index(drop=True)
+python_result_variable: result
+python_row_order_matters: true
+python_numeric_tolerance: 0.01
+python_hidden_tests:
+  - name: "Top category's revenue matches a live recomputation"
+    code: |
+      top_row = result.iloc[0]
+      recomputed = merged[merged["category_name"] == top_row["category_name"]]["line_revenue"].sum()
+      assert abs(top_row["revenue"] - recomputed) < 0.01, (
+          f"Top category '{top_row['category_name']}' revenue {top_row['revenue']} doesn't match "
+          f"a fresh recomputation of {recomputed}"
+      )
+hints:
+  - "Only pull the columns you need from products (category_id) and categories (category_name) when merging, so you don't end up with confusing duplicate/overlapping column names."
+  - "Line revenue uses order_items' own unit_price and discount columns, not products' unit_price — (unit_price - discount) * quantity per order item, then group by category_name and sum. The percentage column just divides each category's revenue by cat_rev['revenue'].sum()."
+solution: |
+  ```python
+  merged = order_items.merge(products[["product_id", "category_id"]], on="product_id").merge(
+      categories[["category_id", "category_name"]], on="category_id"
+  )
+  merged["line_revenue"] = (merged["unit_price"] - merged["discount"]) * merged["quantity"]
+  cat_rev = (
+      merged.groupby("category_name")["line_revenue"]
+      .sum()
+      .round(2)
+      .reset_index()
+      .rename(columns={"line_revenue": "revenue"})
+  )
+  total = cat_rev["revenue"].sum()
+  cat_rev["pct_of_total"] = (cat_rev["revenue"] / total * 100).round(1)
+  result = cat_rev.sort_values("revenue", ascending=False).reset_index(drop=True)
+  ```
+explanation: >
+  The line-revenue formula is the crux of this exercise: `order_items.unit_price` is the actual
+  price the item sold for on that order (net of any per-unit discount already applied before
+  quantity), so `(unit_price - discount) * quantity` is the correct line revenue — `products.unit_price`
+  is a separate, current catalog price and shouldn't be used here at all, which is exactly why only
+  `category_id` is pulled from `products` in the merge. A common mistake is a naive merge of full
+  `products` and `order_items` tables, which creates ambiguous `unit_price_x`/`unit_price_y` columns
+  and makes it easy to accidentally compute revenue from the wrong one.

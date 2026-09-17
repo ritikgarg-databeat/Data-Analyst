@@ -1,0 +1,89 @@
+slug: basic-functions
+module_slug: sql-fundamentals
+title: Basic Functions
+description: Common scalar functions for cleaning up text, rounding numbers, and pulling parts out of dates.
+difficulty: BEGINNER
+estimated_minutes: 12
+display_order: 8
+objectives:
+  - Normalize text with UPPER and LOWER
+  - Control decimal precision on numeric output with ROUND
+  - Extract a part of a date (year, month, day) with EXTRACT / date part functions
+prerequisites: [case-expressions]
+skills: [sql-fundamentals]
+datasets: [orders-sample]
+tags: [sql, beginner, foundations]
+key_takeaways:
+  - Scalar functions transform one value per row — unlike aggregate functions (covered next module), they never collapse multiple rows into one.
+  - UPPER/LOWER are the standard fix for inconsistent text casing that would otherwise break equality comparisons and grouping.
+  - ROUND changes what's displayed, not what's stored — the underlying value keeps its full precision unless you explicitly overwrite it.
+common_mistakes:
+  - Comparing text with WHERE status = 'Completed' against data that actually stores 'completed' or 'COMPLETED' — the comparison is case-sensitive by default and silently matches nothing.
+  - Rounding a value early in a calculation and then using the rounded result in further math, compounding small rounding errors instead of rounding only the final displayed number.
+blocks:
+  - type: heading
+    text: Scalar functions operate one row at a time
+  - type: text
+    body: >
+      A scalar function takes the value from a single row and returns a single transformed value —
+      one in, one out. That's different from an aggregate function like SUM, which takes many rows
+      and collapses them into one value (the next module covers those). UPPER, LOWER, ROUND, and date
+      extraction functions are all scalar: they reshape a value without touching how many rows come
+      back.
+  - type: text
+    body: >
+      Start with normalizing text: UPPER and LOWER force a consistent case. Text data is rarely
+      consistently cased in the real world — 'completed', 'Completed', and
+      'COMPLETED' are three different strings as far as SQL's default string comparison is concerned.
+      UPPER(status) or LOWER(status) forces a consistent case before comparing, which is far more
+      reliable than trying to anticipate every casing variant in a WHERE clause.
+  - type: code
+    language: sql
+    caption: Case-insensitive status filter
+    code: |
+      SELECT order_id, status
+      FROM orders
+      WHERE LOWER(status) = 'completed';
+  - type: example
+    title: Controlling precision with ROUND
+    body: >
+      ROUND(value, decimal_places) rounds a number to the given number of decimal places. It's purely
+      a display/output transformation — it doesn't change what's stored in the table, and applying it
+      partway through a multi-step calculation can quietly introduce small errors that compound.
+      order_total * 0.08 produces a value with more decimal places than a dollar amount should show;
+      ROUND cleans that up for the person reading the report, while the underlying order_total column
+      keeps its original, unrounded value.
+    code: |
+      SELECT
+        order_id,
+        order_total,
+        ROUND(order_total * 0.08, 2) AS estimated_tax
+      FROM orders
+      WHERE order_total IS NOT NULL;
+    language: sql
+  - type: text
+    body: >
+      Last, dates: EXTRACT(part FROM date_column) pulls a single component — year, month, day, and so on — out of
+      a date or timestamp. It's the building block for "how many orders per month" style questions,
+      which the aggregation module builds on directly.
+  - type: code
+    language: sql
+    caption: Which month each order fell in
+    code: |
+      SELECT
+        order_id,
+        order_date,
+        EXTRACT(MONTH FROM order_date) AS order_month
+      FROM orders;
+  - type: question
+    prompt: "A query filters WHERE status = 'Completed', but no rows come back even though the table clearly has completed orders. The stored value is lowercase: 'completed'. What's the most likely fix?"
+    choices:
+      - Add an ELSE branch to the WHERE clause
+      - "Wrap the comparison in LOWER(status) = 'completed' (or UPPER on both sides) to make the comparison case-insensitive"
+      - Use IS NULL instead of an equality check
+    correct_index: 1
+    explanation: >
+      String equality is case-sensitive by default, so 'Completed' and 'completed' are different
+      values as far as WHERE is concerned. Wrapping the column (and the literal, matching its case)
+      in LOWER or UPPER normalizes both sides before comparing, which is the standard fix rather than
+      trying to guess every casing variant that might exist in the data.

@@ -1,0 +1,24 @@
+slug: dm-ex-missing-pk-fix
+lesson_slug: dm-validator-findings-explained
+skill: data-modeling
+title: "Fixing a missing_primary_key Warning"
+description: What a real missing_primary_key finding from the Data Modeler is telling you, and the correct fix.
+exercise_type: MULTIPLE_CHOICE
+difficulty: INTERMEDIATE
+points: 10
+tags: [validation, data-modeling]
+prompt: >
+  You click Validate on a Data Modeler model and get: "'dim_customers' has no column marked as a primary
+  key..." (code: missing_primary_key). What is the correct fix?
+choices:
+  - "Delete dim_customers from the model, since a table without a primary key isn't allowed"
+  - "Mark the column that actually uniquely identifies a customer row (customer_id) as is_primary_key"
+  - "Ignore it — missing_primary_key is severity error and blocks the app from saving, so nothing further is needed until it's fixed elsewhere"
+correct_answer: "Mark the column that actually uniquely identifies a customer row (customer_id) as is_primary_key"
+hints:
+  - "Ask which column on dim_customers already uniquely identifies each row at its stated grain — that's the one to mark, not a new column to invent."
+explanation: >
+  The fix is simply marking the real unique-identifying column (customer_id) as is_primary_key = true on that
+  table. missing_primary_key is severity "warning" (an educational nudge), not an error, so the model was
+  never actually blocked from saving — but marking the real key correctly is still good practice, and it also
+  makes the table a valid, checkable foreign-key reference target for other tables in the model.

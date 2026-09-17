@@ -1,0 +1,40 @@
+slug: biz-di-margin-waterfall-interpretation
+lesson_slug: biz-gross-contribution-net-margin
+skill: metric-definition
+title: "Reading a Margin Waterfall: Where Is the Money Actually Going?"
+description: Interpret a company's revenue-to-profit waterfall and diagnose which cost layer is actually responsible for a thin bottom line.
+exercise_type: DATA_INTERPRETATION
+difficulty: INTERMEDIATE
+points: 15
+tags: [business-analytics, finance, intermediate]
+prompt: >
+  A subscription company reports the following for the quarter: Revenue $2,000,000; Cost of Goods
+  Sold (hosting, support) $400,000; Variable costs (payment processing, usage-based
+  infrastructure) $200,000; Fixed costs (salaries, office, software) $1,320,000; Net Profit
+  $80,000. Compute gross margin, contribution margin, and net margin as percentages. Then
+  identify, specifically, which cost layer is most responsible for the company's thin 4% net
+  margin — and explain why simply calling this "an unprofitable business" would be an incomplete
+  diagnosis.
+hints:
+  - "Compute each margin by subtracting one more cost layer than the last: gross margin only removes COGS; contribution margin also removes variable costs; net margin removes fixed costs too. Compare the size of the drop at each step."
+  - "A margin that's healthy going into a step and unhealthy coming out of it points directly at the cost layer subtracted in that step, not at the ones before it."
+solution: >
+  Gross margin = (2,000,000 − 400,000) / 2,000,000 = 80.0%. Contribution margin = (2,000,000 − 400,000 −
+  200,000) / 2,000,000 = 70.0%. Net margin = 80,000 / 2,000,000 = 4.0%. The drop from contribution margin
+  (70.0%) to net margin (4.0%) is by far the largest step-down — 66 percentage points — dwarfing the
+  10-point drop from gross to contribution margin. This points directly at fixed costs ($1,320,000, or
+  66% of revenue) as the layer responsible for the thin bottom line, not the product's pricing or its
+  variable cost structure, both of which look healthy on their own (80% and 70% margins respectively).
+  Calling this "an unprofitable business" without this breakdown would be incomplete because it implies
+  the core product economics are broken, when the actual picture is a healthy unit-level business that
+  simply hasn't grown its revenue enough yet to comfortably cover a large, mostly fixed cost base —
+  a scale problem, which usually has a very different fix (grow revenue, or right-size fixed costs) than
+  a pricing or COGS problem would.
+explanation: >
+  A strong answer computes all three margins correctly and then explicitly locates *where* the biggest
+  percentage-point drop happens — the size of each step down is what identifies which cost layer is
+  actually driving the thin result, rather than assuming the whole cost structure is uniformly to blame.
+  It also draws the direct implication for what kind of fix is warranted: a scale problem (revenue needs to
+  grow relative to a largely fixed cost base) calls for a very different response than a margin problem
+  in pricing or COGS would. A weaker answer computes the three margins but stops at "net margin is low,"
+  without identifying which specific layer explains the gap or what that implies about the right fix.

@@ -1,0 +1,123 @@
+[project]
+name = "data-analyst-lab-api"
+version = "0.1.0"
+description = "Personal Data Analyst Lab — FastAPI backend"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "sqlalchemy>=2.0.35",
+    "alembic>=1.13.3",
+    "pydantic>=2.9.0",
+    "pydantic-settings>=2.5.2",
+    "email-validator>=2.2.0",
+    "psycopg[binary]>=3.2.3",
+    "python-dotenv>=1.0.1",
+    "pyyaml>=6.0.2",
+    "duckdb>=1.1.0",
+    "docker>=7.1.0",
+    # Phase 5 (Dataset Hub): xlsx import/preview runs in the api process itself
+    # (not the Python Lab sandbox), so this is a core dependency, not a
+    # `sandbox`-only one — kept lightweight (pure Python, no numpy/pandas).
+    "openpyxl>=3.1.5",
+    # Required by FastAPI/Starlette to parse multipart/form-data (dataset file uploads).
+    "python-multipart>=0.0.12",
+    # Phase 6 (Statistics/Experimentation): the API computes hypothesis tests,
+    # confidence intervals, correlation/regression, sample-size/power, and A/B
+    # analysis directly (not by shelling out to the Python Lab sandbox), so
+    # these move from `sandbox`-only to core — same pins as the sandbox image
+    # for consistency.
+    "numpy>=2.1.0",
+    "scipy>=1.14.0",
+    "statsmodels>=0.14.4",
+    # Phase 7 (dbt Lab): the API shells out to the real `dbt` CLI against a
+    # local DuckDB warehouse (see app/dbt_lab/). dbt-duckdb is a pure-Python
+    # adapter — no separate warehouse service or Docker container needed —
+    # so both install cleanly alongside the rest of the API's dependencies.
+    "dbt-core>=1.12.0",
+    "dbt-duckdb>=1.11.0",
+    # Phase 10 (AI Layer): the OpenAI/Anthropic providers are thin direct
+    # `httpx` REST clients (app/ai/providers/*.py), not the `openai`/
+    # `anthropic` SDKs — this is the only outbound-HTTP dependency the app
+    # needs, so httpx moves from a `dev`-only (FastAPI TestClient) dependency
+    # to core. `AI_PROVIDER=local` (the default) makes no network call at
+    # all and needs no key — see app/ai/providers/local_provider.py.
+    "httpx>=0.27.2",
+    # Phase 12 follow-up: real server-side text extraction for uploaded
+    # resume/JD files (previously "Uploaded" only read a file's text
+    # client-side via `file.text()`, which produces garbage for .docx/.pdf).
+    # Both are pure-Python/lightweight, matching openpyxl's precedent of
+    # staying a core (not sandbox-only) dependency.
+    "python-docx>=1.1.2",
+    "pypdf>=5.1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3.3",
+    "ruff>=0.7.0",
+    "mypy>=1.13.0",
+    # Mocks the OpenAI/Anthropic provider HTTP calls at the transport layer
+    # (app/ai/providers/*.py) — see tests/test_ai_providers.py. Pinned loosely
+    # since it only needs to track httpx's transport interface, not a
+    # specific httpx release.
+    "respx>=0.21.1",
+]
+# NOT installed by default (see app/kaggle/client.py's lazy `import kaggle`) —
+# mirrors the `docker` package's lazy-import pattern in
+# app/python_lab/docker_backend.py. Kept optional so the core test suite
+# never depends on network access or this package being present; Kaggle
+# integration tests mock KaggleClient entirely (see tests/test_kaggle.py).
+# Pinned to the 1.6.x line deliberately: 1.6 authenticates via the classic
+# KAGGLE_USERNAME/KAGGLE_KEY env vars (or ~/.kaggle/kaggle.json), matching
+# Settings.kaggle_username/kaggle_key (app/core/config.py). kaggle>=2.0 moved
+# to an OAuth/kagglesdk-based auth flow with a different token scheme
+# (KAGGLE_API_TOKEN / ~/.kaggle/access_token) that doesn't fit this app's
+# non-interactive, env-var-only configuration model.
+kaggle = [
+    "kaggle>=1.6.17,<1.7.0",
+]
+# NOT installed in the api container image (see apps/api/Dockerfile) — these
+# belong only to the Python Lab sandbox image
+# (infrastructure/docker/python-sandbox/requirements.txt), which is what
+# actually executes user code. This group exists purely so the sandbox
+# kernel's own logic (infrastructure/docker/python-sandbox/kernel.py) can be
+# unit-tested directly, in-process, from apps/api/tests/ against a real
+# pandas/numpy/etc — see tests/test_python_kernel.py.
+sandbox = [
+    "pandas>=2.2.3",
+    "polars>=1.9.0",
+    "pyarrow>=17.0.0",
+    # numpy/scipy/statsmodels are core dependencies as of Phase 6 (see above) —
+    # not repeated here, but still available to the sandbox kernel test suite.
+    "scikit-learn>=1.5.2",
+    "matplotlib>=3.9.2",
+    "seaborn>=0.13.2",
+    "plotly>=5.24.1",
+    "openpyxl>=3.1.5",
+    "requests>=2.32.3",
+    "python-dateutil>=2.9.0",
+]
+
+[tool.ruff]
+line-length = 110
+target-version = "py312"
+exclude = ["alembic_migrations/versions", "../../database/migrations/versions"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "N"]
+ignore = ["B008"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["app*"]

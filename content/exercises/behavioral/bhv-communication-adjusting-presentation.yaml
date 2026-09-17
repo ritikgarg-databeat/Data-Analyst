@@ -1,0 +1,34 @@
+slug: bhv-communication-adjusting-presentation
+skill: behavioral-interviewing
+title: Adjusting When a Presentation Didn't Land
+description: Describe a time your initial way of presenting an analysis didn't land, and how you adjusted.
+exercise_type: INTERVIEW_RESPONSE
+difficulty: INTERMEDIATE
+points: 10
+tags:
+- behavioral
+- star-method
+- communication
+prompt: Describe a time your initial way of presenting an analysis didn't land, and how you adjusted.
+hints:
+- The STAR framework (Situation, Task, Action, Result) is a useful structure, not a script -- use it to
+  make sure you cover what actually happened, in what context, what you personally did, and what came
+  of it.
+- Interviewers are listening for a specific, real example -- a vague 'sometimes this happens on my team'
+  answer is much weaker than one concrete story with real details.
+rubric:
+- criterion: Describes one specific, real situation rather than a hypothetical or a generic pattern
+  points: 25
+- criterion: Clearly states the task or goal and the person's own specific role in it
+  points: 20
+- criterion: Explains concrete actions the person personally took, not just what the team did
+  points: 30
+- criterion: States a clear, ideally measurable outcome and what was learned from it
+  points: 25
+solution: I first presented a pricing analysis as a dense slide of elasticity coefficients and confidence
+  intervals, and I could tell halfway through that the room had disengaged. I stopped, and re-framed the
+  same finding as a single sentence -- 'a 5% price increase costs us about 8% of unit volume, but revenue
+  still goes up overall' -- and then offered to go deeper into the supporting numbers for anyone who wanted
+  them. The room re-engaged once the takeaway was stated plainly first.
+explanation: Noticing the disengagement in the room and adjusting live, rather than plowing through the
+  original plan, shows real-time communication awareness rather than just a rehearsed delivery.

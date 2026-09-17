@@ -1,0 +1,23 @@
+slug: abt-primary-vs-guardrail-metrics
+skill: experimentation
+title: Primary Metric vs. Guardrail Metrics
+description: In an experiment testing a more aggressive upsell prompt, checkout conversion is the primary metric.
+  Why would you also track a guardrail metric like customer support contact rate?
+exercise_type: MULTIPLE_CHOICE
+difficulty: INTERMEDIATE
+points: 5
+tags:
+- ab-testing
+- experiment-design
+prompt: In an experiment testing a more aggressive upsell prompt, checkout conversion is the primary metric. Why
+  would you also track a guardrail metric like customer support contact rate?
+correct_answer: To catch an unintended negative side effect (e.g. increased complaints) even if the primary metric
+  improves
+explanation: A change can win on its primary metric while quietly damaging something else that matters (support
+  load, churn, trust) -- guardrail metrics are tracked specifically so a 'win' isn't shipped blind to a real cost
+  elsewhere.
+choices:
+- To catch an unintended negative side effect (e.g. increased complaints) even if the primary metric improves
+- Guardrail metrics replace the need for a primary metric
+- To increase the sample size of the experiment
+- Guardrail metrics are only needed if the primary metric shows no effect

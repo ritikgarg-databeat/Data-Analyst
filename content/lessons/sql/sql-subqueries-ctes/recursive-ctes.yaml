@@ -1,0 +1,141 @@
+slug: recursive-ctes
+module_slug: sql-subqueries-ctes
+title: Recursive CTEs
+description: WITH RECURSIVE basics for generating sequences and small hierarchies that a single SELECT can't produce on its own.
+difficulty: INTERMEDIATE
+estimated_minutes: 15
+display_order: 6
+objectives:
+  - Explain the two parts of a recursive CTE — the base case and the recursive step — and how they combine with UNION ALL
+  - Write a recursive CTE that generates a sequence of numbers or dates
+  - Explain why a recursive CTE needs a stopping condition, and what happens without one
+prerequisites: [chaining-multiple-ctes]
+skills: [advanced-sql]
+datasets: [ecommerce]
+tags: [sql, intermediate]
+key_takeaways:
+  - "A recursive CTE has two parts joined by UNION ALL: a base case that produces the starting row(s), and a recursive step that refers back to the CTE's own name to produce the next row(s) from the previous ones."
+  - The recursive step must include a condition that eventually stops matching, or the query runs forever (or until the engine's safety limit kicks in) — there's no GROUP BY or LIMIT trick that substitutes for an explicit stopping condition inside the recursive step.
+  - "A very common practical use is generating a complete calendar (every month or day in a range) so a report doesn't silently skip periods that happen to have zero rows in the real data."
+common_mistakes:
+  - "Forgetting UNION ALL between the base case and the recursive step, or using UNION instead — UNION ALL is required because the recursive step is expected to keep producing new rows; UNION's deduplication defeats the mechanism DuckDB and most engines expect here."
+  - "Writing a recursive step with no condition that can become false — e.g. always adding 1 with no upper bound — which makes the recursion unbounded and forces the engine to either run indefinitely or hit a hard recursion-depth error."
+blocks:
+  - type: heading
+    text: A query that refers to itself
+  - type: text
+    body: >
+      Every CTE so far has referenced only tables or CTEs defined *before* it. `WITH RECURSIVE` breaks
+      that rule on purpose: it lets a CTE reference its own name inside its own definition, so each
+      "round" of the query can build on the round before it. This is how SQL generates a sequence or
+      walks a hierarchy that isn't already sitting in a table, row by row, one level at a time.
+  - type: code
+    language: sql
+    caption: The simplest possible recursive CTE — counting from 1 to 12
+    code: |
+      WITH RECURSIVE seq AS (
+        SELECT 1 AS n              -- base case: the starting row
+        UNION ALL
+        SELECT n + 1 FROM seq WHERE n < 12   -- recursive step: build the next row from the last
+      )
+      SELECT n FROM seq ORDER BY n;
+  - type: output
+    body: |
+      n
+      ----
+      1
+      2
+      3
+      ...
+      12
+  - type: text
+    body: >
+      Two pieces, joined by `UNION ALL`. The **base case** (`SELECT 1 AS n`) produces the first row —
+      this is where recursion starts. The **recursive step** (`SELECT n + 1 FROM seq WHERE n < 12`)
+      refers to `seq` — the CTE's own name — meaning "take whatever rows exist so far, and produce the
+      next row from each one." The engine keeps re-running the recursive step against the newest
+      batch of rows until it produces nothing new, which happens here as soon as `n` reaches 12 and
+      `n < 12` is no longer true for that row.
+  - type: callout
+    variant: warning
+    title: Always give the recursive step a way to stop
+    body: >
+      If the WHERE condition in the recursive step were removed entirely (`SELECT n + 1 FROM seq`
+      with no WHERE), there would be no row where the condition eventually fails — the query would
+      keep generating rows forever, or until the database's built-in recursion-depth limit forces an
+      error. Every recursive CTE needs a condition in its recursive step that is guaranteed to
+      eventually become false.
+  - type: heading
+    text: A practical use — filling in a calendar
+  - type: text
+    body: >
+      A common real-world reason to reach for `WITH RECURSIVE` has nothing to do with hierarchies: it's
+      generating a complete list of periods (months, weeks, days) so a trend report doesn't silently
+      skip any that happen to have zero rows in the real data. Here, a monthly calendar is built from
+      the earliest to the latest order_date in the orders table.
+  - type: code
+    language: sql
+    caption: Generating one row per calendar month the orders table spans
+    code: |
+      WITH RECURSIVE months AS (
+        SELECT DATE_TRUNC('month', MIN(order_date)) AS month_start
+        FROM orders
+        UNION ALL
+        SELECT month_start + INTERVAL 1 MONTH
+        FROM months
+        WHERE month_start + INTERVAL 1 MONTH <= (
+          SELECT DATE_TRUNC('month', MAX(order_date)) FROM orders
+        )
+      )
+      SELECT month_start FROM months ORDER BY month_start;
+  - type: output
+    caption: "24 rows — one per month from January 2024 through December 2025"
+    body: |
+      month_start
+      -----------
+      2024-01-01
+      2024-02-01
+      2024-03-01
+      ...
+      2025-12-01
+  - type: text
+    body: >
+      The base case computes a single starting month (the earliest order's month, truncated to the
+      1st). The recursive step adds one month at a time and stops once adding another month would go
+      past the latest order's month. Joining a monthly revenue query to this calendar (with a LEFT
+      JOIN) guarantees every month appears in the output, even a month with zero completed orders —
+      something a plain `GROUP BY DATE_TRUNC('month', order_date)` could never produce on its own,
+      since it can only report months that already have at least one row.
+  - type: example
+    title: Why GROUP BY alone can't fill calendar gaps
+    body: >
+      GROUP BY only ever produces one row per value that already exists in the data. If a month had
+      zero orders, there's no row for GROUP BY to collapse into a group — the month simply never
+      appears in the result, which can make a trend chart misleadingly connect two distant months as
+      if nothing was missing in between. A recursively generated calendar, left-joined to the real
+      data, is what guarantees the gap itself becomes visible as a zero.
+    code: |
+      WITH RECURSIVE months AS (
+        SELECT DATE_TRUNC('month', MIN(order_date)) AS month_start FROM orders
+        UNION ALL
+        SELECT month_start + INTERVAL 1 MONTH FROM months
+        WHERE month_start + INTERVAL 1 MONTH <= (SELECT DATE_TRUNC('month', MAX(order_date)) FROM orders)
+      )
+      SELECT m.month_start, COUNT(o.order_id) AS orders_in_month
+      FROM months m
+      LEFT JOIN orders o ON DATE_TRUNC('month', o.order_date) = m.month_start
+      GROUP BY m.month_start
+      ORDER BY m.month_start;
+    language: sql
+  - type: question
+    prompt: "A recursive CTE's recursive step is written as: SELECT n + 1 FROM seq (with no WHERE clause at all). What happens?"
+    choices:
+      - It stops automatically after producing 1,000 rows, a built-in default
+      - "It never naturally stops producing new rows, since nothing makes the recursive step fail — it runs until it errors out or is stopped"
+      - It runs once and returns just the base case
+    correct_index: 1
+    explanation: >
+      Without a condition that eventually becomes false, the recursive step keeps matching and
+      producing new rows indefinitely. There's no implicit row cap — most engines will eventually hit
+      a hard recursion or memory limit and error out, but the query itself has no built-in stopping
+      point. That's exactly why the WHERE condition in the recursive step isn't optional in practice.

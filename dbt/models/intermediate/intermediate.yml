@@ -1,0 +1,14 @@
+version: 2
+
+models:
+  - name: int_order_items_priced
+    description: "1 row = 1 order line, enriched with product cost/category for margin analysis."
+    columns:
+      - name: order_item_id
+        tests: [unique, not_null]
+
+  - name: int_order_payments
+    description: "1 row = 1 order, payments collapsed into a single paid amount + resolved status."
+    columns:
+      - name: order_id
+        tests: [unique, not_null]

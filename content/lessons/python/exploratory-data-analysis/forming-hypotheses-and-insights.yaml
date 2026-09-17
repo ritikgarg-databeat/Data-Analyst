@@ -1,0 +1,166 @@
+slug: forming-hypotheses-and-insights
+module_slug: exploratory-data-analysis
+title: "From Observations to Insight: Turning EDA Into a Recommendation"
+description: The capstone of the EDA workflow — turning a pile of EDA observations into a testable hypothesis and a business-framed insight, not just a list of things you noticed.
+difficulty: INTERMEDIATE
+estimated_minutes: 13
+display_order: 8
+objectives:
+  - Turn a raw EDA observation into a specific, testable hypothesis
+  - Distinguish an observation ("X correlates with Y") from an insight ("this suggests action Z")
+  - Synthesize several findings from across an EDA pass into one coherent, business-framed recommendation
+prerequisites: [outliers-in-eda]
+skills: [pandas]
+datasets: [ecommerce]
+tags: [python, intermediate, real-world]
+key_takeaways:
+  - "An observation describes the data. A hypothesis makes a specific, falsifiable claim about why. An insight connects that claim to a business action. All three are different, and EDA is incomplete if it stops at the first one."
+  - "'Marketplace orders average 5.6% less than web/mobile' is an observation. 'Marketplace's lower order value is driven by both slightly lower unit prices and slightly lower quantities per line, not by one dominant cause' is a hypothesis you can test by decomposing the metric further. 'The marketplace product mix or pricing may need a targeted review, and marketplace's meaningfully lower refund rate (4.6% vs 6.8%) suggests this isn't a quality problem — worth protecting when making any changes' is the insight, because it points at a specific next action."
+  - "Good hypotheses are specific enough to be wrong. 'Something about marketplace is different' isn't testable. 'Marketplace's order-value gap comes from lower average unit price and lower average quantity per line, not from fewer items per order' is testable — and in this dataset, checking it directly confirms both smaller effects are present and roughly similar in size."
+  - "A capstone EDA summary should read as a short chain: what you found, what you think explains it, how confident you are and why, and what you'd recommend or investigate next — not a disconnected list of every chart and statistic you produced along the way."
+common_mistakes:
+  - "Stopping at the observation and calling it an insight — 'order value varies by channel' is not, by itself, something a stakeholder can act on."
+  - "Writing a hypothesis so vague it can't be wrong ('marketplace behaves differently') instead of one specific enough to test and potentially disprove."
+  - "Presenting every EDA finding with equal weight, rather than synthesizing the strongest, most corroborated ones (multiple metrics agreeing, like channel's order-value AND refund-rate gap) into the headline recommendation."
+practical_applications:
+  - "Writing an EDA summary for a stakeholder that ends in a specific recommendation or next question, rather than a list of statistics with no synthesis."
+  - "Deciding which of several EDA findings is strong enough to act on immediately versus which needs a follow-up analysis (or a proper A/B test) before being trusted as causal."
+interview_questions:
+  - question: "Walk me through how you'd turn a set of EDA findings into a recommendation for a stakeholder."
+    answer: "I'd start from the business question that motivated the analysis, then pick out the findings that are both meaningful (not just statistically nonzero, but large enough to matter) and corroborated (showing up in more than one related metric, not a single coincidental number). I'd state each as a specific, testable hypothesis about what's driving it, be explicit about my confidence level and what would increase or decrease it, and end with either a concrete recommendation or a clearly scoped next question — never just a list of observations with no synthesis."
+  - question: "What's the difference between an observation and an insight, and why does that distinction matter?"
+    answer: "An observation describes what the data shows — 'X and Y move together,' 'group A is higher than group B.' An insight connects that observation to something the business can act on, and is honest about the confidence behind it. The distinction matters because stakeholders make decisions from insights, not raw observations — if an analyst hands over ten unconnected facts about a dataset, someone else has to do the synthesis work (often incorrectly, without the analyst's context) before any decision can actually be made."
+resources:
+  - title: "Pandas documentation — GroupBy: split-apply-combine"
+    url: "https://pandas.pydata.org/docs/user_guide/groupby.html"
+blocks:
+  - type: text
+    body: >
+      Every lesson in this module has produced real findings from the same ecommerce dataset: right-skewed
+      order values, a systematic missingness pattern tied to conversion, a channel effect on order value
+      and refund rate, a genuine whale customer. This capstone lesson is about the step that turns a pile
+      of findings like that into something a stakeholder can actually use.
+  - type: heading
+    text: "Three different things, easy to conflate"
+  - type: table
+    headers: ["Stage", "What it is", "Example from this module"]
+    rows:
+      - ["Observation", "A factual description of what the data shows", "Marketplace orders average $1,605.86; mobile and web average $1,695.49"]
+      - ["Hypothesis", "A specific, testable claim about why", "Marketplace's lower order value comes from a mix of slightly lower unit prices and slightly lower quantities per line, not from customers buying fewer distinct items"]
+      - ["Insight", "The business-framed conclusion and recommended action", "Marketplace's lower order value isn't a quality problem — its refund rate is meaningfully lower too — so before 'fixing' marketplace pricing, check whether its lower prices are a deliberate positioning choice worth protecting"]
+  - type: callout
+    variant: important
+    title: "A finding isn't done until it reaches row three"
+    body: >
+      "Order value varies by channel" is true, and also nearly useless on its own — nobody can act on it.
+      The work of EDA isn't finished at the observation stage; it's finished when you've turned the
+      observation into a claim specific enough to test, and the tested claim into something that changes
+      a decision.
+  - type: heading
+    text: "Worked example: testing a specific hypothesis"
+  - type: text
+    body: >
+      The segmentation lesson found marketplace orders average about 5.6% lower than mobile/web. A vague
+      hypothesis — "marketplace is just different somehow" — isn't testable. A specific one is: *is the
+      gap driven by fewer items per order, lower prices per item, or lower quantities per line?*
+      That's answerable directly.
+  - type: code
+    language: python
+    code: |
+      import pandas as pd
+
+      orders = pd.read_csv("data/sample/ecommerce/orders.csv")
+      order_items = pd.read_csv("data/sample/ecommerce/order_items.csv")
+      merged = order_items.merge(orders[["order_id", "channel", "status"]], on="order_id")
+      completed = merged[merged["status"] == "completed"]
+
+      items_per_order = completed.groupby("order_id").size().groupby(completed.groupby("order_id")["channel"].first()).mean()
+      avg_unit_price = completed.groupby("channel")["unit_price"].mean()
+      avg_quantity = completed.groupby("channel")["quantity"].mean()
+
+      print("Avg items per order:\n", items_per_order.round(2))
+      print("\nAvg unit price per line:\n", avg_unit_price.round(2))
+      print("\nAvg quantity per line:\n", avg_quantity.round(2))
+    caption: Decomposing the order-value gap into its three plausible components
+  - type: output
+    body: |
+      Avg items per order:
+       channel
+      marketplace    3.04
+      mobile         3.01
+      web            2.99
+      dtype: float64
+
+      Avg unit price per line:
+       channel
+      marketplace    238.78
+      mobile         243.09
+      web            244.87
+      Name: unit_price, dtype: float64
+
+      Avg quantity per line:
+       channel
+      marketplace    2.43
+      mobile         2.49
+      web            2.51
+      Name: quantity, dtype: float64
+    caption: Real output
+  - type: text
+    body: >
+      This directly tests the hypothesis: items per order is essentially flat across channels (2.99 to
+      3.04), which rules that out. Both unit price ($238.78 vs. ~$244) and quantity per line (2.43 vs.
+      ~2.50) are modestly lower on marketplace — neither alone is dramatic, but the two effects compound
+      together across roughly 3 items per order to produce the larger, more visible ~5.6% gap in total
+      order value. The hypothesis holds: it's a combination of smaller price and quantity effects, not
+      one dominant cause.
+  - type: heading
+    text: "Synthesizing this module's findings into one insight"
+  - type: example
+    title: "A short, stakeholder-ready synthesis"
+    body: >
+      "Marketplace orders average 5.6% less than web/mobile ($1,605.86 vs. $1,695.49), driven by a
+      combination of modestly lower per-item prices and quantities rather than fewer items per order.
+      This isn't a quality signal — marketplace's refund rate (4.6%) is meaningfully lower than
+      mobile's (6.8%), so lower order value doesn't appear to come at the cost of customer satisfaction.
+      Recommendation: before treating marketplace's lower order value as a problem to fix, confirm
+      whether marketplace pricing is a deliberate positioning choice (e.g. a more price-sensitive channel
+      by design) — if so, the lower refund rate suggests it's working as intended, and the more useful
+      question becomes whether that pricing strategy could be extended to web/mobile, not reversed on
+      marketplace."
+  - type: callout
+    variant: tip
+    title: Why this synthesis is stronger than reporting the findings separately
+    body: >
+      It connects two independently-verified findings (order value AND refund rate, both by channel)
+      into one coherent story, states a specific mechanism (price and quantity, not item count), and
+      ends with a concrete next step rather than a vague "channel matters." That's the shape every EDA
+      capstone summary should take — reachable and testable using only the data you actually explored,
+      not a leap beyond what you've verified.
+  - type: checklist
+    title: "Before calling an EDA pass finished, check:"
+    items:
+      - "Have I stated my strongest findings as specific, testable hypotheses rather than vague impressions?"
+      - "Have I looked for corroborating evidence — does a second, related metric agree with the first finding?"
+      - "Have I been honest about which findings are flat/inconclusive, not just the dramatic ones?"
+      - "Does my summary end in an actual recommendation or a clearly scoped next question, not just a list of statistics?"
+      - "Would a stakeholder who read only my final paragraph know what to do next?"
+  - type: callout
+    variant: important
+    title: "This closes the loop back to lesson one"
+    body: >
+      The first lesson in this module opened with a business question and a ten-stage workflow ending in
+      "hypotheses & insights." Every lesson since has been one stage of that workflow, run for real
+      against this course's ecommerce data: inspection, types, missingness, distributions, correlation,
+      segmentation, outliers. This lesson is where all of it was always headed — not more analysis for
+      its own sake, but a synthesis a business can actually use.
+  - type: question
+    prompt: "Which of these is a genuine insight, rather than just an observation?"
+    choices:
+      - "Marketplace's lower order value comes from modestly lower prices and quantities per line rather than fewer items — and its lower refund rate suggests this reflects deliberate positioning, not a quality problem, so any pricing changes should preserve that before assuming the gap needs 'fixing'"
+      - "Marketplace orders average $1,605.86 and web/mobile orders average $1,695.49"
+      - "Order value differs by channel"
+    correct_index: 0
+    explanation: >
+      The first option states a mechanism, connects it to a second corroborating metric, and ends with a
+      specific recommendation — that's an insight. The other two are true but stop at description: they
+      report what the data shows without explaining why it matters or what to do about it.

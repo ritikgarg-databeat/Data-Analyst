@@ -1,0 +1,33 @@
+slug: de-ex-flagging-a-pipeline-issue-sa
+lesson_slug: de-reading-a-broken-pipeline
+skill: pipeline-troubleshooting
+title: What Belongs in a Good Pipeline-Issue Flag?
+description: State the specific pieces of information that turn a vague data complaint into an actionable report.
+exercise_type: SHORT_ANSWER
+difficulty: INTERMEDIATE
+points: 10
+tags: [pipelines, analyst-boundary, data-engineering, intermediate]
+prompt: >
+  Beyond just saying "the data looks wrong," what specific pieces of information should you include
+  when flagging a suspected pipeline problem to a data engineering team, so they can start
+  investigating immediately?
+correct_answer: >
+  The specific table/column where the problem shows up, the specific symptom (stale since when,
+  which segment is missing, or what value/schema changed), when it last looked healthy, and what's
+  blocked downstream
+hints:
+  - "Think about what makes 'orders.order_date hasn't advanced past 2025-12-31, and the revenue dashboard is stuck too' so much faster to act on than 'the data looks wrong.'"
+  - "Consider what you'd need to know first if someone handed you this problem cold — the exact location, the exact symptom, and the urgency."
+solution: >
+  A useful flag names: (1) the specific table and column where the issue shows up, not just "the
+  dashboard"; (2) the specific symptom — stale (and since when), partial (which segment is
+  missing), or a schema/value change (what changed vs. what you expected); (3) when it last looked
+  healthy, if known, to narrow the investigation window; and (4) what's actually blocked downstream
+  and how urgent that is, so it can be triaged appropriately. Including what you've already ruled
+  out (e.g. confirming it's not a real business change) saves the investigator from redoing your
+  first step.
+explanation: >
+  Vague reports like "the data looks wrong" force whoever receives them to first reconstruct what
+  you actually observed before they can even begin diagnosing the root cause. Naming the specific
+  table, the specific symptom, the timing, and the downstream impact turns the flag into something
+  actionable on first read.

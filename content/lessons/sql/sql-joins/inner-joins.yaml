@@ -1,0 +1,107 @@
+slug: inner-joins
+module_slug: sql-joins
+title: INNER JOIN
+description: Combining rows from two tables on a matching condition, and why INNER JOIN is the default choice.
+difficulty: INTERMEDIATE
+estimated_minutes: 13
+display_order: 1
+objectives:
+  - Write an INNER JOIN with an explicit ON condition connecting two tables
+  - Explain what an INNER JOIN does to rows that have no match on the other side
+  - Predict when an INNER JOIN will silently drop rows compared to querying a single table alone
+prerequisites: [combining-expressions]
+skills: [sql-fundamentals]
+datasets: [ecommerce]
+tags: [sql, intermediate]
+key_takeaways:
+  - "INNER JOIN combines rows from two tables where the ON condition is true, and drops any row from either table that has no match — it only ever keeps rows that pair up successfully."
+  - The ON clause defines what counts as a match. It's almost always an equality between a foreign key on one table and the primary key it references, but it can be any condition that evaluates to true or false.
+  - "INNER JOIN is the default choice whenever a query genuinely only cares about rows that exist on both sides — the moment unmatched rows on one side matter too, an outer join (the next lesson) is needed instead."
+common_mistakes:
+  - "Writing a join with no ON clause at all, or one that doesn't actually relate the two tables — most databases won't reject this outright (see cross-joins later in this module), but the result silently isn't the join that was intended."
+  - "Assuming a JOIN preserves every row from the first table listed in FROM — an INNER JOIN doesn't care about listing order, it drops unmatched rows from both sides equally."
+blocks:
+  - type: heading
+    text: Combining two tables on a matching condition
+  - type: text
+    body: >
+      Every lesson so far has queried one table at a time. Real questions almost never stay inside one
+      table — "which country is each order's customer from?" needs orders and customers together, and
+      the only thing connecting them is a shared value: orders.customer_id matches
+      customers.customer_id. JOIN is how SQL combines rows from two tables based on a condition like
+      that, and INNER JOIN is the most common form.
+  - type: code
+    language: sql
+    caption: Attaching each order to its customer's country
+    code: |
+      SELECT
+        o.order_id,
+        o.order_date,
+        c.first_name,
+        c.last_name,
+        c.country
+      FROM orders o
+      INNER JOIN customers c ON c.customer_id = o.customer_id
+      LIMIT 5;
+  - type: text
+    body: >
+      Two things are doing the real work here. FROM orders o INNER JOIN customers c names the two
+      tables being combined, giving each a short alias (o, c) so later columns can be unambiguous.
+      ON c.customer_id = o.customer_id is the join condition — it tells SQL exactly which rows from
+      customers belong paired with which rows from orders. Without ON, SQL would have no way to know
+      that order 2 belongs with the customer whose customer_id is 1, not customer_id 973.
+  - type: heading
+    text: What happens to rows with no match
+  - type: text
+    body: >
+      INNER JOIN only keeps a row when the join condition finds a match on both sides. A row from
+      either table that has no counterpart on the other side is dropped from the result entirely —
+      not shown with NULLs, not flagged, just silently absent. That makes INNER JOIN the right choice
+      exactly when unmatched rows genuinely shouldn't appear, and the wrong choice the moment they need
+      to be visible.
+  - type: example
+    title: "The same join, on a table where matches aren't guaranteed"
+    body: >
+      Every order in this dataset has a real customer_id, so orders INNER JOIN customers returns all
+      4,205 orders — nothing gets dropped. sessions is different: about a third of its rows have a
+      NULL customer_id, representing anonymous visits with no signed-in customer. INNER JOIN sessions
+      to customers and every anonymous session vanishes from the result, because NULL never equals
+      anything, including another NULL.
+    code: |
+      SELECT COUNT(*) FROM sessions;
+      -- 12000
+
+      SELECT COUNT(*)
+      FROM sessions s
+      INNER JOIN customers c ON c.customer_id = s.customer_id;
+      -- 7826 — roughly a third of sessions disappeared, silently
+    language: sql
+  - type: callout
+    variant: warning
+    title: A dropped row count is easy to miss
+    body: >
+      Nothing about the query above raises an error or a warning when rows disappear — an INNER JOIN
+      that drops 4,000+ rows looks exactly like one that drops none, syntactically. Whenever a join
+      is added to a query, it's worth checking whether the row count moved in a way that makes sense,
+      especially before an aggregate like COUNT or SUM runs on top of it and hides the drop inside a
+      single summary number.
+  - type: text
+    body: >
+      This is exactly why INNER JOIN is the right default only when both sides having a match is
+      actually a requirement of the question being asked. "Which orders belong to a customer in
+      France?" only makes sense for orders that do have a customer — INNER JOIN fits. "How many
+      sessions came from anonymous visitors?" needs those unmatched rows kept, not dropped — that
+      calls for the outer joins covered next.
+  - type: question
+    prompt: "orders INNER JOIN customers ON c.customer_id = o.customer_id is run, and every one of the 4,205 orders comes back in the result. What does that confirm?"
+    choices:
+      - "INNER JOIN never drops rows, regardless of the data"
+      - "Every order_id in the orders table has a matching customer_id in the customers table"
+      - "The customers table has no rows without a matching order"
+    correct_index: 1
+    explanation: >
+      INNER JOIN only keeps rows where both sides match — if every order survived the join unchanged,
+      it means every customer_id value in orders successfully found a matching customer_id in
+      customers, not that INNER JOIN has some special behavior here. It says nothing about whether
+      every customer has placed an order; that's a separate question about the other side of the
+      join.

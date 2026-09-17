@@ -1,0 +1,96 @@
+slug: bridge-from-inference-to-experiments
+module_slug: statistics-experimentation-bridge
+title: "From Statistical Inference to Running Real Experiments"
+description: How confidence intervals, p-values, and power come together into the specific decision an A/B test asks you to make — and a pointer to the full Experimentation domain where that decision gets its own deep dive.
+difficulty: INTERMEDIATE
+estimated_minutes: 15
+display_order: 1
+objectives:
+  - Connect confidence intervals, hypothesis testing, and statistical power into a single end-to-end read of a real A/B test result.
+  - Distinguish statistical significance from practical significance using two real, contrasting experiment results.
+skills: [statistics, statistical-reasoning, experimentation]
+datasets: [saas-product]
+tags: [statistics, intermediate, experimentation, ab-testing]
+prerequisites: [hyp-type-i-type-ii-errors-power, ci-interpreting-confidence-intervals]
+key_takeaways:
+  - "An A/B test result is just the statistical-inference toolkit (point estimate, confidence interval, p-value, power) applied to one specific, very common business question: does the treatment group's rate differ from control's?"
+  - "Statistical significance (a small p-value) and practical significance (an effect big enough to be worth acting on) are separate questions — a real effect can be too small to matter even if you had enough data to detect it with confidence."
+  - "This lesson is a bridge, not the full picture — the dedicated Experimentation & A/B Testing domain covers experiment design, randomization, sample-ratio mismatch, novelty effects, and sequential testing in depth."
+common_mistakes:
+  - Treating "statistically significant" and "worth shipping" as the same conclusion — a significant but tiny effect may not justify the engineering or user-experience cost of shipping it.
+  - Stopping the inference toolkit at the p-value, without also checking the confidence interval's width and the test's statistical power before deciding what to do next.
+interview_questions:
+  - question: "Two experiments both come back 'not significant.' One tested a redesign with a real ~2.5-point conversion lift (10%→12.5%) at 1,000 users per arm; the other tested an onboarding email with almost no effect (32.4%→31.4%) at 500 users per arm. Should you treat these two non-significant results the same way?"
+    answer: >
+      No. The first result is consistent with a real, meaningful effect that this sample was simply
+      underpowered to detect (roughly 43% power, versus the ~2,500 users per arm that would give 80%
+      power) — the right move is a longer/larger test, not abandoning the idea. The second result
+      reflects an effect that's both statistically non-significant *and* tiny in absolute size (about
+      1 percentage point, in the opposite of the hoped-for direction) — even if a much larger sample
+      eventually reached significance, a 1-point effect on a metric like this may not be worth the
+      engineering cost to ship and maintain. Same verdict ("not significant"), two very different
+      recommended next steps.
+blocks:
+  - type: heading
+    text: An A/B test is the inference toolkit applied to one question
+  - type: text
+    body: >
+      Every idea covered so far in this domain — a point estimate and its confidence interval, a
+      null/alternative hypothesis, a p-value, statistical power — comes together the moment you ask
+      the specific question an A/B test asks: "does the treatment group's conversion rate genuinely
+      differ from control's, or is the observed gap explained by sampling variability?" Nothing new
+      is introduced here; this lesson is about reading the whole toolkit together, on one real
+      decision.
+  - type: heading
+    text: "Two real experiments, read end to end"
+  - type: table
+    caption: checkout_redesign vs. onboarding_email — full inference read
+    headers: ["", "checkout_redesign", "onboarding_email"]
+    rows:
+      - ["Control rate", "11.3% (n=1,000)", "32.4% (n=500)"]
+      - ["Treatment rate", "12.5% (n=1,000)", "31.4% (n=500)"]
+      - ["p-value", "0.407", "0.734"]
+      - ["Statistical power to detect the targeted effect", "~43% (underpowered)", "n/a — effect is tiny either way"]
+      - ["Practical size of the effect", "Large if real (~25% relative lift)", "Negligible (~1 point, wrong direction)"]
+      - ["Recommended next step", "Extend the test to ~2,500 users/arm before concluding anything", "Don't invest further — even a \"significant\" 1-point effect likely isn't worth shipping"]
+  - type: example
+    title: "Why the same p > 0.05 verdict leads to opposite recommendations"
+    body: >
+      checkout_redesign's non-significant result is genuinely ambiguous — the underlying effect, if
+      real, is large enough to matter (roughly a 25% relative lift in conversion), and the test
+      simply didn't have enough users per arm to reliably detect it. onboarding_email's
+      non-significant result is a much weaker mystery — the observed effect is both statistically
+      unconvincing and small in absolute size (about 1 percentage point, and in the opposite
+      direction of what was hoped). Even a properly powered, much larger follow-up test that did
+      reach significance on an effect this small might still not justify the cost of shipping and
+      maintaining the change.
+  - type: callout
+    variant: important
+    title: Statistical significance and practical significance are different questions
+    body: >
+      "Is this effect real?" (statistical significance) and "is this effect big enough to be worth
+      doing something about?" (practical significance) must both be answered before recommending an
+      action. An experiment can be significant but practically trivial (a huge sample detecting a
+      0.1-point lift), or promising but statistically unresolved (checkout_redesign here) — the
+      recommended next step depends on getting both halves of the picture, not just the p-value.
+  - type: text
+    body: >
+      This lesson only scratches the surface of running experiments well — properly randomizing
+      assignment, checking for sample ratio mismatch, guarding against peeking at results early,
+      and designing guardrail metrics all matter enormously in practice and are covered in depth in
+      the dedicated **Experimentation & A/B Testing** domain. Treat this as the bridge from "I can
+      read a test result" to "I'm ready to learn how to design one well."
+  - type: question
+    prompt: >
+      An experiment shows a statistically significant 0.2 percentage-point lift in conversion,
+      detected only because the test ran on 500,000 users per arm. What's the most important
+      follow-up question before recommending shipping the change?
+    choices:
+      - "None — statistical significance alone is sufficient justification to ship"
+      - "Whether a 0.2-point lift is practically large enough to justify the engineering, maintenance, or user-experience cost of shipping the change — statistical significance doesn't answer that"
+      - "Whether the sample size was large enough, since 500,000 users obviously isn't"
+    correct_index: 1
+    explanation: >
+      A huge sample can make even a practically trivial effect statistically significant. The
+      remaining, more important question is whether an effect this small is worth the cost of
+      acting on — a judgment call that statistical significance alone cannot make for you.

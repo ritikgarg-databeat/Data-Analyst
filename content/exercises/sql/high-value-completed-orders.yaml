@@ -1,0 +1,58 @@
+slug: high-value-completed-orders
+skill: sql-fundamentals
+dataset: ecommerce
+title: Flag High-Value Completed Orders
+description: Write a query that joins orders to payments and lists completed orders whose payment amount exceeded a dollar threshold.
+exercise_type: SQL
+difficulty: BEGINNER
+points: 15
+tags: [sql, foundations, real-world, easy]
+business_context: >
+  The VP of Sales wants a short list of the biggest individual completed orders for a personal
+  follow-up round of thank-you outreach — every completed order whose payment came in above $4,500,
+  ranked from the largest amount down.
+prompt: >
+  Using the `orders` and `payments` tables, write a query that returns every completed order
+  (`orders.status = 'completed'`) whose payment amount exceeded $4,500, showing `order_id`,
+  `customer_id`, `order_date`, and `amount`, sorted from the highest amount to the lowest.
+sql_tables: [orders, payments]
+sql_starter_query: |
+  -- payments doesn't have customer_id or status directly — you'll need to join through orders
+  SELECT * FROM orders LIMIT 20;
+sql_solution_query: |
+  SELECT o.order_id, o.customer_id, o.order_date, p.amount
+  FROM orders o
+  JOIN payments p ON p.order_id = o.order_id
+  WHERE o.status = 'completed' AND p.amount > 4500
+  ORDER BY p.amount DESC, o.order_id ASC;
+sql_row_order_matters: true
+sql_numeric_tolerance: 0.01
+sql_hidden_tests:
+  - name: "Single highest-value completed order is correct"
+    query: |
+      SELECT o.order_id, o.customer_id, o.order_date, p.amount
+      FROM orders o
+      JOIN payments p ON p.order_id = o.order_id
+      WHERE o.status = 'completed' AND p.amount > 4500
+      ORDER BY p.amount DESC, o.order_id ASC
+      LIMIT 1
+    key_columns: 1
+hints:
+  - "customer_id and order_date live on orders, but the actual dollar amount lives on payments — join the two tables on order_id before you can filter on both status and amount together."
+  - "JOIN orders to payments on order_id, filter WHERE status = 'completed' AND amount > 4500, and ORDER BY amount descending."
+solution: |
+  ```sql
+  SELECT o.order_id, o.customer_id, o.order_date, p.amount
+  FROM orders o
+  JOIN payments p ON p.order_id = o.order_id
+  WHERE o.status = 'completed' AND p.amount > 4500
+  ORDER BY p.amount DESC, o.order_id ASC;
+  ```
+explanation: >
+  A strong answer joins orders to payments on order_id since the status filter and the dollar-amount
+  filter each live on a different table, applies both conditions in the same WHERE clause, and sorts by
+  the payment amount descending so the largest orders surface first. A common mistake is filtering on
+  orders.status alone and forgetting that cancelled or pending orders have no matching payments row at
+  all — an INNER JOIN already drops those automatically, but a LEFT JOIN without an extra NULL check
+  would incorrectly let non-completed orders with no payment sneak into a "high value" list with a NULL
+  amount.

@@ -1,0 +1,22 @@
+slug: biz-ltv-cac-ratio-benchmark
+skill: business-metrics
+title: Interpreting the LTV:CAC Ratio
+description: A SaaS company's LTV:CAC ratio is 1.2:1. What does this suggest?
+exercise_type: MULTIPLE_CHOICE
+difficulty: INTERMEDIATE
+points: 5
+tags:
+- ltv
+- cac
+prompt: A SaaS company's LTV:CAC ratio is 1.2:1. What does this suggest?
+correct_answer: The business is likely unsustainable at current spend levels -- it's barely recouping acquisition
+  cost over a customer's lifetime, with little room for margin/overhead/risk
+explanation: A commonly cited healthy benchmark is LTV:CAC around 3:1 or higher; a ratio near 1:1 means the company
+  is barely breaking even on acquisition spend over a customer's full lifetime, leaving little to cover overhead,
+  product costs, or the risk of customers churning earlier than modeled.
+choices:
+- The business is likely unsustainable at current spend levels -- it's barely recouping acquisition cost over a
+  customer's lifetime, with little room for margin/overhead/risk
+- This is an excellent, highly profitable ratio
+- The ratio has no standard interpretation without more context
+- A ratio above 1 always means the business is healthy regardless of magnitude

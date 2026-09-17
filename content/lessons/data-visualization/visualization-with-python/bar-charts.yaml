@@ -1,0 +1,164 @@
+slug: bar-charts
+module_slug: visualization-with-python
+title: "Bar Charts: Comparing Across Categories"
+description: plt.bar and sns.barplot, horizontal vs. vertical orientation, sorting bars meaningfully, and the truncated y-axis mistake that exaggerates differences.
+difficulty: BEGINNER
+estimated_minutes: 11
+display_order: 2
+objectives:
+  - Build a bar chart with both matplotlib (plt.bar) and seaborn (sns.barplot)
+  - Choose horizontal vs. vertical orientation based on label length and category count
+  - Recognize and avoid the truncated y-axis mistake that exaggerates differences between bars
+prerequisites: [choosing-the-right-visualization]
+skills: [data-visualization]
+datasets: [ecommerce]
+tags: [python, beginner, foundations]
+key_takeaways:
+  - "A bar chart's entire job is letting a viewer compare bar lengths accurately — which only works if every bar starts from a true zero baseline. Truncating the y-axis (starting it above zero) breaks that promise and exaggerates the visual difference between bars."
+  - "Sort bars by value, not alphabetically, unless the categories have a natural inherent order (like months or a ranked scale) — alphabetical order is the default in most tools and is almost never the most useful order for a viewer."
+  - "Horizontal bars (sns.barplot with the category on the y-axis) handle long category labels far better than vertical bars, which force long labels to be rotated or truncated and become hard to read."
+  - "matplotlib's plt.bar() gives you full control with more code; seaborn's sns.barplot() gives you sensible defaults (including automatic confidence intervals when there's more than one value per category) with less code — reach for seaborn first for a quick, clean chart."
+common_mistakes:
+  - "Truncating the y-axis to 'zoom in' on small differences between bars — this is the single most common way a bar chart misleads a viewer, since bar length differences are only honest when every bar starts at zero."
+  - "Leaving categories in whatever order they happened to load in (often alphabetical), instead of sorting by the value being compared, which makes the ranking the chart is supposed to show much harder to read at a glance."
+  - "Cramming many categories with long labels into a vertical bar chart, forcing rotated or truncated x-axis labels that are hard to read, when a horizontal bar chart would have handled the same labels cleanly."
+practical_applications:
+  - "Building a 'revenue by channel' or 'orders by status' bar chart for a stakeholder report, sorted by value so the ranking is immediately obvious."
+  - "Auditing an existing bar chart (your own or someone else's) for a truncated y-axis before it goes into a deck, since this specific mistake is common and easy to introduce accidentally by letting a plotting library auto-scale the axis."
+interview_questions:
+  - question: "What's wrong with starting a bar chart's y-axis above zero?"
+    answer: "A bar chart works by letting the viewer compare bar lengths, and that comparison is only accurate if every bar's length is proportional to its actual value — which requires a shared zero baseline. Truncating the y-axis (say, starting it at 90 instead of 0 for values in the 90s-100s) makes a small real difference look dramatic, because the visible bar lengths are no longer proportional to the underlying values. It's one of the most common ways a chart — intentionally or not — misleads its audience."
+  - question: "When would you choose a horizontal bar chart over a vertical one?"
+    answer: "When category labels are long (product names, full sentences, anything more than a couple of words) — horizontal bars let labels run left-to-right in their natural reading direction along the y-axis, instead of being rotated or truncated to fit under vertical bars. Horizontal bars also tend to read better once you have many categories, since you can stack more rows vertically than you can fit readable labels side by side."
+resources:
+  - title: "Matplotlib documentation — bar()"
+    url: "https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.bar.html"
+  - title: "Seaborn documentation — barplot()"
+    url: "https://seaborn.pydata.org/generated/seaborn.barplot.html"
+blocks:
+  - type: text
+    body: >
+      Bar charts answer "how do these categories compare" — exactly the question the previous lesson's
+      framework routes here. This lesson covers building one with both matplotlib and seaborn, and the
+      two habits (meaningful sorting, honest axes) that separate a trustworthy bar chart from a
+      misleading one.
+  - type: heading
+    text: "matplotlib: plt.bar()"
+  - type: code
+    language: python
+    code: |
+      import matplotlib.pyplot as plt
+      import pandas as pd
+
+      orders = pd.read_csv("data/sample/ecommerce/orders.csv")
+      order_items = pd.read_csv("data/sample/ecommerce/order_items.csv")
+      order_items["line_revenue"] = (
+          (order_items["unit_price"] - order_items["discount"]) * order_items["quantity"]
+      )
+      order_value = order_items.groupby("order_id")["line_revenue"].sum().rename("order_value")
+      orders = orders.merge(order_value, on="order_id", how="left")
+      completed = orders[orders["status"] == "completed"]
+
+      revenue_by_channel = completed.groupby("channel")["order_value"].sum().sort_values(ascending=False)
+
+      fig, ax = plt.subplots()
+      ax.bar(revenue_by_channel.index, revenue_by_channel.values)
+      ax.set_ylabel("Total completed revenue ($)")
+      ax.set_title("Revenue by channel")
+    caption: A vertical bar chart, sorted by value — three categories, so vertical works fine here
+  - type: output
+    body: |
+      channel        total_revenue
+      web            $3,204,469
+      mobile         $2,032,898
+      marketplace      $565,261
+    caption: "The chart plots this real, sorted data — web leads by a wide margin, marketplace trails well behind both"
+  - type: heading
+    text: "seaborn: sns.barplot()"
+  - type: code
+    language: python
+    code: |
+      import seaborn as sns
+
+      fig, ax = plt.subplots()
+      sns.barplot(
+          data=completed.assign(channel=pd.Categorical(completed["channel"], categories=revenue_by_channel.index)),
+          x="order_value", y="channel", estimator="sum", errorbar=None, ax=ax,
+      )
+      ax.set_xlabel("Total completed revenue ($)")
+    caption: "The same comparison, horizontal orientation, with category order pinned to the sorted revenue ranking"
+  - type: callout
+    variant: tip
+    title: "seaborn defaults vs. matplotlib control"
+    body: >
+      sns.barplot() can aggregate directly from row-level data (estimator="sum" here, or the default
+      mean) and adds confidence-interval error bars automatically when there's more than one value per
+      category — useful, but worth turning off (errorbar=None, as above) when you've already aggregated
+      the data yourself and don't want the extra visual noise. plt.bar() expects you to hand it
+      already-aggregated x/y values and won't add anything you didn't ask for.
+  - type: heading
+    text: "Horizontal vs. vertical: pick based on labels, not habit"
+  - type: table
+    headers: ["Situation", "Better orientation"]
+    rows:
+      - ["Few categories, short labels (e.g. 3 channels)", "Vertical — reads naturally, doesn't waste width"]
+      - ["Many categories, or long labels (e.g. product names)", "Horizontal — labels run left-to-right and stay readable"]
+      - ["Ranking is the main point (top N products by revenue)", "Horizontal — sorted top-to-bottom reads like a leaderboard"]
+  - type: heading
+    text: "Sort by value, not alphabetically"
+  - type: text
+    body: >
+      The chart above sorted `channel` by revenue before plotting, specifically so the bars read as a
+      ranking — web highest, marketplace lowest — at a glance. The alphabetical default (marketplace,
+      mobile, web) would put the smallest bar first and largest bar last for no reason connected to what
+      the chart is trying to communicate. Unless a category has a natural inherent order (months of the
+      year, a rating scale), sort by the value being plotted.
+  - type: heading
+    text: "The truncated y-axis mistake"
+  - type: text
+    body: >
+      This is the single most common way a bar chart misleads its audience — usually by accident, from a
+      library's "zoom to fit the data" default, but sometimes on purpose to make a small difference look
+      dramatic.
+  - type: example
+    title: "Same data, two y-axis choices"
+    body: >
+      Imagine three products with average order quantities of 2.43, 2.49, and 2.51 units — genuinely
+      tiny differences. Plotted with a y-axis from 0 to 3, the three bars look almost identical, which is
+      an honest reflection of how similar these numbers actually are. Plotted with a y-axis truncated to
+      run from 2.40 to 2.52, those same three bars — using the *exact same underlying data* — now look
+      like one product outsells another by a dramatic margin, purely because the visible bar-height
+      differences have been stretched to fill the truncated range.
+    code: |
+      # Honest: y-axis starts at zero
+      fig, ax = plt.subplots()
+      ax.bar(["marketplace", "mobile", "web"], [2.43, 2.49, 2.51])
+      ax.set_ylim(0, 3)   # bars look nearly identical — an honest read
+
+      # Misleading: y-axis truncated to exaggerate a tiny real difference
+      fig, ax = plt.subplots()
+      ax.bar(["marketplace", "mobile", "web"], [2.43, 2.49, 2.51])
+      ax.set_ylim(2.40, 2.52)   # same data, now looks like a dramatic gap
+    language: python
+  - type: callout
+    variant: warning
+    title: "The rule: bar charts start at zero"
+    body: >
+      Unless you have a very specific, clearly-labeled reason not to (and you should say so explicitly on
+      the chart if you do), a bar chart's value axis should always start at zero. This is the one rule
+      in this lesson worth treating as close to non-negotiable — it's what makes "compare the bar
+      lengths" a trustworthy instruction to give a viewer in the first place. Line charts and scatter
+      plots, covered in the next two lessons, don't carry this same requirement, because they're not
+      asking the viewer to compare lengths from a baseline the same way.
+  - type: question
+    prompt: "Why is truncating a bar chart's y-axis (starting it above zero) considered misleading, when the same technique is often fine on a line chart?"
+    choices:
+      - "A bar chart's core promise is that bar length is proportional to value — truncating the axis breaks that proportionality and exaggerates differences, while a line chart is read by its slope/trend rather than by comparing bar lengths from a baseline"
+      - "It's misleading on a line chart too, for exactly the same reason, so the distinction doesn't really matter"
+      - "Truncating the y-axis is never acceptable on any chart type, including line charts"
+    correct_index: 0
+    explanation: >
+      Bar charts rely on the viewer comparing lengths from a shared zero baseline — truncate that
+      baseline and the visual comparison no longer matches the real proportional difference in the data.
+      Line charts are read differently (trend, direction, rate of change), which is why axis-zooming
+      conventions differ between the two chart types — a point the Line Charts lesson picks up next.

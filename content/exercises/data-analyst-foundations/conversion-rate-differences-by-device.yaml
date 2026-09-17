@@ -1,0 +1,40 @@
+slug: conversion-rate-differences-by-device
+lesson_slug: welcome-to-the-challenge-library
+skill: exploratory-data-analysis
+dataset: ecommerce
+title: "Does Device Explain Anything About Conversion Rate?"
+description: Check whether the overall 15.22% session conversion rate hides a meaningful split by device, and interpret a result that turns out to be nearly flat.
+exercise_type: DATA_INTERPRETATION
+difficulty: INTERMEDIATE
+points: 20
+tags: [eda, real-world, intermediate]
+prompt: >
+  Using `sessions`, overall conversion rate across all 12,000 sessions is 15.22%. A product manager
+  suspects mobile users convert noticeably worse than desktop and wants that confirmed before greenlighting
+  a mobile checkout redesign. You segment conversion rate by `device`: mobile 14.84%, desktop 15.28%,
+  tablet 15.57%. Is this the "flat aggregate hiding a real split" pattern the product manager expected? What
+  do you tell them, and what would you check next before deciding device isn't worth investigating further?
+hints:
+  - "Compare the size of the spread you actually found (mobile to tablet is about 0.7 percentage points) against what would actually justify prioritizing a checkout redesign — a real, business-meaningful gap looks different from a small amount of expected day-to-day variation."
+  - "A flat result on device alone doesn't mean nothing is going on with mobile specifically — think about what ELSE might differ by device that conversion rate alone wouldn't reveal, like average order value once a mobile session does convert, or where in a multi-step checkout mobile users tend to drop off."
+solution: >
+  This is NOT the flat-aggregate-hiding-a-real-split pattern the product manager expected — device conversion
+  rates are close together (mobile 14.84%, desktop 15.28%, tablet 15.57%, a spread of well under 1
+  percentage point), close enough that it could plausibly be normal variation rather than a real,
+  meaningful difference. I'd tell the product manager directly: "device alone doesn't explain a meaningful
+  conversion gap in this data — the checkout redesign shouldn't be justified on 'mobile converts worse,'
+  because it doesn't, at least not by this measure." That's a useful, specific answer, not a dead end. Before
+  concluding device isn't worth investigating at all, I'd check a few adjacent questions the flat conversion
+  rate doesn't rule out: does average order VALUE differ by device among sessions that DO convert (mobile
+  could convert at the same rate but produce smaller orders)? Is there a device-specific drop-off pattern
+  visible somewhere other than the single conversion metric, like session duration or a multi-step checkout
+  funnel if that data exists? And is the redesign case actually motivated by something else entirely (a
+  specific complaint pattern, a competitor benchmark) that conversion rate alone was never going to test?
+explanation: >
+  A strong answer reports the flat result honestly and specifically (naming the actual percentages and the
+  size of the spread) rather than searching for a split that isn't really there, or vaguely hedging. It also
+  treats "device doesn't explain conversion rate" as a real, useful finding rather than a failure, and
+  proposes concrete adjacent checks (order value by device, funnel-level drop-off) that a single aggregate
+  conversion rate wouldn't have ruled out. A weaker answer either forces the small 0.7-point spread into a
+  dramatic story to satisfy the product manager's hypothesis, or reports "no difference" and stops without
+  suggesting anything else worth checking.

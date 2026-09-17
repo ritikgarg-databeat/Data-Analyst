@@ -1,0 +1,40 @@
+slug: bhv-ownership-beyond-scope
+skill: behavioral-interviewing
+title: Ownership Beyond the Ask
+description: Tell me about a time you took ownership of an analysis or project beyond what was strictly
+  asked of you.
+exercise_type: INTERVIEW_RESPONSE
+difficulty: INTERMEDIATE
+points: 10
+tags:
+- behavioral
+- star-method
+- ownership
+prompt: Tell me about a time you took ownership of an analysis or project beyond what was strictly asked
+  of you.
+hints:
+- The STAR framework (Situation, Task, Action, Result) is a useful structure, not a script -- use it to
+  make sure you cover what actually happened, in what context, what you personally did, and what came
+  of it.
+- Interviewers are listening for a specific, real example -- a vague 'sometimes this happens on my team'
+  answer is much weaker than one concrete story with real details.
+rubric:
+- criterion: Describes one specific, real situation rather than a hypothetical or a generic pattern
+  points: 25
+- criterion: Clearly states the task or goal and the person's own specific role in it
+  points: 20
+- criterion: Explains concrete actions the person personally took, not just what the team did
+  points: 30
+- criterion: States a clear, ideally measurable outcome and what was learned from it
+  points: 25
+solution: 'As a mid-level analyst supporting the checkout team, I was asked for a one-off query on cart-abandonment
+  rate. While pulling it I noticed the abandonment spike was concentrated entirely on one payment provider.
+  Nobody had asked me to investigate why, but I kept digging: I joined payment logs to session data and
+  found that provider''s confirmation step was timing out for about 12% of attempts. I wrote up the finding
+  with the specific failure rate and estimated revenue impact, and brought it to the payments engineering
+  lead directly rather than waiting for someone to ask me to. The team fixed the timeout config within
+  a week and abandonment on that provider dropped back to baseline.'
+explanation: This answer works because it shows initiative that went past the literal request -- noticing
+  an anomaly and following it to a root cause and a specific engineering team, rather than just delivering
+  the number that was asked for. The quantified before/after (12% failure rate, dropping to baseline)
+  makes the outcome verifiable rather than vague.

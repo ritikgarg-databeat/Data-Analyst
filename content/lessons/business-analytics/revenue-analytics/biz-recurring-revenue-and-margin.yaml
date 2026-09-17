@@ -1,0 +1,119 @@
+slug: biz-recurring-revenue-and-margin
+module_slug: revenue-analytics
+title: "MRR, ARR, and Reading Recurring Revenue Through Its Moving Parts"
+description: How to compute MRR/ARR, why a single MRR total is a snapshot rather than a story, and how to decompose it into new, expansion, and churned revenue.
+difficulty: INTERMEDIATE
+estimated_minutes: 15
+display_order: 3
+objectives:
+  - Compute Monthly Recurring Revenue (MRR) and Annual Recurring Revenue (ARR) from subscription-level data
+  - Decompose a month's MRR change into new MRR and churned MRR
+  - Explain why two months with identical total MRR can represent very different underlying business health
+prerequisites: [biz-aov-vs-arpu]
+skills: [business-analytics, business-metrics]
+datasets: [saas-product]
+tags: [business-analytics, intermediate, saas, churn]
+key_takeaways:
+  - "MRR is a snapshot of currently active recurring revenue at a point in time; ARR is simply MRR × 12 — neither is a measure of revenue earned during a period, both describe the current run-rate."
+  - "Net MRR change in a month = New MRR (from new subscriptions) − Churned MRR (from cancelled subscriptions) — the same net change can result from very different combinations of the two."
+  - In this platform's real saas-product data, MRR growth nearly stalled in October 2025 (net change of only +$117) not because new business dried up (it was actually the strongest new-MRR month on record, $1,598) but because churned MRR spiked to $1,481 in the same month.
+common_mistakes:
+  - Reporting only the net MRR change and never decomposing it into new vs. churned, which hides whether a slowdown is an acquisition problem or a retention problem — two problems with completely different fixes.
+  - Treating ARR as "revenue earned this year" rather than what it actually is — an annualized projection of the current MRR run-rate, which changes every time MRR does.
+blocks:
+  - type: heading
+    text: MRR is a snapshot, not an accumulation
+  - type: formula
+    expression: "MRR = SUM(monthly recurring fee) across all currently active subscriptions          ARR = MRR × 12"
+    description: >
+      MRR answers "if nothing changes, how much recurring revenue is this business generating per month,
+      starting right now?" It is recalculated fresh each month from whichever subscriptions are active at
+      that moment — it is not a running total of revenue collected.
+  - type: example
+    title: MRR by month, computed from real subscription data
+    body: >
+      Summing `mrr` across every subscription active at the end of each month produces a clean growth
+      curve: $3,422 in January 2025, growing to $9,333 by September 2025 (+$5,911 over eight months), then
+      nearly stalling at $9,450 in October 2025 (+$117), before resuming growth to $11,571 by January 2026.
+      The stall is invisible if you only ever look at the single MRR total — it only becomes visible once
+      you look at consecutive months side by side.
+    code: |
+      WITH months AS (
+        SELECT UNNEST(generate_series(DATE '2025-01-01', DATE '2026-01-01', INTERVAL 1 MONTH)) AS month_start
+      )
+      SELECT
+        m.month_start,
+        ROUND(SUM(CASE
+          WHEN s.start_date <= (m.month_start + INTERVAL 1 MONTH - INTERVAL 1 DAY)
+           AND (s.end_date IS NULL OR s.end_date > (m.month_start + INTERVAL 1 MONTH - INTERVAL 1 DAY))
+          THEN s.mrr ELSE 0 END), 2) AS active_mrr
+      FROM months m
+      LEFT JOIN subscriptions s ON true
+      GROUP BY m.month_start
+      ORDER BY m.month_start;
+    language: sql
+  - type: heading
+    text: The number that explains the stall
+    level: 3
+  - type: text
+    body: >
+      A flat or slow-growing MRR total has (at least) two very different possible causes: new business
+      slowing down, or churn speeding up. Decomposing October 2025's near-stall shows it was entirely a
+      churn story — new MRR that month was actually the highest of any month in the dataset.
+  - type: table
+    headers: ["Month", "New MRR", "Churned MRR", "Net MRR change"]
+    rows:
+      - ["2025-09", "$1,337", "$753", "+$584"]
+      - ["2025-10", "$1,598", "$1,481", "+$117"]
+      - ["2025-11", "$1,139", "$186", "+$953"]
+    caption: "October's near-stall was driven by a churn spike, not a new-business slowdown — new MRR was actually the strongest of the three months shown."
+  - type: code
+    language: sql
+    caption: New MRR and churned MRR by month, computed independently from the same subscriptions table
+    code: |
+      -- New MRR: subscriptions that started in a given month
+      SELECT DATE_TRUNC('month', start_date) AS month, SUM(mrr) AS new_mrr
+      FROM subscriptions GROUP BY 1 ORDER BY 1;
+
+      -- Churned MRR: subscriptions that ended in a given month
+      SELECT DATE_TRUNC('month', end_date) AS month, SUM(mrr) AS churned_mrr
+      FROM subscriptions WHERE end_date IS NOT NULL GROUP BY 1 ORDER BY 1;
+  - type: callout
+    variant: important
+    title: Same net number, opposite root causes
+    body: >
+      A net MRR change of +$117 could come from ($1,598 new, $1,481 churned) — a retention problem — or
+      just as easily from ($200 new, $83 churned) — an acquisition problem. Both produce an identical
+      "+$117" headline. Only the decomposition tells you which team needs to act, and on what.
+  - type: heading
+    text: Margin matters just as much as the top line
+    level: 3
+  - type: text
+    body: >
+      Recurring revenue growth is only good news if it's profitable growth. In this platform's ecommerce
+      dataset (a different business model, useful for contrast), completed-order revenue carries a 43.3%
+      gross margin overall — meaning every $1 of net revenue leaves about $0.43 after direct product cost.
+      The same discipline applies to a subscription business: MRR growth funded by deep discounting or an
+      expensive-to-serve customer segment can grow the top line while eroding the margin underneath it,
+      which is invisible unless margin is tracked alongside MRR rather than instead of it.
+  - type: checklist
+    title: Before reporting an MRR trend, confirm
+    items:
+      - Whether you're reporting MRR (a snapshot) or something that sounds like it but isn't (e.g. cash collected that month)
+      - Whether a flat or slow month has been decomposed into new vs. churned MRR
+      - Whether the growth is happening at a margin the business can sustain, not just a topline number
+  - type: question
+    prompt: >
+      Two consecutive months both show +$500 net MRR growth. Which additional piece of information would
+      most change how a VP of Finance should interpret them?
+    choices:
+      - "The exact calendar date each month started on."
+      - "Whether the composition — new MRR vs. churned MRR — is the same in both months, or very different."
+      - "Nothing else matters; identical net growth means identical business health."
+    correct_index: 1
+    explanation: >
+      Net MRR change is a single number that can be produced by many different combinations of new and
+      churned revenue. Two months with identical +$500 net growth could represent a stable, healthy
+      pattern in one case and a business quietly replacing a large churn problem with equally large new
+      sales in the other — a much riskier position, since new-customer acquisition is rarely as durable as
+      a low-churn existing base. The net figure alone can't distinguish the two.

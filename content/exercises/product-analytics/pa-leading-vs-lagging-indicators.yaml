@@ -1,0 +1,24 @@
+slug: pa-leading-vs-lagging-indicators
+skill: product-metrics
+title: Leading vs. Lagging Indicators
+description: Monthly churn rate and week-1 feature engagement are both tracked. Which is the leading indicator,
+  and why does that matter?
+exercise_type: MULTIPLE_CHOICE
+difficulty: INTERMEDIATE
+points: 5
+tags:
+- product-analytics
+- churn
+prompt: Monthly churn rate and week-1 feature engagement are both tracked. Which is the leading indicator, and why
+  does that matter?
+correct_answer: Week-1 feature engagement is leading -- it can predict churn risk early enough to act on, while
+  churn itself is a lagging outcome you can only observe after the fact
+explanation: A leading indicator moves before the outcome you ultimately care about and gives time to intervene;
+  a lagging indicator (like churn) confirms what already happened -- tracking early engagement signals is valuable
+  precisely because it can flag at-risk users before they actually churn.
+choices:
+- Week-1 feature engagement is leading -- it can predict churn risk early enough to act on, while churn itself is
+  a lagging outcome you can only observe after the fact
+- Monthly churn rate is leading, since it's measured every month
+- Both are lagging indicators with no meaningful difference
+- Leading vs. lagging only applies to financial metrics, not product metrics

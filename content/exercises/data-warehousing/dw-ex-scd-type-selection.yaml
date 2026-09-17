@@ -1,0 +1,26 @@
+slug: dw-ex-scd-type-selection
+lesson_slug: dw-scd-types-0-1-2
+skill: dimensional-modeling
+title: Choosing the Right SCD Type for a Real Segment Change
+description: Decide which SCD strategy is actually required to answer a historical segmentation question correctly.
+exercise_type: MULTIPLE_CHOICE
+difficulty: ADVANCED
+points: 10
+tags: [scd, dimension-table, advanced]
+prompt: >
+  A customer's `customer_segment` genuinely changes from "consumer" to "business" after a real
+  account upgrade. An analyst needs to correctly segment historical orders by whichever segment was
+  actually true at the time each order was placed. Which SCD strategy is required to answer this
+  correctly?
+choices:
+  - "SCD Type 1 (overwrite in place) — as long as dim_customers always shows the customer's current segment, no further tracking is needed"
+  - "SCD Type 2 (retain every version as a separate row, with validity date ranges) — only preserving each past version lets a query correctly determine which segment was true as of any specific past order date"
+  - "SCD Type 0 (never allow the attribute to change once set) — segment values should be locked in at signup"
+correct_answer: "SCD Type 2 (retain every version as a separate row, with validity date ranges) — only preserving each past version lets a query correctly determine which segment was true as of any specific past order date"
+explanation: >
+  SCD Type 1 would silently apply the customer's current segment to every historical order they ever
+  placed, which is wrong for any order placed before the upgrade. SCD Type 0 would refuse to record
+  the upgrade at all, which contradicts the premise that the segment genuinely changed. Only SCD Type
+  2 — tracking each version with a validity range, the exact mechanic dbt's `customer_segment_snapshot`
+  implements via `dbt_valid_from`/`dbt_valid_to` — lets a query correctly answer "what segment was true
+  as of this order's date," rather than only ever answering "what segment is true right now."

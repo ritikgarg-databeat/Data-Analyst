@@ -1,0 +1,31 @@
+slug: business-analyst
+title: Business Analyst
+category: BUSINESS_ANALYST
+description: >
+  Bridges business questions and data — revenue, sales, and operations
+  analysis with an emphasis on structuring ambiguous problems and
+  presenting recommendations. A generic shape based on common postings,
+  not any single employer's exact requirements.
+core_skills:
+  - sql-fundamentals
+  - advanced-sql
+  - business-metrics
+  - business-analytics
+  - communication
+  - business-problem-solving
+  - excel-fundamentals
+preferred_skills:
+  - data-visualization
+  - metric-definition
+  - decision-making
+  - data-interpretation
+nice_to_have_skills:
+  - pandas
+  - statistics
+typical_responsibilities:
+  - Translate business questions into analyzable requirements
+  - Analyze revenue, sales, and operational metrics
+  - Prepare executive-ready reporting
+  - Recommend actions based on analysis
+  - Partner with cross-functional stakeholders
+version: 1

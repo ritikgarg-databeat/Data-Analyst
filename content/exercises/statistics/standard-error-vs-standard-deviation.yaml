@@ -1,0 +1,30 @@
+slug: standard-error-vs-standard-deviation
+lesson_slug: dist-sampling-distribution-clt
+skill: statistics
+title: Standard Error vs. Standard Deviation
+description: State the difference between two frequently conflated spread measures.
+exercise_type: SHORT_ANSWER
+difficulty: INTERMEDIATE
+points: 10
+tags: [statistics, intermediate]
+prompt: >
+  What is the difference between the standard deviation of a dataset and the standard error of the
+  mean computed from that same dataset, and why is the standard error always smaller (for any
+  sample size greater than 1)?
+correct_answer: "standard deviation measures spread of individual values; standard error measures spread of the sample mean and shrinks as sample size grows"
+hints:
+  - "One of these describes how spread out individual data points are; the other describes how spread out the *average* would be if you kept re-sampling."
+  - "Standard error has sample size (n) in its formula — think about what happens to it as n grows."
+solution: >
+  Standard deviation describes how spread out individual values are around the mean. Standard error
+  of the mean describes how spread out the sample *mean itself* would be across repeated samples of
+  the same size, and is calculated as standard deviation divided by the square root of n. Because
+  dividing by sqrt(n) (which is greater than 1 for any n > 1) always shrinks the number, standard
+  error is always smaller than the raw standard deviation, and it keeps shrinking as sample size
+  grows — unlike the standard deviation of the underlying data, which stays roughly the same
+  regardless of how many observations you collect.
+explanation: >
+  Conflating these two is a common and costly mistake — reporting a wide standard deviation as if it
+  were the precision of an average understates how precisely a large sample actually pins down the
+  mean, while the reverse (using standard error to describe individual-value variability) understates
+  how spread out individual data points really are.

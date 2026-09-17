@@ -1,0 +1,27 @@
+slug: exp-mc-srm-before-trusting-results
+lesson_slug: exp-peeking-multiple-testing-underpowered-srm
+skill: experimentation
+title: The Split Looks Off — What Do You Check First?
+description: A quick concept check on what to do when an experiment's logged assignment ratio deviates from the intended split.
+exercise_type: MULTIPLE_CHOICE
+difficulty: INTERMEDIATE
+points: 10
+tags: [experimentation, ab-testing, statistics, intermediate]
+prompt: >
+  An experiment was configured as a 50/50 split. Its primary metric comes back significantly better for
+  treatment (p = 0.01), but you notice the logged assignment counts are 61% control / 39% treatment
+  instead of roughly 50/50. What should you do before trusting the primary metric result?
+choices:
+  - "Ship the change — a significant p-value on the primary metric is enough on its own"
+  - "Run a sample ratio mismatch (SRM) check (e.g. a chi-square test) on the assignment split; if it confirms the imbalance is far more extreme than chance would explain, investigate the assignment/logging pipeline for a bug before trusting any metric comparison from this test"
+  - "Re-run the significance test after re-weighting the groups to correct for the 61/39 imbalance, then ship if it's still significant"
+correct_answer: "Run a sample ratio mismatch (SRM) check (e.g. a chi-square test) on the assignment split; if it confirms the imbalance is far more extreme than chance would explain, investigate the assignment/logging pipeline for a bug before trusting any metric comparison from this test"
+explanation: >
+  A 61/39 split on an intended 50/50 test is a classic sample ratio mismatch symptom. Confirming it with
+  a formal test (rather than reasoning from the p-value alone) and then tracing the root cause is the
+  right move, because an SRM usually means something upstream — assignment logic, event logging, or
+  post-assignment filtering — is broken in a way that's likely correlated with the kind of user affected.
+  That undermines the basic assumption that treatment and control are comparable random samples, so a
+  "significant" result computed on top of a broken split isn't trustworthy as-is. Re-weighting doesn't fix
+  the underlying problem, since whichever users are missing or misassigned may differ systematically from
+  the ones that aren't.

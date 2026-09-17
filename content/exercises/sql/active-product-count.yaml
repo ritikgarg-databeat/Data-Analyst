@@ -1,0 +1,45 @@
+slug: active-product-count
+skill: sql-fundamentals
+dataset: ecommerce
+title: Count Active vs. Inactive Products
+description: Write a query that counts how many catalog products are currently active versus inactive.
+exercise_type: SQL
+difficulty: BEGINNER
+points: 15
+tags: [sql, beginner]
+business_context: >
+  Merchandising is planning a seasonal catalog cleanup and wants a quick health check before they
+  start: exactly how many products in the catalog are currently active and available for sale, versus
+  how many are inactive and already sitting on the sidelines.
+prompt: >
+  Using the `products` table, write a query that returns exactly one row with two columns:
+  `active_count` (the number of products where `is_active` is true) and `inactive_count` (the number
+  of products where `is_active` is false).
+sql_tables: [products]
+sql_starter_query: |
+  -- Explore the products table first
+  SELECT * FROM products LIMIT 20;
+sql_solution_query: |
+  SELECT
+    SUM(CASE WHEN is_active THEN 1 ELSE 0 END) AS active_count,
+    SUM(CASE WHEN NOT is_active THEN 1 ELSE 0 END) AS inactive_count
+  FROM products;
+sql_row_order_matters: false
+sql_numeric_tolerance: 0.01
+hints:
+  - "You need two different counts out of the same table collapsed into a single row — think about counting conditionally rather than filtering rows out with WHERE, since WHERE would only ever show you one group at a time."
+  - "Wrap a CASE WHEN inside SUM(): SUM(CASE WHEN is_active THEN 1 ELSE 0 END) counts only the active rows, and the mirror expression with NOT is_active counts the inactive ones, both in the same SELECT."
+solution: |
+  ```sql
+  SELECT
+    SUM(CASE WHEN is_active THEN 1 ELSE 0 END) AS active_count,
+    SUM(CASE WHEN NOT is_active THEN 1 ELSE 0 END) AS inactive_count
+  FROM products;
+  ```
+explanation: >
+  A strong answer produces both counts in a single row using conditional aggregation — a CASE WHEN
+  nested inside SUM (or the equivalent COUNT(CASE WHEN ... THEN 1 END) form) — rather than running two
+  separate queries with different WHERE clauses. A common near-miss is to GROUP BY is_active instead:
+  that's a reasonable query in general, but it returns two rows rather than the single summary row this
+  exercise specifically asks for, so it's worth checking whether a wide single-row summary or a tall
+  grouped breakdown is what's actually being requested before writing the query.

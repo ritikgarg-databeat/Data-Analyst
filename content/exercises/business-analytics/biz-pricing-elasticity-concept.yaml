@@ -1,0 +1,24 @@
+slug: biz-pricing-elasticity-concept
+skill: business-metrics
+title: Price Elasticity of Demand
+description: A 10% price increase leads to a 20% drop in units sold. Is demand for this product elastic or inelastic,
+  and what does that imply for revenue?
+exercise_type: MULTIPLE_CHOICE
+difficulty: ADVANCED
+points: 5
+tags:
+- pricing
+prompt: A 10% price increase leads to a 20% drop in units sold. Is demand for this product elastic or inelastic,
+  and what does that imply for revenue?
+correct_answer: Elastic (percentage quantity change exceeds percentage price change) -- the price increase likely
+  REDUCED total revenue
+explanation: Demand is elastic when quantity responds more than proportionally to a price change (here, 20% quantity
+  drop vs. 10% price rise) -- under elastic demand, raising prices further typically REDUCES total revenue, since
+  the volume loss outweighs the per-unit price gain, the opposite of what a naive 'raise prices for more revenue'
+  instinct would assume.
+choices:
+- Elastic (percentage quantity change exceeds percentage price change) -- the price increase likely REDUCED total
+  revenue
+- Inelastic -- the price increase likely increased total revenue
+- Elasticity cannot be determined from this information
+- Elasticity only applies to necessities, not this kind of product

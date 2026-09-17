@@ -1,0 +1,107 @@
+slug: ci-interpreting-confidence-intervals
+module_slug: statistical-inference
+title: The Confidence Interval Interpretation Almost Everyone Gets Wrong
+description: What a 95% confidence interval actually claims, why the tempting everyday reading of it is technically wrong, and how to use overlapping intervals to reason about an A/B test.
+difficulty: INTERMEDIATE
+estimated_minutes: 12
+display_order: 2
+objectives:
+  - State the correct interpretation of a 95% confidence interval, and identify the common incorrect interpretation that even experienced analysts slip into.
+  - Use two confidence intervals from a real experiment to reason about whether their difference is likely to be meaningful.
+skills: [statistics, statistical-reasoning, data-interpretation]
+datasets: [saas-product]
+tags: [statistics, intermediate, interview, experimentation, ab-testing]
+prerequisites: [ci-confidence-intervals-basics]
+key_takeaways:
+  - "The correct interpretation: if you repeated the sampling and interval-construction process many times, about 95% of the resulting intervals would contain the true population value. The interval you have is one specific instance of that."
+  - "The tempting but incorrect interpretation: \"there is a 95% probability the true value falls in this specific interval.\" Once an interval is constructed from your sample, the true value either is or isn't in it — the 95% describes the reliability of the method, not a probability about this one interval."
+  - "Two confidence intervals that overlap substantially are a signal (not a formal test) that a difference between them may not be statistically distinguishable — a proper hypothesis test, covered next, is the rigorous way to check."
+common_mistakes:
+  - Saying "there's a 95% chance the true conversion rate is between 14.6% and 15.9%" — this is the single most common misstatement of what a confidence interval means, and it shows up even in professional reporting.
+  - Concluding two groups are "definitely the same" just because their confidence intervals overlap, or "definitely different" just because they don't — overlap is a useful visual cue, not a substitute for a formal test.
+interview_questions:
+  - question: What's technically wrong with saying "there's a 95% probability the true value falls within this confidence interval"?
+    answer: >
+      Once a specific interval has been calculated from a specific sample, the true population
+      value is a fixed (if unknown) number — it either falls inside that specific interval or it
+      doesn't; there's no more randomness left to assign a probability to. The 95% describes the
+      *long-run reliability of the procedure*: if you repeated the sampling and interval-building
+      process many times, about 95% of the resulting intervals would contain the true value. It's a
+      statement about the method's success rate across repetitions, not a probability about this one
+      already-computed interval.
+blocks:
+  - type: heading
+    text: What a confidence interval actually claims
+  - type: text
+    body: >
+      Here's the interpretation almost everyone reaches for first, and it's wrong: "there's a 95%
+      probability the true value is in this interval." The interval is already computed from
+      already-collected data — there's no remaining randomness for a probability statement to
+      attach to. The **correct** interpretation is about the *procedure*: if you repeated the same
+      sampling and interval-construction process many times, about 95% of the resulting intervals
+      would contain the true population value. The one interval you're looking at is a single draw
+      from that repeated process — it either happens to contain the truth or it doesn't, and you
+      can't know which from the interval alone.
+  - type: callout
+    variant: common_mistake
+    title: Why this distinction isn't just pedantic
+    body: >
+      It matters because the wrong interpretation invites you to reason about a single interval as
+      if it carries its own probability of being right, when the guarantee is really about the
+      long-run behavior of the method that produced it. In practice, most people (and most business
+      reporting) use the informal phrasing loosely — but on a statistics interview, being able to
+      state the precise version signals you actually understand what inference is doing, rather
+      than reciting a formula.
+  - type: heading
+    text: Using two intervals to reason about a real experiment
+  - type: text
+    body: >
+      A practical, everyday use of confidence intervals: compare two of them side by side from an
+      A/B test. If they overlap substantially, that's a visual signal the two groups may not be
+      statistically distinguishable — though it isn't a formal test on its own.
+  - type: example
+    title: "checkout_redesign: control vs. treatment, with real intervals"
+    body: >
+      Control converted at 11.3% (95% CI: 9.5%–13.4%) and treatment at 12.5% (95% CI: 10.6%–14.7%),
+      from 1,000 users per arm. The two intervals overlap heavily — most of the treatment interval
+      sits inside the control interval's range. That overlap is consistent with the two-proportion
+      test result from an earlier lesson (p = 0.41): this sample doesn't let us confidently say
+      treatment beats control, even though its point estimate is higher.
+  - type: table
+    caption: checkout_redesign — point estimates and 95% confidence intervals
+    headers: ["Variant", "n", "Conversion rate", "95% CI"]
+    rows:
+      - ["Control", "1,000", "11.3%", "(9.5%, 13.4%)"]
+      - ["Treatment", "1,000", "12.5%", "(10.6%, 14.7%)"]
+  - type: code
+    language: python
+    code: |
+      from statsmodels.stats.proportion import proportion_confint
+
+      ci_control = proportion_confint(113, 1000, alpha=0.05, method="wilson")
+      ci_treatment = proportion_confint(125, 1000, alpha=0.05, method="wilson")
+      print([round(x, 3) for x in ci_control])    # [0.095, 0.134]
+      print([round(x, 3) for x in ci_treatment])  # [0.106, 0.147]
+    caption: The two intervals' heavy overlap visually previews what the formal test later confirms — this sample can't confidently separate the two rates.
+  - type: callout
+    variant: important
+    title: Overlap is a preview, not a verdict
+    body: >
+      Don't stop at "the intervals overlap, so there's no effect" — overlapping confidence
+      intervals for two groups don't mathematically guarantee a non-significant difference (the
+      formal test for the *difference* between two proportions has its own, slightly different,
+      standard error). Use overlap as a fast visual gut-check, then confirm with the actual test
+      covered in the Hypothesis Testing module before making a call.
+  - type: question
+    prompt: >
+      Which statement about a 95% confidence interval of (14.6%, 15.9%) for a conversion rate is
+      correct?
+    choices:
+      - "There is a 95% probability the true conversion rate lies between 14.6% and 15.9%"
+      - "If this sampling and interval-construction process were repeated many times, about 95% of the resulting intervals would contain the true conversion rate"
+      - "95% of all individual sessions convert at a rate between 14.6% and 15.9%"
+    correct_index: 1
+    explanation: >
+      The 95% describes the long-run reliability of the interval-construction procedure across
+      repeated sampling, not a probability attached to this one already-computed interval, and it
+      says nothing about individual sessions (which each either convert or don't).

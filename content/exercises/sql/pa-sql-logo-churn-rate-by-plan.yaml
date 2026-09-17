@@ -1,0 +1,64 @@
+slug: pa-sql-logo-churn-rate-by-plan
+lesson_slug: pa-churn-definitions
+skill: product-analytics
+dataset: saas-product
+title: Logo Churn Rate by Plan
+description: Compute the account-count (logo) churn rate for each subscription plan tier.
+exercise_type: SQL
+difficulty: INTERMEDIATE
+points: 15
+tags: [sql, product, saas, churn, intermediate]
+business_context: >
+  Customer Success wants to know whether churn risk is concentrated in a specific plan tier before
+  deciding where to focus retention outreach.
+prompt: >
+  Using the `subscriptions` table, write a query that returns one row per `plan` with columns `plan`,
+  `n_subscriptions` (total subscriptions on that plan), `n_churned` (subscriptions with
+  `status = 'churned'`), and `churn_rate` (n_churned / n_subscriptions, rounded to 4 decimals). Order
+  by `churn_rate` descending.
+sql_tables: [subscriptions]
+sql_starter_query: |
+  -- Explore the subscriptions table first
+  SELECT plan, status, COUNT(*) FROM subscriptions GROUP BY 1, 2 ORDER BY 1, 2;
+sql_solution_query: |
+  SELECT
+    plan,
+    COUNT(*) AS n_subscriptions,
+    SUM(CASE WHEN status = 'churned' THEN 1 ELSE 0 END) AS n_churned,
+    ROUND(SUM(CASE WHEN status = 'churned' THEN 1.0 ELSE 0 END) / COUNT(*), 4) AS churn_rate
+  FROM subscriptions
+  GROUP BY plan
+  ORDER BY churn_rate DESC;
+sql_row_order_matters: true
+sql_numeric_tolerance: 0.001
+sql_hidden_tests:
+  - name: Enterprise plan's churn rate matches an independent recomputation
+    query: |
+      SELECT 'enterprise' AS plan,
+             ROUND(SUM(CASE WHEN status='churned' THEN 1.0 ELSE 0 END)/COUNT(*), 4) AS expected_churn_rate
+      FROM subscriptions WHERE plan = 'enterprise'
+    key_columns: 1
+hints:
+  - "GROUP BY plan, then use conditional aggregation (SUM(CASE WHEN status = 'churned' THEN 1 ELSE 0 END)) to count churned subscriptions within each group, alongside COUNT(*) for the group's total."
+  - "Cast at least one side of the division to a float (e.g. multiply by 1.0, or CAST(... AS DOUBLE)) before dividing — integer division would silently truncate the churn rate to 0 for every plan."
+solution: >
+  ```sql
+  SELECT
+    plan,
+    COUNT(*) AS n_subscriptions,
+    SUM(CASE WHEN status = 'churned' THEN 1 ELSE 0 END) AS n_churned,
+    ROUND(SUM(CASE WHEN status = 'churned' THEN 1.0 ELSE 0 END) / COUNT(*), 4) AS churn_rate
+  FROM subscriptions
+  GROUP BY plan
+  ORDER BY churn_rate DESC;
+  ```
+  Run against the real data: enterprise 38.46% (10 of 26), pro 35.21% (25 of 71), starter 32.17% (37 of
+  115) — churn is highest, not lowest, on the most expensive plan.
+explanation: >
+  The two things worth getting right here are conditional aggregation (SUM(CASE WHEN ...)) to count
+  churned rows within each plan group, and forcing floating-point division (the `1.0` in `THEN 1.0
+  ELSE 0`, or an explicit cast) so the rate isn't truncated to an integer 0 or 1. A common mistake is
+  writing `SUM(CASE WHEN status='churned' THEN 1 ELSE 0 END) / COUNT(*)` with no float anywhere in the
+  expression, which under integer division rules returns 0 for every plan whenever the churned count
+  is smaller than the total (which it always is here) — the query runs without error, which makes this
+  particular bug easy to miss without checking the actual output values.

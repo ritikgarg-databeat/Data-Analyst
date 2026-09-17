@@ -1,0 +1,85 @@
+slug: biz-case-paid-channel-activation-gap
+lesson_slug: rca-root-cause-framework
+skill: root-cause-analysis
+dataset: saas-product
+title: "Case: Why Do Paid Channels Activate Users at a Much Lower Rate?"
+description: Investigate a real, large gap in activation rate between paid and organic acquisition channels using the root cause analysis framework.
+exercise_type: BUSINESS_REASONING
+difficulty: ADVANCED
+points: 25
+tags: [case-study, root-cause, real-world, saas]
+business_context: >
+  The Head of Growth is reviewing this quarter's acquisition mix and notices that paid_social and
+  paid_search signups activate at meaningfully lower rates than organic or referral signups. Paid
+  channels have been getting an increasing share of the acquisition budget because their
+  cost-per-signup looks attractive, and the Head of Growth wants to know whether that's actually
+  the right call before committing more budget next quarter.
+stakeholder: "Head of Growth"
+constraints:
+  - "You only have access to the users table (user_id, signup_date, acquisition_channel, country) and the events table (user_id, signup_date, event_name, event_timestamp) — no ad platform data, no qualitative user research, and no landing-page-level tracking."
+  - "\"Activated\" is a fixed, pre-defined event in the events table — you cannot redefine or loosen the activation criteria for this analysis."
+expected_deliverables:
+  - "Confirmed activation rate by acquisition channel, computed directly from the data"
+  - "At least two specific, testable hypotheses for why paid channels activate at a lower rate, given only the fields available"
+  - "A statement of what additional data (beyond what's available here) would be needed to fully confirm the leading hypothesis"
+  - "A recommendation for how the Head of Growth should treat paid-channel budget decisions given this finding, even without that additional data yet"
+prompt: >
+  Using `users` and `events`, compute activation rate (share of signups who ever reach the
+  `activated` event) by `acquisition_channel`. Confirm the gap is real and substantial, propose
+  specific hypotheses for what's driving it, state what you can and can't confirm with only these
+  two tables, and give a recommendation for how paid-channel budget decisions should account for
+  this finding. State your answer in prose, citing the actual rates you compute.
+hints:
+  - "Compute activation rate per channel first and note the magnitude of the gap between the highest and lowest channel — a small, single-digit gap and a 20+ point gap call for very different levels of concern and investigation."
+  - "Think about what's structurally different about how someone arrives at the product through organic search or a referral versus a paid ad — what does each of those paths imply about how much existing intent or need the person already had before they signed up?"
+rubric:
+  - criterion: "Computes and correctly reports activation rate by channel, and states the magnitude of the gap in concrete terms (not just \"paid is lower\")"
+    points: 20
+  - criterion: "Proposes at least two specific, testable hypotheses for the gap, grounded in what's structurally different about paid vs. organic/referral acquisition"
+    points: 25
+  - criterion: "Honestly states the limits of what users/events alone can confirm, and names what additional data would be needed to fully test the leading hypothesis"
+    points: 25
+  - criterion: "Gives a concrete recommendation for how the Head of Growth should treat paid budget decisions given the finding, rather than only describing the problem"
+    points: 30
+solution: >
+  Activation rate by channel, computed as the share of each channel's signups with at least one
+  `activated` event: organic 78.9% (720 of 913), referral 78.2% (340 of 435), content 72.0% (216 of 300),
+  paid_search 61.7% (449 of 728), and paid_social 55.9% (349 of 624). This is a real, substantial gap —
+  23 points between the best channel (organic) and the worst (paid_social) — not a marginal difference
+  that could plausibly be sampling noise given the channel sizes involved (paid_social alone has 624
+  signups).
+
+  Two specific hypotheses, given the structural difference between how these channels acquire users:
+  (1) Intent mismatch — organic and referral signups typically arrive already searching for a solution to
+  a known problem or acting on a trusted recommendation, while paid ads can attract people reacting to an
+  ad's promise rather than an existing, well-formed need, producing more signups who were never a strong
+  fit to begin with. (2) Onboarding-channel mismatch — if paid campaigns route users to a different
+  landing experience or signup flow than organic traffic, a weaker or less-targeted first-run experience
+  (not the users themselves) could be suppressing activation specifically for paid-acquired signups.
+
+  What users/events alone cannot confirm: neither hypothesis can be fully distinguished with only these
+  two tables. Hypothesis 1 (intent mismatch) would need qualitative signal on user intent or a proxy for
+  it (e.g. time-to-first-session, or on-platform search behavior before signup) that isn't present here.
+  Hypothesis 2 (onboarding-channel mismatch) would need landing-page or funnel-step data (which specific
+  page or flow each user entered through) to check whether paid traffic is disproportionately funneled
+  into a weaker experience. What the two tables *can* rule out: activation isn't obviously explained by
+  geography or timing alone — a quick cross-check of activation rate within paid_social by country or
+  signup month would be a reasonable, immediately available next step to at least narrow which
+  hypothesis looks more likely before requesting new data.
+
+  Recommendation: given a 23-point gap of this size and consistency (both paid channels sit well below
+  both non-paid channels), the Head of Growth should not treat paid-channel cost-per-signup as the
+  deciding metric for next quarter's budget without also weighting by activation rate — a "cheap" signup
+  that activates 23 points less often is not obviously a better acquisition than a pricier one that
+  activates reliably. Before committing incremental budget to paid_social specifically, request funnel
+  or landing-page-level data to test the onboarding-channel-mismatch hypothesis, since that one (unlike
+  intent mismatch) is directly fixable without changing the acquisition channel at all.
+explanation: >
+  A strong answer treats "paid channels convert to signups more cheaply" and "paid channels are the
+  better investment" as two different claims, and doesn't let the first stand in for the second. It also
+  resists the temptation to declare a single confirmed root cause from only two tables — the honest,
+  correct move here is naming plausible, specific hypotheses while being explicit about what this
+  particular dataset can and can't settle, and proposing a concrete, available next step (segmenting
+  further within the data on hand) before requesting new data. A weaker answer either picks one hypothesis
+  and asserts it as confirmed without acknowledging the data limitation, or stops at describing the gap
+  without translating it into a recommendation the Head of Growth can actually act on this quarter.

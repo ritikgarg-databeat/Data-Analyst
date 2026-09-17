@@ -1,0 +1,73 @@
+slug: analytics-lifecycle
+module_slug: what-a-data-analyst-does
+title: The Analytics Lifecycle
+description: The cycle from business question to measured decision, and where Data Analysts typically plug in.
+difficulty: BEGINNER
+estimated_minutes: 12
+display_order: 3
+objectives:
+  - Walk through the full analytics lifecycle from business question to measurement
+  - Identify which stages of the lifecycle a Data Analyst usually owns vs. supports
+prerequisites: [data-analyst-vs-data-scientist-vs-data-engineer]
+skills: [business-problem-solving]
+tags: [foundations, beginner, business-analytics]
+key_takeaways:
+  - Analysis is one stage in a longer cycle that starts with a business question and ends with measuring whether the resulting decision actually worked.
+  - The cycle isn't linear in practice — new data or stakeholder pushback often sends you back a step.
+  - Analysts most heavily own "analysis" and "insight," but strong analysts also help shape the "business question" and stay involved through "measurement."
+  - Skipping the measurement stage means you never learn whether your recommendation actually worked.
+common_mistakes:
+  - Treating "deliver the insight" as the finish line and never checking whether the resulting decision actually moved the metric.
+  - Starting the analysis stage before the business question stage is actually settled, producing a technically correct answer to the wrong question.
+blocks:
+  - type: heading
+    text: The cycle
+  - type: text
+    body: >
+      Every piece of analysis work sits inside a larger loop that starts before a query is written and
+      ends well after a chart is delivered. Naming the stages makes it easier to notice which one you're
+      actually in — and which one gets skipped most often.
+  - type: table
+    headers: ["Stage", "What happens", "Who usually drives it"]
+    rows:
+      - ["Business question", "A stakeholder has a decision to make and needs evidence", "Stakeholder, with the Analyst's help sharpening it"]
+      - ["Data", "Locate, pull, and clean the data needed to answer the sharpened question", "Analyst, often on top of a Data Engineer's pipeline"]
+      - ["Analysis", "Explore, segment, and test the data against the question", "Analyst"]
+      - ["Insight", "A specific, evidence-backed finding — not just a chart", "Analyst"]
+      - ["Decision", "The business acts, or explicitly decides not to, based on the insight", "Stakeholder, informed by the Analyst's recommendation"]
+      - ["Measurement", "Check whether the decision actually produced the expected effect", "Analyst, often weeks or months later"]
+  - type: heading
+    text: Where analysts spend their time
+  - type: text
+    body: >
+      In practice, analysts spend the largest share of their hands-on time in the "analysis" and
+      "insight" stages. But the analysts who get promoted fastest are usually the ones who also push
+      back on a fuzzy business question before it reaches analysis, and who circle back to check
+      measurement after everyone else has moved on.
+  - type: example
+    title: "Should we send a re-engagement email to lapsed users?"
+    body: >
+      Business question — marketing wants to know if it's worth building this campaign. Data — pull
+      user activity and past campaign performance. Analysis — segment lapsed users by lapse reason and
+      tenure. Insight — users lapsed under 30 days respond well to an email nudge, but users lapsed
+      over 180 days almost never come back regardless of channel. Decision — marketing targets only the
+      under-30-day group. Measurement — six weeks later, check the actual open and return rates for
+      that group to see whether it worked as predicted.
+  - type: callout
+    variant: important
+    title: The cycle usually loops back
+    body: >
+      Real analysis rarely moves through these stages once, in order. A stakeholder's reaction to an
+      early insight often reshapes the original business question, sending you back to "data" or
+      "analysis" with a sharper target.
+  - type: question
+    prompt: Which stage of the lifecycle is most often skipped entirely, even by teams that do good analysis?
+    choices:
+      - Data
+      - Insight
+      - Measurement
+    correct_index: 2
+    explanation: >
+      Teams are usually good at analyzing and delivering an insight, but rarely close the loop by
+      checking, weeks later, whether the resulting decision actually moved the metric it was supposed
+      to move.

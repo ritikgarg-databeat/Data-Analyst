@@ -1,0 +1,105 @@
+slug: exp-sample-size-calculator-walkthrough
+module_slug: sample-size-for-experiments
+title: The Sample Size Calculator, Walked Through on Real Data
+description: >
+  What a sample-size calculator actually does with baseline rate, MDE, alpha, and power — computed for
+  real using Python on the checkout_redesign experiment.
+difficulty: ADVANCED
+estimated_minutes: 25
+display_order: 2
+objectives:
+  - Name the four inputs a proportion sample-size calculator needs, and what each one controls
+  - Compute the required sample size per group for a stated baseline and MDE using Python (statsmodels)
+  - Explain why required sample size grows sharply as the MDE shrinks
+prerequisites: [exp-baseline-rate-effect-size-mde]
+skills: [experimentation, statistical-reasoning]
+datasets: [saas-product]
+tags: [experimentation, ab-testing, saas, advanced]
+key_takeaways:
+  - "A sample-size calculator for a conversion-rate metric needs four inputs: the baseline rate, the MDE, the significance level (alpha, usually 0.05), and the desired power (usually 0.80 or 0.90) — it returns the number of users needed per group."
+  - Required sample size grows sharply, not linearly, as the MDE shrinks — detecting half the effect size can require roughly four times the sample.
+  - "For checkout_redesign's real baseline (11.3%), detecting the actual observed lift (to 12.5%, a 10.6% relative lift) at 80% power would require roughly 11,000-13,000 users per group — far more than the 1,000 per group the real test actually ran with."
+common_mistakes:
+  - Plugging in the baseline rate from a different metric or a different time period than the one the test will actually run on, which throws off the resulting sample size.
+  - Treating the calculator's output as a nice-to-have target rather than a hard minimum — stopping the test early "because it's been a couple weeks" without checking whether the pre-computed sample size was actually reached.
+blocks:
+  - type: heading
+    text: The four inputs
+  - type: text
+    body: >
+      A sample-size calculator for a conversion-rate (proportion) metric takes four inputs. The
+      **baseline rate** (what control looks like today), the **MDE** (the smallest effect size worth
+      detecting, from the previous lesson), the **significance level, alpha** (how often you're willing
+      to falsely call a real-nothing effect "significant" — conventionally 0.05), and the **power**
+      (how often you want to correctly detect the effect *if it's really there* — conventionally 0.80).
+      Given those four, the calculator solves for the sample size needed per group.
+  - type: code
+    language: python
+    code: |
+      import numpy as np
+      from statsmodels.stats.proportion import proportion_effectsize
+      from statsmodels.stats.power import NormalIndPower
+
+      baseline_rate = 0.113        # checkout_redesign's real control conversion rate
+      target_rate = 0.113 * 1.10   # MDE: detect at least a 10% relative lift
+
+      effect_size = proportion_effectsize(target_rate, baseline_rate)
+      n_per_group = NormalIndPower().solve_power(
+          effect_size=effect_size, alpha=0.05, power=0.80, ratio=1, alternative="two-sided"
+      )
+      print(round(n_per_group))  # -> 12849
+    caption: >
+      Run against the real checkout_redesign baseline (11.3%): detecting a 10% relative lift (to 12.43%)
+      at 80% power requires about 12,849 users per group — nearly 13x the 1,000 per group the real test
+      actually collected.
+  - type: table
+    caption: "Same baseline (11.3%), different MDEs — required sample size per group, alpha=0.05, power=0.80"
+    headers: ["MDE (relative lift)", "Target rate", "Users needed per group"]
+    rows:
+      - ["5%", "11.87%", "≈50,353"]
+      - ["10%", "12.43%", "≈12,849"]
+      - ["20%", "13.56%", "≈3,339"]
+      - ["30%", "14.69%", "≈1,539"]
+  - type: text
+    body: >
+      Notice the pattern: halving the MDE (from a 20% relative lift to a 10% relative lift) roughly
+      quadruples the required sample size, not doubles it — required sample size scales with the inverse
+      *square* of the effect size. This is exactly why "let's just detect any effect, however small" is
+      an expensive ask, and why the MDE has to be a deliberate business choice (previous lesson), not a
+      default of "as small as possible."
+  - type: callout
+    variant: important
+    title: What this means for the real checkout_redesign test
+    body: >
+      The real test ran 1,000 users per group and observed an 11.3% → 12.5% lift — encouraging, but the
+      table above shows that reliably detecting a lift of that size (roughly 10-11% relative) at 80%
+      power would have required somewhere around 11,000-13,000 users per group. At only 1,000 per group,
+      this test was meaningfully underpowered for the effect it actually saw — which is exactly why its
+      p-value (covered in the A/B Test Analysis module) doesn't come back significant despite the
+      promising direction. This isn't a hypothetical — it's the real number from this real dataset, and
+      it's revisited as a concrete case of the "underpowered test" pitfall later in this domain.
+  - type: question
+    prompt: >
+      Holding alpha and power fixed, why does cutting the MDE in half roughly quadruple the required
+      sample size, rather than simply doubling it?
+    choices:
+      - "Because sample size calculators intentionally add a safety margin for smaller effects"
+      - "Because the required sample size scales with the inverse square of the effect size, so a 2x smaller effect needs roughly 2² = 4x the sample to detect at the same confidence and power"
+      - "It doesn't — this is a common misconception, and the relationship is actually linear"
+    correct_index: 1
+    explanation: >
+      The standard sample-size formula for detecting a difference in proportions has the required n
+      proportional to 1 / (effect size)². Halving the effect size you need to detect means dividing by
+      (1/2)² = 1/4 inside that relationship, which is the same as multiplying the required sample size by
+      4. This is why chasing very small effects is disproportionately expensive in sample size (and
+      therefore in test duration).
+interview_questions:
+  - question: "What four inputs does a sample-size calculation for an A/B test need, and which of them is a business decision rather than a statistical one?"
+    answer: >
+      It needs the baseline rate (what the metric looks like today under control), the minimum
+      detectable effect (the smallest change worth being able to detect), the significance level alpha
+      (typically 0.05), and the desired power (typically 0.80). Of these, the MDE is the one business
+      decision — it's a statement of "how big a change would justify the cost of building and shipping
+      this," not something statistics can determine on its own. Alpha and power are conventions the field
+      has mostly standardized on, and the baseline rate is simply measured from existing data — but the
+      MDE requires someone to make an explicit judgment call about what size of win is worth pursuing.

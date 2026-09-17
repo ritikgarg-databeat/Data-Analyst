@@ -1,0 +1,117 @@
+slug: executive-business-intelligence
+title: Executive Business Intelligence
+category: BUSINESS_ANALYTICS
+business_context: >
+  You've been asked to support the executive team of a parent company that owns two businesses: an
+  online retailer (the e-commerce business) and a subscription software product (the SaaS business).
+  Each business has always reported its own numbers separately, in its own format, to its own leader —
+  there has never been a single, top-line view that lets the executive team compare growth,
+  retention, and marketing efficiency across both businesses at once. The CEO has asked you to build
+  that view for the next board meeting: one executive dashboard, and one structured presentation that
+  tells the combined story of how the company is doing.
+objective: >
+  Build a cross-business executive KPI dashboard spanning both the e-commerce business (revenue,
+  growth, marketing efficiency) and the SaaS business (growth, retention/churn), and — as the primary
+  deliverable of this project — design and deliver a structured executive presentation/storyboard
+  that tells the combined company story to the CEO and board.
+requirements:
+  - "A data-discovery summary identifying which metrics are genuinely comparable across the two businesses (e.g. revenue, growth rate) and which require business-specific framing (e.g. churn only applies to SaaS, refunds only to e-commerce)"
+  - "A defined, consistent set of top-line KPIs computed for each business: at minimum revenue/MRR, growth rate, and a retention or repeat-usage measure per business"
+  - "A marketing-efficiency comparison across the two businesses (e.g. e-commerce campaign ROI vs. SaaS acquisition-channel performance)"
+  - "A single executive dashboard with at least 6 charts spanning both businesses, organized so a board member can read the combined company story in under two minutes"
+  - "A structured executive storyboard/presentation (a clear narrative arc: context, top-line results, key risks, recommendation) that is the primary deliverable of this project"
+  - "A one-page written executive summary distilling the presentation into the 3 most important takeaways for the board"
+suggested_datasets:
+  - ecommerce
+  - saas-product
+milestones:
+  - title: Understand the Business Portfolio
+    description: Understand both businesses' models and identify what "one combined story" needs to mean for this CEO and board.
+  - title: Data Discovery Across Both Businesses
+    description: Profile the ecommerce and saas-product datasets and determine which metrics are genuinely comparable and which need business-specific framing.
+  - title: Define Cross-Business KPIs
+    description: Define a consistent top-line KPI set (revenue/MRR, growth, retention) that can be computed for both businesses.
+  - title: Compute and Validate the KPIs
+    description: Compute the defined KPIs for both businesses and sanity-check them against each other for consistency of method.
+  - title: Marketing-Efficiency Comparison
+    description: Compare marketing/acquisition efficiency across the two businesses using each business's own campaign or channel data.
+  - title: Build the Executive Dashboard
+    description: Design and build a single dashboard that presents both businesses' KPIs side by side for board-level consumption.
+  - title: Design the Executive Storyboard
+    description: Plan the narrative arc of the executive presentation — context, results, risks, recommendation — before building any slides.
+  - title: Build the Executive Presentation
+    description: Build the full executive presentation following the storyboard, translating every chart into a clear business takeaway.
+  - title: Rehearse and Refine the Delivery
+    description: Tighten the presentation's narrative, cut anything that doesn't serve the board-level story, and prepare for likely executive questions.
+  - title: Final Presentation Delivery
+    description: Deliver the final executive presentation and one-page summary as the primary output of this project.
+required_skills:
+  - sql-fundamentals
+  - advanced-sql
+  - business-metrics
+  - data-visualization
+  - business-analytics
+  - communication
+  - decision-making
+rubric:
+  - category: Business Understanding
+    weight: 10
+    criteria:
+      - criterion: Correctly identifies which metrics are genuinely comparable across the two businesses and which are not
+        points: 10
+      - criterion: Frames the project around what the CEO and board actually need to decide
+        points: 10
+  - category: Technical Execution
+    weight: 15
+    is_technical: true
+    criteria:
+      - criterion: KPIs are computed correctly and consistently for both businesses
+        points: 10
+      - criterion: Marketing-efficiency comparison is computed correctly for each business's own data
+        points: 10
+  - category: Analytical Reasoning
+    weight: 15
+    criteria:
+      - criterion: Combined KPI set reveals genuine cross-business insight, not just two separate reports side by side
+        points: 10
+      - criterion: Correctly flags where a direct cross-business comparison would be misleading
+        points: 10
+  - category: Visualization
+    weight: 15
+    criteria:
+      - criterion: Executive dashboard is readable at a glance and organized around the combined story
+        points: 10
+      - criterion: Chart choices are appropriate for a board-level, non-technical audience
+        points: 10
+  - category: Executive Presentation and Storyboarding
+    weight: 35
+    criteria:
+      - criterion: Presentation follows a clear narrative arc (context, results, risks, recommendation)
+        points: 10
+      - criterion: Every chart is translated into a plain-language business takeaway
+        points: 10
+      - criterion: Presentation is appropriately concise and prioritized for a board-level audience
+        points: 10
+      - criterion: One-page executive summary correctly distills the presentation's 3 most important takeaways
+        points: 5
+  - category: Recommendations
+    weight: 10
+    criteria:
+      - criterion: Recommendation is specific, prioritized, and actionable at the executive level
+        points: 10
+learning_objectives:
+  - Define KPIs that are consistently comparable across two different businesses
+  - Build a single executive dashboard spanning multiple business units
+  - Compare marketing/acquisition efficiency across differently structured businesses
+  - Design a structured executive storyboard with a clear narrative arc
+  - Deliver a board-ready executive presentation that translates data into decisions
+estimated_hours: 8.5
+tags:
+  - sql
+  - business-analytics
+  - e-commerce
+  - saas
+  - marketing
+  - cross-training
+  - advanced
+version: 1

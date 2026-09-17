@@ -1,0 +1,24 @@
+slug: pa-power-users-definition
+skill: product-metrics
+title: Defining Power Users
+description: What's a sound, defensible way to define 'power users' for a product analysis, rather than an arbitrary
+  guess?
+exercise_type: MULTIPLE_CHOICE
+difficulty: INTERMEDIATE
+points: 5
+tags:
+- product-analytics
+- segmentation
+prompt: What's a sound, defensible way to define 'power users' for a product analysis, rather than an arbitrary
+  guess?
+correct_answer: Empirically, e.g. the top decile of users by a core-value action's frequency, validated against
+  a retention or revenue outcome
+explanation: A defensible power-user definition is grounded in actual usage data (e.g. top X% by frequency of the
+  core value action) and ideally validated by checking that this group actually retains better or generates more
+  revenue -- an intuition-only definition risks studying the wrong group entirely.
+choices:
+- Empirically, e.g. the top decile of users by a core-value action's frequency, validated against a retention or
+  revenue outcome
+- Anyone who has ever logged in more than once
+- Whoever the product team subjectively feels seems enthusiastic
+- All users, since everyone is a power user of something

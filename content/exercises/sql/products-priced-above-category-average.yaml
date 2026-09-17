@@ -1,0 +1,56 @@
+slug: products-priced-above-category-average
+lesson_slug: scalar-subqueries
+skill: advanced-sql
+dataset: ecommerce
+title: Find Products Priced Above Their Category Average
+description: Write a query that uses a correlated scalar subquery to find active products priced above their own category's average price.
+exercise_type: SQL
+difficulty: INTERMEDIATE
+points: 20
+tags: [sql, intermediate, real-world]
+business_context: >
+  The pricing team is auditing the catalog for premium-priced items. They want to see every active
+  product that costs more than the average unit price within its own category — a first pass at
+  identifying candidates for a "premium" merchandising tag.
+prompt: >
+  Using the `products` table, write a query that returns every active product (`is_active = true`)
+  whose `unit_price` is greater than the average `unit_price` of all products in its own
+  `category_id`. Return `product_id`, `product_name`, `category_id`, and `unit_price`. Row order does
+  not matter.
+sql_tables: [products]
+sql_starter_query: |
+  -- Explore the products table first
+  SELECT * FROM products LIMIT 20;
+sql_solution_query: |
+  SELECT p.product_id, p.product_name, p.category_id, p.unit_price
+  FROM products p
+  WHERE p.is_active = true
+    AND p.unit_price > (
+      SELECT AVG(p2.unit_price)
+      FROM products p2
+      WHERE p2.category_id = p.category_id
+    );
+sql_row_order_matters: false
+sql_numeric_tolerance: 0.01
+hints:
+  - "You need each product's price compared against an average that's specific to its own category — that means the subquery's filter has to reference the outer product's category_id, making it a correlated subquery rather than a one-time calculation."
+  - "Write a scalar subquery `SELECT AVG(p2.unit_price) FROM products p2 WHERE p2.category_id = p.category_id` inside the WHERE clause of the outer query, then filter to `p.is_active = true AND p.unit_price > (...)`."
+solution: >
+  ```sql
+  SELECT p.product_id, p.product_name, p.category_id, p.unit_price
+  FROM products p
+  WHERE p.is_active = true
+    AND p.unit_price > (
+      SELECT AVG(p2.unit_price)
+      FROM products p2
+      WHERE p2.category_id = p.category_id
+    );
+  ```
+explanation: >
+  A strong answer recognizes that "average" here means a different number for every category, which
+  rules out a single flat `AVG(unit_price)` computed once across the whole table. The subquery must be
+  correlated — its `WHERE p2.category_id = p.category_id` ties it back to the outer row so it
+  re-evaluates per category — and it must return exactly one value (a scalar) so it can sit on the
+  right-hand side of a `>` comparison. A common mistake is computing one global average price and
+  comparing every product against it, which silently produces the wrong set whenever categories differ
+  in typical price level.

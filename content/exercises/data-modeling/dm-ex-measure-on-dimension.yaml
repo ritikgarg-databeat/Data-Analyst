@@ -1,0 +1,25 @@
+slug: dm-ex-measure-on-dimension
+lesson_slug: dm-measures-vs-attributes
+skill: dimensional-modeling
+title: "Reading a dimension_looks_like_measure Warning"
+description: What the specific double-counting risk is behind the Data Modeler's dimension_looks_like_measure check.
+exercise_type: MULTIPLE_CHOICE
+difficulty: INTERMEDIATE
+points: 10
+tags: [dimension-table, validation, data-modeling]
+prompt: >
+  dim_customers has a numeric column named lifetime_order_count. Validate returns a dimension_looks_like_measure
+  warning on it. What risk is this warning specifically pointing at?
+choices:
+  - "That lifetime_order_count must be deleted, since DIMENSION tables can never contain numeric columns"
+  - "That summing lifetime_order_count after joining dim_customers to a finer-grained fact table (like fct_orders) would repeat the value once per matching fact row and silently overstate the total"
+  - "That lifetime_order_count should be renamed to remove the word 'count' so the validator stops flagging it"
+correct_answer: "That summing lifetime_order_count after joining dim_customers to a finer-grained fact table (like fct_orders) would repeat the value once per matching fact row and silently overstate the total"
+hints:
+  - "Think through what happens if you join dim_customers (1 row per customer) to fct_orders (many rows per customer) and then SUM the dimension's own stored count column."
+explanation: >
+  The check exists because a numeric attribute stored on a dimension is easy to double-count: joining
+  dim_customers (1 row per customer) to fct_orders (many rows per customer) and then summing
+  lifetime_order_count repeats each customer's value once per matching order row. It's a nudge to be aware of
+  that risk, not a rule against storing the column or a naming restriction — every warning-severity check in
+  this validator is an educational nudge, not a hard block.

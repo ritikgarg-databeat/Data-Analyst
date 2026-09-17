@@ -1,0 +1,64 @@
+slug: excel-iferror-safe-lookup
+skill: excel-fundamentals
+title: A Lookup That Fails Gracefully with IFERROR
+description: The `Lookup` sheet has `ProductID` (A) and `Price` (B). On `Orders`, fill in `B2` and `B3` wrapping
+  a VLOOKUP in IFERROR, returning "Not Found" (the literal text) instead of an error when the ProductID isn't in
+  `Lookup!A2:B4`.
+exercise_type: EXCEL
+difficulty: INTERMEDIATE
+points: 10
+tags:
+- excel
+business_context: 'Some orders reference a discontinued ProductID no longer in the price list -- a raw VLOOKUP would
+  show a raw #N/A to whoever reads the report.'
+prompt: The `Lookup` sheet has `ProductID` (A) and `Price` (B). On `Orders`, fill in `B2` and `B3` wrapping a VLOOKUP
+  in IFERROR, returning "Not Found" (the literal text) instead of an error when the ProductID isn't in `Lookup!A2:B4`.
+excel_starter_sheets:
+- name: Lookup
+  cells:
+    A1: ProductID
+    B1: Price
+    A2: P1
+    B2: '10'
+    A3: P2
+    B3: '20'
+    A4: P3
+    B4: '30'
+- name: Orders
+  cells:
+    A1: ProductID
+    B1: Price
+    A2: P2
+    A3: P9
+excel_solution_sheets:
+- name: Lookup
+  cells:
+    A1: ProductID
+    B1: Price
+    A2: P1
+    B2: '10'
+    A3: P2
+    B3: '20'
+    A4: P3
+    B4: '30'
+- name: Orders
+  cells:
+    A1: ProductID
+    B1: Price
+    A2: P2
+    A3: P9
+    B2: =IFERROR(VLOOKUP(A2,Lookup!A2:B4,2,FALSE),"Not Found")
+    B3: =IFERROR(VLOOKUP(A3,Lookup!A2:B4,2,FALSE),"Not Found")
+excel_check_cells:
+- Orders!B2
+- Orders!B3
+hints:
+- 'IFERROR(formula, value_if_error) catches ANY error the formula could raise, including VLOOKUP''s #N/A when nothing
+  matches.'
+- P9 doesn't exist in the Lookup sheet at all -- that row's VLOOKUP should be the one that falls through to the
+  IFERROR fallback.
+solution: '`=IFERROR(VLOOKUP(A2,Lookup!A2:B4,2,FALSE),"Not Found")` -- 20 for P2 (found), "Not Found" for P9 (not
+  found).'
+explanation: 'P2 exists in the Lookup table so VLOOKUP returns 20 normally and IFERROR never triggers. P9 doesn''t
+  exist, so VLOOKUP raises #N/A, which IFERROR catches and replaces with the literal text "Not Found" rather than
+  letting the error propagate into the cell.'

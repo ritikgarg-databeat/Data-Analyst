@@ -1,0 +1,20 @@
+slug: dm-ex-circular-severity
+lesson_slug: dm-cycles-and-dangling-relationships
+skill: data-modeling
+title: "Does a Cycle Always Block a Model?"
+description: Whether circular_relationship is always a hard error, or depends on the kind of model it's found in.
+exercise_type: TRUE_FALSE
+difficulty: INTERMEDIATE
+points: 10
+tags: [validation, relationships]
+prompt: >
+  True or False: A circular_relationship finding is always severity "error" and always prevents a model from
+  being considered structurally valid, no matter which of DIMENSIONAL, ARCHITECTURE, or PIPELINE the model_kind
+  is.
+choices: ["True", "False"]
+correct_answer: "False"
+explanation: >
+  circular_relationship is severity "warning" for DIMENSIONAL and ARCHITECTURE models (an educational nudge —
+  a star schema or architecture diagram rarely needs a cycle, but nothing is structurally broken if it has
+  one) and is only promoted to severity "error" specifically for PIPELINE models, where a cycle represents an
+  execution-dependency graph that could never actually run.

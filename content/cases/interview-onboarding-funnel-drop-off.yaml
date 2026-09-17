@@ -1,0 +1,102 @@
+slug: interview-onboarding-funnel-drop-off
+title: Where Are New Users Dropping Off During Onboarding?
+category: PRODUCT_ANALYTICS
+difficulty: BEGINNER
+estimated_minutes: 25
+company_context: A SaaS product tracked via the saas-product schema.
+stakeholder_name: Riley Foster
+stakeholder_role: Growth PM
+problem_statement: '"Only about a third of signups ever become active users. I need to know exactly where in onboarding
+  we''re losing people."'
+business_context: Riley wants a precise, step-level answer to prioritize which part of onboarding to fix first.
+objective: Break the onboarding funnel into steps and identify the single step with the largest drop-off.
+initial_information: You have access to users and events.
+constraints:
+- Riley wants ONE clear priority, not a list of every step's drop-off rate with no ranking.
+available_datasets:
+- saas-product
+expected_deliverables:
+- A step-by-step onboarding funnel breakdown
+- Identification of the single largest drop-off step
+- A recommendation for what to fix first
+learning_objectives:
+- Break a vague 'low activation' complaint into a measurable, step-level funnel
+- Identify the single highest-leverage step to prioritize
+- Recommend a specific first fix rather than a list of everything
+stages:
+- CLARIFY
+- ANALYZE
+- RECOMMEND
+- SUBMIT
+tags:
+- interview
+- product-analytics
+- funnel
+- case-study
+skills:
+- product-metrics
+- communication
+clarification_guidance:
+- A good clarifying question asks what the specific steps of onboarding actually are, in order.
+- A good clarifying question asks over what time window a user needs to complete onboarding to count as 'activated.'
+rubric:
+- category: Problem Framing & Clarification
+  weight: 20
+  criteria:
+  - criterion: Clarifies the specific ordered steps of onboarding before analyzing
+    points: 20
+- category: Technical Analysis
+  weight: 40
+  is_technical: true
+  criteria:
+  - criterion: Computes step-to-step conversion for each onboarding step
+    points: 25
+  - criterion: Correctly identifies the single step with the largest drop-off
+    points: 15
+- category: Recommendation & Business Judgment
+  weight: 25
+  criteria:
+  - criterion: Recommends fixing that specific step first, with a clear rationale for the prioritization
+    points: 25
+- category: Communication
+  weight: 15
+  criteria:
+  - criterion: Explains the finding as one clear priority Riley could act on immediately
+    points: 15
+hints:
+- List out onboarding as an ordered sequence of steps first -- you can't find where the drop-off concentrates without
+  a step-by-step breakdown.
+- Prioritize by where the largest ABSOLUTE number of users are lost, not just the largest percentage drop, since
+  a small step near the end can have a big percentage drop but affect very few people.
+reference_solution:
+  summary: Built as a strict nested funnel from unique users (every 'upgraded' user also has an 'engaged' event, and
+    every 'engaged' user also has an 'activated' event), the real numbers are signup 3,000 (100%) to activated 2,074
+    (69.1%, 926 lost) to engaged 1,125 (37.5% of signups, 54.2% of activated, 949 lost) to upgraded 212 (7.1% of
+    signups, 18.8% of engaged, 913 lost). The activated-to-engaged step has the largest ABSOLUTE drop-off, 949 users,
+    narrowly ahead of engaged-to-upgraded (913 users), even though the engaged-to-upgraded step has by far the larger
+    percentage drop (81.2% versus 45.8%). Because activated-to-engaged starts from the largest base of any step, its
+    smaller relative drop still costs more people in raw headcount, making it the single highest-priority step by
+    the measure Riley actually cares about.
+  key_insights:
+  - The nested funnel (signup 3,000, activated 2,074 or 69.1%, engaged 1,125 or 37.5%, upgraded 212 or 7.1%) loses
+    926 users from signup to activated, 949 from activated to engaged, and 913 from engaged to upgraded.
+  - The activated-to-engaged step loses the most users in absolute terms, 949, even though its percentage drop
+    (45.8%) is smaller than engaged-to-upgraded's 81.2% drop, which only costs 913 users because it starts from a
+    smaller base.
+  - Prioritizing by percentage alone would point to the upgrade step; prioritizing by raw headcount, the measure
+    that actually determines how many more active users the team would gain, points instead to keeping
+    already-activated users engaged.
+  recommendation: Tell Riley the single highest-priority step is activated-to-engaged, it loses the most users in
+    absolute terms of any step in the funnel, 949 people, even though the upgrade step's 81.2% drop looks more
+    dramatic on a percentage basis. Recommend focusing first on re-engagement and habit-forming interventions for
+    users who have just activated (for example, a returning-usage nudge or a follow-up prompt in the days after
+    activation), rather than the upgrade paywall, since that is where the largest number of people are actually
+    being lost.
+  acceptable_alternatives:
+  - A recommendation to prioritize engaged-to-upgraded instead, if it is explicitly justified by that step's much
+    higher percentage drop (81.2%) and framed as a deliberate choice to optimize for conversion rate over raw
+    headcount, rather than an oversight of the absolute numbers.
+  - A recommendation to treat activated-to-engaged and engaged-to-upgraded as close to tied priorities (949 versus
+    913 lost users) and propose testing interventions for both, since the two figures are close enough that either
+    could reasonably be called the top priority.
+version: 1

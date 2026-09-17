@@ -1,0 +1,71 @@
+slug: mean
+module_slug: statistical-foundations
+title: Mean
+description: The arithmetic mean, what it represents, and why a single extreme value can pull it far from the "typical" data point.
+difficulty: BEGINNER
+estimated_minutes: 8
+display_order: 1
+objectives:
+  - Calculate the arithmetic mean of a dataset and explain what it represents
+  - Explain why the mean is sensitive to outliers and recognize when that sensitivity misleads a reader
+skills: [statistics]
+tags: [statistics, beginner, foundations]
+key_takeaways:
+  - The mean is the sum of every value divided by the count — it uses all of the data, which is both its strength and its weakness.
+  - A single extreme value can pull the mean far away from what most data points actually look like.
+  - Before presenting a mean, check whether it still resembles a typical data point or has been distorted by one or a few large values.
+common_mistakes:
+  - Treating the mean as "the typical value" when the underlying data is skewed by one or a few extreme points.
+  - Averaging averages (e.g., averaging several days' daily average order value) without weighting by how many orders each day actually had.
+blocks:
+  - type: heading
+    text: What the mean measures
+  - type: text
+    body: >
+      The **mean** (often just called "the average") is the sum of all values in a dataset divided by
+      how many values there are. It's the most common way people summarize "what's typical" in a
+      dataset, and it's the first statistic most people learn — but it has a specific weakness that's
+      easy to forget: every value in the dataset pulls on it, including the extreme ones.
+  - type: formula
+    expression: mean = sum(x) / n
+    description: Sum every value in the dataset, then divide by the count of values (n).
+  - type: example
+    title: Five orders, one very large one
+    body: >
+      Suppose a small store had five orders in a day, with totals of $18, $22, $25, $30, and $900 (a
+      rare bulk order). The mean order value is (18 + 22 + 25 + 30 + 900) / 5 = $199.00. But four of
+      the five orders were under $30 — nothing about the day was "typically" a $199 day. The single
+      $900 order dominates the average.
+  - type: table
+    caption: The same four typical orders, with and without the one large order
+    headers: ["Dataset", "Values", "Mean"]
+    rows:
+      - ["All 5 orders", "18, 22, 25, 30, 900", "$199.00"]
+      - ["Without the $900 order", "18, 22, 25, 30", "$23.75"]
+  - type: code
+    language: sql
+    code: |
+      SELECT AVG(order_total) AS mean_order_total
+      FROM orders;
+    caption: SQL's AVG() function computes the arithmetic mean directly.
+  - type: callout
+    variant: common_mistake
+    title: "\"Average\" is not always \"typical\""
+    body: >
+      When someone reports "average order value: $199," it's worth asking whether that number
+      describes most orders, or whether it's being dragged upward by a small number of unusually large
+      ones. The mean alone can't tell you which is true — you have to look at the underlying values.
+  - type: question
+    prompt: >
+      A team reports that average order value is $199, driven almost entirely by one $900 outlier
+      order out of five. What's the best next step before presenting that $199 figure to a stakeholder?
+    choices:
+      - Present it as-is, since it is mathematically the correct average
+      - Also report the median (or explicitly flag the outlier) so the number isn't misread as "typical"
+      - Quietly drop any order over $100 from the calculation without mentioning it
+    correct_index: 1
+    explanation: >
+      The mean itself isn't wrong — it's just easy to misread as "what a typical order looks like."
+      Pairing it with the median, or explicitly noting the outlier, gives the stakeholder an accurate
+      picture instead of a misleading one. Silently dropping data (the third option) hides information
+      rather than clarifying it.

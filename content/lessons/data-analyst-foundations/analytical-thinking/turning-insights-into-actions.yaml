@@ -1,0 +1,68 @@
+slug: turning-insights-into-actions
+module_slug: analytical-thinking
+title: Turning Insights into Actions
+description: Going from a finding to a concrete recommendation with a measurable follow-up, not just a chart.
+difficulty: BEGINNER
+estimated_minutes: 13
+display_order: 6
+objectives:
+  - Convert a root-cause finding into a specific, ownable recommendation
+  - Attach a measurable follow-up checkpoint to a recommendation so you find out whether it worked
+prerequisites: [root-cause-analysis]
+skills: [business-problem-solving, communication]
+tags: [foundations, beginner, business-analytics, real-world]
+key_takeaways:
+  - A recommendation is only useful if it names a specific action, an owner, and an expected effect — "we should look into this more" isn't one.
+  - Every recommendation should come with a measurable follow-up — what number you'll check, and when, to know if it worked.
+  - This closes the loop back to the analytics lifecycle's measurement stage, the stage most commonly skipped.
+common_mistakes:
+  - Delivering a finding with no explicit recommended action, leaving the "so what" to the stakeholder.
+  - Making a recommendation with no follow-up checkpoint, so nobody ever finds out whether it worked.
+blocks:
+  - type: heading
+    text: A finding is not a recommendation
+  - type: text
+    body: >
+      Building on the mobile signup investigation from root cause analysis, finding the cause is only
+      half the job. What turns it into something the business can act on is a specific recommendation.
+  - type: comparison
+    title: Finding vs. recommendation
+    columns: ["Finding only", "Finding + recommendation"]
+    rows:
+      - ["\"Mobile signup completion dropped from 68% to 41% after Tuesday's release, driven by the new phone-verification step.\"", "\"Recommend making phone verification optional on mobile signup (owner: mobile team) before Thursday's release cutoff — expect completion rate to recover to roughly 65%+. Recheck the completion-rate dashboard next Tuesday to confirm.\""]
+  - type: heading
+    text: The four parts of a strong recommendation
+  - type: checklist
+    title: Four parts of a strong recommendation
+    items:
+      - A specific action — not "look into this," a concrete change
+      - An owner — who is expected to act on it
+      - The expected effect, and why you believe it, tied back to the root cause
+      - A measurable follow-up — which number you'll check, and when, to know if it worked
+  - type: example
+    title: Closing the loop on the phone-verification finding
+    body: >
+      Recommendation: make the phone-verification step optional, or remove it, on mobile signup. Owner:
+      mobile engineering. Target: before Thursday's release cutoff. Rationale: step-level funnel data
+      shows abandonment concentrated at this exact step after it was added Tuesday; removing it should
+      recover most of the 27-point completion-rate drop. Follow-up: recheck mobile signup completion
+      rate the following Tuesday — if it doesn't recover to at least 60%, the phone-verification step
+      wasn't the whole story and the investigation should reopen.
+  - type: callout
+    variant: important
+    title: This is what "measurement" from the lifecycle means
+    body: >
+      Setting a specific number and a specific date to recheck is what actually closes the loop back to
+      the analytics lifecycle's final stage. Without it, nobody finds out whether the recommendation
+      worked, and the same root cause can quietly resurface.
+  - type: question
+    prompt: Which of these is a complete, decision-ready recommendation?
+    choices:
+      - "\"Signup completion dropped — someone should probably look at the new release.\""
+      - "\"Make phone verification optional on mobile signup (mobile eng, before Thursday); expect completion to recover to roughly 65%+; recheck the dashboard next Tuesday.\""
+      - "\"Mobile signup completion is currently at 41%, down from 68% last week.\""
+    correct_index: 1
+    explanation: >
+      The first isn't actionable — no specific action or owner. The third is a finding with no action
+      attached. Only the second names the action, the owner, the expected effect, and a follow-up
+      checkpoint.

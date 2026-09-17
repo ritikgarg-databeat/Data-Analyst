@@ -1,0 +1,110 @@
+slug: second-highest-spender-per-country
+lesson_slug: common-sql-interview-patterns
+skill: interview-sql
+dataset: ecommerce
+title: Find the Second-Highest Spender in Each Country
+description: Write a query that finds each country's second-highest-spending customer — a classic "Nth highest per group" interview pattern.
+exercise_type: SQL
+difficulty: ADVANCED
+points: 30
+tags: [sql, interview, ranking]
+business_context: >
+  "Find the Nth highest value per group" is one of the most common SQL interview questions asked at
+  data-heavy companies, because it forces a candidate to show they understand ranking window functions
+  rather than reaching for a fragile combination of ORDER BY and OFFSET. Here, the regional sales lead
+  wants each country's runner-up spender — useful for identifying customers just below the very top who
+  have room to grow into VIP status.
+prompt: >
+  Using the `customers`, `orders`, and `payments` tables, write a query that computes each customer's
+  total spend across their completed orders (join `orders` to `payments` on `order_id`, filtering
+  `orders.status = 'completed'`, and join to `customers` for `country`), then finds the customer with
+  the SECOND-highest total spend within each country. Use `DENSE_RANK()` (not `ROW_NUMBER()`) so that
+  a genuine tie in spend is reflected as a shared rank rather than being arbitrarily split — a country
+  where the top two spend totals are tied should therefore have no single "second-highest" and should
+  not appear in the result. Return columns `country`, `customer_id`, and `total_spend` (`ROUND(..., 2)`),
+  ordered by `country`.
+sql_tables: [customers, orders, payments]
+sql_starter_query: |
+  -- payments doesn't have customer_id or country directly — join through orders and customers
+  SELECT * FROM customers LIMIT 20;
+sql_solution_query: |
+  WITH customer_spend AS (
+    SELECT c.country, c.customer_id, ROUND(SUM(p.amount), 2) AS total_spend
+    FROM customers c
+    JOIN orders o ON o.customer_id = c.customer_id
+    JOIN payments p ON p.order_id = o.order_id
+    WHERE o.status = 'completed'
+    GROUP BY c.country, c.customer_id
+  ),
+  ranked AS (
+    SELECT
+      country,
+      customer_id,
+      total_spend,
+      DENSE_RANK() OVER (PARTITION BY country ORDER BY total_spend DESC) AS spend_rank
+    FROM customer_spend
+  )
+  SELECT country, customer_id, total_spend
+  FROM ranked
+  WHERE spend_rank = 2
+  ORDER BY country;
+sql_row_order_matters: true
+sql_numeric_tolerance: 0.01
+sql_hidden_tests:
+  - name: "United States' second-highest spender is correct"
+    query: |
+      WITH customer_spend AS (
+        SELECT c.country, c.customer_id, ROUND(SUM(p.amount), 2) AS total_spend
+        FROM customers c
+        JOIN orders o ON o.customer_id = c.customer_id
+        JOIN payments p ON p.order_id = o.order_id
+        WHERE o.status = 'completed'
+        GROUP BY c.country, c.customer_id
+      ),
+      ranked AS (
+        SELECT
+          country,
+          customer_id,
+          DENSE_RANK() OVER (PARTITION BY country ORDER BY total_spend DESC) AS spend_rank
+        FROM customer_spend
+      )
+      SELECT country, customer_id
+      FROM ranked
+      WHERE country = 'United States' AND spend_rank = 2
+    key_columns: 1
+hints:
+  - "Resist the urge to reach for ORDER BY total_spend DESC LIMIT 1 OFFSET 1 per country — that's fragile and doesn't handle ties correctly. This is a ranking problem: rank customers within each country by spend, then filter to the rank you want."
+  - "Compute total spend per customer per country in a CTE, then apply DENSE_RANK() OVER (PARTITION BY country ORDER BY total_spend DESC) in a second CTE. Filter the outer query to spend_rank = 2 — DENSE_RANK (unlike RANK) never skips a rank number, so 'rank 2' always means 'the second-distinct spend level,' which is what 'second-highest' means when ties are possible."
+solution: >
+  ```sql
+  WITH customer_spend AS (
+    SELECT c.country, c.customer_id, ROUND(SUM(p.amount), 2) AS total_spend
+    FROM customers c
+    JOIN orders o ON o.customer_id = c.customer_id
+    JOIN payments p ON p.order_id = o.order_id
+    WHERE o.status = 'completed'
+    GROUP BY c.country, c.customer_id
+  ),
+  ranked AS (
+    SELECT
+      country,
+      customer_id,
+      total_spend,
+      DENSE_RANK() OVER (PARTITION BY country ORDER BY total_spend DESC) AS spend_rank
+    FROM customer_spend
+  )
+  SELECT country, customer_id, total_spend
+  FROM ranked
+  WHERE spend_rank = 2
+  ORDER BY country;
+  ```
+explanation: >
+  A strong answer recognizes "Nth highest per group" as a ranking problem, not a sorting-and-slicing
+  problem: PARTITION BY country resets the ranking for every country, and DENSE_RANK() OVER
+  (ORDER BY total_spend DESC) numbers customers by distinct spend level. DENSE_RANK() is the deliberate
+  choice over RANK() or ROW_NUMBER() here — DENSE_RANK never skips a number after a tie, so "rank 2"
+  reliably means "the second-highest distinct spend amount" regardless of how many customers share the
+  top spot, which is exactly what "second-highest" means in plain English. A common mistake is using
+  `ORDER BY total_spend DESC LIMIT 1 OFFSET 1` per country (via a correlated subquery or similar): this
+  silently breaks whenever two customers are tied for the top spot, because the row at offset 1 would
+  actually be a second customer tied for FIRST place, not a genuine runner-up.

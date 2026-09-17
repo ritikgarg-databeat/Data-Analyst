@@ -1,0 +1,33 @@
+slug: dynamic-typing-check
+lesson_slug: data-types
+skill: python-fundamentals
+title: Spot the Type Bug
+description: Predict the output of a short snippet that mixes string and numeric types read from a file.
+exercise_type: MULTIPLE_CHOICE
+difficulty: BEGINNER
+points: 10
+tags: [python, beginner]
+prompt: >
+  A teammate wrote this code to sum two order totals pulled from a CSV file:
+
+
+  order_total_1 = "42.50"
+
+  order_total_2 = "10.00"
+
+  combined = order_total_1 + order_total_2
+
+  print(combined)
+
+
+  What does this code print?
+choices:
+  - "52.5"
+  - "42.5010.00"
+  - "TypeError: unsupported operand type(s)"
+correct_answer: "42.5010.00"
+explanation: >
+  Values read from a CSV load as strings, and order_total_1 and order_total_2 were never cast to
+  float. The + operator on two strings concatenates them rather than adding them numerically, so
+  "42.50" + "10.00" produces the string "42.5010.00" — not the sum 52.5, and not an error. The fix is
+  to cast each value with float() before adding: float(order_total_1) + float(order_total_2).

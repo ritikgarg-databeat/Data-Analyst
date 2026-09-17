@@ -1,0 +1,79 @@
+slug: avg
+module_slug: sql-aggregation
+title: AVG
+description: How AVG excludes NULLs from its denominator, and why averages are sensitive to outliers and duplicate rows.
+difficulty: BEGINNER
+estimated_minutes: 10
+display_order: 5
+objectives:
+  - Compute an average with AVG, both across a table and per group
+  - Explain why NULLs are excluded from AVG's denominator rather than counted as 0
+  - Recognize when a single outlier or duplicated row can distort an average
+prerequisites: [sum]
+skills: [sql-fundamentals]
+datasets: [orders-sample]
+tags: [sql, beginner]
+key_takeaways:
+  - "AVG is SUM divided by COUNT(column) — not COUNT(*) — so rows with a NULL in that column are excluded from both the total and the denominator."
+  - A single very large or very small value can pull an average far from what a "typical" row looks like.
+  - A join that accidentally duplicates rows before an AVG will silently skew the result, because the duplicates count extra times in both the sum and the denominator.
+common_mistakes:
+  - "Assuming AVG(order_total) divides by the total row count (COUNT(*)) — it actually divides by the count of non-NULL order_total values, which changes the answer whenever NULLs are present."
+  - Reporting a single AVG as "the typical order" when a few large outlier orders are pulling it well above where most orders actually sit — a median or a distribution view often tells a more honest story.
+blocks:
+  - type: heading
+    text: What AVG actually divides by
+  - type: text
+    body: >
+      AVG(column) is shorthand for SUM(column) divided by COUNT(column) — and critically, that's
+      COUNT(column), not COUNT(*). Rows where the column is NULL are excluded from both the sum and
+      the count, not treated as contributing a 0. That means AVG only ever averages over rows that
+      actually have a value.
+  - type: code
+    language: sql
+    caption: Average order value, completed orders only
+    code: |
+      SELECT AVG(order_total) AS avg_order_value
+      FROM orders
+      WHERE status = 'completed';
+  - type: example
+    title: Why NULLs excluded from the denominator matters
+    body: >
+      Take 4 orders with totals $100, $200, NULL, and NULL. SUM(order_total) is $300. If AVG divided
+      by COUNT(*), the answer would be $300 / 4 = $75. But AVG actually divides by COUNT(order_total),
+      which is 2 (the NULLs don't count), giving $300 / 2 = $150 — the average of just the two orders
+      that actually have a recorded total. Whether that's the number you want depends entirely on
+      whether "orders with no total yet" should logically pull the average down or be left out
+      entirely — AVG always chooses to leave them out.
+    code: |
+      -- SUM(order_total) = 300
+      -- COUNT(order_total) = 2   (NOT COUNT(*), which would be 4)
+      -- AVG(order_total)  = 150
+    language: text
+  - type: heading
+    text: Averages are sensitive to outliers and duplicates
+  - type: text
+    body: >
+      An average collapses an entire distribution into a single number, which means it can be pulled
+      hard by a small number of unusual values. One $10,000 enterprise order mixed in with ninety-nine
+      $40 orders will pull the average well above what a "typical" order looks like. The same
+      distortion happens mechanically — not because of unusual data, but because of a query mistake —
+      when a join accidentally duplicates rows before the AVG runs: each duplicate adds extra weight
+      to both the sum and the count.
+  - type: table
+    headers: ["Situation", "Effect on AVG"]
+    rows:
+      - ["A few NULLs in the column", "Excluded from both sum and denominator — average of only the non-NULL rows"]
+      - ["One extreme outlier value", "Pulls the average toward it, away from the typical row"]
+      - ["Rows accidentally duplicated by a join", "Each duplicate is counted again, skewing the average"]
+  - type: question
+    prompt: A table has 5 rows in a group; 2 have NULL in the column being averaged. What does AVG(column) divide the sum by?
+    choices:
+      - "5, the total row count in the group"
+      - "3, the count of rows where the column is non-NULL"
+      - "2, the count of NULL rows"
+    correct_index: 1
+    explanation: >
+      AVG divides by COUNT(column), which only counts non-NULL values — here, 5 rows minus 2 NULLs
+      leaves 3 non-NULL rows. AVG never divides by the total row count (COUNT(*)) unless every row
+      happens to be non-NULL.

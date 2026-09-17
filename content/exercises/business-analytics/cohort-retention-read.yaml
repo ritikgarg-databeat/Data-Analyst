@@ -1,0 +1,35 @@
+slug: cohort-retention-read
+lesson_slug: customer-retention
+skill: business-metrics
+title: Reading a Cohort Retention Table
+description: Interpret a small cohort retention table and diagnose where a business is losing customers.
+exercise_type: DATA_INTERPRETATION
+difficulty: INTERMEDIATE
+points: 15
+tags: [business-analytics, real-world]
+prompt: >
+  A subscription company tracks retention by signup cohort, measured each month after signup:
+
+  January cohort — Month 0: 100%, Month 1: 70%, Month 2: 65%, Month 3: 63%.
+
+  February cohort — Month 0: 100%, Month 1: 71%, Month 2: 66%, Month 3: 64%.
+
+  March cohort — Month 0: 100%, Month 1: 45%, Month 2: 40%, Month 3: 38%.
+
+  What changed for the March cohort, and what would you investigate first?
+hints:
+  - "Compare where each cohort's biggest single-month drop happens — Month 0→1 versus later months."
+  - "Jan and Feb both lose roughly 30 points in month 1, then flatten out. March loses over 50 points in that same window — that pattern usually points to something specific happening at or right after signup for that cohort, not a general decline."
+solution: >
+  The March cohort's steep early drop (100% to 45% in a single month, versus about 30 points for
+  Jan/Feb) is concentrated almost entirely in the Month 0-to-1 transition, while its later decay rate
+  (40% to 38%) looks normal and in line with the other cohorts. That pattern points to an onboarding or
+  first-experience problem specific to March, not a general worsening of the product — worth checking
+  for a pricing change, an onboarding flow change that shipped around then, a new low-intent
+  acquisition channel driving the March signups, or a product outage in that window.
+explanation: >
+  A strong answer isolates *where* in the cohort's lifecycle the drop is concentrated (early versus
+  late) before proposing causes, and names concrete, checkable hypotheses — an onboarding change,
+  acquisition channel quality, pricing, an incident — rather than a vague "retention got worse." A weak
+  answer just restates that March is lower without diagnosing where the drop happens or what to check
+  next.

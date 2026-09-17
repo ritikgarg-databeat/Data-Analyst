@@ -1,0 +1,99 @@
+slug: biz-sales-pipeline-and-funnel-metrics
+module_slug: sales-analytics
+title: "Sales Pipeline: Reading a Funnel That Moves Over Weeks, Not Clicks"
+description: How a B2B sales pipeline is structured into stages, how to compute stage-to-stage conversion, and why pipeline coverage matters as much as any single conversion rate.
+difficulty: INTERMEDIATE
+estimated_minutes: 13
+display_order: 1
+objectives:
+  - Describe the standard stages of a B2B sales pipeline and what "moving a deal forward" means at each one
+  - Compute stage-to-stage conversion rate and identify where a pipeline is leaking the most value
+  - Explain pipeline coverage ratio and why it matters for forecasting revenue
+skills: [business-analytics, business-metrics, metric-definition]
+tags: [business-analytics, intermediate, funnel]
+key_takeaways:
+  - A sales pipeline is a funnel measured in deals and dollars rather than clicks, but the same funnel-analysis logic applies — track conversion stage-to-stage, not just top-of-funnel volume versus final wins.
+  - "Stage conversion rate = deals that advance to the next stage / deals that entered this stage × 100 — computed separately for every adjacent pair of stages, not just \"leads to close.\""
+  - "Pipeline coverage ratio = total open pipeline value / revenue target for the period — a common rule of thumb targets 3x-4x coverage, since not every open deal will close."
+common_mistakes:
+  - Reporting only the overall lead-to-close rate, which hides which specific stage is actually losing the most deals.
+  - Treating every dollar of "pipeline" as equally likely to close, without weighting by stage (a deal in early discovery is far less certain than one in final negotiation).
+blocks:
+  - type: heading
+    text: A pipeline is a funnel with dollar signs on it
+  - type: text
+    body: >
+      A B2B sales pipeline is structured into stages that represent increasing buyer commitment — a deal
+      doesn't count as "in negotiation" until specific, observable things have happened (a proposal was
+      sent, pricing was discussed). A typical structure moves from **Prospecting** (a potential buyer is
+      identified) through **Qualification** (they have a real need, budget, and authority to buy) to
+      **Proposal** (a specific offer has been made) to **Negotiation** (terms are actively being worked
+      out) to **Closed Won** or **Closed Lost**.
+  - type: formula
+    expression: "Stage Conversion Rate (%) = Deals advancing to next stage / Deals that entered this stage × 100"
+    description: >
+      Computed separately for each adjacent pair of stages. A single "lead-to-close" rate collapses the
+      whole pipeline into one number and can't tell you which specific stage is actually the leak.
+  - type: example
+    title: A hand-built pipeline, stage by stage
+    body: >
+      Consider a sales team that logged 400 new opportunities entering "Qualification" this quarter. Of
+      those, 220 advanced to "Proposal," 130 advanced to "Negotiation," and 78 closed won. Looking only at
+      the overall rate (78 / 400 = 19.5% win rate) hides where the real leak is: the Qualification-to-
+      Proposal step lost 45% of deals (180 of 400), by far the largest single drop of any stage — much
+      larger than the Negotiation-to-Close step, which actually converts reasonably well (78 of 130, 60%).
+  - type: table
+    headers: ["Stage transition", "Entered", "Advanced", "Stage conversion rate"]
+    rows:
+      - ["Qualification -> Proposal", "400", "220", "55.0%"]
+      - ["Proposal -> Negotiation", "220", "130", "59.1%"]
+      - ["Negotiation -> Closed Won", "130", "78", "60.0%"]
+    caption: "Hand-built example figures. The overall 19.5% lead-to-close rate is the product of all three stage rates (0.55 x 0.591 x 0.60 ≈ 0.195), and the weakest single stage (Qualification -> Proposal, 55.0%) deserves the most attention, not necessarily the final close rate."
+  - type: callout
+    variant: important
+    title: The weakest stage, not the final rate, is where to act
+    body: >
+      A sales leader who only tracks "win rate" (78 / 400 = 19.5%) has no way to tell whether the team's
+      biggest problem is qualifying too loosely (letting weak deals into the pipeline in the first place),
+      writing weak proposals, or negotiating poorly. The stage-by-stage breakdown localizes the problem —
+      here, the biggest single leak happens right after qualification, which points investigators toward
+      proposal quality or a mismatch between what gets qualified in and what a proposal can actually close.
+  - type: heading
+    text: Pipeline coverage — is there even enough pipeline to hit the number?
+    level: 3
+  - type: formula
+    expression: "Pipeline Coverage Ratio = Total Open Pipeline Value / Revenue Target for the Period"
+    description: >
+      Not every open deal will close, so pipeline value always has to be discounted by an expected close
+      rate. A commonly used rule of thumb targets roughly 3x-4x coverage — if the team needs $1M in new
+      revenue this quarter, having $3-4M in open pipeline is a reasonable cushion against deals slipping,
+      stalling, or being lost outright.
+  - type: example
+    title: Coverage that looks fine on the surface, isn't
+    body: >
+      A team with a $1M quarterly target and $3.5M in open pipeline looks comfortably covered at 3.5x — until
+      you notice that $2.8M of that pipeline is sitting in early-stage Qualification, where this team's own
+      historical Qualification-to-Close rate is only about 20%. Weighted by stage, the realistic expected
+      value of that pipeline is closer to $700K-$900K, not $3.5M — well short of the $1M target despite the
+      reassuring headline coverage ratio.
+  - type: checklist
+    title: Before reporting pipeline health, confirm
+    items:
+      - Stage-to-stage conversion has been computed for every adjacent pair of stages, not just lead-to-close
+      - Pipeline coverage has been weighted by stage (or by historical stage-level close rates), not treated as one flat dollar total
+      - The specific stage with the lowest conversion rate has been called out as the priority to investigate
+  - type: question
+    prompt: >
+      A sales VP reports "$4M in pipeline against a $1M target — we're in great shape." What's the most
+      important follow-up question?
+    choices:
+      - "None — 4x coverage against target is always sufficient regardless of anything else."
+      - "How is that $4M distributed across pipeline stages, and what does the team's historical close rate look like for deals currently sitting in the earliest stages?"
+      - "What color is the CRM dashboard using to display this number?"
+    correct_index: 1
+    explanation: >
+      A flat pipeline-to-target ratio treats every dollar of pipeline as equally likely to close, which is
+      almost never true. A pipeline concentrated in early stages with historically low close rates from
+      that stage can carry a reassuring headline ratio while still being genuinely at risk of missing
+      target — the stage distribution and stage-level close rates are what turn "$4M in pipeline" into an
+      actual, realistic revenue forecast.

@@ -1,0 +1,176 @@
+slug: date-parsing
+module_slug: pandas-data-cleaning
+title: Date Parsing
+description: "pd.to_datetime() with mixed or ambiguous formats, extracting .dt.year/.dt.month/.dt.day_name(), and diagnosing the parsing failures dates are especially prone to."
+difficulty: BEGINNER
+estimated_minutes: 12
+display_order: 5
+objectives:
+  - "Diagnose and fix pd.to_datetime() failures on mixed or ambiguous date formats"
+  - "Extract calendar parts from a datetime column with the .dt accessor"
+  - "Use dayfirst and errors='coerce' deliberately, rather than by trial and error"
+prerequisites: [string-cleaning]
+skills: [pandas]
+datasets: [ecommerce]
+tags: [python, beginner, real-world]
+key_takeaways:
+  - "pd.to_datetime() expects one consistent format by default, and raises a specific, readable error the moment it hits a string that doesn't match — that error message is diagnostic information, not just a crash to work around."
+  - "format='mixed' tells pandas to infer the format of each value individually, which is exactly what a column stitched together from multiple sources (or multiple date formats) needs."
+  - "DD/MM vs MM/DD is a genuine ambiguity pandas can't resolve on its own for a value like 03/04/2024 — dayfirst=True/False decides which interpretation wins, and getting it wrong silently swaps day and month rather than raising an error."
+  - "Once a column is a real datetime dtype, .dt.year, .dt.month, and .dt.day_name() pull calendar parts out directly — no string parsing required."
+common_mistakes:
+  - "Assuming a to_datetime() failure means the data is unfixable, instead of reading the error message, which usually names the exact value pandas choked on and suggests format='mixed' or an explicit format string."
+  - "Ignoring the ambiguity between DD/MM and MM/DD formats and letting pandas guess — a date like 03/04/2024 parses successfully either way, silently producing the wrong date in one of the two interpretations, with no error to flag it."
+  - "Using errors='coerce' without checking how many dates turned into NaT afterward — a date that's merely invalid (like February 30th) coerces just as silently as one that's genuinely unparseable text."
+blocks:
+  - type: text
+    body: >
+      Dates cause more real-world data-cleaning pain than almost any other type, because "a date" isn't
+      one universal string format — `2024-01-15`, `01/15/2024`, and `March 3, 2024` are all dates, and
+      a file assembled from more than one source often mixes them in the same column.
+  - type: heading
+    text: "A mixed-format column"
+  - type: code
+    language: python
+    code: |
+      import pandas as pd
+
+      mixed_dates = pd.Series(["2024-01-15", "01/15/2024", "2024/01/16", "March 3, 2024"])
+      print(pd.to_datetime(mixed_dates))
+    caption: Four dates, four different formats
+  - type: output
+    body: |
+      ValueError: time data "01/15/2024" doesn't match format "%Y-%m-%d". You might want to try:
+          - passing `format` if your strings have a consistent format;
+          - passing `format='ISO8601'` if your strings are all ISO8601 but not necessarily in exactly the same format;
+          - passing `format='mixed'`, and the format will be inferred for each element individually. You might want to use `dayfirst` alongside this.
+  - type: callout
+    variant: important
+    title: Read the error message — it's telling you the fix
+    body: >
+      pd.to_datetime() infers a format from the first value it sees (here, "2024-01-15" implies
+      "%Y-%m-%d"), then tries to apply that same format to every other value. The moment it hits
+      "01/15/2024," which doesn't match, it stops and names exactly which value broke and why. The
+      suggested fixes in the message are real, usable options — not boilerplate.
+  - type: code
+    language: python
+    code: |
+      print(pd.to_datetime(mixed_dates, format="mixed"))
+    caption: "format='mixed' — infer the format of each value independently instead of assuming they all match"
+  - type: output
+    body: |
+      0   2024-01-15
+      1   2024-01-15
+      2   2024-01-16
+      3   2024-03-03
+      dtype: datetime64[us]
+  - type: heading
+    text: "The DD/MM vs MM/DD trap"
+  - type: code
+    language: python
+    code: |
+      ambiguous = pd.Series(["03/04/2024", "15/04/2024"])
+      print(pd.to_datetime(ambiguous, format="mixed"))
+      print()
+      print(pd.to_datetime(ambiguous, format="mixed", dayfirst=True))
+    caption: "Same two strings, two different — both silently 'successful' — interpretations"
+  - type: output
+    body: |
+      0   2024-03-04
+      1   2024-04-15
+      dtype: datetime64[us]
+
+      0   2024-04-03
+      1   2024-04-15
+      dtype: datetime64[us]
+  - type: callout
+    variant: warning
+    title: "15/04/2024 is unambiguous; 03/04/2024 is not — and pandas won't tell you it guessed"
+    body: >
+      15/04/2024 can only mean day 15, month 04, because there's no 15th month — pandas gets this right
+      either way. But 03/04/2024 is genuinely ambiguous: without dayfirst, pandas reads it as March 4th
+      (US-style MM/DD); with dayfirst=True, it reads the same string as April 3rd. Both run without error
+      — the only way to know which is right is to know which convention your source data actually uses.
+      Always check this deliberately rather than assuming pandas' default guess matches your data.
+  - type: heading
+    text: "Diagnosing failures with errors='coerce'"
+  - type: code
+    language: python
+    code: |
+      bad = pd.Series(["2024-01-15", "not-a-date", "2024-02-30"])
+      print(pd.to_datetime(bad, errors="coerce", format="mixed"))
+    caption: "'not-a-date' is unparseable text; '2024-02-30' is a real string but not a valid date (February has no 30th) — both become NaT"
+  - type: output
+    body: |
+      0   2024-01-15
+      1          NaT
+      2          NaT
+      dtype: datetime64[us]
+  - type: text
+    body: >
+      NaT ("Not a Time") is the datetime equivalent of NaN. As with `pd.to_numeric(errors='coerce')` in
+      the previous lesson, follow this with an `.isna().sum()` check — coercing silently hides which
+      values failed and why unless you go looking.
+  - type: heading
+    text: "The .dt accessor — pulling calendar parts out"
+  - type: code
+    language: python
+    code: |
+      orders = pd.read_csv("data/sample/ecommerce/orders.csv", parse_dates=["order_date"])
+
+      print(orders["order_date"].dt.year.head(3))
+      print(orders["order_date"].dt.month.head(3))
+      print(orders["order_date"].dt.day_name().head(5))
+    caption: "Once a column is a real datetime dtype, .dt unlocks year, month, day name, and more"
+  - type: output
+    body: |
+      0    2025
+      1    2025
+      2    2025
+      Name: order_date, dtype: int32
+
+      0    10
+      1    12
+      2     9
+      Name: order_date, dtype: int32
+
+      0     Saturday
+      1      Tuesday
+      2       Monday
+      3       Monday
+      4    Wednesday
+      Name: order_date, dtype: str
+  - type: code
+    language: python
+    code: |
+      print(orders["order_date"].dt.day_name().value_counts())
+    caption: Which day of the week do orders actually land on?
+  - type: output
+    body: |
+      order_date
+      Monday       609
+      Friday       608
+      Saturday     606
+      Thursday     598
+      Sunday       598
+      Tuesday      597
+      Wednesday    589
+      Name: count, dtype: int64
+  - type: table
+    headers: [".dt accessor", "Returns"]
+    rows:
+      - [".dt.year / .dt.month / .dt.day", "The calendar component, as an integer"]
+      - [".dt.day_name()", "The full weekday name, e.g. 'Monday'"]
+      - [".dt.dayofweek", "Weekday as an integer, 0 = Monday through 6 = Sunday"]
+      - [".dt.quarter", "Calendar quarter, 1 through 4"]
+  - type: question
+    prompt: "pd.to_datetime(dates) fails with 'time data ... doesn't match format %Y-%m-%d'. What's usually the best first fix to try?"
+    choices:
+      - "format='mixed', so pandas infers each value's format individually instead of forcing them all to match the first one"
+      - "errors='ignore', so the failing values are left completely untouched"
+      - "Switch to .astype('datetime64[ns]') instead of pd.to_datetime()"
+    correct_index: 0
+    explanation: >
+      That specific error means pandas inferred one format from an early value and then hit a string in
+      a different format. format='mixed' tells it to infer each value's format independently, which is
+      exactly the fix the error message itself suggests for a genuinely mixed-format column.

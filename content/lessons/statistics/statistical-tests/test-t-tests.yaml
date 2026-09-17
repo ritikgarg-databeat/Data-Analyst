@@ -1,0 +1,89 @@
+slug: test-t-tests
+module_slug: statistical-tests
+title: The Independent Two-Sample T-Test
+description: Comparing the average of a numeric outcome between two groups, worked through with a real (and genuinely inconclusive) business comparison.
+difficulty: ADVANCED
+estimated_minutes: 14
+display_order: 2
+objectives:
+  - Run and interpret an independent two-sample t-test comparing a numeric outcome between two groups.
+  - State the t-test's key assumptions and recognize when a t-test result should not be over-interpreted as "no difference exists."
+skills: [statistics, statistical-reasoning]
+datasets: [ecommerce]
+tags: [statistics, advanced, e-commerce]
+prerequisites: [test-choosing-the-right-test]
+key_takeaways:
+  - "A two-sample t-test compares the means of a numeric outcome between two independent groups, producing a t-statistic and a p-value for the null hypothesis that the two population means are equal."
+  - "Welch's t-test (equal_var=False) doesn't assume the two groups have equal variances, which is the safer default — checking that assumption first (equal variances) is extra work that a slightly conservative Welch's test avoids needing."
+  - A non-significant t-test result means the observed mean difference is small relative to the natural spread and sample sizes involved — it doesn't prove the groups are identical, especially with unequal or modest sample sizes.
+common_mistakes:
+  - Running a standard (Student's) t-test by default without checking whether the two groups' variances look similar — Welch's t-test is the safer default when in doubt, and costs almost nothing when variances are in fact equal.
+  - Concluding "business and consumer customers spend the same" from a non-significant result, when the correct statement is "this data doesn't provide strong evidence they differ."
+interview_questions:
+  - question: What does an independent two-sample t-test actually test, and what would a p-value of 0.34 mean for a comparison of average order value between two customer segments?
+    answer: >
+      It tests the null hypothesis that two independent groups' population means are equal, using
+      the difference between the sample means relative to the pooled standard error as the
+      t-statistic. A p-value of 0.34 means: if the two segments' true average order values were
+      identical, a difference in sample means this large (or larger) would occur about 34% of the
+      time just from sampling variability — nowhere near the conventional 0.05 threshold, so this
+      data doesn't provide strong evidence the two segments actually spend differently.
+blocks:
+  - type: heading
+    text: What the t-test compares
+  - type: text
+    body: >
+      An **independent two-sample t-test** asks whether two groups' averages differ by more than
+      you'd expect from sampling variability alone. It combines the two groups' means, their
+      spreads, and their sizes into a single **t-statistic**, and converts that into a p-value under
+      the null hypothesis that the two population means are equal.
+  - type: formula
+    expression: "t = (mean1 - mean2) / standard_error_of_the_difference"
+    description: A large |t| (relative to the sample sizes) corresponds to a small p-value — a difference too large to easily explain by chance alone.
+  - type: example
+    title: "Business vs. consumer average order value — a real, inconclusive comparison"
+    body: >
+      Merging successful payments to orders to customers, business-segment orders average $1,659.80
+      (n = 1,022) and consumer-segment orders average $1,697.53 (n = 2,419) — consumer looks about
+      $38 higher. A Welch's two-sample t-test gives t = -0.947, p = 0.344.
+  - type: code
+    language: python
+    code: |
+      from scipy import stats
+
+      success = payments[payments.status == "success"]
+      merged = orders.merge(success, on="order_id").merge(customers, on="customer_id")
+      business = merged.loc[merged.customer_segment == "business", "amount"]
+      consumer = merged.loc[merged.customer_segment == "consumer", "amount"]
+
+      t_stat, p_value = stats.ttest_ind(business, consumer, equal_var=False)
+      print(round(t_stat, 3), round(p_value, 4))  # -0.947, 0.3438
+    caption: "p = 0.344 — this $38 gap is well within what ordinary sampling variability would produce even if the two segments truly spent the same on average."
+  - type: callout
+    variant: important
+    title: Read this result as "inconclusive," not "confirmed no difference"
+    body: >
+      The correct business statement is: "this data does not provide strong evidence that business
+      and consumer customers have different average order values." That's a genuinely useful,
+      honest finding — it tells a pricing or segmentation team not to build a strategy on an assumed
+      spending gap between these two segments that this data doesn't actually support. It is
+      different from claiming with confidence that no gap exists at all.
+  - type: text
+    body: >
+      Note the t-test's core assumptions: the two groups are independent of each other (true here —
+      each order belongs to one customer, one segment), the outcome is roughly continuous, and with
+      large enough samples (over 1,000 per group here) the Central Limit Theorem covers most
+      concerns about the underlying order-value distribution not being perfectly normal.
+  - type: question
+    prompt: >
+      A t-test comparing average session duration between two marketing channels returns
+      t = 1.8, p = 0.07. Which conclusion is best supported?
+    choices:
+      - "The two channels definitely have the same average session duration"
+      - "This data leans toward a difference but falls just short of the conventional 0.05 threshold — worth more data or cautious interpretation, not a confident claim either way"
+      - "Since t is positive, one channel is definitely better regardless of the p-value"
+    correct_index: 1
+    explanation: >
+      p = 0.07 is suggestive but doesn't cross the conventional significance threshold — the honest
+      read is "inconclusive, leaning toward a difference," not a confident verdict of "same" or
+      "different" in either direction.

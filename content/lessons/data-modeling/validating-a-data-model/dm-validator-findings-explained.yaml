@@ -1,0 +1,84 @@
+slug: dm-validator-findings-explained
+module_slug: validating-a-data-model
+title: "Reading Validator Findings"
+description: Every finding the Data Modeler's validator can return, by name — what triggers it, its severity, and how to fix it — since these are the exact messages you'll see in the real app.
+difficulty: INTERMEDIATE
+estimated_minutes: 18
+display_order: 1
+objectives:
+  - Name every warning-level finding the Data Modeler's validator can return, state exactly what triggers each one, and describe the fix.
+  - Explain why these checks are deliberately implemented as "warning" severity rather than blocking errors, and which model_kind each check applies to.
+skills: [data-modeling, dimensional-modeling]
+datasets: [ecommerce]
+tags: [validation, data-modeling, intermediate]
+prerequisites: [dm-modeler-walkthrough-relationships-validate]
+key_takeaways:
+  - "Every check in this engine except two (dangling_relationship, and circular_relationship specifically for PIPELINE models) is deliberately severity=\"warning\" — an educational nudge, not a rule that blocks saving the model. The two exceptions represent actual structural breakage, not a modeling opinion."
+  - "missing_primary_key, fact_table_missing_grain, and dimension_looks_like_measure only ever run for DIMENSIONAL models (what the Data Modeler builds) — they don't apply to ARCHITECTURE diagrams or PIPELINE graphs built with the same underlying engine."
+  - "Each finding names the exact table (and often column) responsible, which is enough information to jump straight to the fix without re-reading the whole model."
+common_mistakes:
+  - "Treating any warning as a hard failure that must be resolved before saving. It's an inconsistency worth looking at, not a block — you can save a model with warnings still showing."
+  - "Assuming a check like fact_table_missing_grain applies to every table in the model. It's conditional: it only fires for tables typed FACT specifically, and only inside a DIMENSIONAL model."
+interview_questions:
+  - question: "What's the difference between a warning-severity and an error-severity finding in this validator, and can you name one of each?"
+    answer: >
+      Warning-severity findings (like missing_primary_key or dimension_looks_like_measure) are educational
+      nudges toward good practice — the model is still structurally usable and can be saved. Error-severity
+      findings (dangling_relationship, and circular_relationship specifically inside a PIPELINE graph) represent
+      genuine structural breakage: a relationship pointing at a table that no longer exists, or — for a
+      pipeline specifically — a dependency cycle that could never actually execute.
+blocks:
+  - type: heading
+    text: One engine, one set of real findings
+  - type: text
+    body: >
+      Everything in this lesson is the literal, real behavior of this platform's Data Modeler — clicking
+      Validate on a model runs these exact checks and returns these exact finding codes. Nothing here is
+      simplified or renamed for teaching purposes.
+  - type: table
+    caption: "Every check the validator runs, in the order it runs them"
+    headers: ["code", "severity", "What triggers it", "How to fix it"]
+    rows:
+      - ["duplicate_column", "warning", "The same column name appears more than once on one table", "Rename or remove the duplicate"]
+      - ["foreign_key_missing_target", "warning", "A column is marked is_foreign_key but references_table is empty", "Set references_table (and usually references_column)"]
+      - ["foreign_key_unknown_table", "warning", "references_table doesn't match any table name in the model", "Fix the spelling, or add the missing table"]
+      - ["foreign_key_unknown_column", "warning", "references_table matches, but references_column isn't a real column on it", "Fix the column name"]
+      - ["relationship_unknown_column", "warning", "A drawn relationship's from_column or to_column doesn't exist on that table", "Fix the column name on the relationship"]
+      - ["dangling_relationship", "error", "A relationship points at a from_table_id or to_table_id that no longer exists in the model", "Delete the stale relationship, or restore the table"]
+      - ["circular_relationship", "warning (DIMENSIONAL/ARCHITECTURE) or error (PIPELINE)", "A cycle exists in the relationship graph", "Break the cycle — see the next lesson"]
+      - ["missing_primary_key", "warning, DIMENSIONAL only", "No column on the table is marked is_primary_key", "Mark the table's real unique key as primary"]
+      - ["fact_table_missing_grain", "warning, DIMENSIONAL only", "A FACT table's grain field is empty", "Write a one-sentence grain (e.g. \"1 row = 1 order\")"]
+      - ["dimension_looks_like_measure", "warning, DIMENSIONAL only", "A DIMENSION table has a numeric column whose name matches a measure-like hint (amount/total/revenue/cost/margin/price/count/sum/qty/quantity)", "Consider whether it belongs on a fact table instead, or keep it with the double-count risk in mind"]
+  - type: callout
+    variant: important
+    title: "Warnings are nudges, not rules"
+    body: >
+      Every row above marked "warning" is deliberately educational, not a rule the model must satisfy to be
+      saved — the two rows marked "error" (dangling_relationship always, and circular_relationship specifically
+      inside a PIPELINE graph) are the only findings that represent genuine structural breakage rather than a
+      best-practice nudge.
+  - type: heading
+    text: Three checks only run for DIMENSIONAL models
+  - type: text
+    body: >
+      missing_primary_key, fact_table_missing_grain, and dimension_looks_like_measure only make sense for a
+      dimensional model — an ARCHITECTURE diagram's SOURCE/WAREHOUSE/TRANSFORM/BI nodes were never going to
+      have a "grain" the way a FACT table does, so this engine skips those three checks entirely outside
+      DIMENSIONAL models. The remaining checks (duplicate_column, the foreign_key_* family,
+      relationship_unknown_column, dangling_relationship, circular_relationship) run for every model_kind —
+      DIMENSIONAL, ARCHITECTURE, and PIPELINE alike.
+  - type: question
+    prompt: >
+      A DIMENSION table has a column named total_discount_amount, typed numeric. What finding, if any, should
+      you expect from Validate?
+    choices:
+      - "No finding — dimension_looks_like_measure only checks FACT tables"
+      - "dimension_looks_like_measure (warning) — a numeric column on a DIMENSION table whose name matches measure-like hints such as \"total\" and \"amount\""
+      - "fact_table_missing_grain (warning), since the column name contains \"amount\""
+    correct_index: 1
+    explanation: >
+      dimension_looks_like_measure specifically checks DIMENSION tables (not FACT tables) for a numeric column
+      whose name matches one of the measure-like hints (amount, total, revenue, cost, margin, price, count, sum,
+      qty, quantity) — total_discount_amount matches both "total" and "amount," so this is exactly the case
+      it's designed to flag. fact_table_missing_grain is an unrelated check about a FACT table's grain field
+      being empty.

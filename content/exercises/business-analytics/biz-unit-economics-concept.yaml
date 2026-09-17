@@ -1,0 +1,21 @@
+slug: biz-unit-economics-concept
+skill: business-metrics
+title: What 'Unit Economics' Means
+description: What does it mean to say a company has 'good unit economics'?
+exercise_type: MULTIPLE_CHOICE
+difficulty: INTERMEDIATE
+points: 5
+tags:
+- unit-economics
+prompt: What does it mean to say a company has 'good unit economics'?
+correct_answer: The revenue and cost associated with a single customer or transaction are profitable on their own,
+  independent of scale
+explanation: Unit economics asks whether ONE unit (one customer, one order, one subscription) is profitable in isolation
+  -- a company can have huge total revenue while still losing money on every single customer, which is exactly the
+  situation 'unit economics' analysis is meant to surface.
+choices:
+- The revenue and cost associated with a single customer or transaction are profitable on their own, independent
+  of scale
+- The company's total revenue this year is high
+- The company has a large number of total customers
+- The company's stock price is rising

@@ -1,0 +1,19 @@
+slug: de-ex-elt-transform-before-load-tf
+lesson_slug: de-elt-and-modern-warehouses
+skill: etl-elt
+title: "True or False: ELT Transforms Before Loading"
+description: Test the core ordering distinction between ETL and ELT.
+exercise_type: TRUE_FALSE
+difficulty: BEGINNER
+points: 5
+tags: [etl, elt, data-engineering, beginner]
+prompt: >
+  True or False: In an ELT pipeline, data is transformed and cleaned before it's loaded into the
+  warehouse, the same as in an ETL pipeline.
+choices: ["True", "False"]
+correct_answer: "False"
+explanation: >
+  This is exactly backwards for ELT. ELT loads raw, untransformed data into the warehouse first,
+  and only afterward runs the transformation step, using the warehouse's own compute against the
+  data that's already been loaded. Transforming before loading — on separate infrastructure — is
+  what defines ETL, not ELT.

@@ -1,0 +1,42 @@
+slug: sampling-bias-power-user-survey
+lesson_slug: samp-methods-and-bias
+skill: statistical-reasoning
+dataset: saas-product
+title: "Why 500 Interviews Won't Explain Churn"
+description: Diagnose a sampling frame problem in a churn research plan, and propose a fix grounded in the real subscriber churn numbers.
+exercise_type: DATA_INTERPRETATION
+difficulty: INTERMEDIATE
+points: 15
+tags: [statistics, saas, churn, intermediate]
+prompt: >
+  A product team wants to understand why users churn. Their research plan: send an in-app survey
+  prompt to users currently logged into the product, and interview the first 500 respondents. In the
+  real subscriptions data behind this platform, 72 of 212 ever-subscribed users (about 34%) have
+  churned. Explain precisely what's wrong with this research plan, whether 500 responses is enough
+  to fix it, and what you'd propose instead.
+hints:
+  - "Ask specifically who could never appear in this sample, given how it's collected — not just whether the sample is 'big enough.'"
+  - "Distinguish between a fix that changes how many people are sampled and a fix that changes who is eligible to be sampled in the first place."
+solution: >
+  The core problem is the sampling frame, not the sample size: an in-app prompt shown to currently
+  logged-in users can only ever be seen by users who are still using the product. Churned users — by
+  definition no longer logging in — have zero chance of ever appearing in this sample. Since the real
+  churn rate here is about 34% (72 of 212 ever-subscribed users), this plan structurally excludes
+  roughly a third of the exact population the research question is about.
+  Increasing the response count from 500 to 5,000 would not fix this: it would still be 5,000
+  responses drawn entirely from currently-active users, still containing zero churned users' actual
+  reasons for leaving. More data from the same flawed collection mechanism just produces a more
+  confident, more precisely wrong picture of "why active users are satisfied" — a different (and
+  less useful) question than "why do users churn."
+  A better approach reaches users through a channel that doesn't depend on current product usage:
+  email or SMS outreach to churned users specifically (using their last known contact info from the
+  `users`/`subscriptions` records), ideally with an incentive, asking about their reason for leaving.
+  This could be run as its own study or, better, stratified to interview a mix of both active and
+  churned users so their answers can be compared directly, rather than only ever hearing from the
+  group least likely to have complaints.
+explanation: >
+  A strong answer identifies the sampling frame (who could ever be reached) as the specific failure,
+  explicitly states that more responses from the same channel doesn't fix it, and proposes a concrete
+  alternative that reaches the excluded group (churned users) through a channel independent of
+  current product usage. A weaker answer says only "the sample is biased" without explaining why more
+  data doesn't help or without proposing a workable fix.

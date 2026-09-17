@@ -1,0 +1,70 @@
+slug: pa-py-mrr-active-vs-churned
+lesson_slug: pa-churn-definitions
+skill: pandas
+dataset: saas-product
+title: Active vs. Churned MRR in pandas
+description: Compute total active MRR, churned MRR, and the churned share of total contracted MRR.
+exercise_type: PYTHON
+difficulty: INTERMEDIATE
+points: 15
+tags: [python, product, saas, churn, finance, intermediate]
+business_context: >
+  Finance wants a dollar-weighted churn view (not just an account count) confirmed in pandas before
+  it goes into a revenue-risk summary.
+prompt: >
+  Using the `subscriptions` DataFrame (columns include `mrr` and `status`), store a one-row DataFrame
+  in a variable named `result` with columns `active_mrr` (sum of `mrr` where status is 'active'),
+  `churned_mrr` (sum of `mrr` where status is 'churned'), and `churned_mrr_share` (churned_mrr
+  divided by the sum of active_mrr and churned_mrr, rounded to 4 decimals).
+python_datasets: [subscriptions]
+python_starter_code: |
+  # subscriptions is already loaded as a DataFrame.
+  subscriptions.groupby("status")["mrr"].sum()
+python_solution_code: |
+  active_mrr = float(subscriptions.loc[subscriptions["status"] == "active", "mrr"].sum())
+  churned_mrr = float(subscriptions.loc[subscriptions["status"] == "churned", "mrr"].sum())
+  churned_mrr_share = round(churned_mrr / (active_mrr + churned_mrr), 4)
+
+  result = pd.DataFrame([{
+      "active_mrr": active_mrr,
+      "churned_mrr": churned_mrr,
+      "churned_mrr_share": churned_mrr_share,
+  }])
+python_result_variable: result
+python_row_order_matters: false
+python_numeric_tolerance: 0.01
+python_hidden_tests:
+  - name: churned_mrr_share matches an independent recomputation via subscriptions["mrr"].sum()
+    code: |
+      independent_share = round(
+          subscriptions.loc[subscriptions["status"] == "churned", "mrr"].sum()
+          / subscriptions["mrr"].sum(),
+          4,
+      )
+      assert abs(result.loc[0, "churned_mrr_share"] - independent_share) < 0.001, (
+          f"Expected churned_mrr_share to be close to {independent_share}, "
+          f"got {result.loc[0, 'churned_mrr_share']}."
+      )
+hints:
+  - "Filter subscriptions by status with boolean indexing (subscriptions.loc[subscriptions['status'] == 'active', 'mrr']) and sum the mrr column for each of the two statuses separately."
+  - "The denominator for churned_mrr_share is the sum of active_mrr and churned_mrr — equivalently, subscriptions['mrr'].sum() over the whole table, since every row is exactly one status or the other."
+solution: |
+  ```python
+  active_mrr = float(subscriptions.loc[subscriptions["status"] == "active", "mrr"].sum())
+  churned_mrr = float(subscriptions.loc[subscriptions["status"] == "churned", "mrr"].sum())
+  churned_mrr_share = round(churned_mrr / (active_mrr + churned_mrr), 4)
+  result = pd.DataFrame([{
+      "active_mrr": active_mrr, "churned_mrr": churned_mrr, "churned_mrr_share": churned_mrr_share,
+  }])
+  ```
+  Run against the real data: active_mrr=$11,600.0, churned_mrr=$6,538.0, churned_mrr_share=0.3605
+  (36.05%) — higher than the 33.96% logo churn rate, since churn skews slightly toward the
+  higher-priced enterprise tier.
+explanation: >
+  The two filters (`status == 'active'` and `status == 'churned'`) partition the table exactly —
+  every subscription is one or the other — so `active_mrr + churned_mrr` always equals
+  `subscriptions['mrr'].sum()`, which is a useful invariant to check your own work against. A common
+  mistake is computing `churned_mrr_share` as `churned_mrr / active_mrr` instead of `churned_mrr /
+  (active_mrr + churned_mrr)` — dividing by only the active base answers a different question ("how
+  big is churned MRR relative to what's left") than "what share of all contracted MRR has churned,"
+  which is what this exercise (and the business question behind it) actually asks for.

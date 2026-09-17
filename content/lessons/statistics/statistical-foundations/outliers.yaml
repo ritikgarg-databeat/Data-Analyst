@@ -1,0 +1,90 @@
+slug: outliers
+module_slug: statistical-foundations
+title: Outliers
+description: Detection heuristics for extreme values — the IQR rule and the z-score rule — and how to decide whether to keep, exclude, or investigate one.
+difficulty: BEGINNER
+estimated_minutes: 15
+display_order: 7
+objectives:
+  - Apply the IQR rule and the z-score rule to flag candidate outliers in a dataset
+  - Decide, given business context, whether a flagged outlier should be excluded, investigated, or kept
+prerequisites: [distributions]
+skills: [statistics, exploratory-data-analysis]
+tags: [statistics, beginner, real-world]
+key_takeaways:
+  - Outlier-detection heuristics (IQR, z-score) tell you where to look, not what to do — the decision to exclude, keep, or investigate always requires business context.
+  - The IQR rule doesn't assume a normal distribution, which makes it a safer default for the skewed metrics (revenue, order value, latency) analysts see most often.
+  - Z-scores can be self-defeating on heavily outlier-contaminated data, since the outlier itself inflates the mean and standard deviation used to compute it.
+common_mistakes:
+  - Automatically deleting every flagged outlier without investigating why it's extreme — some outliers (fraud, a major customer, a system failure) are the most important rows in the dataset.
+  - Using the z-score rule on data that already contains an extreme outlier — that single point can inflate the standard deviation enough to make itself, and other real outliers, look "normal" by z-score.
+blocks:
+  - type: heading
+    text: Finding extreme values — and deciding what to do with them
+  - type: text
+    body: >
+      An **outlier** is a value that lies unusually far from the rest of the data. Two heuristics cover
+      most practical cases: the **IQR rule**, which works off percentiles and doesn't assume any
+      particular distribution shape, and the **z-score rule**, which works off the mean and standard
+      deviation and assumes roughly normal data.
+  - type: heading
+    text: The IQR rule
+    level: 3
+  - type: formula
+    expression: "lower bound = Q1 - 1.5 * IQR; upper bound = Q3 + 1.5 * IQR"
+    description: >
+      IQR (interquartile range) = Q3 - Q1, the span between the 75th and 25th percentiles. Values
+      outside the bounds are flagged as candidate outliers.
+  - type: example
+    title: Applying the IQR rule to order values
+    body: >
+      Suppose order values have Q1 = $22 and Q3 = $48, so IQR = $26. The upper bound is 48 + (1.5 x 26)
+      = $87. Any order above $87 gets flagged — including the $900 order from earlier lessons, which is
+      comfortably beyond it. The lower bound works out negative here, which just means no order is low
+      enough to be flagged on that side; that's expected for data that can't go below zero.
+  - type: heading
+    text: The z-score rule
+    level: 3
+  - type: formula
+    expression: "z = (x - mean) / standard deviation"
+    description: A common convention flags any value with |z| > 3 as a candidate outlier.
+  - type: code
+    language: sql
+    code: |
+      WITH stats AS (
+        SELECT AVG(order_total) AS mean_total, STDDEV_SAMP(order_total) AS sd_total
+        FROM orders
+      )
+      SELECT o.order_id, o.order_total,
+             (o.order_total - s.mean_total) / s.sd_total AS z_score
+      FROM orders o
+      CROSS JOIN stats s
+      WHERE ABS((o.order_total - s.mean_total) / s.sd_total) > 3;
+    caption: Flagging rows more than 3 standard deviations from the mean.
+  - type: comparison
+    title: IQR rule vs. z-score rule
+    columns: ["Method", "Best when", "Weakness"]
+    rows:
+      - ["IQR rule", "Skewed or unknown-shape data (doesn't assume normality)", "The 1.5x multiplier is a convention, not a law"]
+      - ["Z-score rule", "Roughly normal data", "The mean and standard deviation it depends on are themselves distorted by the outliers you're trying to find"]
+  - type: callout
+    variant: important
+    title: "Flagged does not mean discard"
+    body: >
+      A flagged value could be a data-entry error worth excluding, a genuinely rare but real event
+      (a legitimate bulk order) worth keeping or analyzing separately, or a sign of a broken upstream
+      pipeline worth fixing at the source. The heuristic only tells you where to look next.
+  - type: question
+    prompt: >
+      An IQR-based check flags a single $4,200 order as an outlier in a dataset where most orders are
+      $20-$80. What should you do first?
+    choices:
+      - Immediately delete the row so it doesn't distort future analysis
+      - Investigate the order (e.g., check whether it's a legitimate bulk purchase or a data-entry error) before deciding whether to exclude it
+      - Ignore the flag, since IQR is only a rule of thumb
+    correct_index: 1
+    explanation: >
+      Outlier-detection heuristics tell you where to look, not what to conclude. Investigating first —
+      checking the order against customer history, order status, and related records — lets you decide
+      whether to exclude, keep, or fix the row based on what actually happened, rather than a blanket
+      rule in either direction.

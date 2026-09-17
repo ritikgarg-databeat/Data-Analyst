@@ -1,0 +1,114 @@
+slug: numerical-operations
+module_slug: numpy-for-analytics
+title: Rounding, np.where, and NaN
+description: np.round for rounding, np.where as a vectorized if/else, and np.nan — how it silently propagates through arithmetic, and why that matters.
+difficulty: BEGINNER
+estimated_minutes: 11
+display_order: 10
+objectives:
+  - Round array values with np.round
+  - Use np.where as a vectorized if/else across an entire array
+  - Explain how np.nan propagates through arithmetic, and why that's a silent trap worth watching for
+prerequisites: [random-numbers]
+skills: [pandas]
+datasets: []
+tags: [python, beginner, foundations]
+key_takeaways:
+  - "np.round(arr, decimals) rounds every element of an array at once, the vectorized equivalent of Python's built-in round() applied one value at a time."
+  - "np.where(condition, value_if_true, value_if_false) is a vectorized if/else — it evaluates the condition element-wise and picks between the two value arrays (or scalars) position by position, with no loop written."
+  - "np.nan silently propagates through arithmetic — 5 + np.nan is nan, not an error, and even nan == nan evaluates to False. Any aggregate touching even one NaN (like .sum() or .mean()) returns NaN unless you use the NaN-aware variant (np.nansum(), np.nanmean()) or filter NaNs out first."
+common_mistakes:
+  - "Checking for a NaN value with == (value == np.nan) — this always evaluates to False, even when value actually is NaN, because NaN is defined to never equal anything, including itself. Use np.isnan(value) instead."
+  - "Calling .sum() or .mean() on an array that contains NaN and being confused why the whole result is NaN — a single missing value silently poisons the entire aggregate unless you use np.nansum()/np.nanmean() or filter the NaNs out first."
+  - "Expecting np.round to behave like decimal rounding taught in school for every value — floating-point representation means occasional edge cases round differently than expected; this is a property of binary floating-point math generally, not a NumPy bug."
+blocks:
+  - type: text
+    body: >
+      A few more vectorized building blocks round out the NumPy essentials: rounding whole arrays at
+      once, picking between two outcomes per element without a loop, and handling `np.nan` — a special
+      "missing value" marker you'll see constantly once you reach pandas, since pandas uses it (and
+      NumPy's machinery) to represent missing data.
+  - type: heading
+    text: "np.round() — rounding a whole array"
+  - type: code
+    language: python
+    code: |
+      import numpy as np
+
+      prices = np.array([19.234, 8.567, 100.891])
+
+      np.round(prices, 2)   # array([ 19.23,   8.57, 100.89])
+      np.round(prices, 1)   # array([ 19.2,   8.6, 100.9])
+      np.round(prices)      # array([ 19.,   9., 101.])   — 0 decimals by default
+    caption: "np.round(arr, decimals) rounds every element at once — the vectorized equivalent of round()"
+  - type: heading
+    text: "np.where() — a vectorized if/else"
+  - type: text
+    body: >
+      `np.where(condition, value_if_true, value_if_false)` evaluates the condition element-wise and,
+      for each position, picks from `value_if_true` or `value_if_false` — the array equivalent of
+      writing `value_if_true if condition else value_if_false` inside a loop, but vectorized across the
+      whole array at once.
+  - type: code
+    language: python
+    code: |
+      scores = np.array([45, 82, 91, 33, 67])
+
+      labels = np.where(scores >= 60, "pass", "fail")
+      print(labels)   # ['fail' 'pass' 'pass' 'fail' 'pass']
+    caption: "np.where(condition, if_true, if_false) — one call replaces a loop with an if/else inside it"
+  - type: heading
+    text: "np.nan — a value that silently breaks arithmetic"
+  - type: text
+    body: >
+      `np.nan` ("Not a Number") represents a missing or undefined numeric value. Its defining, and most
+      dangerous, property: it **propagates silently**. Any arithmetic operation touching a NaN produces
+      NaN back — no error, no warning, just a NaN quietly spreading through whatever calculation includes
+      it.
+  - type: code
+    language: python
+    code: |
+      5 + np.nan          # nan  — no error, just another nan
+      np.nan == np.nan    # False — NaN is defined to never equal anything, not even itself
+
+      a = np.array([1.0, 2.0, np.nan, 4.0])
+      a.sum()              # nan  — one NaN poisons the entire sum
+    caption: "Verified — NaN propagates through +, and even NaN == NaN is False, not True"
+  - type: callout
+    variant: warning
+    title: "Never check for NaN with =="
+    body: >
+      Because NaN never equals anything (including itself), `value == np.nan` always evaluates to
+      `False` — even when `value` genuinely is NaN. Use `np.isnan(value)` (or, on a whole array,
+      `np.isnan(arr)`, which returns a boolean mask) instead.
+  - type: code
+    language: python
+    code: |
+      a = np.array([1.0, 2.0, np.nan, 4.0])
+
+      np.isnan(a)     # array([False, False,  True, False])  — correctly finds the NaN
+      np.nansum(a)    # 7.0   — the NaN-aware sum, ignoring NaN instead of propagating it
+    caption: "np.isnan() correctly detects NaN; the nan-prefixed functions (np.nansum, np.nanmean, ...) skip NaNs instead of propagating them"
+  - type: heading
+    text: "Bridge to pandas: this all transfers directly"
+  - type: text
+    body: >
+      pandas is built directly on top of NumPy arrays — a pandas Series is, underneath, mostly a NumPy
+      array with row labels attached. Missing values in a pandas DataFrame are frequently represented
+      with exactly this same `np.nan`, and pandas' own aggregation methods have the same "one NaN can
+      silently poison a result" behavior (with their own set of NaN-handling options) that you've just
+      seen here. Everything in this NumPy module — vectorized operations, broadcasting, aggregation
+      with axis, boolean masking, and NaN handling — transfers directly once you start working with
+      DataFrames.
+  - type: question
+    prompt: "a is a NumPy array containing one np.nan among other numbers. What does a.sum() return, and why?"
+    choices:
+      - "The sum of the non-NaN values only, since NumPy automatically skips missing values"
+      - "nan — a single NaN propagates through the sum, silently turning the whole result into NaN"
+      - "A ValueError, since NumPy can't sum an array containing a non-numeric value"
+    correct_index: 1
+    explanation: >
+      np.nan is a valid float value, not a non-numeric type error, so .sum() doesn't raise — but any
+      arithmetic operation touching NaN produces NaN, and that propagates through the entire running
+      sum, so the final result is nan regardless of what the other values were. Getting a sum that
+      ignores NaN requires the NaN-aware variant, np.nansum(), instead of the plain .sum().

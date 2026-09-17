@@ -1,0 +1,111 @@
+slug: what-is-a-dataset
+module_slug: dataset-fundamentals
+title: "What Is a Dataset, Actually?"
+description: What separates "a dataset" from data in general, where datasets come from in real analyst work, and why the distinction matters before you profile or analyze one.
+difficulty: BEGINNER
+estimated_minutes: 8
+display_order: 1
+objectives:
+  - Define a dataset as a structured, bounded collection of records with a consistent shape
+  - Distinguish "data" in general from a specific dataset you can load, profile, and query
+  - Name the common sources analysts pull datasets from, and how that origin affects how much you trust it
+skills: [exploratory-data-analysis]
+datasets: [ecommerce]
+tags: [foundations, beginner]
+key_takeaways:
+  - "A dataset is not just 'some data' — it's a structured, bounded collection of records that share a consistent shape: the same columns, meaning roughly the same thing, row after row. 'Our company's data' is too vague to load anywhere; 'the orders table, 4,205 rows, one row per order' is a dataset."
+  - "The same underlying business fact can arrive as several different datasets depending on grain and source — a single order shows up as one row in `orders`, one-or-more rows in `order_items`, and zero-or-more rows in `payments`. Knowing which dataset you're looking at is the first fact you need, before any analysis."
+  - "Where a dataset came from — an internal database export, a vendor file, a public source, an API pull — changes how much you should trust it by default, and what kind of quality issues to expect."
+  - "This platform's own ecommerce dataset (8 related tables: categories, products, customers, marketing_campaigns, sessions, orders, order_items, payments) is the running example this whole module and the next one use — get comfortable with its shape now, because you'll be back in it constantly."
+common_mistakes:
+  - "Treating 'dataset' and 'data' as interchangeable — 'I looked at the data' is not a precise enough statement to know what was actually examined; 'I looked at the customers table, 1,500 rows' is."
+  - "Assuming a dataset means what its column names suggest without checking — a column called `revenue` might be gross, net, or before-refunds depending entirely on how the source system defined it, and that definition doesn't travel with the column name."
+  - "Trusting a dataset's numbers equally regardless of source — an internal, actively-monitored production export deserves a different starting level of trust than a one-off CSV someone emailed you three years ago."
+practical_applications:
+  - "The first thing to establish when someone hands you 'the data' for a request: which specific dataset(s), how many rows, what's the source, and when was it last refreshed."
+  - "Recognizing when a business question actually needs two or three different datasets joined together (e.g. 'revenue by campaign' needs orders, order_items, and marketing_campaigns) rather than assuming one table has everything."
+interview_questions:
+  - question: "How would you define a 'dataset' to someone non-technical?"
+    answer: "A dataset is a structured collection of records — think of it like a specific spreadsheet or table, not 'the company's data' in general. Every row follows the same shape (the same set of columns), and each row represents one instance of some real-world thing: one order, one customer, one session. The moment you can say 'this dataset has N rows and these columns,' you're talking about an actual dataset rather than data in the abstract."
+resources:
+  - title: "W3C — Data on the Web Best Practices: Dataset Usage"
+    url: "https://www.w3.org/TR/dwbp/"
+blocks:
+  - type: text
+    body: >
+      Every lesson so far in this platform has quietly assumed you already know what a "dataset" is. This
+      one makes it explicit, because the next several modules — profiling, quality scoring, EDA, and
+      chart building — all depend on a precise idea of what you're actually looking at, not a vague sense
+      of "the data."
+  - type: heading
+    text: "A working definition"
+  - type: callout
+    variant: important
+    title: "A dataset is a structured, bounded collection of records with a consistent shape"
+    body: >
+      Every row represents one instance of the same kind of thing — one order, one customer, one session —
+      and every row has the same columns, meaning roughly the same thing across rows. "Bounded" matters
+      too: a dataset has a specific row count and a specific point in time (or refresh cadence) it
+      reflects, not an open-ended, ever-changing notion of "our data."
+  - type: text
+    body: >
+      Compare "our company's data" (not a dataset — too vague to load, query, or profile) to "the `orders`
+      table in the ecommerce database, 4,205 rows, one row per order, last refreshed today" (a dataset —
+      specific, bounded, and ready to work with). The second version is the only one you can actually put
+      in front of a profiling tool.
+  - type: heading
+    text: "One business fact, several different datasets"
+  - type: text
+    body: >
+      A single real-world order doesn't live in just one place. It shows up differently depending on which
+      dataset you're looking at — and mixing these up is one of the most common sources of a wrong
+      analysis before any actual math goes wrong:
+  - type: table
+    headers: ["Dataset", "What one row represents for that same order", "Row count in this course's data"]
+    rows:
+      - ["orders", "The order itself — one row per order, however many items it contains", "4,205 rows"]
+      - ["order_items", "One line item within an order — a single order can produce several rows here", "12,627 rows"]
+      - ["payments", "One payment attempt against an order — most orders have one, some (pending/cancelled) have none", "3,699 rows"]
+  - type: text
+    body: >
+      Notice order_items has nearly 3x as many rows as orders — because a typical order contains multiple
+      line items — and payments has fewer rows than orders, because not every order (a pending or
+      cancelled one) has a completed payment behind it. None of these three datasets is "wrong." They're
+      just answering "what's one row?" differently. The next lesson, on grain, makes this the central
+      question you ask before touching any numbers.
+  - type: heading
+    text: "Where datasets come from, and why it changes how much you trust them"
+  - type: table
+    headers: ["Source", "Typical example", "Default trust level"]
+    rows:
+      - ["Internal database export / warehouse table", "Your company's orders table, refreshed nightly", "High, but still verify — schemas drift, ETL jobs break"]
+      - ["File someone sends you", "A finance analyst's Excel export, emailed once", "Medium — no guarantee it's current or complete"]
+      - ["Public / open dataset", "A government economic indicators CSV, a Kaggle competition file", "Variable — check documentation and last-updated date"]
+      - ["API pull", "A marketing platform's campaign performance endpoint", "Medium-high — usually current, but rate limits and pagination bugs can silently truncate it"]
+  - type: callout
+    variant: tip
+    title: "The source changes what you check first, not whether you check at all"
+    body: >
+      A polished internal export can still have a broken pipeline behind it. A messy public CSV can still
+      be perfectly accurate. Source is a starting prior on trust, not a substitute for actually profiling
+      the dataset — which is exactly what the next module in this domain covers in depth.
+  - type: heading
+    text: "The dataset you'll use throughout this module"
+  - type: text
+    body: >
+      This module and the next one both use this platform's own ecommerce dataset as the running example:
+      8 related tables — categories, products, customers, marketing_campaigns, sessions, orders,
+      order_items, and payments — covering a synthetic but realistic online store. You'll see it imported,
+      profiled, quality-scored, and eventually visualized, using the same real numbers throughout so the
+      lessons build on each other instead of starting over with a new example every time.
+  - type: question
+    prompt: "Which of these is the most precise, load-and-analyze-ready description of a dataset?"
+    choices:
+      - "The `payments` table: 3,699 rows, one row per payment attempt, refreshed today"
+      - "Our payment data"
+      - "Everything related to money in the company's systems"
+    correct_index: 0
+    explanation: >
+      A dataset needs a specific identity: which table, how many rows, what one row represents, and (ideally)
+      how current it is. The other two options describe a general subject area, not something you could
+      actually load into a profiler or a query engine.

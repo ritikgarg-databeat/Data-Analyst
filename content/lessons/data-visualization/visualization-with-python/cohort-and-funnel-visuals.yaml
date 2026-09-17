@@ -1,0 +1,236 @@
+slug: cohort-and-funnel-visuals
+module_slug: visualization-with-python
+title: "Cohort Retention Heatmaps and Funnel Charts"
+description: Two specialized business charts, each a full worked example — a cohort retention heatmap (signup cohort x periods since signup) and a funnel chart for stage-by-stage conversion drop-off.
+difficulty: BEGINNER
+estimated_minutes: 13
+display_order: 9
+objectives:
+  - Build a cohort retention heatmap from raw customer and order data, with signup cohort as rows and periods since signup as columns
+  - Build a funnel chart with plotly's go.Funnel to show stage-by-stage drop-off, and read percentage-of-previous-stage versus percentage-of-total correctly
+  - Explain why a heatmap and a funnel chart are the right shape for these two specific business questions, tying back to the chart-selection framework from lesson 1
+prerequisites: [time-series-visualization]
+skills: [data-visualization]
+datasets: [ecommerce]
+tags: [python, beginner, foundations]
+key_takeaways:
+  - "A cohort retention heatmap is a specific application of lesson 7's 'two categorical dimensions, one numeric value' pattern: rows are signup cohort, columns are periods since signup, color is a retention rate — it's the natural chart for 'do customers who signed up together behave similarly over time,' which a table of the same numbers technically contains but nobody can scan for patterns."
+  - "A funnel chart's job is showing stage-by-stage drop-off in a strictly nested, ordered process — this dataset's real order lifecycle (placed → not cancelled → not pending → completed) drops from 4,205 to 3,441 orders, a real 81.8% overall completion rate, with the biggest single-stage loss (9.0 percentage points) happening at the first step, cancellation."
+  - "A funnel's percentages can be read two ways — 'percent of the immediately previous stage' (e.g. 96.7% of not-cancelled orders were also not-pending) and 'percent of the very first stage' (88.0% of all placed orders were not-pending) — and mixing them up produces a materially wrong read of where the real drop-off is happening."
+  - "Real retention data, run on this dataset, doesn't show a textbook smooth decay curve — it hovers noisily in the 3%-24% range across periods with no obvious pattern, because order timing in this sample data isn't behaviorally tied to signup timing. A heatmap surfaces that honestly; forcing a smoother narrative onto noisy real data would be the mistake, not the noise itself."
+common_mistakes:
+  - "Building a cohort table only as numbers and skipping the heatmap — with two dozen cohorts and a dozen periods, a text table of percentages is nearly impossible to scan for patterns, which is exactly the density problem heatmaps solve."
+  - "Reading a funnel chart's per-stage percentage as if it were percentage-of-total, which overstates how much is left near the end of a long funnel and understates the true cumulative drop-off from the very first stage."
+  - "Treating every multi-stage business process as a valid funnel even when the stages aren't actually nested and sequential — a funnel implies each stage is a subset of the one before it; forcing unrelated categories into a funnel shape misrepresents the data the same way connecting unordered categories with a line chart does."
+practical_applications:
+  - "Building a signup-cohort retention heatmap to see whether newer cohorts are retaining better or worse than older ones, and whether any single cohort stands out as unusual."
+  - "Visualizing an order or checkout funnel (placed → fulfilled → completed) to find the single stage responsible for the largest percentage-point drop, as a starting point for where to focus process improvements."
+  - "Choosing a funnel chart specifically for strictly nested, sequential stages, and a different chart (like the heatmap or box plot from earlier lessons) when a comparison doesn't actually have that nested structure."
+interview_questions:
+  - question: "Why is a heatmap a better choice than a table of numbers for cohort retention analysis?"
+    answer: "Cohort retention data is naturally two-dimensional — cohort by period — and often has a dozen or more cohorts and periods, meaning dozens or hundreds of numbers. A table of that size is technically complete but very hard to scan for patterns like 'which cohorts are retaining worse' or 'is there a cliff after period 0.' A heatmap encodes the same numbers as color, which the eye can scan for the darkest or lightest regions almost instantly, while keeping the exact numbers available as annotations for anyone who needs the precise value in a given cell."
+  - question: "A funnel shows 4,205 orders placed and 3,441 completed, with intermediate stages in between. How would you identify which stage is responsible for the most drop-off, and how would you avoid a common mistake here?"
+    answer: "I'd compute the percentage lost at each individual stage relative to the stage immediately before it, not relative to the very first stage — otherwise a stage near the end of a long funnel looks artificially worse than it is, because its 'percent of total' already carries all the losses from earlier stages. In this dataset's order lifecycle funnel, the biggest single-stage loss is actually the first one — cancellations take placed orders from 4,205 down to 3,826, a 9.0 percentage-point drop — even though the overall completion rate (81.8% of all orders placed) also reflects the two smaller losses after it."
+resources:
+  - title: "Plotly documentation — Funnel charts"
+    url: "https://plotly.com/python/funnel-charts/"
+  - title: "Seaborn documentation — heatmap()"
+    url: "https://seaborn.pydata.org/generated/seaborn.heatmap.html"
+blocks:
+  - type: text
+    body: >
+      This closing lesson combines two ideas from earlier in the module into two specific, commonly
+      requested business charts: a cohort retention heatmap (the heatmap lesson's "two categorical
+      dimensions" pattern, applied to signup behavior over time) and a funnel chart (a new chart type,
+      purpose-built for strictly nested, sequential drop-off). Both get a full worked example against real
+      data.
+  - type: heading
+    text: "Worked example 1: cohort retention heatmap"
+  - type: text
+    body: >
+      The question: **do customers who signed up in the same month keep ordering at similar rates in the
+      months after signup?** Rows will be signup cohort (the month a customer signed up), columns will be
+      "periods since signup" (0 = signup month, 1 = one month later, and so on), and each cell will be the
+      percentage of that cohort who placed at least one order in that period.
+  - type: code
+    language: python
+    code: |
+      import pandas as pd
+
+      customers = pd.read_csv("data/sample/ecommerce/customers.csv")
+      orders = pd.read_csv("data/sample/ecommerce/orders.csv")
+      customers["signup_date"] = pd.to_datetime(customers["signup_date"])
+      orders["order_date"] = pd.to_datetime(orders["order_date"])
+
+      customers["cohort_month"] = customers["signup_date"].dt.to_period("M")
+      merged = orders.merge(customers[["customer_id", "cohort_month"]], on="customer_id", how="inner")
+      merged["order_period"] = merged["order_date"].dt.to_period("M")
+      merged["period_number"] = (merged["order_period"] - merged["cohort_month"]).apply(lambda diff: diff.n)
+
+      cohort_sizes = customers.groupby("cohort_month")["customer_id"].nunique()
+      active = (
+          merged[merged["period_number"] >= 0]
+          .groupby(["cohort_month", "period_number"])["customer_id"]
+          .nunique()
+          .reset_index()
+      )
+      retention = active.pivot(index="cohort_month", columns="period_number", values="customer_id")
+      retention_pct = retention.divide(cohort_sizes, axis=0) * 100
+
+      print(cohort_sizes.head(6))
+      print(retention_pct.iloc[:6, :6].round(1))
+    caption: One row per (cohort, period) with the % of that cohort active in that period, from raw customer/order data
+  - type: output
+    body: |
+      cohort_month
+      2024-01    54
+      2024-02    66
+      2024-03    59
+      2024-04    64
+      2024-05    79
+      2024-06    75
+
+      period_number    0     1     2     3     4     5
+      2024-01         5.6   9.3  14.8   3.7  14.8  11.1
+      2024-02         9.1  13.6  10.6  16.7  13.6   7.6
+      2024-03         6.8  13.6  15.3  11.9  13.6  10.2
+      2024-04         3.1  17.2  12.5   7.8   9.4  10.9
+      2024-05         2.5  11.4  11.4  10.1  16.5   6.3
+      2024-06         8.0  24.0  17.3  18.7  20.0  13.3
+    caption: "Real, computed retention percentages — first 6 cohorts, first 6 periods"
+  - type: code
+    language: python
+    code: |
+      import seaborn as sns
+      import matplotlib.pyplot as plt
+
+      fig, ax = plt.subplots(figsize=(11, 6))
+      sns.heatmap(retention_pct, annot=True, fmt=".0f", cmap="YlGn", ax=ax)
+      ax.set_xlabel("Periods since signup")
+      ax.set_ylabel("Signup cohort")
+      ax.set_title("Retention rate (%) by signup cohort and period")
+    caption: "YlGn — a sequential colormap, since retention % has no meaningful zero-centered midpoint, just 'more retained' vs. 'less'"
+  - type: callout
+    variant: important
+    title: "Real data doesn't always show the textbook cliff"
+    body: >
+      A classic retention heatmap usually shows a steep drop after period 0 that levels off. This data
+      doesn't show that pattern clearly — period-0 retention (5.6%, 9.1%, 6.8%...) isn't obviously higher
+      than later periods, and the numbers bounce around noisily (3%-24%) without a clean decaying shape.
+      That's a legitimate, honest finding in its own right: in this sample dataset, whether a customer
+      orders in a given month doesn't appear to be strongly tied to when they signed up. A heatmap surfaces
+      that pattern (or lack of one) immediately — reporting a smoother story than the data actually shows
+      would be the real mistake here, not the noise itself.
+  - type: text
+    body: >
+      One cell worth a second look: cohort 2024-06 retains noticeably higher across nearly every period
+      shown (8.0%, 24.0%, 17.3%, 18.7%, 20.0%, 13.3%) than most other cohorts in this slice. That's exactly
+      the kind of single-row anomaly a heatmap makes easy to spot — it would be worth checking whether
+      that cohort had an unusual acquisition channel or promotion before treating it as a real signal
+      rather than a small-sample fluctuation (only 75 customers).
+  - type: heading
+    text: "Why this had to be a heatmap, not a line chart"
+  - type: text
+    body: >
+      Plotting each cohort as its own line (period on the x-axis, retention % on the y-axis) is a common
+      alternative — and reasonable with 2-3 cohorts. With 24 monthly cohorts in this dataset, that's 24
+      overlapping, similarly-colored lines, exactly the readability problem the Line Charts lesson flagged
+      for more than 4-5 series. A heatmap scales to all 24 cohorts on one chart without that overlap,
+      trading away the smooth-line view of a single cohort's trajectory for a compact grid that supports
+      scanning many cohorts against each other at once.
+  - type: heading
+    text: "Worked example 2: an order fulfillment funnel"
+  - type: text
+    body: >
+      The question: **at what stage do orders actually drop out of the process, and by how much at each
+      step?** This dataset's `status` field is naturally nested and sequential once framed as a
+      fulfillment funnel: every order starts as **placed**; some are **cancelled** (removed from the
+      funnel immediately); of what's left, some are still **pending** (not yet resolved); of what's left
+      after that, some are **refunded** after the fact. What survives all three exclusions is
+      **completed**.
+  - type: code
+    language: python
+    code: |
+      orders = pd.read_csv("data/sample/ecommerce/orders.csv")
+      status_counts = orders["status"].value_counts()
+      print(status_counts)
+
+      placed = len(orders)
+      not_cancelled = placed - status_counts["cancelled"]
+      not_pending = not_cancelled - status_counts["pending"]
+      completed = not_pending - status_counts["refunded"]
+
+      stages = ["Orders placed", "Not cancelled", "Not pending", "Completed"]
+      values = [placed, not_cancelled, not_pending, completed]
+      for stage, value, prev in zip(stages, values, [None] + values[:-1]):
+          pct_of_prev = f"{100 * value / prev:.1f}% of previous stage" if prev else "—"
+          pct_of_total = f"{100 * value / placed:.1f}% of total"
+          print(f"{stage:15s} {value:5d}   {pct_of_prev:26s} {pct_of_total}")
+    caption: Building strictly nested funnel stages out of the four mutually-exclusive order statuses
+  - type: output
+    body: |
+      status
+      completed    3441
+      cancelled     379
+      refunded      258
+      pending       127
+      Name: count, dtype: int64
+
+      Orders placed    4205   —                          100.0% of total
+      Not cancelled    3826   91.0% of previous stage     91.0% of total
+      Not pending      3699   96.7% of previous stage     88.0% of total
+      Completed        3441   93.0% of previous stage     81.8% of total
+    caption: Real, computed funnel numbers — every order accounted for exactly once (379+258+127+3441 = 4205)
+  - type: code
+    language: python
+    code: |
+      import plotly.graph_objects as go
+
+      fig = go.Figure(go.Funnel(
+          y=stages,
+          x=values,
+          textinfo="value+percent initial+percent previous",
+      ))
+      fig.update_layout(title="Order fulfillment funnel")
+      fig.show()
+    caption: "textinfo shows the count plus both percentage readings (of the first stage, and of the immediately previous stage) on every segment"
+  - type: callout
+    variant: warning
+    title: "Read 'percent of previous' and 'percent of total' as two different questions"
+    body: >
+      The overall completion rate — 81.8% of all placed orders end up completed — answers "how much of
+      the funnel survives end to end." It does not tell you where the drop-off is concentrated. That's what
+      "percent of previous stage" answers: the single biggest per-stage loss here is the very first one,
+      cancellation, at 91.0% (a 9.0 percentage-point drop), noticeably bigger than the pending-to-not-pending
+      step (96.7%, a 3.3 point drop) or the refund step (93.0%, a 7.0 point drop). A stakeholder asking
+      "where should we focus to improve completion" needs the per-stage number, not just the 81.8% headline.
+  - type: comparison
+    title: "Funnel chart vs. a plain bar chart of the same four numbers"
+    columns: ["", "Funnel chart", "Bar chart of the same 4 values"]
+    rows:
+      - ["Communicates nesting (each stage is a subset of the last)", "Yes — the shape itself narrows, visually implying containment", "No — bars just look like four unrelated category totals"]
+      - ["Highlights per-stage drop-off", "Built in — segment-to-segment narrowing is the whole point of the shape", "Requires the viewer to mentally subtract adjacent bars"]
+      - ["Right choice when stages aren't truly nested", "No — a funnel actively misrepresents unrelated categories as if they were sequential", "Yes — a bar chart makes no false claim about nesting"]
+  - type: heading
+    text: "Tying it back to the module"
+  - type: text
+    body: >
+      Both charts in this lesson are really the framework from lesson 1, applied precisely: retention by
+      cohort and period is "two categorical dimensions, one numeric value" (a heatmap), and stage-by-stage
+      order fulfillment is a strictly nested, sequential drop-off (a funnel — a shape this module hasn't
+      needed until now, because none of the earlier comparisons were nested). The throughline across all
+      nine lessons has been the same question, asked before any code gets written: what kind of comparison
+      is this, actually — and only then, which chart is built to answer it.
+  - type: question
+    prompt: "A funnel shows 'placed orders' at 4,205 and 'completed orders' at 3,441 (81.8% of total), with two intermediate stages in between. A stakeholder asks which single stage causes the most drop-off. What number answers that correctly?"
+    choices:
+      - "The percentage each stage represents of the stage immediately before it — the stage with the lowest 'percent of previous' value is where the biggest single-stage loss is happening"
+      - "The 81.8% overall completion rate, since it already reflects the total loss across the whole funnel"
+      - "The raw count difference between the first and last stage (4,205 minus 3,441), regardless of how many stages that spans"
+    correct_index: 0
+    explanation: >
+      The overall 81.8% completion rate tells you the end-to-end survival rate but not where along the
+      way the losses concentrate. Comparing each stage's count to the stage immediately before it isolates
+      the drop happening at that specific step — in this dataset, that calculation shows cancellation
+      (91.0% of previous stage survives) as the single biggest per-stage loss, ahead of the refund step
+      (93.0%) and the pending step (96.7%), a distinction the 81.8% headline number alone can't reveal.

@@ -1,0 +1,73 @@
+slug: revenue-by-payment-method
+lesson_slug: groupby
+skill: pandas
+dataset: ecommerce
+title: Revenue by Payment Method
+description: Break down total successful-payment revenue by payment method, highest first.
+exercise_type: PYTHON
+difficulty: INTERMEDIATE
+points: 20
+tags: [python, intermediate, real-world]
+business_context: >
+  Finance is negotiating processing rates with payment providers and wants to know exactly how
+  much successful revenue flows through each payment method, ranked from largest to smallest.
+prompt: >
+  Using `payments`, filter to successful payments only (`status == "success"`) and compute total
+  revenue per payment method. Store your answer in a variable named `result`: a DataFrame with
+  columns `payment_method` and `total_revenue` (the sum of `amount`, rounded to 2 decimal
+  places), sorted in descending order by `total_revenue`.
+python_datasets: [payments]
+python_starter_code: |
+  # payments is already loaded as a DataFrame.
+  # Explore it first:
+  payments.head()
+python_solution_code: |
+  success = payments[payments["status"] == "success"]
+  result = (
+      success.groupby("payment_method")["amount"]
+      .sum()
+      .round(2)
+      .reset_index(name="total_revenue")
+      .sort_values("total_revenue", ascending=False)
+      .reset_index(drop=True)
+  )
+python_result_variable: result
+python_row_order_matters: true
+python_numeric_tolerance: 0.01
+python_hidden_tests:
+  - name: "Top payment method matches a live recomputation"
+    code: |
+      recompute = (
+          payments[payments["status"] == "success"]
+          .groupby("payment_method")["amount"]
+          .sum()
+          .round(2)
+      )
+      top_row = result.iloc[0]
+      assert top_row["payment_method"] == recompute.idxmax(), (
+          f"Expected '{recompute.idxmax()}' to be the top payment method, got '{top_row['payment_method']}'"
+      )
+      assert abs(top_row["total_revenue"] - recompute.max()) < 0.01, (
+          "The top payment method's total_revenue doesn't match a fresh recomputation."
+      )
+hints:
+  - "Filter `payments` to `status == 'success'` first — refunded and other non-success payments shouldn't count toward revenue."
+  - "Group the filtered DataFrame by 'payment_method' and sum the 'amount' column, then sort descending by that sum so the highest-revenue method comes first."
+solution: |
+  ```python
+  success = payments[payments["status"] == "success"]
+  result = (
+      success.groupby("payment_method")["amount"]
+      .sum()
+      .round(2)
+      .reset_index(name="total_revenue")
+      .sort_values("total_revenue", ascending=False)
+      .reset_index(drop=True)
+  )
+  ```
+explanation: >
+  Filtering to `status == "success"` before grouping matters here: `payments` also contains
+  refunded transactions, and including them would overstate revenue for whichever method happens
+  to have more refunds. Once filtered, `groupby("payment_method")["amount"].sum()` is a
+  single-key aggregation, and `sort_values(..., ascending=False)` puts the method processing the
+  most revenue first — the order Finance actually cares about when comparing providers.

@@ -1,0 +1,107 @@
+slug: exp-statistical-power-intuition
+module_slug: statistical-power
+title: Statistical Power, Made Intuitive
+description: >
+  Power is the probability your test detects a real effect, given one truly exists — built up from a
+  coin-flip intuition, then measured for real on the underpowered checkout_redesign test.
+difficulty: ADVANCED
+estimated_minutes: 25
+display_order: 1
+objectives:
+  - Define statistical power in plain language, and connect it to the Type II error rate (beta)
+  - Explain, intuitively, why a smaller sample size means a real effect is more likely to be missed
+  - Compute the achieved power of an already-run test, given its sample size and observed effect
+prerequisites: [exp-sample-size-calculator-walkthrough]
+skills: [experimentation, statistical-reasoning]
+datasets: [saas-product]
+tags: [experimentation, ab-testing, saas, advanced]
+key_takeaways:
+  - "Statistical power is the probability that a test detects a real effect, given one truly exists — formally, power = 1 - beta, where beta is the Type II error rate (the probability of missing a real effect)."
+  - A test can have a real, non-zero underlying effect and still very plausibly come back "not significant," if its sample size gives it low power against that effect size.
+  - "The real checkout_redesign test, at 1,000 users per group, had only about a 13% chance of detecting its own observed effect size as statistically significant — which is exactly why it came back non-significant, despite the encouraging direction."
+common_mistakes:
+  - Treating a non-significant result as proof "there's no effect," without first checking whether the test even had enough power to detect an effect of the size that would matter.
+  - Assuming that because a test ran and produced a p-value, its power must have been reasonable — power depends on sample size and effect size, and is often far lower than people assume for small or moderate effects.
+blocks:
+  - type: heading
+    text: The intuition, before the formula
+  - type: text
+    body: >
+      Imagine flipping two coins 10 times each to see if one is biased toward heads more than the other.
+      Even if one coin really is slightly biased, 10 flips per coin is nowhere near enough to reliably
+      tell — the natural flip-to-flip noise will usually swamp a small real difference. Flip each coin
+      10,000 times instead, and a small real bias becomes easy to see clearly. **Power** is the name for
+      exactly this idea, quantified: it's the probability that your test will correctly detect a real
+      effect, given the sample size you actually have and the size of the effect you're hoping to see.
+  - type: formula
+    expression: "power = 1 - beta"
+    description: >
+      Beta is the Type II error rate — the probability of failing to detect a real effect (a "false
+      negative"). Power is its complement: the probability of correctly detecting a real effect when one
+      exists. (Alpha, by contrast, is the Type I error rate — the probability of a false positive when
+      there's truly no effect; the two error rates answer different questions.)
+  - type: example
+    title: "Measuring the real checkout_redesign test's power, after the fact"
+    body: >
+      The checkout_redesign test observed control at 11.3% and treatment at 12.5%, using 1,000 users per
+      group. Given that observed effect size, and that sample size, how likely was this specific test to
+      have come back statistically significant at all — even though the underlying effect looks real and
+      meaningful? That's an achieved-power calculation, and it can be computed directly.
+  - type: code
+    language: python
+    code: |
+      from statsmodels.stats.proportion import proportion_effectsize
+      from statsmodels.stats.power import NormalIndPower
+
+      p_control, p_treatment = 0.113, 0.125     # checkout_redesign's real observed rates
+      n_per_group = 1000                         # the real test's actual sample size
+
+      effect_size = proportion_effectsize(p_treatment, p_control)
+      achieved_power = NormalIndPower().solve_power(
+          effect_size=effect_size, nobs1=n_per_group, alpha=0.05, ratio=1, alternative="two-sided"
+      )
+      print(round(achieved_power, 3))  # -> 0.132
+    caption: >
+      Run for real: at 1,000 users per group, this test had only about a 13% chance of detecting its own
+      observed effect size as statistically significant — even if the 11.3%-to-12.5% difference is a
+      completely real, durable effect. An 87% chance of a "not significant" result was baked in before
+      the test even ran, given this sample size.
+  - type: table
+    caption: What low power actually implies
+    headers: ["Statement", "Is it right?"]
+    rows:
+      - ["\"The test wasn't significant, so there's no real effect\"", "Not necessarily — at 13% power, a real effect this size would usually still fail to reach significance"]
+      - ["\"The test wasn't significant, so we can't conclude anything yet\"", "Closer — a low-power non-significant result is genuinely ambiguous, not evidence of nothing"]
+      - ["\"A higher-powered rerun (more users) would settle this more conclusively\"", "Yes — this is exactly the situation extra sample size is for"]
+  - type: callout
+    variant: warning
+    title: Low power is what makes "underpowered test" a pitfall, not just a technicality
+    body: >
+      A test run with too little power isn't just "less precise" — it's a coin flip, roughly, on whether
+      a real effect even shows up as significant. Treating its non-significant result as "we tested this
+      and it didn't work" (rather than "we didn't have enough data to tell") is one of the most common
+      and costly misreadings of experiment results, covered as its own pitfall later in this domain.
+  - type: question
+    prompt: >
+      A test comes back with a p-value of 0.41 (not significant) and, when checked, turns out to have
+      had only 13% power to detect its own observed effect size. What's the most accurate conclusion?
+    choices:
+      - "The change definitely doesn't work — the test proves it"
+      - "The result is genuinely inconclusive: with only 13% power, a real effect of this size would usually fail to reach significance anyway, so this result can't distinguish 'no effect' from 'a real effect the test wasn't equipped to detect'"
+      - "A p-value of 0.41 always means the effect is real but small"
+    correct_index: 1
+    explanation: >
+      With power this low, a "not significant" result is close to uninformative about whether a real
+      effect exists — the test was unlikely to detect it either way. The honest conclusion is that more
+      data (or a redesigned test with more power) is needed before drawing a ship or kill decision, not
+      that the change has been disproven.
+interview_questions:
+  - question: "What is statistical power, and why can a real, meaningful effect still fail to show up as statistically significant?"
+    answer: >
+      Statistical power is the probability that a test correctly detects a real effect, given one truly
+      exists at the size you're testing for — it's 1 minus the Type II error rate. A real effect can
+      still fail to reach significance if the test is underpowered for that effect size, meaning the
+      sample size is too small relative to how big the effect is and how much natural variance the
+      metric has. In that situation, random sampling noise is large enough, relative to the true effect,
+      that a non-significant result is a likely outcome even when the underlying effect is genuine — which
+      is why checking a test's achieved power matters just as much as checking its p-value.

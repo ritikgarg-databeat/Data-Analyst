@@ -1,0 +1,152 @@
+slug: polars-expressions
+module_slug: polars-for-analysts
+title: "The Expression API, Deeper: Why Expressions (Not Lambdas) Make Polars Fast"
+description: Chaining and combining expressions, pl.col(...).alias(...), pl.when/then/otherwise, and why expressions — not Python lambdas — are the reason Polars can parallelize your code.
+difficulty: INTERMEDIATE
+estimated_minutes: 11
+display_order: 5
+objectives:
+  - Chain multiple transformations onto a single expression and add new columns with .with_columns()
+  - Write conditional logic with pl.when().then().otherwise() instead of a Python lambda
+  - Explain why an expression can be compiled and parallelized by Polars' engine while a Python lambda passed to .apply() cannot
+prerequisites: [polars-group-by-and-joins]
+skills: [pandas]
+datasets: [ecommerce]
+tags: [python, intermediate, real-world]
+key_takeaways:
+  - "An expression is a tree of operations Polars' Rust engine can inspect, reorder, and run across multiple threads — a Python lambda is opaque bytecode that Polars can only call once per row, back in the slow, single-threaded Python interpreter."
+  - "pl.when(condition).then(value_if_true).otherwise(value_if_false) is the Polars way to write conditional column logic — it's an expression, and stays fast, unlike df.apply(lambda row: ... if ... else ..., axis=1) in pandas."
+  - ".with_columns() adds or replaces columns using expressions, the same way pandas uses df['new_col'] = ... — but because it takes expressions, several new columns can be computed in one call, in parallel."
+  - "The rule of thumb: if you can express a transformation using pl.col(), arithmetic, comparisons, pl.when(), and Polars' built-in functions, do it that way. Reach for a raw Python function (via .map_elements(), Polars' slower escape hatch) only when there truly is no expression-based way to say what you mean."
+common_mistakes:
+  - "Reaching for .map_elements() (Polars' equivalent of pandas' .apply() with a lambda) as a first resort out of pandas habit, instead of checking whether the same logic can be written with pl.when() or built-in expression methods — .map_elements() gives up almost all of Polars' performance advantage for that column."
+  - "Forgetting that .with_columns() returns a new DataFrame/LazyFrame rather than mutating in place — like most Polars methods, you need to assign or chain the result, not just call it and expect the original variable to change."
+  - "Writing pl.when(cond).then(val) without a trailing .otherwise() and being surprised by null values in rows that didn't match the condition — .otherwise() is where the 'else' branch's value comes from, and it defaults to null if omitted."
+practical_applications:
+  - "Deriving a price tier, a churn-risk flag, or a customer-segment label as a new column across millions of rows, using pl.when()/.then()/.otherwise() chains instead of a slow row-by-row Python function."
+  - "Computing several derived columns (margin percentage, a rounded display price, a categorical bucket) in a single .with_columns() call, letting Polars parallelize all of them together rather than looping over the DataFrame multiple times."
+interview_questions:
+  - question: "Why are Polars expressions faster than using .apply() with a Python lambda, even though both 'do the same thing'?"
+    answer: "An expression built from pl.col() and Polars' own operators describes the computation in a form Polars' Rust engine can analyze, optimize, and execute across multiple CPU cores using vectorized, compiled code. A Python lambda passed to .apply() (or Polars' .map_elements()) is opaque — Polars can't see inside it, so it has to fall back to calling that Python function once per row, single-threaded, paying the Python interpreter's overhead on every single row. The expression form is what makes Polars' parallelism and compiled execution possible in the first place."
+  - question: "How do you write an if/else column derivation in Polars?"
+    answer: "With pl.when(condition).then(value_if_true).otherwise(value_if_false), used inside .with_columns() or .select(). It's the expression-based equivalent of pandas' np.where() or a df.apply(lambda row: ...) — and like other Polars expressions, it stays fast because it's evaluated by the engine rather than by calling a Python function per row."
+resources:
+  - title: "Polars User Guide — Expressions and Contexts"
+    url: "https://docs.pola.rs/user-guide/expressions/expressions-and-contexts/"
+blocks:
+  - type: text
+    body: >
+      You've been writing expressions since the first lesson in this module — every `pl.col(...)` you
+      passed to `.filter()`, `.select()`, or `.agg()` was one. This lesson goes one level deeper: how to
+      chain and combine expressions into richer logic, and — the important conceptual payoff — *why*
+      building your code this way is what actually makes Polars fast.
+  - type: heading
+    text: "Adding computed columns with .with_columns()"
+  - type: code
+    language: python
+    code: |
+      import polars as pl
+
+      products = pl.read_csv("data/sample/ecommerce/products.csv")
+
+      result = products.with_columns(
+          ((pl.col("unit_price") - pl.col("cost")) / pl.col("unit_price")).alias("margin_pct"),
+      )
+      print(result.select(["product_name", "unit_price", "margin_pct"]).head(3))
+    caption: "with_columns() adds a new column from an expression — the Polars equivalent of pandas' df['margin_pct'] = ..."
+  - type: output
+    body: |
+      shape: (3, 3)
+      ┌────────────────────┬────────────┬────────────┐
+      │ product_name       ┆ unit_price ┆ margin_pct │
+      │ ---                ┆ ---        ┆ ---        │
+      │ str                ┆ f64        ┆ f64        │
+      ╞════════════════════╪════════════╪════════════╡
+      │ Pro Desk Lamp       ┆ 321.1      ┆ 0.439178   │
+      │ Compact Blender     ┆ 332.83     ┆ 0.57615    │
+      │ Essential Backpack  ┆ 341.27     ┆ 0.465145   │
+      └────────────────────┴────────────┴────────────┘
+    caption: Real output
+  - type: text
+    body: >
+      Every piece of that computation — subtraction, division, `.alias()` — was chained onto
+      `pl.col("unit_price")` and `pl.col("cost")` before ever touching real data. That whole chain is
+      one expression object, handed to Polars as a unit.
+  - type: heading
+    text: "Conditional logic: pl.when().then().otherwise()"
+  - type: code
+    language: python
+    code: |
+      result = products.with_columns(
+          ((pl.col("unit_price") - pl.col("cost")) / pl.col("unit_price")).alias("margin_pct"),
+          pl.when(pl.col("unit_price") > 300)
+            .then(pl.lit("premium"))
+            .otherwise(pl.lit("standard"))
+            .alias("price_tier"),
+      )
+
+      summary = (
+          result.group_by("price_tier")
+          .agg(pl.len().alias("n_products"), pl.col("margin_pct").mean().alias("avg_margin"))
+      )
+      print(summary)
+    caption: "pl.when/then/otherwise as the expression-based if/else — chained with the margin calculation above"
+  - type: output
+    body: |
+      shape: (2, 3)
+      ┌────────────┬────────────┬────────────┐
+      │ price_tier ┆ n_products ┆ avg_margin │
+      │ ---        ┆ ---        ┆ ---        │
+      │ str        ┆ u32        ┆ f64        │
+      ╞════════════╪════════════╪════════════╡
+      │ standard   ┆ 97         ┆ 0.482432   │
+      │ premium    ┆ 53         ┆ 0.474872   │
+      └────────────┴────────────┴────────────┘
+    caption: "Real output — 53 of 150 products are priced above $300; margin percentage is similar across both tiers"
+  - type: heading
+    text: "Why this matters: expressions vs. lambdas"
+  - type: text
+    body: >
+      In pandas, if `np.where()` or vectorized string/numeric methods don't cover what you need, the
+      natural next step is `df.apply(lambda row: ..., axis=1)` — a Python function called once per row.
+      It works, but it's slow, because pandas has to leave its fast, compiled internals and call back
+      into the Python interpreter for every single row. Polars has an equivalent escape hatch,
+      `.map_elements()`, but reaching for it defeats much of the reason to use Polars in the first
+      place.
+  - type: table
+    headers: ["", "Expression (pl.col(), pl.when(), built-ins)", "Python lambda (.apply() / .map_elements())"]
+    rows:
+      - ["What Polars sees", "A tree of operations it can inspect and optimize", "An opaque Python function it cannot look inside"]
+      - ["Where it runs", "Compiled Rust, across multiple CPU cores", "The single-threaded Python interpreter, once per row"]
+      - ["Can be pushed down / reordered by the query optimizer", "Yes", "No — it's a black box to the optimizer"]
+      - ["Typical performance", "Fast — this is the normal path", "Much slower — an explicit opt-out of most of Polars' advantage"]
+  - type: callout
+    variant: important
+    title: The core idea, in one sentence
+    body: >
+      An expression is a *description* of a computation that Polars' engine can compile and run in
+      parallel; a Python lambda is an *instruction to call Python*, row by row, which no DataFrame
+      library — pandas or Polars — can meaningfully parallelize or optimize around. Learning to reach
+      for `pl.col()`, `pl.when()`, and Polars' built-in expression methods first is what makes Polars
+      code fast; falling back to `.map_elements()` out of habit is how people end up with "Polars code
+      that's somehow not faster than pandas."
+  - type: callout
+    variant: tip
+    title: The pandas parallel worth remembering
+    body: >
+      This isn't unique to Polars, conceptually — pandas' own vectorized operations (df['a'] + df['b'],
+      .str.upper(), np.where()) are fast for exactly the same underlying reason: they're implemented in
+      compiled C, not Python. df.apply(lambda ...) is slow in pandas for the same root cause it's slow
+      in Polars. Polars just makes the "stay in expressions" discipline unavoidable, because eager
+      row-wise Python callbacks are so clearly the exception rather than the default style.
+  - type: question
+    prompt: "Why does Polars' pl.when(cond).then(a).otherwise(b) stay fast, while pandas' df.apply(lambda row: a if cond else b, axis=1) does not?"
+    choices:
+      - "pl.when()/.then()/.otherwise() builds an expression the engine can compile and run across threads; .apply() with a lambda calls a Python function once per row, single-threaded"
+      - "pl.when() is fast only because Polars DataFrames are smaller than pandas DataFrames"
+      - "There's no real difference — both approaches perform the same"
+    correct_index: 0
+    explanation: >
+      The performance gap comes from what each approach hands to the engine: an expression the
+      optimizer can see and parallelize, versus an opaque Python callback it must invoke row by row.
+      This is the central reason expressions are the idiomatic, fast way to write Polars code.

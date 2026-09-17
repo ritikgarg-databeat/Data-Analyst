@@ -1,0 +1,164 @@
+slug: understanding-distributions
+module_slug: exploratory-data-analysis
+title: "Understanding Distributions: What a Shape Tells You About the Business"
+description: .describe(), skew, and what a distribution's shape reveals about a business metric — using real, right-skewed order values as the example.
+difficulty: INTERMEDIATE
+estimated_minutes: 11
+display_order: 4
+objectives:
+  - Read .describe() output as a compact summary of a numeric column's distribution
+  - Recognize right skew from the relationship between mean and median, and from a skew statistic
+  - Connect a distribution's shape to a plausible business explanation, not just a statistical label
+prerequisites: [missing-values-and-duplicates-in-eda]
+skills: [pandas]
+datasets: [ecommerce]
+tags: [python, intermediate, real-world]
+key_takeaways:
+  - ".describe() packs count, mean, standard deviation, min, quartiles, and max into one call — read the relationship between mean and median first, since that alone tells you whether a distribution is roughly symmetric or skewed."
+  - "When the mean sits noticeably above the median, the distribution is right-skewed — a smaller number of unusually large values are pulling the average upward without pulling the middle of the data with it."
+  - "Completed order values in this dataset have mean $1,686.32 vs. median $1,569.11, with a skew statistic of 0.69 — a real, moderate right skew, consistent with a normal spread of order sizes plus a tail of larger orders."
+  - "A distribution's shape is a starting observation, not the finding itself — the useful next step is always asking what business reality would produce that shape, which is what actually turns a statistic into an insight."
+  - "The visual side of distributions — histograms, bin-count choices, box plots — belongs to the Visualization module; this lesson focuses on reading the numeric summary and reasoning about what it implies."
+common_mistakes:
+  - "Reporting only the mean of a skewed metric (like order value or revenue) without also giving the median — for a right-skewed metric, the mean is pulled upward by a minority of large values and can overstate what a 'typical' case looks like."
+  - "Treating any skew statistic that isn't exactly zero as evidence of a data problem — real business metrics are very often skewed for perfectly ordinary, expected reasons, and skew alone doesn't mean something is broken."
+  - "Describing a distribution's shape (e.g. 'right-skewed') and stopping there, without asking what business mechanism would produce that shape — the shape is an observation, the mechanism is the actual insight."
+practical_applications:
+  - "Choosing median over mean when reporting a business-facing 'typical' number for a right-skewed metric like order value, deal size, or session duration, so stakeholders aren't misled by a few large outliers."
+  - "Flagging early that a metric is heavily skewed before it's fed into a model or dashboard that assumes something closer to a symmetric distribution."
+interview_questions:
+  - question: "You compute the mean and median of order values and they're noticeably different. What does that tell you, and what would you do next?"
+    answer: "A mean well above the median signals right skew — a minority of unusually large orders are pulling the average up without moving the middle of the distribution. I'd report the median alongside (or instead of) the mean for a 'typical order' figure, and I'd look at what's actually driving the tail — for example whether it's a handful of business/wholesale customers, a few high-ticket products, or genuine outliers worth investigating separately."
+  - question: "How do you decide whether a skewed distribution reflects a real business pattern versus a data quality issue?"
+    answer: "I'd look at what's in the tail specifically — pull the highest few values and check whether they're plausible (e.g. a legitimate large wholesale order) or implausible (e.g. a price that's off by a factor of 1000, or a clearly-mistyped test record). Skew by itself doesn't tell you which; you have to actually look at the extreme rows and reason about whether that scale makes sense for this business."
+resources:
+  - title: "Pandas documentation — DataFrame.describe"
+    url: "https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.describe.html"
+blocks:
+  - type: text
+    body: >
+      A single number — a mean, a total — hides an enormous amount about a metric. Two datasets can
+      have the *same* average order value and look completely different once you see the full
+      distribution: one evenly spread around that average, the other mostly small orders with a handful
+      of huge ones pulling the average up. This lesson is about reading that shape from the numeric
+      summary pandas gives you, and connecting it to a real business explanation.
+  - type: heading
+    text: ".describe(): the compact summary"
+  - type: code
+    language: python
+    code: |
+      import pandas as pd
+
+      orders = pd.read_csv("data/sample/ecommerce/orders.csv")
+      order_items = pd.read_csv("data/sample/ecommerce/order_items.csv")
+
+      order_items["line_revenue"] = (
+          (order_items["unit_price"] - order_items["discount"]) * order_items["quantity"]
+      )
+      order_value = order_items.groupby("order_id")["line_revenue"].sum().rename("order_value")
+      orders = orders.merge(order_value, on="order_id", how="left")
+
+      completed = orders[orders["status"] == "completed"]
+      print(completed["order_value"].describe())
+    caption: Building order value (from order_items) and describing it for completed orders only
+  - type: output
+    body: |
+      count    3441.000000
+      mean     1686.320299
+      std      1078.581348
+      min         9.450000
+      25%       832.140000
+      50%      1569.110000
+      75%      2363.940000
+      max      6370.390000
+      Name: order_value, dtype: float64
+    caption: Real output — 3,441 completed orders
+  - type: heading
+    text: "Reading it: mean vs. median is the fastest skew check"
+  - type: text
+    body: >
+      The single fastest thing to check in a `.describe()` output is the relationship between **mean**
+      and **50% (median)**. Here, mean ($1,686.32) sits noticeably above the median ($1,569.11). That
+      gap is your first, cheapest signal of skew — before you've drawn a single histogram.
+  - type: table
+    headers: ["Relationship", "What it suggests"]
+    rows:
+      - ["mean ≈ median", "Roughly symmetric distribution"]
+      - ["mean > median", "Right-skewed — a tail of unusually large values is pulling the average up"]
+      - ["mean < median", "Left-skewed — a tail of unusually small (or negative) values is pulling the average down"]
+  - type: heading
+    text: "Confirming it with a skew statistic"
+  - type: code
+    language: python
+    code: |
+      print(completed["order_value"].skew())
+    caption: pandas' built-in skew statistic
+  - type: output
+    body: |
+      0.6877130234929264
+    caption: "Real output — a positive skew statistic, confirming the right-skew read from mean vs. median"
+  - type: text
+    body: >
+      As a rough guide, a skew statistic near 0 is close to symmetric, values roughly between 0.5 and 1
+      (in either direction) indicate moderate skew, and values beyond 1 indicate strong skew. 0.69 here
+      is a real, moderate right skew — not extreme, but enough that mean and median are telling visibly
+      different stories about what a "typical" order looks like.
+  - type: heading
+    text: "What does this shape mean for the business?"
+  - type: text
+    body: >
+      A moderate right skew in order value is exactly what you'd expect from a normal mix of order
+      sizes plus a smaller group of larger orders on top — some combination of bulk purchases, business
+      customers buying in larger quantities, or a handful of higher-ticket product mixes. Checking the
+      top of the distribution:
+  - type: code
+    language: python
+    code: |
+      p99 = completed["order_value"].quantile(0.99)
+      top_orders = completed[completed["order_value"] > p99]
+      revenue_share = top_orders["order_value"].sum() / completed["order_value"].sum() * 100
+      print(f"99th percentile order value: ${p99:,.2f}")
+      print(f"Orders above it: {len(top_orders)} of {len(completed)}")
+      print(f"Share of total completed revenue from that top 1%: {revenue_share:.1f}%")
+    caption: Quantifying how much of the total the tail actually accounts for
+  - type: output
+    body: |
+      99th percentile order value: $4,693.80
+      Orders above it: 35 of 3441
+      Share of total completed revenue from that top 1%: 3.1%
+    caption: Real output
+  - type: callout
+    variant: tip
+    title: "The shape is the observation — the mechanism is the insight"
+    body: >
+      "Order value is right-skewed" describes what you see. "The top 1% of orders — 35 orders out of
+      3,441 — account for 3.1% of completed revenue, roughly proportional to their count, which
+      suggests this is ordinary variation in order size rather than a small number of whale orders
+      dominating revenue" is what turns that observation into something you could actually act on or
+      report. Always push one step past naming the shape.
+  - type: callout
+    variant: important
+    title: "Reporting median instead of (or alongside) mean"
+    body: >
+      Because mean is pulled upward by the right tail, "$1,686 average order value" overstates what a
+      typical customer actually spends. "$1,569 median order value, with an average of $1,686 pulled up
+      by a right-skewed tail of larger orders" gives a stakeholder both numbers and the honest context
+      for why they differ — a small habit that meaningfully improves how trustworthy your reporting is.
+  - type: text
+    body: >
+      This lesson deliberately stayed on the numeric summary. Actually *seeing* a distribution's shape —
+      choosing bin counts for a histogram, reading a box plot's quartiles at a glance, comparing shapes
+      across groups visually — is covered in depth in the Visualization module's histogram and box plot
+      lessons. Everything you learned here about what to look for carries directly into how you'd read
+      those charts.
+  - type: question
+    prompt: "Completed order values here have mean $1,686.32 and median $1,569.11, with a positive skew statistic of 0.69. What does that combination indicate?"
+    choices:
+      - "The distribution is right-skewed — a tail of larger orders is pulling the average above the median"
+      - "The distribution is left-skewed, since the mean is a specific dollar amount"
+      - "There is no way to tell skew direction from mean and median alone"
+    correct_index: 0
+    explanation: >
+      Mean above median, combined with a positive skew statistic, is the textbook signature of right
+      skew: most orders cluster in a lower range, with a smaller number of larger orders in the tail
+      pulling the mean up without moving the median nearly as much.

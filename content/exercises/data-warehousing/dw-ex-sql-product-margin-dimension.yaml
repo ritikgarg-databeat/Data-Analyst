@@ -1,0 +1,72 @@
+slug: dw-ex-sql-product-margin-dimension
+lesson_slug: dw-star-schema-basics
+skill: dimensional-modeling
+dataset: ecommerce
+title: Build dim_products' Category Enrichment and Margin
+description: Recreate dim_products' category enrichment and unit_margin column, then rank products by margin.
+exercise_type: SQL
+difficulty: BEGINNER
+points: 15
+tags: [dimension-table, star-schema]
+business_context: >
+  dim_products enriches each product with its category name and parent category (joined in from
+  categories) and a computed unit_margin column — exactly the kind of denormalization a dimension
+  table is expected to do, so downstream queries never need to join to categories separately.
+prompt: >
+  Using `products` and `categories`, write a query that returns each product's `product_id`,
+  `product_name`, `category_name`, and `unit_margin` (`unit_price - cost`, rounded to 2 decimals).
+  Order the result by `unit_margin` descending, then `product_id` ascending, and return only the top
+  10 rows.
+sql_tables: [products, categories]
+sql_starter_query: |
+  -- Explore both tables first
+  SELECT * FROM products LIMIT 20;
+  SELECT * FROM categories LIMIT 20;
+sql_solution_query: |
+  SELECT
+    p.product_id,
+    p.product_name,
+    c.category_name,
+    ROUND(p.unit_price - p.cost, 2) AS unit_margin
+  FROM products p
+  LEFT JOIN categories c
+    ON p.category_id = c.category_id
+  ORDER BY unit_margin DESC, p.product_id ASC
+  LIMIT 10;
+sql_row_order_matters: true
+sql_numeric_tolerance: 0.01
+sql_hidden_tests:
+  - name: "The single highest-margin product is correct"
+    query: |
+      SELECT
+        p.product_id,
+        ROUND(p.unit_price - p.cost, 2) AS unit_margin
+      FROM products p
+      ORDER BY unit_margin DESC, p.product_id ASC
+      LIMIT 1
+    key_columns: 1
+hints:
+  - "This is a straightforward LEFT JOIN from products to categories on category_id, with a computed column (unit_price - cost) for margin — no aggregation needed."
+  - "Use LEFT JOIN rather than an INNER JOIN so a product wouldn't silently disappear from the result if it ever had a category_id with no matching row in categories."
+solution: >
+  ```sql
+  SELECT
+    p.product_id,
+    p.product_name,
+    c.category_name,
+    ROUND(p.unit_price - p.cost, 2) AS unit_margin
+  FROM products p
+  LEFT JOIN categories c
+    ON p.category_id = c.category_id
+  ORDER BY unit_margin DESC, p.product_id ASC
+  LIMIT 10;
+  ```
+  The top result is product_id=8 ("Pro Notebook," Pet Supplies), with unit_margin=285.50.
+explanation: >
+  A strong answer joins products to categories on category_id and computes unit_margin directly —
+  the same shape dim_products.sql itself uses (`p.unit_price - p.cost as unit_margin`, joined to
+  stg_categories). Using LEFT JOIN rather than INNER JOIN matters even when every current row happens
+  to match, because it protects the query from silently dropping products if a category_id ever
+  fails to match in the future — exactly the defensive habit a dimension-building query should have,
+  since it's meant to be a complete, reliable enrichment of every product, not just the ones that
+  happen to join cleanly today.

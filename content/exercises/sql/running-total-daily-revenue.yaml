@@ -1,0 +1,85 @@
+slug: running-total-daily-revenue
+lesson_slug: running-totals-and-frames
+skill: advanced-sql
+dataset: ecommerce
+title: Build a Running Total of Daily Revenue
+description: Write a query that computes daily revenue and a cumulative running total across the entire payments history using a window frame.
+exercise_type: SQL
+difficulty: ADVANCED
+points: 25
+tags: [sql, advanced, window-functions]
+business_context: >
+  The CFO wants a cumulative revenue chart for the board deck — not just how much came in on any given
+  day, but the running total of everything collected so far, so the board can see the overall trajectory
+  of the business at a glance.
+prompt: >
+  Using the `payments` table, write a query that returns one row for every calendar day that had at
+  least one successful payment (`status = 'success'`), with columns `payment_date`, `daily_revenue`
+  (`ROUND(SUM(amount), 2)` for that day), and `running_total` — the cumulative sum of `daily_revenue`
+  from the earliest day through and including the current day (`ROUND(..., 2)`). Order the result
+  chronologically from earliest day to latest.
+sql_tables: [payments]
+sql_starter_query: |
+  -- Explore the payments table first
+  SELECT * FROM payments LIMIT 20;
+sql_solution_query: |
+  WITH daily AS (
+    SELECT payment_date, SUM(amount) AS daily_revenue
+    FROM payments
+    WHERE status = 'success'
+    GROUP BY payment_date
+  )
+  SELECT
+    payment_date,
+    ROUND(daily_revenue, 2) AS daily_revenue,
+    ROUND(
+      SUM(daily_revenue) OVER (
+        ORDER BY payment_date
+        ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+      ),
+      2
+    ) AS running_total
+  FROM daily
+  ORDER BY payment_date;
+sql_row_order_matters: true
+sql_numeric_tolerance: 0.01
+sql_hidden_tests:
+  - name: "Running total on the last day equals the grand total"
+    query: |
+      SELECT MAX(payment_date) AS payment_date, ROUND(SUM(amount), 2) AS running_total
+      FROM payments
+      WHERE status = 'success'
+    key_columns: 1
+hints:
+  - "A running total is a sum that grows one row at a time as you move through an ordered sequence — that's a window function with an explicit frame, not a plain GROUP BY aggregate."
+  - "First collapse payments to one row per day with SUM(amount) GROUP BY payment_date. Then apply SUM(daily_revenue) OVER (ORDER BY payment_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) on top of that — the frame clause is what limits the sum to 'everything from the start through this row' instead of the whole table."
+solution: >
+  ```sql
+  WITH daily AS (
+    SELECT payment_date, SUM(amount) AS daily_revenue
+    FROM payments
+    WHERE status = 'success'
+    GROUP BY payment_date
+  )
+  SELECT
+    payment_date,
+    ROUND(daily_revenue, 2) AS daily_revenue,
+    ROUND(
+      SUM(daily_revenue) OVER (
+        ORDER BY payment_date
+        ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+      ),
+      2
+    ) AS running_total
+  FROM daily
+  ORDER BY payment_date;
+  ```
+explanation: >
+  A strong answer first reduces payments to one row per calendar day (a plain GROUP BY aggregate),
+  and only then applies a window function on top of that daily grain — computing the running total
+  directly against raw payment rows would double up whenever a day has more than one payment. The
+  explicit frame `ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW` makes the "sum everything so far"
+  behavior unambiguous, though in most engines `ORDER BY payment_date` alone defaults to the same frame.
+  A common mistake is omitting `ORDER BY` inside the `OVER()` clause entirely, which turns the window
+  into an unordered aggregate over the whole partition — every row would show the same grand total
+  instead of a true running total.

@@ -1,0 +1,141 @@
+slug: funnel-analysis
+module_slug: sql-analytical-sql
+title: Funnel Analysis
+description: Measuring drop-off across an ordered sequence of steps — how many make it from step to step, and where the biggest leaks are.
+difficulty: ADVANCED
+estimated_minutes: 13
+display_order: 3
+objectives:
+  - Define a funnel as a sequence of strictly nested (or nestable) steps and explain why nesting matters
+  - Build a funnel query that counts how many entities reach each step
+  - Compute step-over-step and step-vs-first-step conversion rates using window functions
+prerequisites: [retention-curves]
+skills: [advanced-sql]
+datasets: [ecommerce]
+tags: [sql, advanced, business-analytics]
+key_takeaways:
+  - "A funnel is an ordered sequence of steps where later steps should be a subset of earlier ones — every unit that reaches step 3 must have also reached steps 1 and 2, or the 'funnel' isn't really measuring a single flow."
+  - "Two conversion rates matter and answer different questions: percent of the very first step (overall conversion) and percent of the immediately previous step (where is this specific step leaking)."
+  - "LAG() and FIRST_VALUE() over an ordered step sequence are the natural way to compute both rates in one pass, without a self-join."
+common_mistakes:
+  - "Building a funnel from tables/flags that aren't actually nested — e.g. counting 'converted sessions' and 'placed an order' from unrelated boolean flags can produce a step 2 count *larger* than step 1, which isn't a real drop-off, it's a modeling mistake."
+  - "Only reporting the step-over-previous-step rate — a step can look healthy relative to the step right before it while the cumulative conversion from the very top of the funnel is still terrible."
+practical_applications:
+  - "Finding the single step in a checkout flow responsible for the most lost revenue, so engineering and design effort goes to the right place."
+  - "Comparing the same funnel across two channels or two time periods to see whether a change improved a specific step or just moved volume around."
+blocks:
+  - type: heading
+    text: A funnel is a chain, not a set of separate filters
+  - type: text
+    body: >
+      A **funnel** describes an ordered sequence of steps a customer is expected to pass through, and
+      measures how many make it from one step to the next. What makes it a funnel — and not just a
+      few unrelated counts — is that each step should be a strict subset of the step before it: every
+      customer counted at step 3 also has to be counted at steps 1 and 2. If that nesting doesn't
+      hold, the "drop-off" numbers don't mean what they look like they mean.
+  - type: text
+    body: >
+      In this dataset, `orders` and `payments` form a naturally nested chain: an order can only get a
+      payment row if it reached a paid state, and it can only stay `completed` if that payment wasn't
+      later reversed. That makes "order placed → payment processed → stayed completed" a clean,
+      genuinely nested funnel to build in SQL.
+  - type: code
+    language: sql
+    caption: Counting how many orders reach each stage
+    code: |
+      WITH funnel AS (
+        SELECT 1 AS step_order, 'Order placed' AS step_name, COUNT(*) AS n
+        FROM orders
+        UNION ALL
+        SELECT 2, 'Payment processed', COUNT(DISTINCT order_id)
+        FROM payments
+        WHERE status IN ('success', 'refunded')
+        UNION ALL
+        SELECT 3, 'Stayed completed (not refunded)', COUNT(*)
+        FROM orders
+        WHERE status = 'completed'
+      )
+      SELECT step_order, step_name, n
+      FROM funnel
+      ORDER BY step_order;
+  - type: output
+    body: |
+      step_order | step_name                        | n
+      -----------+-----------------------------------+------
+               1 | Order placed                      | 4205
+               2 | Payment processed                  | 3699
+               3 | Stayed completed (not refunded)    | 3441
+  - type: text
+    body: >
+      The counts strictly decrease — every payment corresponds to an order that was placed, and every
+      order that "stayed completed" also has a processed payment. That's the nesting property that
+      makes the percentages below meaningful rather than coincidental.
+  - type: heading
+    text: Two conversion rates, computed with window functions
+  - type: text
+    body: >
+      Once the steps are laid out in order, LAG() gets the previous step's count for a "step-over-step"
+      rate, and FIRST_VALUE() gets the very first step's count for an "of total" rate. Both are window
+      functions over the same small ordered result set — no self-join required.
+  - type: code
+    language: sql
+    caption: Step-over-step and cumulative conversion rates
+    code: |
+      WITH funnel AS (
+        SELECT 1 AS step_order, 'Order placed' AS step_name, COUNT(*) AS n
+        FROM orders
+        UNION ALL
+        SELECT 2, 'Payment processed', COUNT(DISTINCT order_id)
+        FROM payments
+        WHERE status IN ('success', 'refunded')
+        UNION ALL
+        SELECT 3, 'Stayed completed (not refunded)', COUNT(*)
+        FROM orders
+        WHERE status = 'completed'
+      )
+      SELECT
+        step_name,
+        n,
+        ROUND(100.0 * n / FIRST_VALUE(n) OVER (ORDER BY step_order), 1) AS pct_of_first_step,
+        ROUND(100.0 * n / LAG(n) OVER (ORDER BY step_order), 1) AS pct_of_previous_step
+      FROM funnel
+      ORDER BY step_order;
+  - type: output
+    body: |
+      step_name                        | n    | pct_of_first_step | pct_of_previous_step
+      -----------------------------------+------+--------------------+-----------------------
+      Order placed                      | 4205 |              100.0 |                  NULL
+      Payment processed                  | 3699 |               88.0 |                  88.0
+      Stayed completed (not refunded)    | 3441 |               81.8 |                  93.0
+  - type: callout
+    variant: tip
+    title: Both numbers earn their place
+    body: >
+      Payment processing loses 12% of orders (88.0% of the previous step) — that's the sharpest single
+      leak. But "stayed completed" also looks fine step-over-step (93.0%) while still ending at only
+      81.8% of the very top of the funnel. Reporting only the step-over-step number would make the
+      overall funnel look healthier than it actually is; reporting only the cumulative number would
+      hide *which* step to go fix.
+  - type: callout
+    variant: warning
+    title: A funnel that isn't actually nested
+    body: >
+      It's tempting to build a funnel like "visited → session marked converted → placed an order" by
+      counting distinct customers from three unrelated tables. In this dataset that produces a step 2
+      count of roughly 1,021 customers and a step 3 count of roughly 1,362 — step 3 is *larger* than
+      step 2. That's not a funnel with negative drop-off; it means some customers placed orders without
+      ever having a session flagged `converted = TRUE` (e.g. they ordered through a channel this
+      session data doesn't capture). Always sanity-check that later steps are subsets of earlier ones
+      before trusting the percentages.
+  - type: question
+    prompt: "A 4-step funnel shows: Step 1 = 10,000, Step 2 = 6,000, Step 3 = 5,700, Step 4 = 1,200. Which step has the worst step-over-step drop-off?"
+    choices:
+      - "Step 1 to Step 2, since that's the largest raw drop in count (4,000 fewer)"
+      - "Step 3 to Step 4, since only 21% of Step 3 makes it to Step 4 (1,200 / 5,700), the lowest ratio of any transition"
+      - "Step 2 to Step 3, because it has the smallest raw drop"
+    correct_index: 1
+    explanation: >
+      Step-over-step drop-off is a ratio, not a raw count. Step 1 to Step 2 loses the most people in
+      absolute terms (4,000) but retains 60% (6,000/10,000). Step 3 to Step 4 loses fewer people in
+      absolute terms (4,500) but only retains about 21% (1,200/5,700) — proportionally the steepest
+      leak, and the one worth investigating first.

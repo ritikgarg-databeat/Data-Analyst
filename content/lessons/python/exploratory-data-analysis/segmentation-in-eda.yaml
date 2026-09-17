@@ -1,0 +1,167 @@
+slug: segmentation-in-eda
+module_slug: exploratory-data-analysis
+title: "Segmentation: Where an Average Actually Lives"
+description: Using .groupby() as an EDA tool, not just an aggregation tool — slicing a metric by a categorical dimension to find out whether an overall number is hiding something, or genuinely representative.
+difficulty: INTERMEDIATE
+estimated_minutes: 11
+display_order: 6
+objectives:
+  - Use .groupby() to check whether an overall metric hides meaningful differences across a categorical dimension
+  - Read a segmented comparison and judge whether the split is meaningful or essentially flat
+  - Recognize that a segmentation check with no dramatic finding is still a valid, reportable EDA result
+prerequisites: [relationships-and-correlation]
+skills: [pandas]
+datasets: [ecommerce]
+tags: [python, intermediate, real-world]
+key_takeaways:
+  - "A single overall average always erases whatever heterogeneity exists underneath it — segmentation is how you check whether that erased heterogeneity actually mattered."
+  - "In this dataset, average completed order value by sales channel shows a real split: marketplace orders average $1,605.86 vs. $1,695.49 on both mobile and web — roughly 5.6% lower — and marketplace's refund rate (4.6%) is meaningfully below mobile's (6.8%). That's a pattern worth investigating further."
+  - "Not every dimension you check will reveal a story — average order value by customer_segment (business vs. consumer) comes out to $1,659.80 vs. $1,697.53, barely different. That's a legitimate, useful EDA finding too: it tells you customer_segment isn't the lever driving order value in this data, so don't build a narrative around it that isn't there."
+  - "The EDA habit is the same either way: for any metric you care about, ask what categorical dimensions might be hiding different sub-populations, check with .groupby(), and report what you actually find — including when the answer is 'this split doesn't matter much.'"
+common_mistakes:
+  - "Reporting only an overall average and never checking whether it's stable across obvious categorical splits (channel, segment, region, device) — this is the single fastest way an EDA pass misses the real story in a dataset."
+  - "Segmenting by a dimension, finding a flat result, and treating that as a failed analysis rather than a real finding — 'this doesn't vary much by X' is often exactly as useful to a stakeholder as 'this varies a lot by Y.'"
+  - "Segmenting by many dimensions at once and reporting whichever one happens to show the biggest gap, without considering that with enough categorical splits, some gap will look 'interesting' by chance alone."
+practical_applications:
+  - "Checking a headline KPI (average order value, conversion rate, churn rate) across obvious business dimensions — channel, segment, region, device — before presenting it as a single number in a report."
+  - "Using a flat segmentation result to push back on a stakeholder's assumption ('surely business customers spend more') with an actual measured answer, rather than debating from intuition."
+interview_questions:
+  - question: "You're asked to explain a company's average order value. What's the first thing you'd check beyond the overall number?"
+    answer: "Whether that average is stable or hides meaningful variation across the categorical dimensions that plausibly drive it — sales channel, customer segment, region, device. I'd run a groupby on each candidate dimension and compare group averages (and group sizes, since a split driven by a tiny group is less trustworthy). If one dimension shows a real, sizeable gap, that's often more useful to a stakeholder than the single blended number — and if none of them show much variation, that's worth reporting too, since it rules out some easy explanations."
+  - question: "Why is a segmentation check that finds 'no meaningful difference' still worth including in an analysis?"
+    answer: "Because it rules something out. If a stakeholder assumes business customers spend differently from consumer customers, and the data shows average order value within about 2% between the two groups, that's a real, useful answer — it redirects attention away from a segment-based explanation and toward other dimensions (like channel, in this dataset) that do show a real split. Omitting flat results creates survivorship bias in what gets reported: only the 'interesting' splits get shared, which can overstate how segmented the business actually is."
+resources:
+  - title: "Pandas documentation — GroupBy: split-apply-combine"
+    url: "https://pandas.pydata.org/docs/user_guide/groupby.html"
+blocks:
+  - type: text
+    body: >
+      You already know `.groupby()` as an aggregation tool — it's how you compute "total revenue per
+      product" or "count of orders per status." This lesson is about the same method used for a
+      different purpose: as a **diagnostic**, to check whether one overall number is quietly averaging
+      together two or more populations that actually behave quite differently.
+  - type: heading
+    text: "Start with the overall number"
+  - type: code
+    language: python
+    code: |
+      import pandas as pd
+
+      orders = pd.read_csv("data/sample/ecommerce/orders.csv")
+      order_items = pd.read_csv("data/sample/ecommerce/order_items.csv")
+
+      order_items["line_revenue"] = (
+          (order_items["unit_price"] - order_items["discount"]) * order_items["quantity"]
+      )
+      order_value = order_items.groupby("order_id")["line_revenue"].sum().rename("order_value")
+      orders = orders.merge(order_value, on="order_id", how="left")
+      completed = orders[orders["status"] == "completed"]
+
+      print(f"Overall average order value: ${completed['order_value'].mean():,.2f}")
+    caption: The single blended number you'd report if you stopped here
+  - type: output
+    body: |
+      Overall average order value: $1,686.32
+    caption: Real output
+  - type: heading
+    text: "Segment by channel — a real split shows up"
+  - type: code
+    language: python
+    code: |
+      by_channel = completed.groupby("channel")["order_value"].agg(["mean", "count"]).round(2)
+      print(by_channel)
+    caption: The same metric, sliced by sales channel
+  - type: output
+    body: |
+      mean  count
+      channel
+      marketplace  1605.86    352
+      mobile       1695.49   1199
+      web          1695.49   1890
+    caption: Real output
+  - type: callout
+    variant: important
+    title: "The overall average was hiding a real, if moderate, channel effect"
+    body: >
+      Marketplace orders average $1,605.86 — about 5.6% below the $1,695.49 seen on both mobile and
+      web. $1,686.32 overall was a reasonable blend, but it obscured that marketplace behaves somewhat
+      differently. Worth checking next: is the marketplace product mix different (lower-priced items,
+      fewer bundles), or does the marketplace platform itself cap or discount pricing in some way?
+  - type: heading
+    text: "Segmenting a second metric confirms it's worth digging into"
+  - type: code
+    language: python
+    code: |
+      refund_rate = (
+          orders.groupby("channel")["status"]
+          .apply(lambda s: (s == "refunded").mean() * 100)
+          .round(1)
+      )
+      print(refund_rate)
+    caption: Refund rate by the same dimension — does channel show up here too?
+  - type: output
+    body: |
+      channel
+      marketplace    4.6
+      mobile         6.8
+      web            6.0
+      Name: status, dtype: float64
+    caption: Real output
+  - type: text
+    body: >
+      Marketplace orders are both lower-value on average *and* refunded less often than mobile orders —
+      a 47% relative difference in refund rate (4.6% vs. 6.8%). Two metrics pointing the same direction
+      on the same dimension is a stronger signal than either alone, and a genuinely useful thread to
+      pull on: different product mix, different buyer expectations, or a marketplace platform's own
+      return policy could all be plausible next questions.
+  - type: heading
+    text: "An honest counter-example: not every split reveals a story"
+  - type: code
+    language: python
+    code: |
+      customers = pd.read_csv("data/sample/ecommerce/customers.csv")
+      by_segment = (
+          completed.merge(customers[["customer_id", "customer_segment"]], on="customer_id")
+          .groupby("customer_segment")["order_value"]
+          .agg(["mean", "count"])
+          .round(2)
+      )
+      print(by_segment)
+    caption: Checking the same metric against customer_segment (business vs. consumer)
+  - type: output
+    body: |
+      mean  count
+      customer_segment
+      business         1659.80   1022
+      consumer         1697.53   2419
+    caption: Real output
+  - type: callout
+    variant: tip
+    title: "$1,659.80 vs. $1,697.53 — about 2.2% apart. That's a flat result, and it's still worth reporting."
+    body: >
+      It would be easy to assume business customers place larger orders than consumer customers — many
+      real businesses do see exactly that pattern. Here, they don't: the gap is small enough to plausibly
+      be ordinary variation rather than a real segment effect. The correct EDA conclusion isn't to keep
+      slicing until something looks dramatic — it's to report honestly that customer_segment doesn't
+      appear to be a meaningful driver of order value in this data, and let the channel finding above
+      carry the actual insight instead.
+  - type: checklist
+    title: "A segmentation pass, as a repeatable routine"
+    items:
+      - "Compute the overall metric first, so you have a baseline to compare segments against"
+      - "List the categorical dimensions that plausibly could drive differences (channel, segment, region, device, time period)"
+      - "groupby() each candidate dimension and compare both the metric AND the group sizes — a gap from a tiny group is less trustworthy"
+      - "Check a second, related metric on any dimension that shows a real gap — a pattern that shows up on more than one metric is a stronger signal"
+      - "Report flat results as findings too, not just the dramatic ones"
+  - type: question
+    prompt: "Segmenting average order value by customer_segment shows business at $1,659.80 and consumer at $1,697.53 — about 2.2% apart. What's the right conclusion?"
+    choices:
+      - "customer_segment doesn't appear to meaningfully drive order value in this data — a legitimate, reportable finding, distinct from the real ~5.6% gap found when segmenting by channel"
+      - "The analysis failed and should be redone with a different metric until a bigger gap appears"
+      - "Business customers definitely spend more, since $1,697.53 is technically higher than $1,659.80"
+    correct_index: 0
+    explanation: >
+      A 2.2% gap is small enough to plausibly be ordinary variation rather than a real segment effect —
+      treating it as proof of a meaningful difference would overstate the finding. Reporting "this
+      dimension doesn't explain much of the variation" is itself a valid, useful EDA result, especially
+      next to a dimension (channel) that does show a real, corroborated gap.

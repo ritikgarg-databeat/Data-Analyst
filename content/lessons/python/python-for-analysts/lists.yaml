@@ -1,0 +1,106 @@
+slug: lists
+module_slug: python-for-analysts
+title: Lists
+description: Creating, indexing, and slicing lists, common list methods, and a first look at list comprehensions.
+difficulty: BEGINNER
+estimated_minutes: 14
+display_order: 6
+objectives:
+  - Create lists and access elements by index and slice
+  - Use common list methods (append, sort, len, in) to manipulate and inspect a list
+  - Read and write a simple list comprehension as a compact alternative to a for loop
+prerequisites: [functions]
+skills: [python-fundamentals]
+tags: [python, beginner, foundations]
+key_takeaways:
+  - "A list is an ordered, mutable collection — think of it as a single column of values, or a row of results, that you can index, slice, and modify in place."
+  - "Indexing is zero-based (the first element is index 0), and negative indices count from the end (-1 is the last element)."
+  - A list comprehension is a compact way to write "build a new list by transforming or filtering an existing one" — the same thing a for loop with .append() does, in one line.
+common_mistakes:
+  - "Off-by-one errors when slicing — my_list[0:3] returns 3 elements (indices 0, 1, 2), not 4, because the stop index is exclusive."
+  - "Trying to index past the end of the list (my_list[10] on a 5-element list) and getting an IndexError instead of None or a default value."
+  - Using a list when a dictionary would be a better fit — e.g. storing parallel lists of customer_ids and customer_names instead of one list of {id, name} records, which makes it easy for the two lists to drift out of sync.
+blocks:
+  - type: text
+    body: >
+      A **list** is Python's ordered, mutable collection type — the closest everyday analogy is a
+      single column of values, or one row of query results. You'll use lists constantly: a list of
+      order totals, a list of column names, a list of dictionaries representing rows.
+  - type: heading
+    text: Creating and indexing
+  - type: code
+    language: python
+    code: |
+      regions = ["US", "EMEA", "APAC", "LATAM"]
+
+      regions[0]     # "US"   — indexing starts at 0
+      regions[2]     # "APAC"
+      regions[-1]    # "LATAM" — negative indices count from the end
+      len(regions)   # 4
+    caption: Zero-based indexing, and negative indices counting from the end
+  - type: heading
+    text: Slicing
+  - type: code
+    language: python
+    code: |
+      order_totals = [42.50, 108.00, 19.99, 250.00, 76.25]
+
+      order_totals[0:3]   # [42.50, 108.00, 19.99]  — indices 0, 1, 2 (stop is exclusive)
+      order_totals[:2]    # [42.50, 108.00]          — from the start
+      order_totals[3:]    # [250.00, 76.25]          — to the end
+      order_totals[-2:]   # [250.00, 76.25]          — last two elements
+    caption: "Slicing: list[start:stop] — stop is exclusive, either side can be omitted"
+  - type: callout
+    variant: warning
+    title: The stop index is exclusive
+    body: >
+      `order_totals[0:3]` returns elements at indices 0, 1, and 2 — three elements, not four. The stop
+      index marks where slicing ends, but that element itself is not included. This trips up almost
+      everyone the first few times.
+  - type: heading
+    text: Common list methods
+  - type: table
+    headers: ["Method / operator", "What it does", "Example"]
+    rows:
+      - [".append(x)", "Adds x to the end of the list, in place", 'regions.append("MEA")']
+      - [".sort()", "Sorts the list in place, ascending by default", "order_totals.sort()"]
+      - ["sorted(list)", "Returns a new sorted list, leaves the original unchanged", "sorted(order_totals, reverse=True)"]
+      - ["x in list", "Checks membership, returns True/False", '"APAC" in regions']
+      - ["len(list)", "Number of elements", "len(order_totals)"]
+      - [".remove(x)", "Removes the first matching element by value", 'regions.remove("LATAM")']
+  - type: heading
+    text: List comprehensions
+  - type: text
+    body: >
+      A **list comprehension** builds a new list by applying an expression (and optionally a filter) to
+      every element of an existing one — it's the compact form of a for loop that appends to a new
+      list. You'll see this pattern constantly in real Python analysis code.
+  - type: example
+    title: For loop vs. list comprehension
+    body: >
+      Both versions produce the identical result. The comprehension is shorter and, once you're
+      comfortable reading it, arguably clearer — but it's worth learning the for-loop version first
+      since that's what the comprehension is shorthand for.
+    code: |
+      order_totals = [42.50, 108.00, 19.99, 250.00, 76.25]
+
+      # For loop version
+      large_orders = []
+      for total in order_totals:
+          if total > 50:
+              large_orders.append(total)
+
+      # List comprehension version — identical result
+      large_orders = [total for total in order_totals if total > 50]
+      # [108.00, 250.00, 76.25]
+    language: python
+  - type: question
+    prompt: "Given regions = ['US', 'EMEA', 'APAC', 'LATAM'], what does regions[1:3] return?"
+    choices:
+      - "['EMEA', 'APAC']"
+      - "['EMEA', 'APAC', 'LATAM']"
+      - "['US', 'EMEA']"
+    correct_index: 0
+    explanation: >
+      Slicing with [1:3] starts at index 1 (EMEA) and stops before index 3 — so it includes indices 1
+      and 2 (EMEA, APAC) but not index 3 (LATAM), since the stop index in a slice is always exclusive.

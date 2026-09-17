@@ -1,0 +1,106 @@
+slug: interview-ab-test-interpretation
+title: Interpreting a Feature Rollout Experiment
+category: EXPERIMENTATION
+difficulty: INTERMEDIATE
+estimated_minutes: 25
+company_context: A SaaS product tracked via the saas-product schema, including experiment_assignments.
+stakeholder_name: Alex Kim
+stakeholder_role: Product Manager
+problem_statement: '"We ran an A/B test on the new onboarding flow. The results look positive but I want your read
+  before we decide to roll it out to everyone."'
+business_context: Alex needs a clear ship/no-ship recommendation grounded in both statistical and practical significance.
+objective: Assess the experiment's result for statistical and practical significance and give a ship/no-ship recommendation.
+initial_information: You have access to experiment_assignments, users, events, and subscriptions.
+constraints:
+- State your reasoning about significance explicitly rather than asserting a conclusion.
+- Consider guardrail metrics, not just the primary metric.
+available_datasets:
+- saas-product
+expected_deliverables:
+- Computed conversion/activation rates for control and treatment
+- A significance assessment (statistical and practical)
+- A ship/no-ship recommendation with a stated guardrail check
+learning_objectives:
+- Compute and compare an experiment's primary metric across groups
+- Reason about statistical vs. practical significance
+- Check guardrail metrics before recommending a rollout
+stages:
+- CLARIFY
+- ANALYZE
+- INSIGHTS
+- RECOMMEND
+- SUBMIT
+tags:
+- interview
+- ab-testing
+- experimentation
+- case-study
+skills:
+- experimentation
+- statistical-reasoning
+- communication
+clarification_guidance:
+- A good clarifying question confirms the pre-registered primary metric and any guardrail metrics.
+- A good clarifying question asks how long the experiment ran and whether it reached its planned sample size.
+rubric:
+- category: Problem Framing & Clarification
+  weight: 15
+  criteria:
+  - criterion: Confirms the pre-registered primary metric and guardrail metrics before analyzing
+    points: 15
+- category: Technical Analysis
+  weight: 35
+  is_technical: true
+  criteria:
+  - criterion: Correctly computes the primary metric for control and treatment
+    points: 20
+  - criterion: Checks at least one guardrail metric for an unintended negative effect
+    points: 15
+- category: Insight Quality
+  weight: 25
+  criteria:
+  - criterion: Reasons explicitly about both statistical and practical significance rather than asserting one
+    points: 25
+- category: Recommendation & Business Judgment
+  weight: 15
+  criteria:
+  - criterion: Gives a clear ship/no-ship/extend-test recommendation tied to the analysis
+    points: 15
+- category: Communication
+  weight: 10
+  criteria:
+  - criterion: Explains the recommendation in terms Alex could use to make the rollout decision
+    points: 10
+hints:
+- Always check at least one guardrail metric (e.g. a support-contact or error-rate signal) before recommending a
+  full rollout, even if the primary metric looks good.
+- State your reasoning about whether the sample size was large enough to trust the result, rather than only reporting
+  the point estimate.
+reference_solution:
+  summary: The checkout_redesign experiment is the one built-in test whose data actually looks positive, control
+    converts at 11.3% (113 of 1,000) and treatment at 12.5% (125 of 1,000), a +1.2 point lift, but a two-proportion
+    z-test gives z = 0.83, p = 0.41, which does not clear conventional significance thresholds, and the 95% confidence
+    interval on the difference (-1.6 to +4.0 points) spans zero. Activation rate, the natural guardrail here, is not
+    hurt at all (69.4% treatment vs 67.8% control), so there is no sign the redesign trades onboarding quality for a
+    conversion bump. The honest read is a promising but statistically unproven result, not a confirmed win.
+  key_insights:
+  - Checkout conversion (the 'converted' field) is 12.5% for treatment (125 of 1,000) vs 11.3% for control (113 of
+    1,000), a +1.2 percentage point, roughly 11% relative lift.
+  - A two-proportion z-test on that gap gives z = 0.83, p = 0.41, well short of significance, and the 95% confidence
+    interval on the true difference (-1.6 to +4.0 points) spans zero.
+  - Activation rate, a well-powered guardrail (n=1,000 per arm), is 69.4% for treatment vs 67.8% for control, so the
+    redesign shows no sign of hurting onboarding to get its conversion gain.
+  - A subscription-linked churn check was attempted as a second guardrail, but only 7 treatment and 4 control
+    converters have any linked subscription record, far too few to draw a conclusion from either way.
+  recommendation: Tell Alex the point estimate favors shipping and the guardrail is clean, but the primary metric
+    has not yet reached statistical significance at the current sample size (p = 0.41), so this is not yet a confirmed
+    win. Recommend extending the test to reach a properly powered sample before a full, unconditional rollout, or, if
+    the team needs to move now, a limited and closely monitored rollout rather than declaring victory off this result
+    alone.
+  acceptable_alternatives:
+  - A recommendation to ship now on the strength of the positive point estimate and clean guardrail, as long as the
+    write-up explicitly flags that the result is not yet statistically significant and commits to monitoring
+    conversion and activation in production.
+  - A recommendation to treat the subscription-linked churn comparison as too sparse to serve as a guardrail at all,
+    rather than drawing any conclusion from the 7-vs-4-user samples.
+version: 1

@@ -1,0 +1,24 @@
+slug: mock-analyst-quick
+title: "Quick Mock Interview — SQL + Case Study"
+target_profile: "Data Analyst — ~2 Years Experience"
+description: >
+  A short two-round mock interview: one timed SQL problem followed by one
+  shortened business case, back to back — a compact rehearsal for the full
+  Mock Interview mode.
+sections:
+  - interview_type: SQL
+    title: "SQL"
+    duration_minutes: 10
+    question_count: 1
+  - interview_type: CASE_STUDY
+    title: "Business Case"
+    duration_minutes: 30
+    question_count: 1
+rubric_weights:
+  Technical Correctness: 30
+  Analytical Reasoning: 20
+  Business Understanding: 20
+  Communication: 15
+  Problem Solving: 10
+  Efficiency: 5
+tags: [mock-interview, sql, case-study]

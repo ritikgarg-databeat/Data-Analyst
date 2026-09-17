@@ -1,0 +1,85 @@
+slug: having
+module_slug: sql-aggregation
+title: HAVING
+description: Filtering groups after aggregation with HAVING, and how that differs from WHERE filtering rows before aggregation.
+difficulty: BEGINNER
+estimated_minutes: 10
+display_order: 2
+objectives:
+  - Filter aggregated groups using HAVING
+  - Explain why WHERE cannot reference an aggregate function like SUM() or COUNT()
+  - Combine WHERE and HAVING correctly in the same query
+prerequisites: [group-by]
+skills: [sql-fundamentals]
+datasets: [orders-sample]
+tags: [sql, beginner]
+key_takeaways:
+  - WHERE filters individual rows before grouping; HAVING filters groups after GROUP BY has aggregated them.
+  - HAVING can reference aggregate expressions like SUM(order_total); WHERE cannot, because those aggregates don't exist yet when WHERE runs.
+  - WHERE and HAVING can both appear in the same query, each doing its own job at its own stage.
+common_mistakes:
+  - "Writing WHERE SUM(order_total) > 100 to filter high-spending customers — this fails, because WHERE runs before GROUP BY has produced any SUM to filter on."
+  - Using HAVING to filter something that WHERE could filter more cheaply (like status = 'completed') — filtering rows out with WHERE before grouping is more efficient than grouping everything and discarding groups afterward.
+blocks:
+  - type: heading
+    text: Two filters, two different stages
+  - type: text
+    body: >
+      WHERE and HAVING are both filters, but they run at different points in a query's evaluation.
+      WHERE filters individual rows *before* GROUP BY collapses anything — so it can only see columns
+      that exist on a single row. HAVING filters the *groups* that GROUP BY produced, *after*
+      aggregation has already happened — so it can reference aggregate expressions like SUM() or
+      COUNT() that don't exist until grouping is done.
+  - type: code
+    language: sql
+    caption: Customers who have spent more than $150 in total
+    code: |
+      SELECT customer_id, SUM(order_total) AS total_spend
+      FROM orders
+      GROUP BY customer_id
+      HAVING SUM(order_total) > 150;
+  - type: callout
+    variant: common_mistake
+    title: "Why \"WHERE SUM(order_total) > 150\" fails"
+    body: >
+      At the point WHERE runs, grouping hasn't happened yet — there's no SUM to reference, because
+      SUM only exists once rows have been collapsed into groups. HAVING runs after GROUP BY, once
+      SUM(order_total) is a real, computed value per group, which is why the same condition works
+      fine there.
+  - type: text
+    body: >
+      A single query can use both together, each doing what it's suited for: WHERE narrows down the raw rows
+      before the (potentially expensive) grouping work happens, and HAVING then filters based on the
+      aggregate result of whatever rows made it through WHERE.
+  - type: example
+    title: "High-spending customers, completed orders only"
+    body: >
+      This query only ever aggregates completed orders (WHERE removes everything else first), then
+      keeps only the customers whose completed-order total exceeds $100 (HAVING filters the resulting
+      groups). Filtering with WHERE first is also cheaper — there's less data left to group.
+    code: |
+      SELECT customer_id, SUM(order_total) AS completed_spend
+      FROM orders
+      WHERE status = 'completed'
+      GROUP BY customer_id
+      HAVING SUM(order_total) > 100;
+    language: sql
+  - type: comparison
+    title: "WHERE vs. HAVING"
+    columns: ["", "WHERE", "HAVING"]
+    rows:
+      - ["Runs relative to GROUP BY", "Before", "After"]
+      - ["Filters", "Individual rows", "Groups"]
+      - ["Can reference SUM()/COUNT()/AVG()?", "No", "Yes"]
+      - ["Can reference a raw column like status?", "Yes", "Yes, but usually better handled in WHERE for efficiency"]
+  - type: question
+    prompt: "A query needs customers whose total completed-order spend exceeds $200. Which clause must the condition SUM(order_total) > 200 go in?"
+    choices:
+      - WHERE, because it always runs first
+      - HAVING, because SUM(order_total) only exists after GROUP BY has aggregated the rows
+      - Either one — they're interchangeable for aggregate conditions
+    correct_index: 1
+    explanation: >
+      SUM(order_total) is an aggregate expression that only has a value once rows have been grouped.
+      WHERE runs before grouping and has no concept of a per-group SUM, so the condition has to go in
+      HAVING, which runs after GROUP BY when that aggregate actually exists.

@@ -1,0 +1,156 @@
+slug: period-analysis
+module_slug: pandas-time-series
+title: Period-over-Period Analysis
+description: Bucketing dates into calendar periods with .dt.to_period(), then comparing periods with .shift() and .pct_change() for month-over-month and quarter-over-quarter reporting.
+content_type: READING
+difficulty: INTERMEDIATE
+estimated_minutes: 12
+display_order: 5
+objectives:
+  - Bucket a datetime column into calendar periods with .dt.to_period('M') / .dt.to_period('Q')
+  - Compare each period to the previous one using .shift()
+  - Compute period-over-period percent change with .pct_change()
+prerequisites: [date-differences]
+skills: [pandas]
+datasets: [ecommerce]
+tags: [python, intermediate, real-world]
+key_takeaways:
+  - ".dt.to_period('M') or .dt.to_period('Q') collapses a full timestamp down to just its calendar month or quarter, producing a PeriodIndex-friendly value that's ideal for grouping into business-reporting buckets."
+  - ".shift() moves a Series' values down by N positions, so shift(1) lines up 'last period's value' next to 'this period's value' — the building block for any period-over-period comparison."
+  - ".pct_change() does the shift-and-divide math for you directly, returning the percent change from each row to the previous one in a single call."
+common_mistakes:
+  - "Interpreting a huge pct_change() swing at the very start or end of a series as a real business signal without checking whether that period is actually complete — a partial period (e.g. only one day of data because the dataset's date range cuts off mid-quarter) will show an artificially low value and a misleading swing."
+  - "Confusing shift(1) (previous period's value moved down to line up with the current row) with shift(-1) (next period's value moved up) — getting the sign backwards silently flips 'compared to last period' into 'compared to next period.'"
+  - "Computing pct_change() on unsorted data — it strictly compares each row to the row before it in the DataFrame's current order, so an unsorted-by-date series produces meaningless percentages."
+practical_applications:
+  - "Building a quarter-over-quarter revenue growth column for a business review deck."
+  - "Flagging months where revenue dropped more than X% versus the prior month as an early warning signal."
+interview_questions:
+  - question: "What does .dt.to_period('Q') do, and why use it instead of .dt.quarter?"
+    answer: ".dt.to_period('Q') converts a timestamp into a period value representing its full calendar quarter, keeping the year distinct — e.g. 2024Q1, 2024Q2, 2025Q1 are all different periods. .dt.quarter, by contrast, only returns the quarter number (1-4), throwing away the year, which — just like .dt.month vs. resample() — silently merges the same quarter across different years if you group by it directly. to_period is the right choice whenever the data spans more than one year and you need each quarter kept distinct."
+  - question: "How would you compute month-over-month percent change in revenue?"
+    answer: "First aggregate to one revenue total per month (e.g. via resample('ME').sum() or groupby on a to_period('M') column), producing a single ordered Series. Then call .pct_change() on it — pandas computes, for each row, (this value - previous value) / previous value, expressed as a fraction (multiply by 100 for a percentage). The first row has no prior period to compare against, so it comes back as NaN, which is expected and should not be treated as a 0% change."
+blocks:
+  - type: text
+    body: >
+      Business reporting almost always asks the same question in different clothing: "how does this
+      period compare to the last one?" Answering it needs three ingredients — bucketing dates into
+      calendar periods, lining up each period with the one before it, and computing the percent
+      change between them. Pandas has a dedicated tool for each step.
+  - type: heading
+    text: "Bucketing into periods with .dt.to_period()"
+  - type: code
+    language: python
+    code: |2
+      import pandas as pd
+
+      payments = pd.read_csv("data/sample/ecommerce/payments.csv")
+      payments["payment_date"] = pd.to_datetime(payments["payment_date"])
+      payments = payments[payments["status"] == "success"]
+
+      payments["quarter"] = payments["payment_date"].dt.to_period("Q")
+      quarterly_revenue = payments.groupby("quarter")["amount"].sum().round(2)
+      quarterly_revenue
+    caption: Real quarterly revenue, bucketed with to_period('Q') to keep each year's quarters distinct
+  - type: output
+    body: |2
+      quarter
+      2024Q1      54713.04
+      2024Q2     165702.58
+      2024Q3     254285.06
+      2024Q4     361840.02
+      2025Q1     684408.24
+      2025Q2     793527.70
+      2025Q3    1286880.45
+      2025Q4    2165500.64
+      2026Q1      35770.42
+      Freq: Q-DEC, Name: amount, dtype: float64
+  - type: callout
+    variant: tip
+    title: "to_period('M') works the same way, at month grain"
+    body: >
+      Swap 'Q' for 'M' to bucket into calendar months instead of quarters — payments['payment_date'].dt.to_period('M')
+      — everything else in this lesson (shift, pct_change) works identically at either grain.
+  - type: heading
+    text: "Lining up periods with .shift()"
+  - type: text
+    body: >
+      `.shift(1)` moves every value down by one position, so "last period's value" ends up sitting
+      next to "this period's value" on the same row — exactly the alignment a period-over-period
+      comparison needs.
+  - type: code
+    language: python
+    code: |2
+      df = quarterly_revenue.reset_index()
+      df.columns = ["quarter", "revenue"]
+      df["prev_quarter_revenue"] = df["revenue"].shift(1)
+      df
+    caption: prev_quarter_revenue on each row is the revenue from one quarter earlier
+  - type: output
+    body: |2
+        quarter     revenue  prev_quarter_revenue
+      0  2024Q1    54713.04                    NaN
+      1  2024Q2   165702.58               54713.04
+      2  2024Q3   254285.06              165702.58
+      3  2024Q4   361840.02              254285.06
+      4  2025Q1   684408.24              361840.02
+      5  2025Q2   793527.70              684408.24
+      6  2025Q3  1286880.45              793527.70
+      7  2025Q4  2165500.64             1286880.45
+      8  2026Q1    35770.42             2165500.64
+  - type: text
+    body: >
+      The first row (2024Q1) has no prior quarter in the data, so its prev_quarter_revenue is
+      correctly NaN rather than 0 — there's genuinely nothing to compare it to.
+  - type: heading
+    text: "Percent change with .pct_change()"
+  - type: text
+    body: >
+      Doing (revenue - prev_quarter_revenue) / prev_quarter_revenue manually works, but
+      `.pct_change()` does exactly that in one call.
+  - type: code
+    language: python
+    code: |2
+      df["qoq_pct_change"] = (df["revenue"].pct_change() * 100).round(2)
+      df
+    caption: Quarter-over-quarter percent change, computed directly
+  - type: output
+    body: |2
+        quarter     revenue  prev_quarter_revenue  qoq_pct_change
+      0  2024Q1    54713.04                    NaN             NaN
+      1  2024Q2   165702.58               54713.04          202.86
+      2  2024Q3   254285.06              165702.58           53.46
+      3  2024Q4   361840.02              254285.06           42.30
+      4  2025Q1   684408.24              361840.02           89.15
+      5  2025Q2   793527.70              684408.24           15.94
+      6  2025Q3  1286880.45              793527.70           62.17
+      7  2025Q4  2165500.64             1286880.45           68.28
+      8  2026Q1    35770.42            2165500.64          -98.35
+  - type: callout
+    variant: warning
+    title: "That -98.35% in the last row is a data artifact, not a real crash"
+    body: >
+      This dataset's orders run through 2026-01-01 — so 2026Q1 contains only a single day of payments,
+      not a full quarter. Comparing one day's revenue against all of 2025Q4 produces a huge, misleading
+      drop that has nothing to do with actual business performance. Always check whether the most
+      recent period in a period-over-period comparison is actually complete before reading anything
+      into a swing at the edge of the data.
+  - type: heading
+    text: "The overall pattern, read together"
+  - type: text
+    body: >
+      Ignoring the incomplete final quarter, this is a real, sustained growth story: revenue roughly
+      doubled quarter-over-quarter for most of 2024, then continued strong double-digit-to-triple-digit
+      growth through all of 2025 — exactly the kind of trend a qoq_pct_change column is built to
+      surface at a glance, without having to eyeball raw totals.
+  - type: question
+    prompt: "monthly_revenue.pct_change() is computed on a 12-row monthly Series with no missing months. How many NaN values appear in the result, and why?"
+    choices:
+      - "Zero — pct_change() always fills every row with a number"
+      - "One — the first row has no prior period to compute a percent change against"
+      - "Twelve — pct_change() requires a prior full year of data to compute anything"
+    correct_index: 1
+    explanation: >
+      pct_change() compares each row to the one immediately before it. The very first row in the
+      Series has no prior row at all, so its result is NaN — every subsequent row (11 of the 12) has
+      a real prior value to compare against and gets a computed percentage.

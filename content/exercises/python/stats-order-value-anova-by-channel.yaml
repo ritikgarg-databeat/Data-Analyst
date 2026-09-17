@@ -1,0 +1,63 @@
+slug: stats-order-value-anova-by-channel
+lesson_slug: test-anova
+skill: statistics
+dataset: ecommerce
+title: "Does Order Value Differ by Channel? A One-Way ANOVA"
+description: Compare average order value across web, mobile, and marketplace order channels using a one-way ANOVA.
+exercise_type: PYTHON
+difficulty: ADVANCED
+points: 20
+tags: [python, statistics, advanced, e-commerce]
+business_context: >
+  Finance is considering a channel-specific pricing strategy on the assumption that marketplace
+  orders are meaningfully smaller than web or mobile orders, and wants that checked with a proper
+  test across all three channels at once before building a pricing proposal around it.
+prompt: >
+  Using `orders` and `payments`, merge successful payments (`status == "success"`) to orders, group
+  the resulting `amount` values by `channel`, and run a one-way ANOVA (`scipy.stats.f_oneway`) across
+  the three channel groups. Store your answer in a variable named `result`: a dict with keys
+  `f_stat` (rounded to 3 decimals) and `p_value` (rounded to 4 decimals).
+python_datasets: [orders, payments]
+python_starter_code: |
+  # orders and payments are already loaded as DataFrames.
+  # Explore them first:
+  orders["channel"].value_counts()
+python_solution_code: |
+  from scipy import stats
+
+  success = payments[payments.status == "success"]
+  merged = orders.merge(success, on="order_id")
+  groups = [g["amount"].values for _, g in merged.groupby("channel")]
+
+  f_stat, p_value = stats.f_oneway(*groups)
+  result = {"f_stat": round(f_stat, 3), "p_value": round(p_value, 4)}
+python_result_variable: result
+python_numeric_tolerance: 0.001
+python_hidden_tests:
+  - name: "This difference across channels should not be statistically significant"
+    code: |
+      assert result["p_value"] > 0.05, (
+          "Order value should not differ significantly across channels in this dataset."
+      )
+      assert result["f_stat"] > 0, "F-statistic should be a positive number."
+hints:
+  - "Merge successful payments onto orders first (on 'order_id'), then use `.groupby('channel')` to split the resulting amount column into one array per channel."
+  - "`scipy.stats.f_oneway(*groups)` accepts each group's values as a separate positional argument — unpack a list of arrays with `*groups`."
+solution: |
+  ```python
+  from scipy import stats
+
+  success = payments[payments.status == "success"]
+  merged = orders.merge(success, on="order_id")
+  groups = [g["amount"].values for _, g in merged.groupby("channel")]
+
+  f_stat, p_value = stats.f_oneway(*groups)
+  result = {"f_stat": round(f_stat, 3), "p_value": round(p_value, 4)}
+  ```
+explanation: >
+  Web and mobile orders both average about $1,695.49, and marketplace averages $1,605.86 — a visible
+  gap, but the ANOVA returns F = 1.091, p = 0.336. This data gives no statistical evidence that
+  average order value actually differs across channels, so a channel-specific pricing strategy
+  premised on "marketplace orders are smaller" isn't supported by this comparison — if marketplace
+  needs different treatment, the justification should come from elsewhere (e.g., marketplace fee
+  structures).

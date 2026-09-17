@@ -1,0 +1,111 @@
+slug: pa-activation-segmentation
+module_slug: product-activation
+title: "Segmenting Activation: Finding and Explaining a Real Gap"
+description: >
+  A worked segmentation of activation rate by acquisition channel — confirming the gap is real, ruling
+  out an obvious confound, and turning it into a testable hypothesis and a quantified opportunity.
+difficulty: INTERMEDIATE
+estimated_minutes: 20
+display_order: 2
+objectives:
+  - Confirm a segmented metric gap is large relative to sample size before treating it as real
+  - Check at least one plausible confound (e.g. a second correlated dimension) before concluding a segment itself is the cause
+  - Quantify the size of the opportunity if a lagging segment were brought up to par
+prerequisites: [pa-activation-definition, pa-funnel-sql]
+skills: [product-analytics, product-metrics, root-cause-analysis]
+datasets: [saas-product]
+tags: [product, saas, root-cause, intermediate]
+key_takeaways:
+  - Before investigating why a segment underperforms, check that the gap is large relative to the group sizes involved — a 23-point spread across groups of 300-900 users each is not something to explain away as noise.
+  - Checking one plausible confound (here, geography) before blaming the segment itself is a cheap, high-value step — it either strengthens the case or redirects the investigation, and either outcome is useful.
+  - "Quantifying the opportunity (not just naming the gap) is what turns an observation into a decision: \"paid_social lags by 23 points\" becomes concrete once you say \"closing that gap would activate roughly 143 more users from this channel alone.\""
+common_mistakes:
+  - Jumping straight from "channel X has a lower rate" to "channel X's ads are the problem," without checking whether X also happens to skew toward a different geography, plan tier, or signup era that could be the real driver.
+  - Stopping the analysis at "here's the gap" without quantifying what closing it would actually be worth, which leaves stakeholders with an observation instead of a decision.
+blocks:
+  - type: text
+    body: >
+      The previous lesson surfaced a real gap: paid_social activates at 55.9%, versus 78.9% for
+      organic — a 23-point spread. This lesson works through the next three steps any real
+      investigation needs: confirm the gap is meaningful, rule out an obvious confound, and quantify
+      what fixing it is worth.
+  - type: heading
+    text: "Step 1: Is the gap large relative to sample size?"
+  - type: table
+    headers: ["Channel", "Signups (n)", "Activated", "Activation rate"]
+    rows:
+      - ["organic", "913", "720", "78.9%"]
+      - ["paid_social", "624", "349", "55.9%"]
+  - type: text
+    body: >
+      With 624 and 913 users respectively, these are not small samples — a 23-point gap between two
+      groups this size is far too large to be sampling noise (a back-of-envelope standard error on a
+      proportion this size is roughly 2 points, so a 23-point gap is over 10 standard errors away from
+      zero). This step is quick, but skipping it is how teams end up investigating differences that
+      later turn out to be noise.
+  - type: heading
+    text: "Step 2: Check an obvious confound before blaming the channel"
+  - type: text
+    body: >
+      Acquisition channel could be correlated with something else that's the real driver — most
+      obviously, geography (paid_social campaigns might skew toward a country with worse product-market
+      fit, for instance). Checking `country` mix by channel rules this in or out.
+  - type: table
+    headers: ["Channel", "Top country", "% of channel in top country", "Overall US share of all users"]
+    rows:
+      - ["organic", "US", "36.5% (333 of 913)", "35.2%"]
+      - ["paid_social", "US", "35.7% (223 of 624)", "35.2%"]
+  - type: callout
+    variant: tip
+    title: The confound check comes back clean here
+    body: >
+      paid_social's country mix (35.7% US) is nearly identical to organic's (36.5% US) and to the
+      overall base (35.2%) — geography does not explain the activation gap. That's a useful negative
+      result: it means the investigation should move toward channel-specific factors (the paid_social
+      landing experience, ad targeting quality, onboarding messaging tuned for a different audience)
+      rather than a demographic mix difference.
+  - type: heading
+    text: "Step 3: Quantify the opportunity"
+  - type: text
+    body: >
+      "paid_social activates 23 points lower than organic" is an observation. Turning it into a
+      decision means stating what closing the gap would be worth in real users.
+  - type: formula
+    expression: "Additional activated users = paid_social signups × (organic activation rate − paid_social activation rate)"
+    description: Applying the organic rate as a target for paid_social, holding signup volume constant
+  - type: callout
+    variant: important
+    title: The quantified opportunity
+    body: >
+      624 paid_social signups × (78.9% − 55.9%) ≈ 624 × 0.23 ≈ **143 additional activated users**, if
+      paid_social could be brought up to organic's activation rate. At an overall engaged→upgraded
+      rate of roughly 19% among engaged users, and given paid_social's own downstream engagement
+      rate (53.3% of activated users go on to engage), that additional activation would be expected
+      to flow through to real upgrades too — not just a vanity metric improvement.
+  - type: heading
+    text: What this analysis does and doesn't prove
+  - type: callout
+    variant: warning
+    title: A segmentation finding is a hypothesis generator, not a randomized experiment
+    body: >
+      This analysis shows a real, large, non-confounded-by-geography gap — a strong basis for action.
+      It does not, by itself, prove *why* paid_social underperforms, or that a specific fix (say,
+      rewriting the paid_social landing page) will close the gap. The next step after a finding like
+      this is usually a specific, testable hypothesis (e.g. "paid_social users bounce because the
+      landing page doesn't match ad messaging") followed by an actual experiment — which is exactly
+      the bridge the `product-experiments` module covers.
+  - type: question
+    prompt: >
+      Before concluding that paid_social's ad creative is the reason for its lower activation rate,
+      which check most directly strengthens (or undermines) that conclusion?
+    choices:
+      - "Re-running the same query a second time to confirm the numbers didn't change"
+      - "Checking whether paid_social's user mix differs on another dimension (like country or plan tier) that could be the real driver instead of the channel itself"
+      - "Increasing the activation event's tracked time window"
+      - "Renaming the acquisition_channel value from 'paid_social' to something clearer"
+    correct_index: 1
+    explanation: >
+      Ruling out a confound — a correlated dimension that could be the true cause instead of the
+      channel itself — is the step that turns "channel X looks worse" into either a stronger, cleaner
+      finding (if the confound check comes back clean, as it does here with country) or a redirected
+      investigation (if it doesn't).

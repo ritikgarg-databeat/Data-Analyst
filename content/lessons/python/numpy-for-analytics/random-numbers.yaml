@@ -1,0 +1,108 @@
+slug: random-numbers
+module_slug: numpy-for-analytics
+title: Random Numbers
+description: The modern np.random.default_rng() generator, its .random()/.integers()/.choice() methods, and why a fixed seed matters for reproducible analysis.
+difficulty: BEGINNER
+estimated_minutes: 10
+display_order: 9
+objectives:
+  - Create a random number generator with np.random.default_rng(), and explain why it's preferred over the legacy global-state API
+  - Generate random floats, integers, and random selections with .random(), .integers(), and .choice()
+  - Explain why setting a fixed seed matters for reproducible analysis
+prerequisites: [boolean-masking]
+skills: [pandas]
+datasets: []
+tags: [python, beginner, foundations]
+key_takeaways:
+  - "np.random.default_rng([seed]) is the modern, recommended way to generate random numbers in NumPy — it returns a Generator object you call methods on, rather than relying on hidden global state."
+  - "The legacy API (np.random.seed(), np.random.rand()) shares one global random state across your entire program — any other code (or library) that also uses it can change what comes next, silently breaking reproducibility. default_rng() avoids that by giving each generator its own independent, local state."
+  - "Passing the same seed to default_rng() always produces the exact same sequence of 'random' values — essential for reproducible analysis, debugging, and letting someone else re-run your exact results."
+common_mistakes:
+  - "Using the older np.random.seed(42) / np.random.rand() global-state functions in new code — they still work, but NumPy's own documentation recommends default_rng() for new code because of the shared-state problems it avoids."
+  - "Expecting 'random' to mean 'different every time,' and being confused when a seeded generator produces the identical sequence on every run — that's the entire point of a seed: reproducible pseudo-randomness, not true randomness."
+  - "Creating a new default_rng() with the same seed inside a loop, expecting fresh values each iteration — this resets the sequence back to the start every time; create the generator once, outside the loop, and keep drawing from it."
+blocks:
+  - type: text
+    body: >
+      Randomness shows up constantly in analysis work — simulating data, shuffling a dataset before a
+      train/test split, sampling rows for a spot check. NumPy's modern way to generate random numbers is
+      through a **Generator** object, created with `np.random.default_rng()`.
+  - type: heading
+    text: "Creating a generator"
+  - type: code
+    language: python
+    code: |
+      import numpy as np
+
+      rng = np.random.default_rng(42)   # 42 is the seed
+    caption: "default_rng([seed]) returns a Generator — every random draw below is a method call on rng"
+  - type: callout
+    variant: important
+    title: "Prefer default_rng() over the legacy np.random.seed()/np.random.rand() API"
+    body: >
+      Older NumPy code uses `np.random.seed(42)` followed by functions like `np.random.rand()` — these
+      all share one hidden **global** random state across your entire program. Any other code, or any
+      library you import, that also touches that global state can change what your next "random" call
+      produces, which quietly breaks reproducibility in ways that are hard to track down.
+      `np.random.default_rng()` instead returns an independent generator with its own local state, fully
+      isolated from anything else — this is what NumPy's own documentation recommends for new code.
+  - type: heading
+    text: "Generating values: .random(), .integers(), .choice()"
+  - type: code
+    language: python
+    code: |
+      rng = np.random.default_rng(42)
+
+      rng.random(3)                         # array([0.77395605, 0.43887844, 0.85859792]) — floats in [0, 1)
+      rng.integers(1, 100, size=5)          # array([ 9, 70, 20, 10, 53])                 — random ints in [1, 100)
+      rng.choice(["US", "EMEA", "APAC", "LATAM"], size=3)  # array(['LATAM', 'APAC', 'LATAM'], dtype='<U5')
+    caption: "Verified output for seed 42 — .random() gives floats, .integers(low, high) gives ints, .choice() samples from a given collection"
+  - type: table
+    headers: ["Method", "What it produces"]
+    rows:
+      - [".random(size)", "Floats uniformly distributed in [0, 1)"]
+      - [".integers(low, high, size)", "Random integers in [low, high) — high is exclusive, like range()"]
+      - [".choice(array_or_list, size)", "Random selections from a given collection, with replacement by default"]
+  - type: heading
+    text: "Why a fixed seed matters"
+  - type: text
+    body: >
+      Passing the same seed always reproduces the exact same sequence of values — this isn't a
+      coincidence, it's the entire purpose of a seed. For analysis work, that reproducibility matters a
+      lot: a colleague re-running your notebook should see the same simulated numbers you saw, a bug
+      that only shows up with certain random values needs to be reproducible to debug, and comparing two
+      versions of an analysis is only fair if both draw from the same "random" data.
+  - type: code
+    language: python
+    code: |
+      rng_a = np.random.default_rng(42)
+      rng_b = np.random.default_rng(42)
+
+      print(rng_a.random(3))   # [0.77395605 0.43887844 0.85859792]
+      print(rng_b.random(3))   # [0.77395605 0.43887844 0.85859792]  — identical, same seed
+    caption: "Verified — two independently created generators with the same seed produce the identical sequence"
+  - type: example
+    title: "Simulating a column of order totals for a test dataset"
+    body: >
+      A seeded generator is a common way to build believable-but-fake data for testing analysis code
+      before pointing it at a real dataset — anyone running this exact code gets the exact same
+      "sample" data back.
+    code: |
+      rng = np.random.default_rng(7)
+      simulated_totals = rng.integers(10, 500, size=5)
+      print(simulated_totals)   # [473 316 345 449 293]
+    language: python
+  - type: question
+    prompt: "Why does NumPy's documentation recommend np.random.default_rng() over np.random.seed() + np.random.rand() for new code?"
+    choices:
+      - "default_rng() is faster at generating large arrays of random numbers"
+      - "The legacy functions share one hidden global random state across your whole program, which other code can silently disturb; default_rng() gives each generator its own independent, isolated state"
+      - "np.random.seed() doesn't actually support reproducible results, only default_rng() does"
+    correct_index: 1
+    explanation: >
+      Both approaches support reproducible results with a seed. The real problem with the legacy API is
+      that np.random.seed() sets one global state shared by the entire program — any other function,
+      script, or imported library that also calls a legacy np.random function draws from (and advances)
+      that same shared state, which can silently change your results in ways that are hard to trace.
+      default_rng() sidesteps this entirely by giving each Generator object its own local, independent
+      state.

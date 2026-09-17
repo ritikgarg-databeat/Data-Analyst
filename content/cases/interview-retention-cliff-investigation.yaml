@@ -1,0 +1,123 @@
+slug: interview-retention-cliff-investigation
+title: Why Does Retention Cliff at Week 2?
+category: PRODUCT_ANALYTICS
+difficulty: ADVANCED
+estimated_minutes: 30
+company_context: A SaaS product tracked via the saas-product schema.
+stakeholder_name: Devon Cruz
+stakeholder_role: Head of Product
+problem_statement: '"Our retention curve looks fine in week 1 but falls off a cliff right at week 2 for every recent
+  cohort. I want to understand exactly why."'
+business_context: Devon wants to know what's specifically happening around week 2 that's causing users to disengage,
+  so the team can prioritize a fix.
+objective: Identify what's driving the week-2 retention cliff and recommend a specific intervention.
+initial_information: You have access to users, events, and subscriptions.
+constraints:
+- Devon wants a specific behavioral or product explanation, not just a restatement of the curve shape.
+available_datasets:
+- saas-product
+expected_deliverables:
+- Confirmation that the week-2 cliff is consistent across recent cohorts
+- A comparison of week-1 behavior between users who do and don't survive past week 2
+- A specific, testable hypothesis and recommendation
+learning_objectives:
+- Use early-usage behavior to explain a later retention outcome
+- Compare survivors vs. non-survivors on a specific behavioral dimension
+- Propose a testable intervention rather than a vague 'improve onboarding' recommendation
+stages:
+- CLARIFY
+- ANALYZE
+- INSIGHTS
+- RECOMMEND
+- SUBMIT
+tags:
+- interview
+- product-analytics
+- retention
+- case-study
+skills:
+- product-metrics
+- root-cause-analysis
+- communication
+clarification_guidance:
+- A good clarifying question asks whether the cliff is truly consistent across the last several cohorts or specific
+  to one.
+- A good clarifying question asks what typically happens in the product between week 1 and week 2 (e.g. a trial
+  reminder, a billing event, a specific milestone).
+rubric:
+- category: Problem Framing & Clarification
+  weight: 20
+  criteria:
+  - criterion: Confirms the cliff is consistent across recent cohorts before analyzing a single one
+    points: 10
+  - criterion: Asks what product/billing events typically occur between week 1 and week 2
+    points: 10
+- category: Technical Analysis
+  weight: 35
+  is_technical: true
+  criteria:
+  - criterion: Compares week-1 behavior between users who survive past week 2 and those who don't
+    points: 25
+  - criterion: Identifies a specific behavioral or event-based difference between the two groups
+    points: 10
+- category: Insight Quality
+  weight: 20
+  criteria:
+  - criterion: Proposes a specific, plausible causal story (not just a correlation) tied to the identified difference
+    points: 20
+- category: Recommendation & Business Judgment
+  weight: 15
+  criteria:
+  - criterion: Recommends a specific, testable intervention (e.g. an in-app nudge at a specific point) rather than
+      a vague improvement
+    points: 15
+- category: Communication
+  weight: 10
+  criteria:
+  - criterion: Explains the finding and recommendation in terms Devon could prioritize against other work
+    points: 10
+hints:
+- Compare what week-1 behavior looked like for users who DID survive past week 2 versus those who DIDN'T -- the
+  difference is usually where the answer lives.
+- Check whether a specific product event (e.g. a trial-ending reminder, a required setup step, a paywall) lands
+  right around week 2 for most users.
+reference_solution:
+  summary: The week-2 cliff is real, and even more extreme than it looks, across the entire event log, not one of
+    the 3,000 users has any event of any kind between day 11 and day 29 after signup. Activity clusters tightly in
+    bursts around each roughly-monthly mark (days 0-10, then 30-40, then 60-70, and so on), with a hard, universal
+    gap in between, confirmed across every cohort old enough to have reached it (not just recent ones). Because the
+    gap is universal, there is no week-1 behavioral difference to find between 'survivors' and 'non-survivors' of
+    week 2, everyone goes quiet in that window. The more meaningful comparison is who returns once the next
+    activity cluster begins around day 30, 620 of the 1,125 ever-engaged users (55.1%) do, 505 do not, but even
+    that split shows no early-behavior difference, both groups average exactly 1.0 engaged events in their first 10
+    days, and early-upgrade rates are close (10.2% versus 8.7%). The most defensible explanation is that this
+    reflects how engagement is logged or batched (roughly monthly), not a specific in-product friction point users
+    hit at week 2.
+  key_insights:
+  - Every one of the 3,000 users in the dataset has zero events, of any type, with a day offset of 11 to 29 days
+    after signup, confirmed across the full event log with no exceptions.
+  - Activity instead clusters in bursts around roughly monthly marks (days 0-10, 30-40, 60-70, 90-100, and so on),
+    and this pattern holds for cohorts as far back as mid-2024, so it is not an artifact of recent, immature
+    cohorts running out of observation time.
+  - Because the silent window is universal, there is no meaningful week-1 behavioral split between users who
+    'survive' past week 2 and those who don't, the premise of a single differentiating action does not hold up
+    against the data.
+  - Comparing users who do return in the next cluster (day 30-40, 620 of 1,125 ever-engaged users, 55.1%) to those
+    who don't (505 users) shows no early-behavior difference, both groups average exactly 1.0 engaged events in
+    days 0-10, and early-upgrade rates are similar (10.2% versus 8.7%).
+  recommendation: Tell Devon the week-2 cliff is real and confirmed across every cohort, but it is not explained by
+    anything a specific user does or doesn't do in week 1, the entire user base goes silent in that window, which
+    points to how usage is logged or batched rather than a product/UX problem localized to week 2. Recommend first
+    confirming with data engineering whether event tracking has a genuine gap or reduced sampling in the
+    days-11-to-29 window before designing any in-product fix, and in parallel, testing a re-engagement touchpoint
+    (an email or in-app reminder) timed just before the natural day-30 return window, since only 55% of ever-engaged
+    users return by then and that is the one real, testable lever the data supports.
+  acceptable_alternatives:
+  - A recommendation to treat this purely as a data/instrumentation question and hold off on any in-product
+    intervention until engineering confirms whether tracking is genuinely absent in that window or the product
+    itself has a real monthly-cycle usage pattern (e.g. a billing or reporting cadence) that would make days 11-29
+    a real, expected lull rather than a bug.
+  - A recommendation focused on lifting the 55.1% day-30 return rate specifically, since that is the only place in
+    the data where a meaningful chunk of users (45%) are demonstrably not coming back, rather than searching
+    further for a nonexistent week-1 behavioral cause.
+version: 1

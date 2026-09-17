@@ -1,0 +1,104 @@
+slug: common-visualization-mistakes
+module_slug: visualization-and-storytelling
+title: "Common Visualization Mistakes"
+description: Six mistakes that quietly make a technically-correct chart misleading or hard to read, which ones this platform's own deterministic chart mistake-detector catches automatically, and which ones still need your own eye.
+difficulty: BEGINNER
+estimated_minutes: 11
+display_order: 2
+objectives:
+  - Name six common visualization mistakes and explain why each one misleads or confuses a viewer
+  - Distinguish mistakes this platform's Chart Builder mistake-detector catches automatically from ones it doesn't
+  - Apply a quick self-review pass to a chart before sharing it, covering all six mistakes
+prerequisites: [choosing-the-right-chart-type]
+skills: [data-visualization]
+datasets: [ecommerce]
+tags: [foundations, beginner, real-world]
+key_takeaways:
+  - "Six mistakes account for most of what makes an otherwise-correct chart misleading or hard to read: too many pie slices, unsorted categorical bars, missing titles/axis labels, a truncated (non-zero-based) y-axis, too many series or colors on one chart, and excessive decimal precision."
+  - "This platform's Chart Builder runs a deterministic mistake-detector on every chart you build, and it directly catches four of the six: more than 7 pie/donut slices, unsorted bar categories, a missing title or axis labels, and more than 8 series/colors on one chart."
+  - "Two of the six — a misleadingly truncated y-axis, and excessive decimal precision — are real, common mistakes but aren't things the current automated detector checks for. They still need your own judgment every time, which is exactly why understanding the mistake matters even with a tool that catches some of this for you."
+  - "A chart that passes every automated check can still tell a misleading story — the detector catches mechanical red flags, not whether the chart answers the right question in the first place, which is what the next few lessons cover."
+common_mistakes:
+  - "Assuming a chart is fine because the charting tool didn't warn about it — the deterministic mistake-detector catches a specific, limited set of mechanical issues, not every way a chart can mislead."
+  - "Truncating a bar chart's y-axis to start above zero to make a small difference look dramatic — visually exaggerating a modest change into what looks like a huge one, even though the chart is 'technically' plotting the real numbers."
+  - "Reporting a number to far more decimal places than the underlying measurement supports (e.g. '$1,847.3921 average order value') — false precision that makes a number look more rigorous than it actually is, and is genuinely harder to read at a glance."
+practical_applications:
+  - "Running a quick self-review against all six mistakes before sharing any chart, not just relying on whatever automated warnings a tool happens to surface."
+  - "Recognizing when a stakeholder-supplied chart (from a slide deck, a vendor report) has one of these mistakes, and knowing specifically what to ask for instead."
+interview_questions:
+  - question: "What are some common mistakes that make a chart misleading, even if it's technically accurate?"
+    answer: "A truncated y-axis that doesn't start at zero is probably the most common one — it can make a 2% change look like a 200% change purely through the choice of axis range. Beyond that: too many pie slices to compare accurately, unsorted categorical bars that make ranking harder than it needs to be, missing titles or axis labels that leave a chart ambiguous out of context, too many colors or series crammed onto one chart, and excessive decimal precision that implies more accuracy than the data actually supports. None of these require bad data — they're all about how a completely accurate number can still be presented in a way that misleads or confuses."
+resources:
+  - title: "Financial Times — Visual vocabulary and chart mistakes"
+    url: "https://ft-interactive.github.io/visual-vocabulary/"
+blocks:
+  - type: heading
+    text: "Six mistakes, and why each one misleads or confuses"
+  - type: table
+    headers: ["Mistake", "Why it's a problem", "Fix"]
+    rows:
+      - ["Too many pie/donut slices", "Past 6-7 slices, comparing angle and area becomes genuinely hard — viewers need to read labels instead of seeing the answer", "Switch to a sorted bar chart, or group small slices into an 'other' category"]
+      - ["Unsorted categorical bars", "Alphabetical or arbitrary ordering makes ranking take real mental effort instead of being immediate", "Sort bars by value, not by category name"]
+      - ["Missing title or axis labels", "A chart with no title or labels is ambiguous the moment it's out of the original context (a slide, a report) where it made sense", "Always title the chart and label both axes with their units"]
+      - ["Truncated (non-zero) y-axis", "Starting the y-axis above zero visually exaggerates the size of a difference — a genuinely small change can look dramatic", "Start bar chart y-axes at zero; if you must zoom in for a line chart, say so explicitly"]
+      - ["Too many series or colors", "Beyond about 8 distinct colors on one chart, most viewers can no longer reliably tell them apart", "Filter to the series that matter, or facet into several smaller charts instead of one crowded one"]
+      - ["Excessive decimal precision", "'$1,847.3921 average order value' looks more precise than the underlying data supports, and is harder to scan than a rounded figure", "Round to a sensible number of significant digits for the audience — usually whole dollars or 1-2 decimal places for a percentage"]
+  - type: heading
+    text: "A real, visual example of the y-axis mistake"
+  - type: text
+    body: >
+      Suppose average order value moved from $148 to $151 month over month — a real but genuinely modest
+      2% increase. Plotted on a y-axis running from $0 to $200, the two bars look almost identical, which
+      is an honest representation of a small change. Plotted on a y-axis running from $145 to $152, that
+      same $3 difference fills most of the chart, and looks like a dramatic jump. Both charts plot the
+      exact same two numbers. Only one of them represents the size of the change honestly.
+  - type: callout
+    variant: warning
+    title: "Truncated axes aren't always malicious, but they're always worth checking"
+    body: >
+      Sometimes a non-zero y-axis is a genuine, deliberate choice to make a real, meaningful pattern visible
+      (this comes up legitimately for some line charts tracking a metric that never approaches zero). The
+      problem isn't the technique — it's using it silently on a bar chart, where the reader's instinct is
+      to compare bar heights as proportional to the values, an assumption a truncated axis breaks without
+      warning.
+  - type: heading
+    text: "What this platform's Chart Builder catches for you — and what it doesn't"
+  - type: table
+    headers: ["Mistake", "Caught by the automated mistake-detector?"]
+    rows:
+      - ["Too many pie/donut slices (more than 7)", "Yes — flagged directly, with a suggestion to use a bar chart instead"]
+      - ["Unsorted categorical bars", "Yes — flagged when a bar chart's categories aren't sorted by value"]
+      - ["Missing title or axis labels", "Yes — flagged whenever a chart has no title or axis labels set"]
+      - ["Too many series/colors (more than 8)", "Yes — flagged directly, with a suggestion to filter or aggregate further"]
+      - ["Truncated (non-zero) y-axis", "No — not currently checked automatically"]
+      - ["Excessive decimal precision", "No — not currently checked automatically"]
+  - type: callout
+    variant: tip
+    title: "The detector is deterministic, not exhaustive"
+    body: >
+      Four of these six mistakes get flagged for you automatically, every time, in this platform's Chart
+      Builder — a genuinely useful safety net. The other two don't, and won't warn you if you get them
+      wrong. Knowing the difference matters: you can rely on the tool for the first four, but the y-axis and
+      decimal-precision checks are still entirely on you, every single time you build or review a chart.
+  - type: heading
+    text: "A quick self-review pass"
+  - type: checklist
+    title: "Before sharing any chart, check all six — not just what the tool flags"
+    items:
+      - "Pie/donut chart with more than 6-7 slices? Switch to a sorted bar chart."
+      - "Bar chart categories sorted by value, not alphabetically or arbitrarily?"
+      - "Does the chart have a title and labeled axes with units?"
+      - "Does a bar chart's y-axis start at zero? If a line chart is zoomed in, is that made explicit?"
+      - "More than about 8 series or colors? Filter or facet instead of cramming them all in."
+      - "Are numeric labels rounded to a sensible precision for the audience, not showing false precision?"
+  - type: question
+    prompt: "A bar chart's y-axis runs from $145 to $152 to show a change from $148 to $151 in average order value. What's the concern, and would this platform's Chart Builder catch it automatically?"
+    choices:
+      - "The truncated y-axis visually exaggerates a modest 2% change into what looks like a dramatic jump — and no, this specific mistake isn't caught by the automated mistake-detector, which currently checks pie slices, bar sorting, missing labels, and series count, but not y-axis range"
+      - "There's no real concern here, since the chart is plotting the accurate numbers"
+      - "This exact mistake is one of the four the Chart Builder's mistake-detector flags automatically"
+    correct_index: 0
+    explanation: >
+      A non-zero-based y-axis on a bar chart is a classic way to make a small change look large, even though
+      every plotted number is accurate. It's a real mistake worth catching by eye — but it's one of the two
+      in this lesson that the platform's current automated mistake-detector does not check for.

@@ -1,0 +1,77 @@
+slug: order-by
+module_slug: sql-fundamentals
+title: ORDER BY
+description: Sorting query results ascending or descending, and breaking ties with multiple sort columns.
+difficulty: BEGINNER
+estimated_minutes: 8
+display_order: 3
+objectives:
+  - Sort results ascending (default) and descending with ASC/DESC
+  - Sort by multiple columns to control tie-breaking order
+  - Explain why row order is never guaranteed without an explicit ORDER BY
+prerequisites: [where]
+skills: [sql-fundamentals]
+datasets: [orders-sample]
+tags: [sql, beginner, foundations]
+key_takeaways:
+  - Without ORDER BY, a database is free to return rows in any order — including a different order on every run.
+  - ORDER BY evaluates its column list left to right; later columns only break ties left by earlier ones.
+  - ASC is the default direction; DESC must be stated explicitly, and each column in the list can have its own direction.
+common_mistakes:
+  - Assuming rows come back "in the order they were inserted" just because that's what happened to be observed once — without ORDER BY that behavior is not guaranteed.
+  - Sorting by a single column when the real intent needs a tie-breaker, so rows with equal values on that column appear in an unpredictable order relative to each other.
+blocks:
+  - type: heading
+    text: Sorting query results
+  - type: text
+    body: >
+      A query with no ORDER BY has no promised row order at all — the database can return rows in
+      whatever order is cheapest for it to produce, and that order can change between runs even if
+      the data hasn't. ORDER BY is the only way to make row order part of the contract.
+  - type: code
+    language: sql
+    caption: Most recent orders first
+    code: |
+      SELECT order_id, order_date, order_total
+      FROM orders
+      ORDER BY order_date DESC;
+  - type: text
+    body: >
+      Ascending (`ASC`, smallest/earliest first) is the default if you don't say anything, so
+      `ORDER BY order_date` and `ORDER BY order_date ASC` do the same thing. Descending (`DESC`,
+      largest/latest first) must always be written explicitly.
+  - type: text
+    body: >
+      Breaking ties works by taking a list of columns, evaluated left to right. The first column sorts the whole
+      result; the second column only decides order *among rows that tied* on the first column; the
+      third only matters if the first two both tied, and so on.
+  - type: example
+    title: Same-day orders, largest first
+    body: >
+      Sorting `orders-sample` by `order_date` alone leaves same-day orders in an arbitrary order
+      relative to each other. Adding `order_total DESC` as a second sort key means that among orders
+      placed on the same day, the largest order appears first — a well-defined result instead of a
+      coin flip.
+    code: |
+      SELECT order_id, order_date, order_total
+      FROM orders
+      ORDER BY order_date ASC, order_total DESC;
+    language: sql
+  - type: table
+    headers: ["order_date", "order_total", "Row order after ORDER BY order_date ASC, order_total DESC"]
+    rows:
+      - ["2024-01-03", "129.99", "1st (tied on date, higher total wins)"]
+      - ["2024-01-03", "84.50", "2nd (tied on date, lower total)"]
+      - ["2024-01-05", "NULL", "3rd (next date)"]
+  - type: question
+    prompt: A query has no ORDER BY clause at all. What can you say about the row order it returns?
+    choices:
+      - It will always match the order rows were originally inserted
+      - It is not guaranteed and may differ between runs, even on unchanged data
+      - It will always be sorted by the table's primary key
+    correct_index: 1
+    explanation: >
+      Without ORDER BY, the database is free to choose whatever row order is most efficient to
+      produce for that particular execution — often influenced by indexes, storage layout, or query
+      plan choices that can change over time. Relying on an order you happened to observe is not safe
+      unless ORDER BY makes that order explicit.

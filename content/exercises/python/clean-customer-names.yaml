@@ -1,0 +1,57 @@
+slug: clean-customer-names
+lesson_slug: strings
+skill: python-fundamentals
+dataset: ecommerce
+title: Clean Up Messy Customer Segment Labels
+description: Normalize inconsistent whitespace and casing in a list of exported customer segment labels.
+exercise_type: PYTHON
+difficulty: BEGINNER
+points: 15
+tags: [python, beginner, foundations]
+business_context: >
+  A support ops lead just exported a batch of customer segment labels from a legacy CRM system for
+  a quick audit, and the values are a mess — mixed case and stray leading/trailing whitespace mean
+  "Business", " business ", and "BUSINESS " all look like different segments to anything that
+  compares them directly, even though they should all be the same segment.
+prompt: >
+  Given `raw_segments = ["  Business ", "consumer", "BUSINESS", " Consumer  ", "business"]`, clean
+  up every entry so segment labels are directly comparable: strip leading/trailing whitespace and
+  standardize casing so each entry reads as `"Business"` or `"Consumer"` (title case). Store your
+  answer in a variable named `result`: a list of the same length and order as `raw_segments`, with
+  each entry cleaned.
+python_datasets: []
+python_starter_code: |
+  raw_segments = ["  Business ", "consumer", "BUSINESS", " Consumer  ", "business"]
+
+  # Each entry has stray whitespace and inconsistent casing. Clean each one up
+  # (strip whitespace, standardize casing) and store the cleaned list in `result`.
+python_solution_code: |
+  raw_segments = ["  Business ", "consumer", "BUSINESS", " Consumer  ", "business"]
+  result = [s.strip().title() for s in raw_segments]
+python_result_variable: result
+python_row_order_matters: true
+python_numeric_tolerance: 0.000001
+python_hidden_tests:
+  - name: "Every entry is a valid, cleaned segment label"
+    code: |
+      assert all(s in {"Business", "Consumer"} for s in result) and len(result) == 5, (
+          "Every entry should be exactly 'Business' or 'Consumer' after cleaning, and the list "
+          "should keep all 5 original entries."
+      )
+hints:
+  - "Two separate problems are stacked here: extra whitespace around the text, and inconsistent capitalization. Handle them as two separate string operations rather than trying to solve both at once."
+  - "str.strip() removes leading/trailing whitespace, and str.title() capitalizes the first letter of each word. Chain them together inside a list comprehension over raw_segments."
+solution: |
+  ```python
+  raw_segments = ["  Business ", "consumer", "BUSINESS", " Consumer  ", "business"]
+  result = [s.strip().title() for s in raw_segments]
+  ```
+explanation: >
+  A strong answer chains `.strip()` and `.title()` together (order doesn't matter here since
+  whitespace isn't part of a word boundary) inside a single list comprehension, producing a new
+  list rather than mutating anything in place — strings are immutable in Python, so there's nothing
+  to mutate anyway. A common mistake is handling only one of the two problems (e.g. fixing casing
+  with `.lower()` but forgetting the stray whitespace, which leaves `" consumer"` instead of
+  `"Consumer"`), or using `.capitalize()` instead of `.title()`, which works fine for single-word
+  labels like these but silently breaks on multi-word labels (e.g. "key account" would become "Key
+  account" instead of "Key Account").

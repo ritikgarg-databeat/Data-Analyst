@@ -1,0 +1,45 @@
+slug: exp-guardrail-metric-catches-bad-ship
+lesson_slug: exp-primary-secondary-guardrail-metrics
+skill: data-interpretation
+dataset: saas-product
+title: "Conversion Is Up. Should You Still Ship?"
+description: Decide whether to ship a checkout change given a primary-metric win alongside a guardrail-metric regression.
+exercise_type: DATA_INTERPRETATION
+difficulty: INTERMEDIATE
+points: 15
+tags: [experimentation, ab-testing, saas, real-world, intermediate]
+prompt: >
+  Imagine a follow-up version of the checkout redesign test, run at a large enough sample to reach clear
+  statistical significance this time: treatment's checkout conversion rate is significantly higher than
+  control's, a genuine and confirmed win on the primary metric. The team also tracked two guardrail
+  metrics: 30-day refund rate (treatment: 9.5% vs. control: 4.0%, more than double) and average
+  subscription plan value for converted users (treatment: $34/month vs. control: $61/month, notably
+  lower). A stakeholder says: "The primary metric hit its goal and it's significant — ship it company-wide
+  this week." How would you respond, and what would you want to investigate first?
+hints:
+  - "A primary metric win doesn't automatically mean 'ship' — think about what the guardrail metrics were specifically designed to catch, and what pattern they're showing here."
+  - "Consider a plausible mechanism connecting a much higher refund rate and a much lower average plan value to *how* the redesign increased conversion — is it possible the same change that helped conversion also degraded the quality of what's being converted?"
+solution: >
+  I would push back on shipping immediately, even though the primary metric is a genuine, confirmed win.
+  Both guardrail metrics point in a concerning direction together: refund rate more than doubling (4.0%
+  to 9.5%) and average plan value dropping sharply ($61 to $34) suggest the redesign may be converting
+  more people into purchases they're less committed to or less suited for — for example, if the new flow
+  makes it faster and easier to check out, it may also be making it easier to accidentally pick a cheaper
+  plan, or to convert impulsively without fully understanding what they're buying, both of which would
+  show up exactly as "more conversions, but more refunds and lower average value." The higher conversion
+  rate could be real and still not be a net win for the business once the higher refund rate and lower
+  plan value are accounted for. Before shipping company-wide, I'd want to: (1) estimate the net revenue
+  impact combining all three numbers (conversions gained, minus refunds, times plan value) rather than
+  looking at conversion rate alone, and (2) dig into *why* refund rate and plan value moved — e.g., is the
+  new flow defaulting people into a cheaper plan, or removing a confirmation step that used to catch
+  buyer's remorse before it happened. A guardrail regression this large is exactly the kind of signal that
+  should delay a ship decision until it's understood, even with a statistically significant primary-metric
+  win in hand.
+explanation: >
+  A strong answer doesn't treat "primary metric is significant" as the end of the analysis — it reads the
+  guardrail metrics together, proposes a plausible mechanism linking the primary-metric win to the
+  guardrail regressions (rather than treating them as an unrelated coincidence), and recommends a
+  specific next step (a net-impact estimate, and investigating the mechanism) rather than either blindly
+  shipping or blindly blocking the launch. A weaker answer either ships because "the main metric won" or
+  blocks the launch without engaging with what could actually be causing the guardrail regression or how
+  to quantify the net tradeoff.

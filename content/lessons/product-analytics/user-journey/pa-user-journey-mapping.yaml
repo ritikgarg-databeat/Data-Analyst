@@ -1,0 +1,142 @@
+slug: pa-user-journey-mapping
+module_slug: user-journey
+title: Mapping the User Journey
+description: >
+  From first touch to habitual use — mapping lifecycle stages onto real, observable events instead
+  of a vague marketing diagram, and reading where a real user base is actually concentrated.
+difficulty: BEGINNER
+estimated_minutes: 20
+display_order: 1
+objectives:
+  - Map a product's lifecycle stages (acquisition, activation, engagement, monetization) onto concrete, queryable events
+  - Read a stage-by-stage user count and identify where a real user base is concentrated
+  - Distinguish a "journey stage" question (where is my base right now?) from a "funnel" question (how well does a process convert?)
+soft_prerequisites: [activation, engagement]
+skills: [product-analytics, product-metrics]
+datasets: [saas-product]
+tags: [product, saas, foundations, beginner]
+key_takeaways:
+  - A user journey map is only useful once every stage is anchored to something you can literally query — a table and a condition — not a slide with icons on it.
+  - "\"Where is the user base concentrated?\" is a different question from \"what's the funnel conversion rate?\" — it describes the health of your *current* base, not just how new arrivals are converting."
+  - "The single largest population in almost any product lives at the earliest stage: a large group of \"signed up and never came back\" users is itself a finding, even though nothing else happened for them."
+common_mistakes:
+  - Treating "user journey" as a one-time diagram exercise rather than a live query — if a stage can't be expressed as a condition on real tables, it isn't a stage yet, it's a slogan.
+  - Ignoring the size of the earliest stage because "nothing happened" there — a large silent, one-and-done population is frequently bigger than every downstream drop-off combined, and deserves first attention.
+interview_questions:
+  - question: How is a "user journey map" different from a "funnel"?
+    answer: >
+      A funnel measures a *process*: an ordered (or at least directional) sequence of steps and the
+      conversion rate from one to the next, usually for a defined population like "this week's
+      signups." A journey map describes lifecycle *stages* and asks where your entire current user
+      base sits right now — how many users are stuck pre-activation, how many are engaged but not
+      paying, and so on. They use the same underlying events, but a funnel answers "how well does
+      this process convert?" while a journey map answers "what does my base look like today?"
+  - question: If 31% of all signups have exactly one recorded event ever, what should that number change about a product team's roadmap?
+    answer: >
+      It says the single biggest opportunity is very early — probably in the first session or the
+      first day — not in some downstream engagement or monetization feature. A team that only looks
+      at funnel *rates* between adjacent steps can miss that the single largest population, in
+      absolute numbers, is sitting at the very first stage having done nothing else at all.
+blocks:
+  - type: text
+    body: >
+      A user journey is the path a person takes from first hearing about a product to using it
+      habitually (or churning out along the way). Mapped well, it isn't a marketing diagram — it's a
+      small number of lifecycle stages, each one tied to a concrete, queryable condition on real
+      data. In this dataset, the whole journey is expressed with exactly four event types on the
+      `events` table, always fired in this order for a given user: `signup` → `activated` →
+      `engaged` → `upgraded`.
+  - type: heading
+    text: From lifecycle stages to queryable conditions
+  - type: table
+    headers: ["Stage", "Signal in this dataset", "What it tells you"]
+    rows:
+      - ["Acquisition", "users.acquisition_channel, users.signup_date", "How and when the user arrived, and through which channel"]
+      - ["Activation", "events.event_name = 'activated'", "Reached the core first-value ('aha') action"]
+      - ["Engagement", "events.event_name = 'engaged'", "Came back and used the product beyond initial setup"]
+      - ["Monetization", "events.event_name = 'upgraded' (and the subscriptions table)", "Converted to a paying plan"]
+  - type: text
+    body: >
+      With 3,000 users and only 7,863 event rows total across those four event types, the entire
+      dataset is small enough to compute every stage directly. That's the point of anchoring a
+      journey map to real events: instead of guessing where users "probably" are, you can count them.
+  - type: code
+    language: sql
+    caption: How many users have reached each lifecycle stage, cumulatively?
+    code: |
+      WITH reached AS (
+        SELECT
+          user_id,
+          MAX(CASE WHEN event_name = 'signup'    THEN 1 ELSE 0 END) AS signup,
+          MAX(CASE WHEN event_name = 'activated'  THEN 1 ELSE 0 END) AS activated,
+          MAX(CASE WHEN event_name = 'engaged'    THEN 1 ELSE 0 END) AS engaged,
+          MAX(CASE WHEN event_name = 'upgraded'   THEN 1 ELSE 0 END) AS upgraded
+        FROM events
+        GROUP BY user_id
+      )
+      SELECT
+        SUM(signup)                                                        AS signed_up,
+        SUM(CASE WHEN signup=1 AND activated=1 THEN 1 END)                 AS activated,
+        SUM(CASE WHEN signup=1 AND activated=1 AND engaged=1 THEN 1 END)   AS engaged,
+        SUM(CASE WHEN signup=1 AND activated=1 AND engaged=1
+                  AND upgraded=1 THEN 1 END)                               AS upgraded
+      FROM reached;
+  - type: table
+    headers: ["Stage", "Users at this stage", "% of all signups"]
+    rows:
+      - ["Signed up", "3,000", "100%"]
+      - ["Activated", "2,074", "69.1%"]
+      - ["Engaged (after activating)", "1,125", "37.5%"]
+      - ["Upgraded (after engaging)", "212", "7.1%"]
+  - type: callout
+    variant: tip
+    title: Journey stage vs. funnel step — same events, different question
+    body: >
+      This exact table could be read two ways. As a **journey map**, it says "here's how the
+      3,000-user base breaks down by lifecycle stage today" — useful for deciding where to invest
+      product effort right now. As a **funnel**, it says "here's the conversion rate from one step
+      to the next for this population" — useful for diagnosing a specific process. Same numbers,
+      different lens: journey mapping is about the current shape of your base; funnel analysis (the
+      next module) is about the conversion process that produced that shape.
+  - type: heading
+    text: Where is the base actually concentrated?
+  - type: text
+    body: >
+      Looking only at the stage table above, it's tempting to focus on the smallest number — the 212
+      users who upgraded — since monetization is usually top of mind. But a different number is more
+      striking: of the full 3,000 signups, **926 users (30.9%) have exactly one event on record ever
+      — the signup event itself, and nothing else.** That's a bigger single group than any other
+      stage in the table. These users didn't drop off *during* activation; they never attempted it.
+  - type: callout
+    variant: important
+    title: The decision this number drives
+    body: >
+      A team that reads only the funnel rates (69% activated, 37.5% engaged, 7.1% upgraded) might
+      conclude the biggest lever is deep in the engaged→upgraded step, since 18.8% is the lowest
+      step-to-step rate. But the *largest absolute population* is the ~31% who never took a second
+      action at all. That argues for prioritizing the first-session experience — the minutes right
+      after signup — over deeper monetization or engagement features, because that's where the
+      largest single group of users currently sits, doing nothing.
+  - type: checklist
+    title: Questions to ask when mapping a journey for any product
+    items:
+      - "What is the concrete event (or table condition) that defines each stage — can you write a WHERE clause for it today?"
+      - "Where is the current base concentrated — which single stage holds the most users right now?"
+      - "Is the biggest population an early-stage 'silent' group (never returned) or a later-stage stall (returned but didn't progress)? Each implies a different fix."
+      - "Are you mapping the journey to understand the current base, or a specific process's conversion rate? Pick one question at a time."
+  - type: question
+    prompt: >
+      926 of 3,000 signups (30.9%) have exactly one recorded event ever — the signup event — and
+      nothing else. Which conclusion does this best support?
+    choices:
+      - "The engaged-to-upgraded step is the top priority, since it has the lowest step-to-step conversion rate"
+      - "The single largest population sits at the very earliest stage, having taken no further action at all, which argues for prioritizing the first-session experience"
+      - "Monetization features should be deprioritized entirely since so few users upgrade"
+      - "The acquisition channel mix must be broken, since this many users signed up"
+    correct_index: 1
+    explanation: >
+      A journey map is about where the *current base* is concentrated, not just about step-to-step
+      conversion rates. The largest single group here — nearly a third of all signups — never took a
+      second action of any kind. That's a bigger, and arguably more urgent, opportunity than any
+      single funnel step's conversion rate, because it represents the most people sitting in one
+      place doing nothing.

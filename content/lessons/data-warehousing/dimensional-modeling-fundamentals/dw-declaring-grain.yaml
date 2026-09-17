@@ -1,0 +1,108 @@
+slug: dw-declaring-grain
+module_slug: dimensional-modeling-fundamentals
+title: "Grain: The Single Most Important Decision in a Dimensional Model"
+description: What "grain" means, why it must be declared before anything else in a dimensional model, and how to spot a grain violation using this project's real fact tables.
+difficulty: INTERMEDIATE
+estimated_minutes: 40
+display_order: 2
+objectives:
+  - Define "grain" precisely as a statement of what a single row of a table represents.
+  - Explain why declaring grain is the first design decision in dimensional modeling, before choosing dimensions or measures.
+  - Detect a grain violation by checking whether a table's stated key actually produces one row per entity.
+skills: [data-warehousing, dimensional-modeling, data-modeling]
+datasets: [ecommerce]
+tags: [grain, star-schema, data-modeling, validation, intermediate]
+prerequisites: [dw-star-schema-basics]
+key_takeaways:
+  - "The grain of a table is a precise statement of what one row represents — not what columns it has, not what it's used for, but the exact real-world thing (or event) each row corresponds to."
+  - "Grain must be declared before choosing dimensions or measures, because it determines both: every dimension must apply at that grain, and every measure must make sense summed/averaged at that grain. Get the grain wrong (or leave it undeclared) and everything built on top of the table inherits an ambiguous foundation."
+  - "This project's marts.yml states each fact table's grain in plain English (fct_orders: \"1 row = 1 order\"; fct_daily_revenue: \"1 row = 1 calendar day\"), and dbt's `tests: [unique, not_null]` on order_id and order_date respectively are the mechanical, automated check that the declared grain actually holds."
+common_mistakes:
+  - "Declaring a fact table's grain as \"orders,\" without saying whether that means one row per order, one row per order line, or one row per order-per-day. \"1 row = 1 order\" and \"1 row = 1 order line\" are two entirely different tables that happen to share the word \"order\" — vague grain statements like this are a leading cause of double-counted revenue."
+  - "Building a table meant to be one-row-per-entity, then unknowingly introducing a join that produces duplicate rows per entity (a classic 'fan-out'). If fct_orders' grain is meant to be one row per order but an unaggregated join to order_items were used directly, an order with 3 line items would silently appear as 3 rows — inflating any COUNT(order_id) or SUM(gross_revenue) computed against it. This is exactly why fct_orders pre-aggregates order_items_agg before joining, rather than joining order_items directly."
+interview_questions:
+  - question: "How would you check whether a table's actual grain matches its documented grain of \"1 row = 1 order\"?"
+    answer: >
+      Run a query that counts rows per candidate key and checks whether any key appears more than
+      once: `SELECT order_id, COUNT(*) FROM fct_orders GROUP BY order_id HAVING COUNT(*) > 1`. If
+      that returns zero rows, `order_id` is unique and the stated grain holds. This is exactly what
+      dbt's `tests: [unique, not_null]` on `fct_orders.order_id` (declared in marts.yml) checks
+      automatically on every build — a grain claim isn't trustworthy until something actually
+      verifies it, rather than just asserting it in a comment or a description.
+blocks:
+  - type: heading
+    text: "Grain: what does one row actually mean?"
+  - type: text
+    body: >
+      The **grain** of a table is a precise answer to one question: what does a single row represent?
+      Not "what columns does it have" — what real-world thing, or event, does one row correspond to.
+      "1 row = 1 order," "1 row = 1 order line," "1 row = 1 customer per calendar month" are all valid,
+      different grains, and a table can only have one. Declaring grain is the very first decision in
+      dimensional modeling — before you pick a single dimension or measure — because it determines
+      what both of those are even allowed to be.
+  - type: text
+    body: >
+      Why first? Because grain constrains everything downstream. Every dimension attached to the
+      fact table has to make sense at that grain (a `customer_id` foreign key only belongs on
+      `fct_orders` because each order genuinely has exactly one customer at the order grain). Every
+      measure has to be meaningful summed or averaged at that grain (`gross_revenue` summed across
+      `fct_orders` rows gives total order revenue, which is a real, meaningful number; it would mean
+      something entirely different if the grain were silently order-line instead of order).
+  - type: example
+    title: "Two real grains, declared explicitly, in this project"
+    body: >
+      `dbt/models/marts/marts.yml` states the grain of every fact table as a one-line English
+      sentence, and it isn't decoration — it's the design contract the model is built to satisfy.
+      `fct_orders`: "Grain: 1 row = 1 order. Rows are created once, when the order is placed." Look
+      at the model's own comment for the same claim: "Transaction fact: 1 row = 1 order, at the grain
+      of the order itself." `fct_daily_revenue`: "Grain: 1 row = 1 calendar day." These are genuinely
+      different grains solving different questions — the first answers "how much did order #4213
+      contain," the second answers "how much revenue happened on March 14th across every order" — and
+      neither table could correctly answer the other's question without a different structure.
+  - type: code
+    language: sql
+    code: |
+      -- Verifying fct_orders' declared grain ("1 row = 1 order") actually holds:
+      -- zero rows back means the grain claim checks out.
+      SELECT order_id, COUNT(*) AS row_count
+      FROM fct_orders
+      GROUP BY order_id
+      HAVING COUNT(*) > 1;
+    caption: "This is exactly what dbt's tests: [unique, not_null] on fct_orders.order_id automates on every run — grain isn't trustworthy until it's actually verified, not just declared."
+  - type: heading
+    text: How a grain violation sneaks in
+  - type: text
+    body: >
+      A common way grain silently breaks: joining a fact table meant to be one-row-per-order directly
+      to a table at a finer grain (like order line items), without aggregating first. An order with 3
+      line items would then appear as 3 duplicate-looking rows, each carrying the *same* order-level
+      values (like `amount_paid`) repeated 3 times — a query that then does `SUM(amount_paid)` would
+      triple-count that order's payment. This project's `fct_orders.sql` avoids exactly this trap: it
+      pre-aggregates `order_items` into `order_items_agg` (one row per order, with `item_count`,
+      `gross_revenue` summed across that order's lines) *before* joining it to the order-grain table —
+      preserving the "1 row = 1 order" grain all the way through.
+  - type: callout
+    variant: common_mistake
+    title: "A fan-out join is a grain violation in disguise"
+    body: >
+      If you ever see a supposedly order-grain query where the same `order_id` appears multiple times
+      with identical order-level columns, that's a fan-out: something joined in a finer-grained table
+      (like `order_items`) without aggregating first. Any `SUM()` or `COUNT()` computed on top of that
+      result will be inflated by however many line items each order happened to have — a subtle,
+      easy-to-miss source of overstated revenue.
+  - type: question
+    prompt: >
+      A table is documented as "1 row = 1 order," but a query joining it to an unaggregated
+      order_items table shows some order_ids appearing 3 times with identical order-level totals.
+      What does this indicate?
+    choices:
+      - "Nothing unusual — a fact table can have repeated rows as long as the order_id is present"
+      - "A grain violation caused by a fan-out join: joining to a finer-grained table (order line items) without aggregating first duplicates the order-level row once per line item, which would inflate any SUM() computed over it"
+      - "The table's grain is actually 1 row = 1 order line, and the documentation is simply describing it loosely"
+    correct_index: 1
+    explanation: >
+      A table documented at the order grain should have exactly one row per order_id. Repeated rows
+      with identical order-level values after joining to a finer-grained table is the classic
+      signature of a fan-out — the join produced one row per line item instead of preserving the
+      original one-row-per-order grain, and any aggregate computed on the result would silently
+      overcount.

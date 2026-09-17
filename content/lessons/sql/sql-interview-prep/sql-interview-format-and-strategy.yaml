@@ -1,0 +1,118 @@
+slug: sql-interview-format-and-strategy
+module_slug: sql-interview-prep
+title: SQL Interview Format and Strategy
+description: What a SQL interview is actually evaluating beneath the query itself, and how to approach a deliberately ambiguous prompt instead of guessing and diving straight into code.
+difficulty: INTERMEDIATE
+estimated_minutes: 10
+display_order: 1
+objectives:
+  - Explain what a SQL interview evaluates beyond "does the query run"
+  - Identify the kinds of ambiguity interviewers leave in prompts on purpose
+  - Ask clarifying questions that narrow a vague prompt before writing any SQL
+prerequisites: [common-performance-anti-patterns]
+skills: [interview-sql]
+datasets: [ecommerce]
+tags: [sql, interview, intermediate]
+key_takeaways:
+  - "A SQL interview is rarely just testing syntax recall — it's testing whether you can turn a fuzzy business question into a precise, correct query, and whether you can explain your reasoning as you go."
+  - "Ambiguity in a prompt (undefined date ranges, unclear what counts as an 'active' customer, whether cancelled orders should count) is usually intentional — asking about it is a signal of good judgment, not a sign you don't understand the question."
+  - "A short round of clarifying questions up front is almost always worth more than the time it costs — it prevents building a fully correct query that answers the wrong question."
+common_mistakes:
+  - "Starting to type SQL the moment a prompt is read, before pinning down what the ambiguous terms actually mean — leads to a technically correct query for the wrong definition of the problem."
+  - "Treating clarifying questions as an admission of confusion — interviewers consistently rate candidates who ask good clarifying questions more favorably than ones who silently guess, even when the guess happens to be right."
+interview_questions:
+  - question: "How would you find our top 10 customers?"
+    answer: >
+      Before writing anything: top 10 by what — total revenue, order count, or average order value?
+      Over all time, or a specific window (last quarter, last 12 months)? Does "customer" include one
+      who placed orders that were later cancelled or refunded, or only orders that actually completed?
+      Only after agreeing on those definitions does it make sense to write
+      SELECT customer_id, SUM(...) AS total_revenue ... GROUP BY customer_id ORDER BY total_revenue DESC LIMIT 10,
+      because each of those unstated choices changes which 10 customers come back.
+  - question: "What do you think this question is actually testing?"
+    answer: >
+      Beyond correct syntax, it's testing whether I can translate an ambiguous business ask into a
+      precise query, whether I check my own result for sanity before calling it done, and whether I can
+      narrate the reasoning clearly enough for someone else to follow and catch a mistake if I make one.
+blocks:
+  - type: heading
+    text: It's not really a syntax test
+  - type: text
+    body: >
+      It's tempting to prepare for a SQL interview the way you'd cram for a syntax quiz — memorizing
+      window function signatures, JOIN types, date functions. Those matter, but they're the floor, not
+      the ceiling. What actually differentiates candidates is whether they can take a fuzzy, plain-
+      English business question, turn it into a precise query, and explain the reasoning behind every
+      choice along the way.
+  - type: callout
+    variant: interview_tip
+    title: What's actually being scored
+    body: >
+      Most SQL interview rubrics weigh three things beyond "did it run": (1) did the candidate correctly
+      handle ambiguity in the prompt, (2) is the logic actually correct — not just plausible-looking,
+      and (3) can they explain their approach clearly enough that a reviewer could follow it without
+      re-deriving it themselves. A perfectly syntactically correct query built on a wrong assumption
+      about the question scores worse than a slightly rougher query built on the right one.
+  - type: heading
+    text: Ambiguity is usually on purpose
+  - type: text
+    body: >
+      A prompt like "find customers who haven't ordered recently" is missing at least three definitions:
+      what counts as "recently" (30 days? 90? since their last order, or since signup?), whether
+      cancelled/refunded orders count as having "ordered," and whether the population is all customers
+      or only ones who've ordered at least once before. Interviewers leave gaps like this deliberately
+      — a strong candidate notices the gaps and asks about them; a weaker one picks an arbitrary
+      definition and never mentions doing so.
+  - type: table
+    headers: ["Vague phrase in a prompt", "Question worth asking"]
+    rows:
+      - ["\"recent\" or \"active\" customers", "Recent/active relative to what — a fixed cutoff, or relative to today? Based on which event (order, login, signup)?"]
+      - ["\"top\" customers/products", "Top by which metric — revenue, order count, units, margin? Over what time window?"]
+      - ["\"orders\"", "Does that include cancelled and refunded orders, or only ones that completed?"]
+      - ["\"customers who did X\"", "Does 'did X' mean ever, in a specific period, or as their most recent action?"]
+  - type: callout
+    variant: interview_tip
+    title: A simple template for clarifying questions
+    body: >
+      When a prompt lands with real ambiguity, it helps to have a default pattern rather than freezing:
+      "When you say [ambiguous term], do you mean [specific interpretation A] or [specific interpretation
+      B]?" Naming two concrete interpretations — not just "what do you mean by that?" — shows you've
+      already thought about the shape of the problem and are narrowing it down, not stalling.
+  - type: example
+    title: Turning a vague prompt into a scoped one
+    body: >
+      Prompt as given — "Which customers should we worry about losing?" That's a product question, not
+      a SQL spec. A reasonable clarifying pass: "I'll define 'at risk' as a customer whose most recent
+      completed order was more than 90 days ago, but who placed at least 2 completed orders before
+      that — does that match what you have in mind, or is there a different signal you're thinking of?"
+      Only after agreement does the SQL get written, and it's now unambiguous what it needs to compute.
+    code: |
+      SELECT o.customer_id
+      FROM orders o
+      WHERE o.status = 'completed'
+      GROUP BY o.customer_id
+      HAVING COUNT(*) >= 2
+         AND MAX(o.order_date) < CURRENT_DATE - INTERVAL 90 DAY;
+    language: sql
+  - type: checklist
+    title: Before writing a single line of SQL
+    items:
+      - "Restate the question in your own words, out loud, to confirm you understood it the way the interviewer meant it"
+      - "Name any vague terms explicitly and propose a concrete definition for each"
+      - "Confirm the relevant time window, if the question involves recency or a trend"
+      - "Ask whether edge-case rows (cancelled orders, NULL values, inactive customers) should be included or excluded"
+  - type: question
+    prompt: >
+      An interviewer asks: "Write a query to find our most loyal customers." What's the strongest first
+      move?
+    choices:
+      - "Immediately write a query using COUNT(*) of orders per customer, since that's a reasonable default for 'loyal'"
+      - "Ask what 'most loyal' means in this context — order frequency, tenure, spend, or some combination — and confirm the time window, before writing any SQL"
+      - "Ask the interviewer to give you the exact SQL query they're looking for"
+    correct_index: 1
+    explanation: >
+      "Loyal" isn't a defined metric — it could mean frequency, tenure, monetary value, or a
+      combination, and reasonable people would define it differently. Clarifying the intended
+      definition first (and proposing concrete options, per the earlier callout) demonstrates the exact
+      judgment interviewers are evaluating; jumping straight to one arbitrary definition risks building
+      a technically correct query that answers a question nobody asked.

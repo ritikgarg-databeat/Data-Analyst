@@ -1,0 +1,138 @@
+slug: saas-user-retention-cohort-investigation
+title: "Case: Has Retention Actually Gotten Better, or Does It Just Look That Way?"
+category: PRODUCT_ANALYTICS
+difficulty: ADVANCED
+estimated_minutes: 100
+
+company_context: >
+  A B2B SaaS company tracks every subscription in a single table: subscription_id, user_id, plan
+  (starter/pro/enterprise), mrr, start_date, end_date, and status (active/churned). Finance and
+  product both reference subscription churn rate when discussing retention health, usually by
+  looking at churn rate for subscriptions grouped by the quarter they started in.
+stakeholder_name: Priya Nataraj
+stakeholder_role: Head of Product
+problem_statement: >
+  "Someone on the team put together a quick chart of churn rate by the quarter a subscription
+  started in, and it looks like a huge win — churn looks like it's dropped from over half of
+  subscriptions in our earliest cohorts down to single digits for the most recent ones. That
+  seems too good to be true given we haven't shipped any major retention initiative that I'm
+  aware of. Before this chart goes into next week's board deck as proof that retention is
+  dramatically improving, I want someone to actually stress-test it. Is this real?"
+business_context: >
+  No retention-specific product changes, pricing changes, or customer-success process changes have
+  been logged as being tied to a specific quarter in this dataset. The subscriptions table only
+  goes up to the current date, so very recently started subscriptions have necessarily had less
+  time on the books than older ones.
+objective: >
+  Determine whether the apparent improvement in churn rate across subscription start-quarter
+  cohorts reflects a genuine change in retention behavior, or is better explained by something else
+  in how the comparison was constructed — and report back a defensible conclusion Priya can act on.
+initial_information: >
+  You have `subscriptions.csv` only for this investigation (subscription_id, user_id, plan, mrr,
+  start_date, end_date, status). Today's date, for the purposes of this dataset, should be treated
+  as the latest date appearing in the data.
+constraints:
+  - "This analysis must be built entirely from subscriptions.csv — no external retention benchmarks or additional tables are available."
+  - "Priya explicitly does not want a restatement of the naive chart — she wants to know whether it holds up to scrutiny, and what a more defensible version of the comparison would show."
+available_datasets: [saas-product]
+expected_deliverables:
+  - "A reproduction of the naive churn-rate-by-start-quarter comparison that prompted the question"
+  - "An assessment of whether cohorts have had equal opportunity to churn (exposure time), given the dataset's most recent observation date"
+  - "A corrected, exposure-controlled comparison (e.g. churn within a fixed time horizon since start, restricted to cohorts old enough to have reached that horizon) and a comparison of what it shows versus the naive chart"
+  - "A check of at least one other plausible confound (e.g. plan mix shifting across cohorts, given that churn rate is known to differ by plan)"
+  - "A clear, honest recommendation on what should or shouldn't go in the board deck"
+learning_objectives:
+  - "Recognize right-censoring / immature-cohort bias in a churn-by-cohort comparison"
+  - "Construct a fixed-horizon (time-boxed) churn comparison that controls for unequal exposure time across cohorts"
+  - "Identify and check an additional confounding variable (plan mix) before accepting a cohort-based trend at face value"
+  - "Communicate a 'the naive number is misleading, here's the corrected picture' finding clearly and without overstating certainty from small samples"
+stages: [CLARIFY, FRAME, EXPLORE, ANALYZE, VALIDATE, INSIGHTS, RECOMMEND, SUBMIT]
+required_exercise_slugs: []
+tags: [product-analytics, saas, churn, cohort, root-cause, statistics, advanced]
+skills: [sql-fundamentals, pandas, statistics, statistical-reasoning, root-cause-analysis, data-interpretation]
+
+clarification_guidance:
+  - "How was the original chart's churn rate actually computed — churned subscriptions divided by total subscriptions in that start-quarter, with no adjustment for how long ago that quarter was?"
+  - "Given the data only runs up to a fixed 'as of' date, have older and newer cohorts had the same amount of time to possibly churn?"
+  - "Could anything else about the mix of subscriptions have shifted across cohorts (e.g. which plan tier is most common) that would affect churn rate independent of any real retention change?"
+  - "What decision is riding on this — is the board deck claim being used to justify continuing or stopping some specific initiative?"
+
+rubric:
+  - category: "Problem Framing & Clarification"
+    weight: 10
+    criteria:
+      - criterion: "Asks at least one clarifying question about how the original churn-by-cohort chart was computed and what time window/'as of' date it assumes"
+        points: 10
+  - category: "Technical Analysis"
+    weight: 30
+    is_technical: true
+    criteria:
+      - criterion: "Reproduces the naive churn rate by start-quarter cohort and correctly identifies the steep apparent decline (e.g. from roughly 55-68% in 2024 cohorts down to single digits in the most recent cohort)"
+        points: 12
+      - criterion: "Computes each cohort's exposure time (time since start_date as of the data's latest date) and shows it varies enormously across cohorts (from a median of several hundred days for the oldest cohort down to just days or weeks for the newest)"
+        points: 8
+      - criterion: "Builds a fixed-horizon churn comparison (e.g. % churned within 90 or 180 days of start), restricted to cohorts old enough to have reached that horizon, and shows it is roughly flat/noisy rather than steadily improving"
+        points: 10
+  - category: "Insight Quality"
+    weight: 25
+    criteria:
+      - criterion: "Correctly concludes the naive quarter-over-quarter 'improvement' is substantially explained by right-censoring (newer cohorts haven't had time to churn yet), not a genuine retention improvement"
+        points: 15
+      - criterion: "Checks and reports on at least one additional confound (e.g. plan mix shifting across cohorts, interacting with plan-level churn differences)"
+        points: 10
+  - category: "Recommendation & Communication"
+    weight: 20
+    criteria:
+      - criterion: "Gives Priya a direct, unambiguous answer on whether the board-deck claim is defensible as stated"
+        points: 10
+      - criterion: "Proposes what a defensible version of the retention claim (or a decision to not make the claim yet) should look like"
+        points: 10
+  - category: "Rigor & Caveats"
+    weight: 15
+    criteria:
+      - criterion: "Explicitly flags that the fixed-horizon cohorts have small sample sizes (roughly 7 to 50 subscriptions per cohort), so the corrected comparison itself has real uncertainty and cannot fully rule out a modest genuine trend"
+        points: 15
+
+hints:
+  - "Before trusting the naive chart, ask: does every cohort in it have the same amount of calendar time to have possibly churned by the data's most recent date? Compare the oldest and newest cohort's 'days since start' directly."
+  - "Try a fixed-horizon churn rate instead: for each cohort, what fraction churned within the first 90 (or 180) days of their start date? Only include cohorts that are actually old enough to have reached that horizon in the comparison."
+  - "Once you've controlled for exposure time, compare the corrected trend to the naive one. If the corrected version is much flatter, that tells you how much of the original 'improvement' was really just an artifact of cohort age."
+  - "Churn rate is known to differ by plan tier in this data. Check whether the mix of plans has shifted across start-quarter cohorts before concluding the naive trend is purely time-driven."
+
+reference_solution:
+  summary: >
+    The naive chart is real but misleading. Naive churn rate by subscription start-quarter does
+    fall sharply and monotonically: 2024Q3 57.1% (4/7), 2024Q4 68.0% (17/25), 2025Q1 55.6% (15/27),
+    2025Q2 42.5% (17/40), 2025Q3 25.6% (11/43), 2025Q4 13.5% (7/52), 2026Q1 5.6% (1/18). But
+    exposure time (days between start_date and the dataset's latest date, 2026-02-03) collapses
+    across the same cohorts, from a median of 513 days for 2024Q3 down to a median of just 16 days
+    for 2026Q1 — newer cohorts have had dramatically less time to churn, which alone would produce
+    exactly this shape of chart even with zero real change in retention. Restricting to cohorts old
+    enough to have reached a 90-day mark and measuring churn within that fixed 90-day window instead
+    gives 2024Q4 8.0%, 2025Q1 14.8%, 2025Q2 15.0%, 2025Q3 14.0%, 2025Q4 7.7% — roughly flat within
+    the 8-15% range, with no clear improving trend, versus the naive chart's steady march toward
+    single digits. The same pattern holds at a 180-day horizon (20.0%, 33.3%, 20.0%, 26.7% across
+    the cohorts old enough to measure it). Plan mix also shifts somewhat across cohorts (enterprise
+    share, the highest-churn tier at 38.5%, ranges from 0% to 20% across quarters) but not in a
+    consistent enough direction to be the primary explanation.
+  key_insights:
+    - "The naive churn-by-start-quarter chart is dominated by right-censoring: newer cohorts have had far less exposure time (median 16 days for 2026Q1 vs 513 days for 2024Q3) and therefore appear to churn less simply because they haven't had time to."
+    - "A fixed 90-day-horizon churn comparison across cohorts old enough to measure it (2024Q4 through 2025Q4) is roughly flat, in the 7.7%-15.0% range, with no clear improving trend — a starkly different picture from the naive chart's apparent steady improvement."
+    - "The same conclusion holds at a 180-day horizon (20.0%-33.3% across eligible cohorts), reinforcing that early-tenure churn propensity has not obviously changed across cohorts."
+    - "Plan mix (particularly enterprise share, the highest-churn tier) does shift across cohorts but not in a clean enough pattern to be the main driver of the naive trend; it's a secondary confound worth monitoring, not the primary explanation."
+  recommendation: >
+    Tell Priya the board-deck claim as currently framed is not defensible — the dramatic
+    quarter-over-quarter improvement is very likely mostly an artifact of comparing cohorts with
+    wildly different amounts of time to churn, not evidence of a real retention win. Recommend
+    replacing the naive chart with a fixed-horizon comparison (e.g. 90-day churn rate, restricted to
+    cohorts old enough to measure it), which shows retention has been roughly flat, in a noisy
+    8-15% range, with no clear trend in either direction. If the board wants a retention story, it
+    should be framed honestly as "no evidence of deterioration, and no evidence of the dramatic
+    improvement the naive chart implied" rather than the current claim. Recommend revisiting with
+    more mature cohort data in a quarter or two, since current fixed-horizon sample sizes per
+    cohort (as few as 25-52 subscriptions) are small enough that a modest real trend could still be
+    hiding in the noise.
+  acceptable_alternatives:
+    - "Proposing a survival-analysis approach (e.g. Kaplan-Meier retention curves by cohort) as the more rigorous long-term fix instead of manually choosing fixed horizons, while still recommending the fixed-horizon check as the quick, defensible answer for this week's deck."
+    - "Recommending the plan-mix confound be investigated further (e.g. a churn comparison holding plan mix constant across cohorts) before fully ruling it out as a secondary contributor, given the mix does move by double-digit percentage points across some quarters."
+version: 1

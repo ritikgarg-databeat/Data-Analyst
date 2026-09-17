@@ -1,0 +1,151 @@
+slug: groupby
+module_slug: pandas-aggregation
+title: Group By
+description: Split-apply-combine with .groupby() — grouping by one and multiple columns, and the difference between .size() and .count().
+content_type: READING
+difficulty: INTERMEDIATE
+estimated_minutes: 12
+display_order: 1
+objectives:
+  - Explain the split-apply-combine model that .groupby() implements
+  - Group a DataFrame by one column and by multiple columns and summarize each group
+  - Choose between .size() and .count() based on whether NaN values should be counted
+prerequisites: [conditional-columns]
+skills: [pandas]
+datasets: [ecommerce]
+tags: [python, intermediate, real-world]
+key_takeaways:
+  - ".groupby() implements split-apply-combine — split the DataFrame into groups by key, apply a function to each group independently, then combine the per-group results back into one object."
+  - "Grouping by a list of columns (e.g. ['status', 'channel']) produces one group per unique combination, not one group per column."
+  - ".size() counts rows per group regardless of missing values; .count() counts only non-null values in the specific column it's called on — the two can disagree whenever a column has NaNs."
+common_mistakes:
+  - "Assuming .groupby('col') alone produces a table — it produces a lazy GroupBy object. Nothing is computed until you call an aggregation like .sum(), .mean(), or .size() on it."
+  - "Using .count() to answer 'how many rows are in this group' when a column has missing values — .count() silently undercounts because it skips NaNs, while .size() always reflects the true row count."
+  - "Forgetting that grouping by multiple columns returns a result with a MultiIndex (one level per grouping column) rather than flat columns — that's covered in detail in the MultiIndex lesson later in this track."
+practical_applications:
+  - "Summarizing order counts or revenue by status, channel, or customer segment for a dashboard."
+  - "Finding data quality gaps — e.g. counting how many sessions are missing a marketing_campaign_id (organic/direct traffic with no attributed campaign) by comparing .size() to .count()."
+interview_questions:
+  - question: "What's the difference between df.groupby('col').size() and df.groupby('col').count()?"
+    answer: ".size() returns the number of rows in each group, full stop — it doesn't look at any particular column and includes rows with NaN values. .count() is a per-column aggregation that counts only the non-null values in each column, so if you call it on a column that has missing values within a group, the count will be lower than the group's actual size. When you just want 'how many rows are in each group,' .size() is the safer, more direct choice."
+  - question: "What does df.groupby(['a', 'b']) group by — combinations of a and b, or a and b separately?"
+    answer: "Combinations. Each group is defined by one unique (a, b) pair, so the result has one row per distinct combination that actually appears in the data — not one set of groups for a and a separate set for b."
+blocks:
+  - type: text
+    body: >
+      **`.groupby()`** is the single most-used pandas method for summarizing data, and it implements
+      a pattern called **split-apply-combine**: split the DataFrame into groups based on a column's
+      values, apply an aggregation to each group independently, then combine the per-group results
+      back into one table. It's the pandas equivalent of SQL's `GROUP BY` — if you already know SQL
+      aggregation, the mental model transfers directly.
+  - type: heading
+    text: Split-apply-combine
+  - type: table
+    headers: ["Step", "What happens", "Example"]
+    rows:
+      - ["Split", "Rows are partitioned into groups, one per unique value of the grouping column(s)", "Every order with status='completed' goes into one group, every 'cancelled' order into another"]
+      - ["Apply", "An aggregation function runs independently on each group", "sum() the revenue within each status group"]
+      - ["Combine", "The per-group results are stitched back into a single Series or DataFrame, indexed by the group keys", "One row per status, with its total revenue"]
+  - type: callout
+    variant: important
+    title: .groupby() alone computes nothing
+    body: >
+      df.groupby('status') by itself returns a lazy `DataFrameGroupBy` object — it has organized the
+      rows into groups but hasn't aggregated anything yet. Nothing happens until you chain an
+      aggregation onto it, like .sum(), .mean(), .size(), or .agg(...).
+  - type: heading
+    text: Grouping by one column
+  - type: code
+    language: python
+    code: |2
+      import pandas as pd
+
+      orders = pd.read_csv("data/sample/ecommerce/orders.csv")
+
+      orders.groupby("status").size()
+    caption: How many orders fall into each status?
+  - type: output
+    body: |2
+      status
+      cancelled     379
+      completed    3441
+      pending       127
+      refunded      258
+      dtype: int64
+  - type: heading
+    text: Grouping by multiple columns
+  - type: text
+    body: >
+      Pass a list of column names to group by every unique **combination** of those columns, not each
+      column separately. The result has one row per combination that actually occurs in the data.
+  - type: code
+    language: python
+    code: |2
+      orders.groupby(["status", "channel"]).size()
+    caption: Order counts broken down by status AND channel
+  - type: output
+    body: |2
+      status     channel
+      cancelled  marketplace      38
+                 mobile          146
+                 web             195
+      completed  marketplace     352
+                 mobile         1199
+                 web            1890
+      pending    marketplace       8
+                 mobile           48
+                 web              71
+      refunded   marketplace      19
+                 mobile          101
+                 web             138
+      dtype: int64
+  - type: callout
+    variant: tip
+    title: That's a MultiIndex
+    body: >
+      Notice the result is indexed by (status, channel) pairs rather than a single flat index. This
+      hierarchical index is standard output from multi-column grouping, and you'll usually want to
+      flatten it with .reset_index() before using it further — the MultiIndex lesson later in this
+      module covers this in depth.
+  - type: heading
+    text: ".size() vs .count() — a real gap in the data"
+  - type: text
+    body: >
+      `.size()` counts rows in each group, period. `.count()` is a per-column aggregation that only
+      counts **non-null** values. These agree when a column has no missing data, but diverge sharply
+      when it does — and that divergence is itself a useful data-quality signal. The `sessions` table
+      has a `marketing_campaign_id` column that's NaN for any session that didn't arrive via a tracked
+      campaign (organic traffic, direct visits, etc.).
+  - type: example
+    title: Spotting missing attribution data with size() vs count()
+    body: >
+      Grouping sessions by device and comparing .size() to .count() on marketing_campaign_id reveals
+      that a large share of sessions on every device have no campaign attribution at all — .count()
+      is far lower than .size() in every row, and the gap is the number of untracked sessions.
+    code: |2
+      sessions = pd.read_csv("data/sample/ecommerce/sessions.csv")
+
+      total_sessions = sessions.groupby("device").size()
+      attributed_sessions = sessions.groupby("device")["marketing_campaign_id"].count()
+
+      pd.DataFrame({"total_sessions": total_sessions, "attributed_sessions": attributed_sessions})
+    language: python
+  - type: output
+    body: |2
+               total_sessions  attributed_sessions
+      device
+      desktop             4039                  1620
+      mobile              4049                  1661
+      tablet              3912                  1549
+    caption: "Roughly 60% of sessions on every device have no marketing_campaign_id — real, verified output"
+  - type: question
+    prompt: "A DataFrame of 1,000 orders has a discount_code column that's NaN for 700 of them. What does orders.groupby('status')['discount_code'].count() sum to, across all status groups?"
+    choices:
+      - "1,000, the same as .size() would give"
+      - "300 — the count of non-null discount_code values"
+      - "700 — the count of null discount_code values"
+    correct_index: 1
+    explanation: >
+      .count() only counts non-null values in the column it's called on. With 700 out of 1,000 rows
+      missing a discount_code, only 300 rows have a non-null value, so the per-group counts sum to
+      300 across the whole DataFrame — even though .size() would sum to the full 1,000.

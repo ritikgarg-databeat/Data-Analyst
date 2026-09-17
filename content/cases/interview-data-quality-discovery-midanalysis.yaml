@@ -1,0 +1,117 @@
+slug: interview-data-quality-discovery-midanalysis
+title: A Data Quality Problem Found Mid-Analysis
+category: DATA_QUALITY
+difficulty: INTERMEDIATE
+estimated_minutes: 25
+company_context: An online retailer tracked via the ecommerce schema.
+stakeholder_name: Ellis Moreau
+stakeholder_role: Director of Analytics
+problem_statement: '"You''re partway through the quarterly revenue report and you notice something looks off in
+  the underlying data. Walk me through what you''d do."'
+business_context: Ellis wants to see how you'd handle discovering a data quality issue partway through a delivery
+  that's already expected by stakeholders.
+objective: Investigate a suspected data quality anomaly, determine its scope and impact, and decide how to proceed
+  with the original deliverable.
+initial_information: You have access to orders, order_items, and payments, and you've noticed an anomaly (e.g. a
+  spike in a specific status or an implausible value range) partway through your revenue analysis.
+constraints:
+- The quarterly report is expected soon -- you need to decide how to handle the timeline, not just the data issue
+  itself.
+available_datasets:
+- ecommerce
+expected_deliverables:
+- A description of how you'd verify and scope the anomaly
+- An assessment of how much of the analysis is affected
+- A recommendation on how to proceed (delay, caveat, or proceed) and how you'd communicate it
+learning_objectives:
+- Verify and scope a data anomaly before assuming it invalidates everything
+- Decide how to responsibly proceed with a deliverable when the underlying data has a known issue
+- Communicate a data quality finding to a stakeholder without over- or under-stating its impact
+stages:
+- CLARIFY
+- ANALYZE
+- INSIGHTS
+- RECOMMEND
+- SUBMIT
+tags:
+- interview
+- data-quality
+- case-study
+skills:
+- root-cause-analysis
+- communication
+- business-problem-solving
+clarification_guidance:
+- A good clarifying question asks exactly what looked anomalous (a specific value range, a sudden volume change,
+  a suspicious pattern).
+- A good clarifying question asks how much of the affected data overlaps with what's actually needed for the quarterly
+  report.
+rubric:
+- category: Problem Framing & Clarification
+  weight: 20
+  criteria:
+  - criterion: Investigates and precisely characterizes the anomaly before assuming its scope or impact
+    points: 20
+- category: Technical Analysis
+  weight: 30
+  is_technical: true
+  criteria:
+  - criterion: Quantifies how much of the relevant data is actually affected by the anomaly
+    points: 30
+- category: Insight Quality
+  weight: 20
+  criteria:
+  - criterion: Correctly assesses whether the anomaly materially changes the report's conclusions or not
+    points: 20
+- category: Recommendation & Business Judgment
+  weight: 20
+  criteria:
+  - criterion: Gives a specific proceed/delay/caveat recommendation with reasoning, not just 'flag it and move on'
+    points: 20
+- category: Communication
+  weight: 10
+  criteria:
+  - criterion: Describes how they'd communicate the issue to Ellis without over- or under-stating its severity
+    points: 10
+hints:
+- Scope the anomaly precisely (how many rows, what date range, what magnitude) before deciding whether it changes
+  the report's conclusions.
+- If the anomaly is material, the report should be delayed or clearly caveated rather than silently delivered as
+  if nothing were wrong.
+reference_solution:
+  summary: The concrete anomaly available in this data is the 506 orders (12.0% of all 4,205) that have no matching
+    payment record at all -- which, before scoping, could look like a serious tracking or pipeline gap partway
+    through a revenue analysis. Scoping it precisely shows it is not a defect -- those 506 orders are exactly the 379
+    with status 'cancelled' plus the 127 with status 'pending' (379+127=506, an exact match), where a payment would
+    never be expected to exist in the first place -- 100% of cancelled/pending orders lack a payment row, and 0% of
+    completed or refunded orders do. For the 3,699 orders that DO have a payment record, payments.amount reconciles
+    EXACTLY -- to the cent, with zero exceptions across all 3,699 -- against the order_items-computed total
+    (quantity times (unit_price minus discount), where discount is a per-unit dollar amount, not a percentage). So
+    the anomaly, once scoped, has zero effect on completed-order revenue -- every dollar in the quarterly report that
+    comes from a completed or refunded order is fully corroborated by its payment record, and the missing-payment
+    rows are a fully-explained, expected consequence of order status rather than a data-quality defect.
+  key_insights:
+  - The 506 orders with no payment record are exactly the 379 cancelled plus 127 pending orders (an exact match) --
+    100% of cancelled/pending orders lack a payment row, and 0% of completed/refunded orders do, so this is a
+    clean, expected pattern tied to order status, not a pipeline defect.
+  - For all 3,699 orders that do have a payment record, payments.amount matches the order_items-computed total
+    (quantity times (unit_price minus discount)) exactly, to the cent, with zero exceptions -- so completed and
+    refunded order revenue is fully reconciled and unaffected by this anomaly.
+  - Precisely scoping the anomaly before reacting to it (12.0% of orders initially looked concerning) is what
+    reveals it has zero impact on the quarterly report's revenue figures, rather than requiring any restatement.
+  recommendation: Recommend proceeding with the quarterly report on schedule, with a one-line methodology footnote
+    noting that roughly 12% of orders (cancelled/pending) show no payment record by design, and that this has zero
+    effect on completed-order revenue since all 3,699 orders with a payment record reconcile exactly against
+    order_items. No delay or figure restatement is warranted. Separately, recommend adding an automated
+    status-based reconciliation check (payment existence expected if and only if status is completed or refunded,
+    and payments.amount matching order_items exactly) to the standing data-quality monitoring, so this verification
+    doesn't need to be manually redone every quarter.
+  acceptable_alternatives:
+  - A learner who, on first noticing the missing-payment rate, treats it as reason enough to pause and verify
+    before committing to the report timeline -- rather than assuming immediately it's fine -- should receive full
+    credit for appropriate caution, provided they reach and demonstrate the same fully-explained, zero-impact
+    conclusion before the deadline.
+  - A learner who additionally spot-checks a sample of refunded orders' payment amounts against order_items (rather
+    than only completed orders) as part of scoping the anomaly should receive credit for the more thorough check,
+    even though the conclusion is the same for both statuses.
+version: 1

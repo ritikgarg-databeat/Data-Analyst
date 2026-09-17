@@ -1,0 +1,22 @@
+slug: stat-empirical-rule
+skill: statistics
+title: The Empirical Rule (68-95-99.7)
+description: For a normal distribution, approximately what percentage of values fall within 2 standard deviations
+  of the mean?
+exercise_type: MULTIPLE_CHOICE
+difficulty: BEGINNER
+points: 5
+tags:
+- statistics
+- distributions
+prompt: For a normal distribution, approximately what percentage of values fall within 2 standard deviations of
+  the mean?
+correct_answer: 95%
+explanation: 'The empirical rule for a normal distribution: about 68% of values fall within 1 standard deviation,
+  about 95% within 2, and about 99.7% within 3 -- a quick sanity-check for whether an observed value is unusually
+  far from the mean.'
+choices:
+- 95%
+- 68%
+- 99.7%
+- 50%

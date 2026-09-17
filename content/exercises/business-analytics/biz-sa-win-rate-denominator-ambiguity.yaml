@@ -1,0 +1,28 @@
+slug: biz-sa-win-rate-denominator-ambiguity
+lesson_slug: biz-win-rate-cycle-length-forecasting
+skill: metric-definition
+title: Reconciling Two Different Win Rates
+description: Explain how a sales team and a finance team can both correctly report a different win rate off the exact same underlying deals.
+exercise_type: SHORT_ANSWER
+difficulty: INTERMEDIATE
+points: 15
+tags: [business-analytics, intermediate]
+prompt: >
+  A sales team reports a 55% win rate this quarter. Finance, looking at the same underlying set of
+  deals, reports a 31% win rate. Both numbers are computed correctly. In 2-3 sentences, explain
+  the most likely reason these two numbers disagree, and name the specific piece of information
+  you'd need from each team to reconcile them.
+correct_answer: >
+  The two teams most likely used different denominators: sales probably computed win rate as
+  Closed Won / (Closed Won + Closed Lost), excluding deals still open in the pipeline, while
+  Finance probably computed it as Closed Won / All deals that entered the pipeline, counting
+  every still-open deal as a non-win for now. To reconcile them, you'd need each team to state
+  explicitly which denominator they used (closed-only vs. all-deals), and the count of currently
+  open deals — a large number of open deals would explain a big gap between the two rates.
+explanation: >
+  A strong answer identifies the denominator, not the numerator, as the likely source of disagreement —
+  both numbers can use the identical Closed Won count and still differ sharply if one denominator excludes
+  open deals and the other counts them as not-yet-wins. It also proposes a concrete way to check
+  (comparing each team's stated denominator, and the count of open deals) rather than guessing at which
+  number is "more correct." A weaker answer assumes one team must have made an error, or proposes
+  recalculating without first identifying what's actually different between the two calculations.

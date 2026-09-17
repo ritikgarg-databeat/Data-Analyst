@@ -1,0 +1,53 @@
+slug: three-insights-from-the-ecommerce-dataset
+lesson_slug: welcome-to-the-challenge-library
+skill: business-problem-solving
+dataset: ecommerce
+title: "Three Business Insights, Each With Its Evidence"
+description: An open synthesis challenge — write three business insights from anywhere in the ecommerce dataset, each with the specific evidence behind it, in the observation / evidence / business implication / recommended action structure.
+exercise_type: DATA_INTERPRETATION
+difficulty: ADVANCED
+points: 25
+tags: [eda, real-world, advanced, case-study, interview]
+prompt: >
+  Using any combination of the ecommerce dataset's tables (categories, products, customers,
+  marketing_campaigns, sessions, orders, order_items, payments), write three distinct business insights.
+  Each one needs all four parts: an observation (one sentence, what the data shows), evidence (the specific
+  numbers behind it), a business implication (why it matters to a decision someone is making), and a
+  recommended action (something concrete to actually do next). The three insights should be genuinely
+  different from each other — not three phrasings of the same underlying finding.
+hints:
+  - "Pull from different parts of the dataset for each insight rather than three variations on revenue by channel — a distribution shape, a segmentation result, and a data-quality or measurement caveat make for three genuinely different insights, not just three different numbers."
+  - "For each insight, the business implication is the part most often skipped or left vague — force yourself to name a SPECIFIC team or decision it would actually change, not a generic 'this is worth knowing.'"
+solution: >
+  Insight 1 — Channel concentration. Observation: web is the dominant revenue channel, generating more than
+  mobile and marketplace combined. Evidence: web revenue is $3,204,469.02 versus $2,032,897.82 for mobile
+  and $565,261.31 for marketplace — web accounts for roughly 55% of the $5.8M total across all three
+  channels. Business implication: marketplace contributes under 10% of revenue despite presumably carrying
+  its own listing or commission costs, so any marketplace-specific investment should be sized against that
+  small base. Recommended action: prioritize the next round of conversion experiments on web, and treat
+  marketplace's small share as a separate question worth investigating — is it underinvested, or simply
+  smaller by nature?
+  Insight 2 — Order value is right-skewed, not "typical." Observation: the typical order is meaningfully
+  smaller than the average order value implies. Evidence: median successful payment is $1,569.11, but the
+  mean is $1,689.15 — about 7.6% higher — with a 90th percentile of $3,179.01 pulling the average upward.
+  Business implication: any team using "average order value" as a target or benchmark (e.g. a sales
+  incentive tied to hitting the average) is implicitly benchmarking against a number skewed upward by a
+  smaller number of large orders, not what most orders actually look like. Recommended action: report the
+  median alongside the mean for order value going forward, and use the median specifically when the goal is
+  describing "a typical order."
+  Insight 3 — Customer value is driven by order frequency, not segment or geography. Observation: the
+  difference between top-spending and typical customers comes from how often they order, not which
+  customer_segment or country they're in. Evidence: the top 10% of customers by spend average 8.8 orders
+  each versus 2.05 for everyone else — a 4.3x gap — while segment mix (about 70% consumer / 30% business)
+  and country mix are both nearly identical between the top decile and the rest. Business implication: a
+  retention or loyalty program targeted narrowly at the "business" segment, on the assumption that segment
+  predicts value, would miss most of the actual top-value customers, who are spread evenly across both
+  segments. Recommended action: build retention/loyalty targeting around order-frequency signals directly,
+  not customer_segment or geography.
+explanation: >
+  A strong answer produces three genuinely distinct insights (not three restatements of the same channel
+  or segment finding), each complete with all four parts, and each business implication names a specific
+  team or decision rather than a vague "this is interesting." The recommended actions are concrete enough
+  that someone could act on them without a follow-up meeting to clarify what's being asked. A weaker answer
+  supplies only observations and evidence without a stated business implication or action, or produces
+  three insights that are really the same underlying finding described three different ways.

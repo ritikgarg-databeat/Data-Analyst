@@ -1,0 +1,56 @@
+slug: pa-di-churn-plan-tenure-interpretation
+lesson_slug: pa-churn-drivers
+skill: data-interpretation
+dataset: saas-product
+title: "Churn by Plan and Tenure: Where's the Real Revenue Risk?"
+description: Given churn rate by plan, MRR churn share, and average tenure of churned accounts, identify the biggest revenue risk and what to check next.
+exercise_type: DATA_INTERPRETATION
+difficulty: INTERMEDIATE
+points: 15
+tags: [product, saas, churn, finance, intermediate, real-world]
+business_context: >
+  Finance and Customer Success are jointly prioritizing Q3 retention work and want a data-backed
+  answer to "where's the revenue actually at risk, and is this something CS can even influence?"
+prompt: >
+  Real data on this dataset's subscription book:
+
+  | Plan | Monthly price | Subscriptions | Churn rate |
+  |---|---|---|---|
+  | enterprise | $299 | 26 | 38.46% |
+  | pro | $99 | 71 | 35.21% |
+  | starter | $29 | 115 | 32.17% |
+
+  Overall: logo churn rate is 33.96%, but churned MRR share is 36.05% of total contracted MRR.
+  Average tenure of a churned subscription is 170.6 days (about 5.6 months).
+
+  Where is the biggest revenue risk concentrated, and does the tenure number change what kind of fix
+  you'd recommend? What additional field, not present in this data, would most change your
+  recommendation, and why?
+hints:
+  - "Combine churn rate with price per plan, not just churn rate alone — losing a 38.46%-churn enterprise account represents a very different dollar amount than losing a 32.17%-churn starter account."
+  - "170.6 days is neither 'the first week' nor 'the first year' — think about what timeframe that rules out as an explanation, and what it's more consistent with instead."
+solution: >
+  The biggest revenue risk is concentrated in the enterprise tier: it has both the highest churn rate
+  (38.46%) and the highest price ($299/month), so each lost enterprise account represents far more
+  revenue than a lost starter account, and revenue churn (36.05%) already running above logo churn
+  (33.96%) confirms churn is skewed toward higher-value accounts rather than being evenly spread. The
+  170.6-day average tenure of churned accounts (roughly 5.6 months) is long enough to rule out a
+  first-week or first-month onboarding failure as the primary driver — if onboarding were the core
+  problem, churned tenure would cluster much closer to 0-30 days. A tenure this long is more
+  consistent with fading engagement, a competitor's offer surfacing at renewal, or a value gap that
+  only becomes visible once the initial excitement fades — not a broken first-run experience. The
+  single most valuable missing field: a cancellation reason (or a payment-failure flag distinguishing
+  voluntary from involuntary churn). Without it, this data cannot tell whether "enterprise churns
+  most" means enterprise customers are actively dissatisfied (a retention/success problem CS can
+  influence directly) or whether enterprise renewals are more often lost to payment or procurement
+  friction (an operational/billing fix, not a relationship one) — and those two causes call for
+  completely different Q3 investments.
+explanation: >
+  A strong answer connects churn rate to dollar value (not just rate alone) to locate the real
+  revenue risk, correctly reads the 170.6-day tenure as ruling out an early-onboarding explanation,
+  and names a *specific* missing field (cancellation reason / voluntary vs. involuntary flag) rather
+  than a vague "we need more data." It also explains *why* that field matters — because the two
+  possible root causes it would distinguish between require entirely different fixes. A weaker answer
+  stops at "enterprise churns most, so let's focus there" without connecting churn rate to revenue
+  impact, or treats the tenure number as a throwaway detail rather than a clue that rules out one class
+  of explanation.

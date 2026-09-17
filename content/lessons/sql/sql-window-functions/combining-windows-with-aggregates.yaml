@@ -1,0 +1,144 @@
+slug: combining-windows-with-aggregates
+module_slug: sql-window-functions
+title: Combining Window Functions with Aggregates
+description: Using a window function's output inside a further calculation, and mixing window functions with a normal GROUP BY in the same query.
+difficulty: ADVANCED
+estimated_minutes: 15
+display_order: 7
+objectives:
+  - Compute a "percent of total" metric by dividing a value by a SUM() OVER () of the same values
+  - Use a window function inside a query that also has a GROUP BY, and explain the order those two features are evaluated in
+  - Nest a regular aggregate function inside a window function call, e.g. SUM(SUM(...)) OVER ()
+prerequisites: [first-value-and-last-value]
+skills: [advanced-sql]
+datasets: [ecommerce]
+tags: [sql, advanced]
+key_takeaways:
+  - "A window function's result is just a number like any other, so it can be used inside further arithmetic in the same SELECT — most commonly dividing a row's value by SUM(...) OVER () to get a percent-of-total."
+  - "Window functions are evaluated after GROUP BY has already collapsed rows into groups, which is exactly why an aggregate function can be nested inside a window function's argument, like SUM(SUM(revenue)) OVER () — the inner SUM produces one value per group, and the outer window SUM then operates across those already-grouped rows."
+  - GROUP BY and window functions aren't mutually exclusive features — a single query can group rows down to one row per category and still use a window function to compare each category's total against the grand total, in that same query.
+common_mistakes:
+  - "Trying to reference a window function's alias directly inside the same SELECT's other expressions (e.g. computing category_pct using the alias total instead of repeating the full SUM(...) OVER () expression) — most databases evaluate SELECT-list expressions independently, so the window expression generally needs to be written out again, not referenced by its alias, within the same SELECT clause."
+  - "Forgetting that a window function used alongside GROUP BY operates on the already-grouped rows, not the original detail rows — SUM(revenue) OVER () after a GROUP BY sums the per-group totals, not every individual line item."
+blocks:
+  - type: heading
+    text: A window function's output is just a number
+  - type: text
+    body: >
+      Nothing stops a window function's result from being used in further arithmetic within the same
+      SELECT — it behaves like any other computed value. The single most common example of this is a
+      "percent of total" calculation: divide each row's value by the sum of every row's value,
+      computed with an empty `OVER ()` covering the whole result set.
+  - type: code
+    language: sql
+    caption: Each category's revenue as a percentage of total revenue across all categories
+    code: |
+      WITH category_revenue AS (
+        SELECT
+          pr.category_id,
+          SUM(oi.quantity * (oi.unit_price - oi.discount)) AS revenue
+        FROM order_items oi
+        JOIN products pr ON pr.product_id = oi.product_id
+        GROUP BY pr.category_id
+      )
+      SELECT
+        category_id,
+        ROUND(revenue, 2) AS revenue,
+        ROUND(100.0 * revenue / SUM(revenue) OVER (), 2) AS pct_of_total_revenue
+      FROM category_revenue
+      ORDER BY revenue DESC;
+  - type: output
+    body: |
+      category_id |   revenue | pct_of_total_revenue
+      -------------+-----------+------------------------
+                 4 | 950585.08 |                 13.39
+                 9 | 895268.01 |                 12.62
+                 5 | 857548.47 |                 12.08
+                ...|       ... |                   ...
+                 2 | 239712.16 |                  3.38
+  - type: text
+    body: >
+      `SUM(revenue) OVER ()` — no PARTITION BY — treats every row of `category_revenue` as one window,
+      so it computes the grand total once and repeats it on every row. Dividing each category's own
+      revenue by that repeated grand total, in the very same SELECT, produces a percent-of-total with
+      no second query or manual join required.
+  - type: heading
+    text: Window functions and GROUP BY, in the same query
+  - type: text
+    body: >
+      The example above used a CTE to compute the grouped total first, then applied the window
+      function in a separate outer query. That's not required — GROUP BY and a window function can
+      coexist in the very same SELECT, because SQL evaluates window functions *after* GROUP BY has
+      already done its collapsing. By the time a window function runs, it only ever sees the
+      post-grouping rows, not the original detail rows.
+  - type: code
+    language: sql
+    caption: The identical result, without a CTE — GROUP BY and a window function together
+    code: |
+      SELECT
+        pr.category_id,
+        ROUND(SUM(oi.quantity * (oi.unit_price - oi.discount)), 2) AS category_revenue,
+        ROUND(
+          100.0 * SUM(oi.quantity * (oi.unit_price - oi.discount))
+                  / SUM(SUM(oi.quantity * (oi.unit_price - oi.discount))) OVER (),
+          2
+        ) AS pct_of_total_revenue
+      FROM order_items oi
+      JOIN products pr ON pr.product_id = oi.product_id
+      GROUP BY pr.category_id
+      ORDER BY category_revenue DESC;
+  - type: callout
+    variant: important
+    title: "Reading SUM(SUM(...)) OVER () from the inside out"
+    body: >
+      The inner `SUM(oi.quantity * (oi.unit_price - oi.discount))` is an ordinary aggregate — it's
+      what GROUP BY uses to collapse each category's many order_item rows into one revenue number per
+      category_id. The *outer* `SUM(...) OVER ()` then runs on those already-collapsed, one-per-category
+      rows, adding all ten categories' revenue figures together into a single grand total, repeated on
+      every row. This only works because window functions are evaluated strictly after GROUP BY in
+      SQL's logical order of operations — a window function can freely use an aggregate as its
+      argument, since by the time it runs, the aggregate has already been computed per group.
+  - type: text
+    body: >
+      Both versions of this query — the CTE version and the single-query version — produce identical
+      results. The CTE version is arguably easier to read (it separates "compute per-category revenue"
+      from "compute percent of total" into two visible steps, echoing the CTE lessons earlier in this
+      curriculum); the single-query version shows that the same logic can be compressed into one
+      SELECT once you're comfortable with the evaluation order.
+  - type: table
+    headers: ["Stage", "What GROUP BY sees / does", "What the window function sees / does"]
+    rows:
+      - ["Before GROUP BY", "Raw order_items x products rows", "N/A — hasn't run yet"]
+      - ["After GROUP BY, before window functions", "Already collapsed to one row per category_id", "N/A — hasn't run yet"]
+      - ["Window function evaluation", "N/A — already finished", "Operates on the one-row-per-category result GROUP BY produced"]
+  - type: example
+    title: Why the window expression has to be repeated, not aliased
+    body: >
+      It's tempting to compute the grand total once, alias it, and reuse the alias — but most SQL
+      engines evaluate every expression in the SELECT list independently, so an alias defined earlier
+      in the same SELECT generally isn't available to a later expression in that same list. The full
+      SUM(...) OVER () expression has to be written out again rather than referenced by name.
+    code: |
+      -- This typically does NOT work as hoped in most engines:
+      SELECT
+        category_id,
+        SUM(revenue) OVER () AS grand_total,
+        revenue / grand_total AS pct_of_total   -- grand_total isn't valid here yet
+      FROM category_revenue;
+
+      -- The reliable version repeats the expression, or wraps it in an outer query/CTE:
+      SELECT category_id, revenue, revenue / SUM(revenue) OVER () AS pct_of_total
+      FROM category_revenue;
+    language: sql
+  - type: question
+    prompt: "A query has GROUP BY pr.category_id and also uses SUM(SUM(revenue_expr)) OVER () in the same SELECT. What rows does the OUTER SUM's window actually operate over?"
+    choices:
+      - The original, ungrouped order_items rows, before any grouping happened
+      - "The already-grouped, one-row-per-category_id rows that GROUP BY produced — since window functions run after GROUP BY"
+      - It causes an error, because aggregates can't be nested inside window functions
+    correct_index: 1
+    explanation: >
+      SQL evaluates window functions after GROUP BY in its logical order of operations. By the time
+      the outer SUM(...) OVER () runs, GROUP BY has already collapsed the detail rows into one row per
+      category_id — so the window function operates on those grouped rows, summing the per-category
+      totals into a single grand total rather than re-touching any original detail row.

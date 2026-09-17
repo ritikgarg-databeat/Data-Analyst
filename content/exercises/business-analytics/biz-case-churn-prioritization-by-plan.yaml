@@ -1,0 +1,79 @@
+slug: biz-case-churn-prioritization-by-plan
+lesson_slug: dm-analytical-decision-framework
+skill: decision-making
+dataset: saas-product
+title: "Case: Which Plan Segment Should Customer Success Prioritize?"
+description: Use the analytical decision framework to decide which subscription plan tier a capacity-constrained Customer Success team should prioritize for proactive retention outreach.
+exercise_type: BUSINESS_REASONING
+difficulty: INTERMEDIATE
+points: 20
+tags: [case-study, real-world, saas, churn, customer-analytics]
+business_context: >
+  Customer Success has capacity to proactively reach out to a limited number of accounts this
+  quarter — not the entire active base. The team lead is deciding whether to prioritize by
+  headcount (reach the plan tier with the most active customers) or by some other criterion, and
+  wants a specific, data-backed recommendation before the quarter's outreach plan is finalized.
+stakeholder: "Head of Customer Success"
+constraints:
+  - "You only have access to the subscriptions table (subscription_id, user_id, plan, mrr, start_date, end_date, status) — no support ticket history or account health scores."
+  - "Outreach capacity this quarter covers only a minority of the active base, so the plan needs to name a specific priority order, not \"treat all segments the same.\""
+expected_deliverables:
+  - "Churn rate computed by plan tier, with active subscription counts for each tier"
+  - "A revenue-at-risk estimate by plan tier (not just a headcount-based churn rate) that combines churn rate, active subscriber count, and plan MRR"
+  - "A specific prioritization recommendation, with reasoning for why headcount alone would be the wrong basis"
+  - "At least one caveat about the limitations of using historical churn rate to prioritize forward-looking outreach"
+prompt: >
+  Using `subscriptions`, compute churn rate by `plan`, then combine it with each plan's active
+  subscriber count and MRR to estimate revenue at risk by plan. Recommend which plan tier
+  Customer Success should prioritize for limited-capacity proactive outreach this quarter, and
+  explain specifically why headcount alone would lead to the wrong prioritization. State your
+  answer in prose, citing the actual figures you compute.
+hints:
+  - "Compute churn rate per plan first (churned subscriptions / total subscriptions for that plan), then separately compute each plan's count of currently active subscriptions and its MRR — revenue at risk combines all three: active_subscribers x churn_rate x mrr."
+  - "Starter has by far the most active subscribers of the three tiers — check whether that headcount advantage still holds once you weight by churn rate and dollar value per subscriber, not just by counting accounts."
+rubric:
+  - criterion: "Computes churn rate by plan correctly (32.2% starter, 35.2% pro, 38.5% enterprise)"
+    points: 20
+  - criterion: "Computes a revenue-at-risk estimate combining active subscriber count, churn rate, and MRR per plan (not just reporting churn rate or headcount alone)"
+    points: 30
+  - criterion: "Recommends prioritizing enterprise specifically, and explains concretely why a headcount-only prioritization (which would point to starter, the largest segment) would be the wrong call"
+    points: 30
+  - criterion: "Names at least one real limitation of using historical churn rate to predict which specific accounts are at risk this quarter"
+    points: 20
+solution: >
+  Churn rate by plan: starter 32.2% (37 of 115 total subscriptions), pro 35.2% (25 of 71), enterprise
+  38.5% (10 of 26) — churn rate actually rises with plan tier, the opposite of "bigger customers are
+  stickier." Combining this with each plan's currently active subscriber count (78 starter, 46 pro, 16
+  enterprise) and MRR ($29, $99, $299 respectively) gives an estimated monthly revenue at risk
+  (active subscribers x churn rate x mrr): starter about $728, pro about $1,604, and enterprise about
+  $1,840 — despite enterprise having by far the fewest active accounts of the three tiers.
+
+  If Customer Success prioritized by headcount alone, starter would win by a wide margin — 78 active
+  accounts versus enterprise's 16 — and outreach capacity would be spent mostly on the segment with both
+  the lowest churn rate and the lowest per-customer revenue impact. That would leave enterprise, which
+  carries the highest churn rate *and* by far the largest per-customer dollar value ($299/month, roughly
+  10x starter's), essentially unprotected despite representing the single largest revenue-at-risk pool of
+  the three tiers.
+
+  Recommendation: prioritize enterprise accounts first for this quarter's limited-capacity proactive
+  outreach, despite it being the smallest segment by headcount — the revenue-at-risk estimate ($1,840/month)
+  is the highest of the three tiers, and each individual enterprise cancellation carries roughly 10x the
+  dollar impact of a starter cancellation. Pro is the reasonable second priority ($1,604/month at risk);
+  starter, despite its size, is the lowest priority on a dollar-weighted basis.
+
+  Caveat: historical churn rate is a segment-level average, not a per-account prediction — it says
+  enterprise *as a tier* churns more often, but doesn't identify *which* of the 16 currently active
+  enterprise accounts are actually at elevated risk this quarter. Outreach still needs some additional
+  signal (renewal date proximity, usage trend, support history if available) to target specific accounts
+  within the prioritized tier, rather than spreading effort evenly across all 16 based on the tier-level
+  rate alone.
+explanation: >
+  A strong answer explicitly rejects headcount as the prioritization basis and shows why — not just by
+  asserting "dollars matter more than headcount," but by computing the actual revenue-at-risk figure that
+  reverses the headcount-based ranking (enterprise moves from smallest segment to highest-priority
+  segment once weighted by churn rate and MRR). It also acknowledges, rather than glosses over, that a
+  historical tier-level churn rate is not the same as knowing which specific accounts are at risk right
+  now — a real limitation that matters for how the recommendation actually gets executed. A weaker answer
+  either recommends prioritizing by raw headcount (missing the entire point of the dollar-weighting
+  exercise) or computes revenue at risk correctly but stops there without turning it into a specific,
+  ranked recommendation.

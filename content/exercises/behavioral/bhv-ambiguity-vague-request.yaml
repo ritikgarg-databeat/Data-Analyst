@@ -1,0 +1,38 @@
+slug: bhv-ambiguity-vague-request
+skill: behavioral-interviewing
+title: Clarifying a Vague Request
+description: Tell me about a time you were given a vague or ambiguous analytics request. How did you clarify
+  it?
+exercise_type: INTERVIEW_RESPONSE
+difficulty: INTERMEDIATE
+points: 10
+tags:
+- behavioral
+- star-method
+- ambiguity
+prompt: Tell me about a time you were given a vague or ambiguous analytics request. How did you clarify
+  it?
+hints:
+- The STAR framework (Situation, Task, Action, Result) is a useful structure, not a script -- use it to
+  make sure you cover what actually happened, in what context, what you personally did, and what came
+  of it.
+- Interviewers are listening for a specific, real example -- a vague 'sometimes this happens on my team'
+  answer is much weaker than one concrete story with real details.
+rubric:
+- criterion: Describes one specific, real situation rather than a hypothetical or a generic pattern
+  points: 25
+- criterion: Clearly states the task or goal and the person's own specific role in it
+  points: 20
+- criterion: Explains concrete actions the person personally took, not just what the team did
+  points: 30
+- criterion: States a clear, ideally measurable outcome and what was learned from it
+  points: 25
+solution: 'A stakeholder asked me to ''look into why engagement is down.'' I didn''t start pulling data
+  immediately -- I first asked which specific metric they meant by engagement (DAU, session length, feature
+  usage?), over what time window, and what decision the answer would inform. It turned out they specifically
+  cared about a drop in one feature''s usage among new users, tied to an upcoming roadmap prioritization
+  call. That reframed the whole analysis: instead of a broad engagement audit, I focused narrowly on new-user
+  funnel completion for that one feature, which was the actually useful answer.'
+explanation: The key behavior demonstrated is clarifying before analyzing -- asking what decision the
+  answer needs to support turns a vague request into a scoped, answerable one, and prevents wasted analysis
+  on the wrong metric.

@@ -1,0 +1,83 @@
+slug: distributions
+module_slug: statistical-foundations
+title: Distributions
+description: Normal versus skewed distributions, and building shape intuition with real-world examples.
+difficulty: BEGINNER
+estimated_minutes: 12
+display_order: 6
+objectives:
+  - Distinguish normal (symmetric) distributions from right- and left-skewed distributions using shape intuition
+  - Explain why the choice between mean and median depends on a distribution's shape, and identify real-world examples of each
+prerequisites: [standard-deviation]
+skills: [statistics, exploratory-data-analysis]
+tags: [statistics, beginner, real-world]
+key_takeaways:
+  - A distribution's shape — not just its center and spread — determines which summary statistics and rules of thumb are valid to use.
+  - When mean and median diverge, that gap is informative on its own — mean above median signals a right-skewed tail of high values, mean below median signals a left-skewed tail of low values.
+  - Most everyday business metrics (revenue, order value, session duration, time-to-resolve) are right-skewed, not normal — which is exactly why analysts default to the median for "typical" business figures.
+common_mistakes:
+  - Assuming data is normally distributed (and applying rules like 68/95/99.7) without ever actually looking at its shape — most business metrics are right-skewed, not normal.
+  - Using "mean vs. median" as the only shape check — it's still worth plotting a histogram, since summary numbers can hide multimodal data (two distinct peaks) that neither statistic reveals.
+blocks:
+  - type: heading
+    text: The shape of the data, not just its center and spread
+  - type: text
+    body: >
+      A **distribution** describes how values are spread across the full range of possibilities, not
+      just where the center sits or how wide the spread is. Two datasets can share the same mean and
+      the same standard deviation while looking completely different once you actually plot them — and
+      that shape determines which statistics and rules of thumb are safe to use.
+  - type: heading
+    text: Normal (symmetric) distributions
+    level: 3
+  - type: text
+    body: >
+      A **normal distribution** is bell-shaped and symmetric: values cluster around the center, taper
+      off evenly in both directions, and the mean and median land at roughly the same point. Adult
+      height and measurement error are classic real-world examples — most people are close to average
+      height, with roughly equal numbers of unusually short and unusually tall people.
+  - type: heading
+    text: Skewed distributions
+    level: 3
+  - type: text
+    body: >
+      A **right-skewed** (positively skewed) distribution has a long tail stretching toward high
+      values, which pulls the mean above the median — household income, order value, and home prices
+      all look like this. A **left-skewed** distribution has a long tail toward low values, pulling the
+      mean below the median — scores on an easy exam, where most people cluster near the top and a
+      small tail of low scorers drags the mean down, are a common example.
+  - type: comparison
+    title: Shape, mean vs. median, and real-world examples
+    columns: ["Shape", "Mean vs. median", "Real-world example"]
+    rows:
+      - ["Normal (symmetric)", "Mean is about equal to median", "Adult height, measurement error"]
+      - ["Right-skewed", "Mean is above median (pulled up by a high tail)", "Household income, order value, home prices"]
+      - ["Left-skewed", "Mean is below median (pulled down by a low tail)", "Scores on an easy exam, age at retirement"]
+  - type: example
+    title: Why e-commerce order values are right-skewed
+    body: >
+      Most orders on a typical storefront land between $20 and $60. A small number of B2B or bulk
+      orders run into the thousands. Plotted, this produces a tall cluster near the low end and a long,
+      thin tail stretching to the right — the same shape as the mean-vs-median example from earlier
+      lessons, where one $900 order pulled the mean to $199 while the median stayed near $25.
+  - type: callout
+    variant: important
+    title: Why shape matters
+    body: >
+      Whether the 68/95/99.7 rule applies, whether the mean or median better represents "typical," and
+      whether an outlier-detection heuristic behaves sensibly all depend on shape. Checking shape
+      first — even just mean versus median — should come before applying any of those tools.
+  - type: question
+    prompt: >
+      A dataset of order values has a mean of $340 and a median of $210. What does this most likely
+      indicate about the shape of the distribution?
+    choices:
+      - The distribution is right-skewed, with a tail of unusually large orders pulling the mean up
+      - The distribution is left-skewed, with a tail of unusually small orders pulling the mean down
+      - The distribution is normal and symmetric
+    correct_index: 0
+    explanation: >
+      When the mean sits well above the median, it's because some values in the upper tail are large
+      enough to pull the mean up without moving the median, which only tracks rank. That pattern is the
+      signature of a right-skewed distribution — exactly what you'd expect from order values, where a
+      few large orders coexist with many small ones.

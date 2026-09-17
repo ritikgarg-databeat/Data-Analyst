@@ -1,0 +1,34 @@
+slug: count-distinct-vs-count
+lesson_slug: count
+skill: sql-fundamentals
+dataset: orders-sample
+title: Reading Three COUNTs Side by Side
+description: Interpret why COUNT(*), COUNT(order_total), and COUNT(DISTINCT customer_id) return three different numbers on the same table.
+exercise_type: DATA_INTERPRETATION
+difficulty: INTERMEDIATE
+points: 15
+tags: [sql, intermediate]
+prompt: >
+  The orders-sample dataset has 10 order rows in total. Two of those rows (a cancelled order and a
+  pending order) have a NULL order_total. The 10 orders were placed by 5 distinct customers, several
+  of whom ordered more than once. You run three queries against this data: COUNT(*) returns 10,
+  COUNT(order_total) returns 8, and COUNT(DISTINCT customer_id) returns 5. Explain what each of these
+  three numbers actually represents, and why all three come out different even though they're run
+  against the exact same 10 rows.
+hints:
+  - "Start from what each form of COUNT actually counts: all rows, non-NULL values in one column, or distinct non-NULL values in one column — those are three different questions."
+  - "For COUNT(*), think about whether NULLs matter at all. For COUNT(order_total), think about which specific rows get excluded and why. For COUNT(DISTINCT customer_id), think about how repeat customers collapse the number below the row count."
+solution: >
+  COUNT(*) = 10 counts every row in the table, with no regard to any column's value — it's a pure row
+  count. COUNT(order_total) = 8 counts only the rows where order_total is not NULL; the cancelled and
+  pending orders are excluded because they have no recorded total, dropping the count from 10 to 8.
+  COUNT(DISTINCT customer_id) = 5 counts the number of unique customer_id values across all 10 rows;
+  because several customers placed more than one order, many of the 10 rows share a customer_id, so
+  the distinct count collapses well below the row count.
+explanation: >
+  A strong answer names all three mechanisms explicitly rather than treating "COUNT" as one
+  interchangeable function: COUNT(*) counts rows unconditionally, COUNT(column) excludes NULLs in
+  that specific column, and COUNT(DISTINCT column) additionally collapses repeated values. A weaker
+  answer notices the numbers differ but can't explain the specific reason for each gap (10 to 8 is a
+  NULL-exclusion effect; 8 or 10 down to 5 is a duplicate-collapsing effect, and the two effects are
+  independent of each other).

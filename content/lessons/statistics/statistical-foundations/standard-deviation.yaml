@@ -1,0 +1,76 @@
+slug: standard-deviation
+module_slug: statistical-foundations
+title: Standard Deviation
+description: Bringing variance back into the original units, and the rule-of-thumb for interpreting spread on normal data.
+difficulty: BEGINNER
+estimated_minutes: 10
+display_order: 5
+objectives:
+  - Compute standard deviation from variance and explain why taking the square root matters
+  - Apply the 68/95/99.7 rule of thumb to interpret spread for approximately normal data
+prerequisites: [variance]
+skills: [statistics]
+tags: [statistics, beginner, foundations]
+key_takeaways:
+  - Standard deviation is the square root of variance, which brings spread back into the same units as the original data — making it directly interpretable.
+  - For roughly normal (bell-shaped) data, about 68% of values fall within 1 standard deviation of the mean, ~95% within 2, and ~99.7% within 3.
+  - A small standard deviation relative to the mean means values cluster tightly; a large one means they're spread out widely — this is the basis for later outlier-detection rules.
+common_mistakes:
+  - Applying the 68/95/99.7 rule to data that isn't roughly normal (e.g., heavily right-skewed revenue data) — the rule only holds for approximately bell-shaped distributions.
+  - Confusing sample standard deviation (STDDEV_SAMP, divides by n - 1) with population standard deviation (STDDEV_POP, divides by n) — they give different answers, especially on small datasets.
+blocks:
+  - type: heading
+    text: Variance, back in real units
+  - type: text
+    body: >
+      Variance is useful for comparing spread, but it's expressed in squared units — "dollars squared"
+      or "orders squared" — which nobody actually thinks in. **Standard deviation** fixes that by
+      taking the square root of variance, undoing the earlier squaring and returning the number to the
+      original units of the data.
+  - type: formula
+    expression: standard deviation = sqrt(variance)
+    description: Square-rooting variance converts "squared dollars" back into plain dollars (or whatever the original unit was).
+  - type: example
+    title: Continuing the two-team example
+    body: >
+      From the variance lesson, Team A had a variance of 2.0 and Team B had a variance of 370. Taking
+      the square root: Team A's standard deviation is about **1.4 orders**, and Team B's is about
+      **19.2 orders**. In plain language: Team A's daily order count typically sits within about 1-2
+      orders of its average of 50, while Team B's typically swings by nearly 20 orders in either
+      direction — a far less predictable day-to-day pattern, even though both teams average 50 orders.
+  - type: callout
+    variant: tip
+    title: The 68/95/99.7 rule
+    body: >
+      For data that's roughly normal (bell-shaped and symmetric), about 68% of values fall within 1
+      standard deviation of the mean, about 95% fall within 2, and about 99.7% fall within 3. This is
+      a fast way to sanity-check whether a value is ordinary or unusual, once you know the mean and
+      standard deviation.
+  - type: table
+    caption: Applying the rule to Team B (mean 50, standard deviation ~19.2)
+    headers: ["Range", "Approx. % of days (if roughly normal)"]
+    rows:
+      - ["mean +/- 1 SD (about 30.8 to 69.2 orders)", "~68%"]
+      - ["mean +/- 2 SD (about 11.5 to 88.5 orders)", "~95%"]
+      - ["mean +/- 3 SD (about -7.7 to 107.7 orders)", "~99.7%"]
+  - type: code
+    language: sql
+    code: |
+      SELECT
+        AVG(order_total) AS mean_order_total,
+        STDDEV_SAMP(order_total) AS stddev_order_total
+      FROM orders;
+    caption: Computing the mean and sample standard deviation together.
+  - type: question
+    prompt: >
+      A dataset is approximately normally distributed with mean 100 and standard deviation 15. Roughly
+      what range would you expect about 95% of values to fall within?
+    choices:
+      - "70 to 130"
+      - "85 to 115"
+      - "55 to 145"
+    correct_index: 0
+    explanation: >
+      The 95% range corresponds to about 2 standard deviations on either side of the mean: 100 +/- (2
+      x 15) = 100 +/- 30, or 70 to 130. 85 to 115 is only 1 standard deviation (~68% of values), and 55
+      to 145 overshoots to roughly 3 standard deviations (~99.7%).

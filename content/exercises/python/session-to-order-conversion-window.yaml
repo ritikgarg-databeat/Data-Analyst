@@ -1,0 +1,72 @@
+slug: session-to-order-conversion-window
+lesson_slug: date-differences
+skill: pandas
+dataset: ecommerce
+title: Signup-to-First-Order Conversion Window
+description: Find the average number of days between signup and a customer's first completed order.
+exercise_type: PYTHON
+difficulty: INTERMEDIATE
+points: 20
+tags: [python, intermediate, real-world]
+business_context: >
+  The growth team is designing an onboarding email sequence and wants to know, on average, how
+  long it takes a new customer to convert into a paying, completed order after signing up — so
+  they know how many days the sequence needs to cover.
+prompt: >
+  Using `customers` and `orders`, consider only customers who signed up AND placed at least one
+  completed order (`status == "completed"`). For each such customer, find the number of days
+  between their `signup_date` and their FIRST completed order's `order_date`. Store your answer
+  in a variable named `result`: a single float — the average of those day-counts across all
+  qualifying customers, rounded to 2 decimal places.
+python_datasets: [customers, orders]
+python_starter_code: |
+  # customers and orders are already loaded as DataFrames.
+  # Explore them first:
+  orders.head()
+python_solution_code: |
+  completed = orders[orders["status"] == "completed"].copy()
+  completed["order_date"] = pd.to_datetime(completed["order_date"])
+  first_completed = (
+      completed.groupby("customer_id")["order_date"]
+      .min()
+      .reset_index(name="first_completed_order")
+  )
+  merged = customers.merge(first_completed, on="customer_id")
+  merged["signup_date"] = pd.to_datetime(merged["signup_date"])
+  merged["days_to_first_order"] = (merged["first_completed_order"] - merged["signup_date"]).dt.days
+  result = round(float(merged["days_to_first_order"].mean()), 2)
+python_result_variable: result
+python_row_order_matters: false
+python_numeric_tolerance: 0.01
+python_hidden_tests:
+  - name: "Result is a sane, positive number of days"
+    code: |
+      assert result > 0, "The average conversion window should be a positive number of days."
+      assert result < 730, "The average conversion window should be well under two years — check your date math."
+hints:
+  - "First isolate each customer's earliest completed order: filter `orders` to `status == 'completed'`, then `.groupby('customer_id')['order_date'].min()` gives the first completed order date per customer."
+  - "Merge that onto `customers` (an inner merge naturally drops customers with no completed order), convert both date columns with `pd.to_datetime`, subtract to get a `Timedelta`, and use `.dt.days` to get a plain integer day count before averaging."
+solution: |
+  ```python
+  completed = orders[orders["status"] == "completed"].copy()
+  completed["order_date"] = pd.to_datetime(completed["order_date"])
+  first_completed = (
+      completed.groupby("customer_id")["order_date"]
+      .min()
+      .reset_index(name="first_completed_order")
+  )
+  merged = customers.merge(first_completed, on="customer_id")
+  merged["signup_date"] = pd.to_datetime(merged["signup_date"])
+  merged["days_to_first_order"] = (merged["first_completed_order"] - merged["signup_date"]).dt.days
+  result = round(float(merged["days_to_first_order"].mean()), 2)
+  ```
+explanation: >
+  Grouping the completed orders by `customer_id` and taking `.min()` on `order_date` finds each
+  customer's *first* completed order — using `.min()` instead of just taking any completed order
+  matters, since a customer with several completed orders would otherwise let a later order sneak
+  in and understate their true conversion window. Merging that onto `customers` with a default
+  (inner) merge naturally restricts the analysis to customers who both signed up and have at
+  least one completed order — anyone with zero completed orders simply has no matching row to
+  join to and drops out. Subtracting two `pd.to_datetime` columns produces a `Timedelta` Series;
+  `.dt.days` converts each one to a plain integer count of days before averaging across all
+  qualifying customers.

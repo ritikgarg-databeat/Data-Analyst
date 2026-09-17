@@ -1,0 +1,89 @@
+slug: device-conversion-comparison
+lesson_slug: bar-charts
+skill: pandas
+dataset: ecommerce
+title: Conversion Rate by Device
+description: Compare conversion rate across mobile, tablet, and desktop sessions with a bar chart.
+exercise_type: PYTHON
+difficulty: INTERMEDIATE
+points: 20
+tags: [python, intermediate, real-world]
+business_context: >
+  Product wants to know whether conversion rate differs meaningfully across device types, to
+  decide whether the mobile checkout flow needs design attention before the next sprint.
+prompt: >
+  Using `sessions`, compute the conversion rate for each device type (mobile, tablet, desktop),
+  and plot the comparison as a chart. Conversion rate for a device is the mean of the `converted`
+  column (a boolean) among sessions on that device, expressed as a percentage. Store your answer
+  in a variable named `result`: a DataFrame with columns `device` and `conversion_rate_pct`
+  (`100 * mean(converted)`, rounded to 1 decimal place), sorted descending by
+  `conversion_rate_pct`. Then, using matplotlib, draw a bar chart comparing the three devices —
+  the chart itself isn't graded, but a complete answer includes it.
+python_datasets: [sessions]
+python_starter_code: |
+  import matplotlib.pyplot as plt
+
+  # sessions is already loaded as a DataFrame.
+  # Explore it first:
+  sessions.head()
+python_solution_code: |
+  import matplotlib.pyplot as plt
+
+  conv = (
+      sessions.groupby("device")["converted"]
+      .mean()
+      .mul(100)
+      .round(1)
+      .reset_index()
+      .rename(columns={"converted": "conversion_rate_pct"})
+  )
+  result = conv.sort_values("conversion_rate_pct", ascending=False).reset_index(drop=True)
+
+  plt.figure(figsize=(6, 5))
+  plt.bar(result["device"], result["conversion_rate_pct"])
+  plt.title("Conversion Rate by Device")
+  plt.xlabel("Device")
+  plt.ylabel("Conversion Rate (%)")
+  plt.tight_layout()
+python_result_variable: result
+python_row_order_matters: true
+python_numeric_tolerance: 0.01
+python_hidden_tests:
+  - name: "All three devices present with valid percentage rates"
+    code: |
+      assert len(result) == 3, f"Expected 3 device rows, got {len(result)}"
+      assert (result["conversion_rate_pct"].between(0, 100)).all(), (
+          "conversion_rate_pct should be a valid percentage between 0 and 100"
+      )
+hints:
+  - "sessions['converted'] is a boolean column, so grouping by device and taking .mean() directly gives the fraction of converted sessions per device — no need to filter or count manually."
+  - "Multiply that fraction by 100 and round to 1 decimal place to express it as a percentage, then sort descending so the best-converting device is listed first."
+solution: |
+  ```python
+  import matplotlib.pyplot as plt
+
+  conv = (
+      sessions.groupby("device")["converted"]
+      .mean()
+      .mul(100)
+      .round(1)
+      .reset_index()
+      .rename(columns={"converted": "conversion_rate_pct"})
+  )
+  result = conv.sort_values("conversion_rate_pct", ascending=False).reset_index(drop=True)
+
+  plt.figure(figsize=(6, 5))
+  plt.bar(result["device"], result["conversion_rate_pct"])
+  plt.title("Conversion Rate by Device")
+  plt.xlabel("Device")
+  plt.ylabel("Conversion Rate (%)")
+  plt.tight_layout()
+  ```
+explanation: >
+  Because `converted` is already a boolean column, `groupby("device")["converted"].mean()` is a
+  one-line way to get "fraction of sessions on this device that converted" — pandas treats
+  True/False as 1/0 under the hood, so no explicit counting or division is needed. Multiplying by
+  100 turns that fraction into a percentage that's easier to read and compare across devices. A
+  simple bar chart is the right choice here (rather than, say, a box plot) because the underlying
+  metric is a single rate per device, not a distribution of many values per device — there's
+  nothing to show spread or quartiles for.

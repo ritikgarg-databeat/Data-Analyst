@@ -1,0 +1,26 @@
+slug: biz-mc-on-time-delivery-denominator-trap
+lesson_slug: biz-fulfillment-and-sla-metrics
+skill: metric-definition
+title: The On-Time Delivery Rate That Excluded Its Worst Orders
+description: Spot why excluding cancelled orders from an on-time delivery calculation inflates the reported number.
+exercise_type: MULTIPLE_CHOICE
+difficulty: BEGINNER
+points: 10
+tags: [business-analytics, operations, beginner]
+prompt: >
+  A logistics dashboard reports "93% on-time delivery" this month. Looking closer, the calculation
+  excludes orders that were cancelled due to a warehouse fulfillment error before ever shipping —
+  those orders simply don't appear in the denominator at all. What's the most accurate
+  characterization of this metric?
+choices:
+  - "It's a fair and standard way to compute on-time delivery, since a cancelled order was never actually late."
+  - "It answers a narrower question than \"how reliably do we deliver on our promises\" — by excluding orders that failed for an operational reason, it likely overstates real delivery reliability as customers experienced it."
+  - "It doesn't matter how cancelled orders are handled, since they represent a tiny, immaterial share of total orders by definition."
+correct_answer: "It answers a narrower question than \"how reliably do we deliver on our promises\" — by excluding orders that failed for an operational reason, it likely overstates real delivery reliability as customers experienced it."
+explanation: >
+  A cancelled order caused by a warehouse fulfillment error is arguably a worse outcome for the customer
+  than a late delivery, not a neutral case that should disappear from the calculation. Excluding it doesn't
+  make the underlying failure go away — it just removes evidence of it from the reported rate, which is
+  exactly why "93% on-time" computed this way can overstate what customers actually experienced. Whether
+  cancelled orders are a large or small share of the total is a separate, empirical question that should be
+  checked, not assumed away — the metric's definition should be stated explicitly either way.

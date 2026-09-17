@@ -1,0 +1,114 @@
+slug: loops
+module_slug: python-for-analysts
+title: Loops
+description: Repeating work with for and while loops, and iterating over collections of data.
+difficulty: BEGINNER
+estimated_minutes: 12
+display_order: 4
+objectives:
+  - Write for loops to iterate over sequences and while loops to repeat until a condition changes
+  - Use range() to loop a fixed number of times
+  - Recognize when a loop is the wrong tool and a built-in like sum() is a better fit
+prerequisites: [conditions]
+skills: [python-fundamentals]
+tags: [python, beginner, foundations]
+key_takeaways:
+  - "for loops iterate over a known collection (a list of rows, a range of numbers); while loops repeat until a condition becomes False — use for whenever you can, since it's harder to accidentally infinite-loop."
+  - "break exits a loop immediately; continue skips to the next iteration without exiting."
+  - Many loops an analyst writes by hand over a list are better expressed with a built-in (sum(), max(), a list comprehension) — loops are the foundation those are built on, worth learning first.
+common_mistakes:
+  - "Writing a while loop whose condition never becomes False (forgetting to update the loop variable inside the loop), causing an infinite loop that hangs the script."
+  - "Modifying a list while iterating over it with a for loop, which skips elements or raises errors — iterate over a copy, or build a new list instead."
+  - "Reaching for a manual for loop to sum or count values when a built-in (sum(), len(), a list comprehension) does the same thing more clearly and with fewer chances for an off-by-one bug."
+blocks:
+  - type: text
+    body: >
+      Analysis work is repetitive by nature: check every row for a condition, total up every value in
+      a column, retry an API call until it succeeds. A **loop** lets you write the repeated logic once
+      and have Python run it over and over. Python gives you two kinds: `for`, for iterating over a
+      known collection, and `while`, for repeating until some condition changes.
+  - type: heading
+    text: for loops
+  - type: code
+    language: python
+    code: |
+      order_totals = [42.50, 108.00, 19.99, 250.00]
+
+      running_total = 0
+      for total in order_totals:
+          running_total = running_total + total
+
+      print(running_total)  # 420.49
+    caption: Iterating over a list, one element at a time
+  - type: text
+    body: >
+      `for total in order_totals:` reads almost like English — "for each total in order_totals, do the
+      following." On each pass, `total` is rebound to the next element until the list is exhausted.
+  - type: heading
+    text: range() for counted loops
+  - type: code
+    language: python
+    code: |
+      # range(5) produces 0, 1, 2, 3, 4 — five values, stopping before 5
+      for i in range(5):
+          print(f"Processing batch {i}")
+
+      # range(start, stop) — useful for 1-indexed output
+      for day in range(1, 8):
+          print(f"Day {day} of 7")
+    caption: range() when you need a fixed number of passes, not a specific collection
+  - type: heading
+    text: while loops
+  - type: code
+    language: python
+    code: |
+      attempts = 0
+      success = False
+
+      while attempts < 3 and not success:
+          attempts += 1
+          success = try_api_call()   # imagine this returns True/False
+
+      if not success:
+          print("Gave up after 3 attempts")
+    caption: "while repeats until a condition changes — here, until success or 3 tries"
+  - type: callout
+    variant: warning
+    title: The infinite loop trap
+    body: >
+      A while loop only stops when its condition becomes False. If nothing inside the loop body
+      changes the variables the condition depends on, the loop runs forever and hangs your script.
+      Always double-check that a while loop's condition is guaranteed to eventually flip.
+  - type: comparison
+    title: for vs. while
+    columns: ["", "for", "while"]
+    rows:
+      - ["Use when", "You know what you're iterating over (a list, a range)", "You're repeating until a condition changes, and don't know in advance how many passes it'll take"]
+      - ["Risk", "Low — bounded by the collection's length", "Higher — easy to write a condition that never becomes False"]
+      - ["Typical analyst use", "Looping over rows, columns, or files", "Retrying a flaky request, polling until a job finishes"]
+  - type: example
+    title: break and continue
+    body: >
+      `break` exits the loop immediately, skipping any remaining iterations. `continue` skips just the
+      rest of the current iteration and moves to the next one. Both are common when scanning data for
+      a condition.
+    code: |
+      for order_id, total in orders:
+          if total < 0:
+              continue          # skip malformed negative totals, keep scanning
+          if total > 100000:
+              print(f"Suspicious order found: {order_id}")
+              break              # stop scanning once we've found one
+    language: python
+  - type: question
+    prompt: What is the main risk of a while loop that a for loop over a fixed list does not have?
+    choices:
+      - while loops cannot use break or continue
+      - A while loop can run forever if its condition never becomes False
+      - while loops cannot access variables defined outside the loop
+    correct_index: 1
+    explanation: >
+      A for loop over a list is automatically bounded — it stops once every element has been visited.
+      A while loop keeps running as long as its condition evaluates to True, so if nothing inside the
+      loop body changes the variables that condition depends on, it never stops. That's why while loop
+      conditions need extra care.

@@ -1,0 +1,48 @@
+slug: spotting-suspicious-data-quality-issues
+lesson_slug: welcome-to-the-challenge-library
+skill: exploratory-data-analysis
+dataset: ecommerce
+title: "Data Quality Triage: Three Columns, Three Checks"
+description: Describe the specific checks you'd run on three named columns to decide whether the ecommerce dataset is trustworthy enough to build a revenue report on top of.
+exercise_type: DATA_INTERPRETATION
+difficulty: INTERMEDIATE
+points: 15
+tags: [eda, real-world, intermediate]
+prompt: >
+  Your manager wants a revenue report built directly on the ecommerce dataset's `payments`, `order_items`,
+  and `customers` tables, and asks you to "just make sure the data's solid first." Rather than eyeballing
+  a few rows, describe the specific check you'd run on each of these three columns, and what result on
+  each check would tell you the column is trustworthy versus worth escalating: (1) `customers.country`,
+  (2) `order_items.discount` compared against `order_items.unit_price` on the same row, and (3)
+  `payments.amount`. For each, name the check and what a passing vs. failing result would look like.
+hints:
+  - "For a categorical column like country, the check isn't 'does it have values' — it's whether the same real-world category gets written more than one way (e.g. 'USA' vs 'usa' vs 'United States'), which a straightforward count of distinct values combined with a look at those values (not just how many) will reveal."
+  - "For discount vs. unit_price, think about what combination would be logically impossible on a single row — a discount larger than the price it's discounting — and how you'd check for that specific condition rather than just eyeballing the columns separately."
+solution: >
+  customers.country: run a distinct-value count and inspect the actual list of values, not just the count.
+  A trustworthy result is a small, clean set of distinct country names, each spelled and capitalized
+  consistently (checking this dataset, it's exactly 8 clean values — Australia, Brazil, Canada, France,
+  Germany, Mexico, United Kingdom, United States — with no casing or whitespace variants). A failing result
+  would be the same country appearing as multiple distinct values (e.g. "USA," "usa," "United States")
+  inflating the distinct count and splitting what should be one segment into several in any GROUP BY.
+  order_items.discount vs. unit_price: run a row-level check for discount > unit_price on the same row,
+  which is a logically impossible combination (a discount larger than the price it's discounting from
+  would make the line's net price negative). Checking this dataset, that condition never occurs — the
+  maximum discount observed is about 20% of that row's unit_price, well under 100%. A failing result would
+  be even one row where discount exceeds unit_price, which would produce a negative line revenue anywhere
+  that gets summed.
+  payments.amount: run a boundary check for values that are zero, negative, or implausibly small relative
+  to the dataset's own distribution (not an absolute number picked out of thin air). This dataset's minimum
+  successful payment is $9.45, with a median of $1,569.11 — a small but plausible amount for a low-cost
+  single-item order, not zero or negative. A failing result would be any $0.00 or negative amount on a
+  status = 'success' payment, which would be logically inconsistent (a completed payment for no money) and
+  worth escalating immediately rather than silently including in a revenue sum.
+explanation: >
+  A strong answer names a specific, mechanical check for each column rather than "look for weird values" —
+  a distinct-value inspection for the categorical column, a cross-column logical-impossibility check for
+  the discount/price pair, and a boundary check grounded in the column's own real distribution (not an
+  arbitrary threshold) for the payment amount. It also states what passing looks like concretely, not just
+  what failing would look like — "solid" needs a specific bar to clear, not just the absence of an obvious
+  red flag. A weaker answer describes only one generic check ("look for nulls and outliers") applied
+  identically to all three columns, missing that each column's plausible-failure mode is different and
+  needs a different check.

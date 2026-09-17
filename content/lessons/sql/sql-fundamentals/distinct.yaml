@@ -1,0 +1,72 @@
+slug: distinct
+module_slug: sql-fundamentals
+title: DISTINCT
+description: Removing duplicate rows or values from a result set, and how DISTINCT compares to GROUP BY.
+difficulty: BEGINNER
+estimated_minutes: 8
+display_order: 5
+objectives:
+  - Use DISTINCT to remove duplicate rows from a result set
+  - Apply DISTINCT to a single column versus a combination of columns
+  - Describe at a glance how DISTINCT differs from GROUP BY
+prerequisites: [limit]
+skills: [sql-fundamentals]
+datasets: [orders-sample]
+tags: [sql, beginner, foundations]
+key_takeaways:
+  - DISTINCT considers the entire row (or the full list of selected columns) when deciding what counts as a duplicate.
+  - "\"SELECT DISTINCT a, b\" is not the same as \"SELECT DISTINCT a, DISTINCT b\" — it dedupes on the combination of a and b together."
+  - DISTINCT and GROUP BY can produce identical results for a simple "unique values" question, but GROUP BY is the one built to carry aggregates alongside the grouping.
+common_mistakes:
+  - "Writing SELECT DISTINCT customer_id, order_date expecting only duplicate customer_ids to collapse — DISTINCT dedupes on the whole row, so two different order_dates keep both rows."
+  - Reaching for DISTINCT to "clean up" a query that returns duplicates without asking why the duplicates are there in the first place (often a join fan-out) — DISTINCT hides the symptom, not the cause.
+blocks:
+  - type: heading
+    text: Removing duplicates from a result
+  - type: text
+    body: >
+      DISTINCT removes duplicate rows from the output. In `orders-sample`, several customers place
+      more than one order, so a plain "SELECT customer_id FROM orders" repeats a customer_id once per
+      order they placed. Adding DISTINCT collapses that down to each customer_id appearing once.
+  - type: code
+    language: sql
+    caption: Every customer who has placed at least one order
+    code: |
+      SELECT DISTINCT customer_id
+      FROM orders;
+  - type: text
+    body: >
+      DISTINCT applies to the *entire* column list you select, not to each column independently.
+      "SELECT DISTINCT customer_id, status" keeps one row per unique **combination** of customer_id
+      and status — so the same customer can still appear multiple times if they have orders in
+      different statuses.
+  - type: table
+    headers: ["Query", "What gets deduplicated"]
+    rows:
+      - ["SELECT DISTINCT customer_id FROM orders", "One row per unique customer_id"]
+      - ["SELECT DISTINCT status FROM orders", "One row per unique status value"]
+      - ["SELECT DISTINCT customer_id, status FROM orders", "One row per unique (customer_id, status) pair"]
+  - type: text
+    body: >
+      That leaves the question of DISTINCT vs. GROUP BY. For a plain "give me the unique values" question, "SELECT DISTINCT customer_id FROM orders" and
+      "SELECT customer_id FROM orders GROUP BY customer_id" return the same rows. The difference shows
+      up the moment you need an aggregate alongside the grouping — GROUP BY (covered in the next
+      module) lets you attach a COUNT, SUM, or AVG per group; DISTINCT has no equivalent for that.
+  - type: comparison
+    title: "DISTINCT vs. GROUP BY"
+    columns: ["", "DISTINCT", "GROUP BY"]
+    rows:
+      - ["Purpose", "Collapse duplicate rows in the output", "Collapse rows into groups, usually to aggregate them"]
+      - ["Can compute SUM/COUNT/AVG per group?", "No", "Yes"]
+      - ["Typical use", "\"What are the unique values here?\"", "\"What's the total/count/average per group?\""]
+  - type: question
+    prompt: You run SELECT DISTINCT customer_id, status FROM orders. Customer C1 has one completed order and one cancelled order. How many rows does the result contain for C1?
+    choices:
+      - "One row — DISTINCT collapses all of C1's rows into a single one"
+      - "Two rows — one for (C1, completed) and one for (C1, cancelled)"
+      - "Zero rows — DISTINCT excludes any customer with more than one status"
+    correct_index: 1
+    explanation: >
+      DISTINCT dedupes on the full combination of selected columns. (C1, completed) and (C1,
+      cancelled) are two different combinations, so both rows survive — DISTINCT only removes rows
+      that are exact duplicates of each other across every selected column.

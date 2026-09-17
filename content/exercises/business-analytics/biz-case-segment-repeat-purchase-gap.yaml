@@ -1,0 +1,76 @@
+slug: biz-case-segment-repeat-purchase-gap
+lesson_slug: rca-root-cause-framework
+skill: root-cause-analysis
+dataset: ecommerce
+title: "Case: Is the Business-Customer Loyalty Gap Worth Acting On?"
+description: Evaluate a real but modest gap in repeat purchase rate between business and consumer customer segments, and decide whether it justifies a differentiated retention program.
+exercise_type: BUSINESS_REASONING
+difficulty: INTERMEDIATE
+points: 20
+tags: [case-study, root-cause, real-world, e-commerce, customer-analytics]
+business_context: >
+  The Retention team is proposing a dedicated loyalty program for "business" segment customers,
+  citing that they seem to come back more often than "consumer" segment customers. Before
+  committing budget to build a segment-specific program, the team's director wants a rigorous
+  read on how large this gap actually is and whether it's worth acting on.
+stakeholder: "Director of Retention"
+constraints:
+  - "You have access to orders and customers only — no support tickets, no NPS survey data, and no information about which specific products or categories each segment tends to buy."
+  - "The proposed program would require a meaningful upfront engineering and marketing investment, so the gap needs to be more than technically \"real\" to justify it — it needs to be large enough to plausibly matter."
+expected_deliverables:
+  - "Repeat purchase rate computed separately for the business and consumer segments, with sample sizes"
+  - "An honest assessment of whether the observed gap is large enough to justify a dedicated program, not just whether it exists at all"
+  - "At least one alternative explanation for the gap that doesn't require a segment-specific loyalty program to address"
+  - "A specific recommendation: build the program, hold off pending more evidence, or pursue a cheaper alternative first"
+prompt: >
+  Using `orders` and `customers`, compute repeat purchase rate (share of customers with 2+
+  completed orders, among customers with at least 1) separately for the `business` and
+  `consumer` customer segments. Assess whether the gap is large enough to justify a dedicated
+  segment-specific loyalty program, propose at least one alternative explanation for the gap, and
+  give a specific recommendation. State your answer in prose, citing the actual rates and sample
+  sizes you compute.
+hints:
+  - "Compute repeat purchase rate for each segment as its own calculation (same formula, filtered denominator), and note both the size of the gap in percentage points and the number of customers behind each segment's rate."
+  - "Before concluding the gap reflects a real loyalty difference, consider whether it could instead reflect something structural about how each segment shops (e.g. order frequency tied to business purchasing cycles) rather than an emotional or behavioral loyalty difference a program could actually change."
+rubric:
+  - criterion: "Computes repeat purchase rate correctly for both segments, with correct sample sizes stated"
+    points: 20
+  - criterion: "Gives an honest, specific assessment of the gap's size (in percentage points) rather than treating any positive gap as automatically decision-worthy"
+    points: 25
+  - criterion: "Proposes at least one plausible alternative explanation for the gap that isn't \"business customers are more loyal\""
+    points: 25
+  - criterion: "Reaches a specific, justified recommendation (build, hold, or pursue a cheaper alternative) rather than an ambiguous \"it depends\""
+    points: 30
+solution: >
+  Repeat purchase rate by segment: of 365 business-segment customers who completed at least one order,
+  64.7% (about 236) went on to complete a second; of 896 consumer-segment customers, 60.5% (about 542)
+  did. The gap is real — business customers do repeat-purchase somewhat more often — but it's a
+  4.2-percentage-point difference, not the kind of large, dramatic split (like the 23-point acquisition-
+  channel activation gap seen elsewhere in this dataset) that would make a segment-specific program an
+  obvious, high-confidence bet. Average lifetime revenue is also nearly identical between the two segments
+  ($4,647 business vs. $4,583 consumer) — the segments look far more alike than different on the numbers
+  actually available.
+
+  Alternative explanation: business customers may simply have more naturally recurring purchasing needs
+  (restocking office or operational supplies on a predictable cycle) that drive a second order regardless
+  of any loyalty program, rather than the business segment being more responsive to retention efforts as
+  a category of person. If that's the real driver, a loyalty program aimed at *emotional* engagement
+  wouldn't move this number much — the repeat behavior may already be structurally baked into how business
+  customers use the product, not something a rewards program creates.
+
+  Recommendation: hold off on the dedicated program as proposed. A 4.2-point gap on largely comparable
+  segment sizes (365 vs. 896 customers) and near-identical average customer value is a thin basis for a
+  meaningful engineering and marketing investment. A better next step is a cheaper test first — e.g. a
+  lightweight, low-cost retention nudge (a targeted email sequence) aimed at the consumer segment
+  specifically, to see if a small intervention narrows the gap before committing to a full segment-specific
+  program. If that test shows the gap responds to intervention, that's much stronger evidence the loyalty
+  program idea is worth the larger investment than the raw gap alone.
+explanation: >
+  A strong answer resists the natural pull to treat "the gap is statistically real" and "the gap is worth
+  building a program around" as the same conclusion — a real, non-zero gap and a decision-worthy gap are
+  different bars, and this case's 4.2-point difference (on segments with nearly identical average customer
+  value) sits well below what would justify a meaningful new investment. Proposing that the gap might
+  reflect structural purchasing patterns rather than "loyalty" per se shows the kind of skepticism root
+  cause analysis is supposed to produce before committing resources. A weaker answer treats any positive
+  gap between two segments as automatic justification for whatever program was already being proposed,
+  which is confirmation-seeking rather than root cause analysis.

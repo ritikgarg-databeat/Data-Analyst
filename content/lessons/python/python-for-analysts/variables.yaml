@@ -1,0 +1,93 @@
+slug: variables
+module_slug: python-for-analysts
+title: Variables
+description: How Python variables work — naming, assignment, and why Python's dynamic typing matters for analysts.
+difficulty: BEGINNER
+estimated_minutes: 10
+display_order: 1
+objectives:
+  - Create and reassign variables using Python's assignment syntax
+  - Follow Python's variable naming rules and conventions
+  - Explain what "dynamic typing" means and how it differs from statically-typed languages
+skills: [python-fundamentals]
+tags: [python, beginner, foundations]
+key_takeaways:
+  - A variable is a name bound to a value in memory — assignment (=) creates or updates that binding, it never "declares a type."
+  - Python is dynamically typed — the same name can be rebound to a value of a completely different type, which is powerful but a common source of bugs in real analysis scripts.
+  - Descriptive variable names (avg_order_value, not x) are not optional style — they are how you and future-you avoid re-deriving what a script does.
+common_mistakes:
+  - Confusing = (assignment) with == (equality comparison) — this is a frequent source of bugs even for experienced analysts moving between SQL and Python.
+  - Reusing a variable name for two unrelated things later in the same script (e.g. df for a raw dataframe, then overwriting df with a summary table), which silently destroys the original data and makes debugging painful.
+blocks:
+  - type: text
+    body: >
+      Every analysis script you write starts with data going *somewhere* — a variable. A variable is
+      just a name that points to a value stored in memory. In SQL you mostly reference columns and
+      tables that already have names; in Python, you're the one choosing the names, and Python gives
+      you almost no rules to lean on. That freedom is useful, but it's also where a lot of early bugs
+      come from.
+  - type: heading
+    text: Assignment
+  - type: text
+    body: >
+      You create a variable with the `=` operator: the name goes on the left, the value on the right.
+      Nothing needs to be declared or pre-typed first — the variable springs into existence the moment
+      you assign it.
+  - type: code
+    language: python
+    code: |
+      row_count = 1284
+      avg_order_value = 47.62
+      customer_segment = "enterprise"
+      is_active = True
+
+      # Reassignment just points the name at a new value
+      row_count = row_count + 16   # row_count is now 1300
+    caption: Creating and updating variables
+  - type: callout
+    variant: warning
+    title: "= is not =="
+    body: >
+      `x = 5` assigns 5 to x. `x == 5` *checks* whether x equals 5 and returns True or False. Mixing
+      these up is one of the most common early Python bugs — writing `if x = 5:` is a syntax error in
+      Python (good — it stops you), but `x = 5` where you meant `x == 5` inside a larger expression can
+      slip through and silently overwrite a variable you meant to compare.
+  - type: heading
+    text: Naming rules and conventions
+  - type: table
+    headers: ["Rule", "Example", "Notes"]
+    rows:
+      - ["Must start with a letter or underscore", "_temp, revenue", "Can't start with a digit: 2024_sales is invalid"]
+      - ["Letters, digits, underscores only", "q3_revenue_2024", "No spaces or hyphens allowed"]
+      - ["Case-sensitive", "Revenue vs revenue", "These are two different variables"]
+      - ["Convention: snake_case", "customer_lifetime_value", "The standard style for Python variable names — not required by the language, but expected in any real codebase"]
+  - type: heading
+    text: "Dynamic typing: what it means"
+  - type: text
+    body: >
+      In a statically-typed language, a variable is locked to one type for its lifetime. Python is
+      **dynamically typed**: a name is just a label, and you can rebind it to a value of a totally
+      different type at any point. Python figures out the type from the value itself, at the moment
+      you assign it.
+  - type: example
+    title: The same name, three different types
+    body: >
+      Nothing about this is a syntax error — Python happily lets you do it. That's the flexibility
+      dynamic typing gives you, and also exactly why it's risky in a long analysis script: a variable
+      you assumed was still a number might have quietly become a string forty lines earlier.
+    code: |
+      total = 100          # total is an int
+      total = "unknown"    # total is now a str — completely legal
+      total = 100.0         # now a float
+    language: python
+  - type: question
+    prompt: In Python, what happens when you write `count = "5"` right after `count = 5`?
+    choices:
+      - Python raises a TypeError because count was already an integer
+      - count is silently rebound to the string "5" — no error occurs
+      - Python automatically converts "5" back to the integer 5 to match count's original type
+    correct_index: 1
+    explanation: >
+      Python variables have no fixed type — they're just names pointing at values. Reassigning count
+      to "5" simply rebinds the name to a new string value; the earlier integer value is discarded and
+      no conversion or error happens. This is what "dynamically typed" means in practice.

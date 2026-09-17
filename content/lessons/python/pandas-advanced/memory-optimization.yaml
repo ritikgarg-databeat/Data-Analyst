@@ -1,0 +1,208 @@
+slug: memory-optimization
+module_slug: pandas-advanced
+title: Memory Optimization
+description: Measuring real memory usage with .memory_usage(deep=True), downcasting numeric dtypes, converting low-cardinality columns to category, and a real before/after comparison.
+content_type: READING
+difficulty: ADVANCED
+estimated_minutes: 13
+display_order: 4
+objectives:
+  - Measure a DataFrame's true memory footprint with .memory_usage(deep=True) and .info(memory_usage='deep')
+  - Downcast numeric columns to smaller dtypes with pd.to_numeric(..., downcast=...)
+  - Combine downcasting, category conversion, and proper datetime typing into a full before/after memory optimization
+prerequisites: [performance-and-vectorization]
+skills: [pandas]
+datasets: [ecommerce]
+tags: [python, advanced, real-world]
+key_takeaways:
+  - ".memory_usage() alone underreports object-dtype (string) columns, since it only measures the pointer array — deep=True walks into the actual string objects for a true total, and it's the number that matters for real memory planning."
+  - "pd.to_numeric(col, downcast='integer'/'float') shrinks a numeric column to the smallest dtype that still holds every value without loss — e.g. int64 down to int16 when nothing in the column exceeds int16's range."
+  - "Combining downcasting, category conversion for low-cardinality text, and proper datetime parsing (instead of leaving dates as strings) cut a real 12,000-row sessions DataFrame's memory from 1,322 KB to 340 KB — a measured 74.3% reduction, with zero information lost."
+common_mistakes:
+  - "Reading df.memory_usage() without deep=True and concluding a DataFrame with string columns is smaller than it actually is — the default significantly undercounts object dtype."
+  - "Downcasting a column that has a legitimate reason to stay at full precision (e.g. a value that could grow beyond the smaller dtype's range in future data) without checking the safe range first."
+  - "Downcasting an integer column that has NaN values without first deciding how to handle them — a column with any NaN can't be plain integer dtype at all (NaN forces float), so it needs an explicit nullable-integer dtype (Int16, Int32, ...) or a fillna decision before downcasting to a non-nullable integer type."
+practical_applications:
+  - "Shrinking a large exported DataFrame before loading it into a memory-constrained environment or before saving it to a more compact file format."
+  - "Auditing a wide production DataFrame column by column with .info(memory_usage='deep') to find which columns are worth optimizing versus which are already efficient."
+interview_questions:
+  - question: "Why does df.memory_usage() (without deep=True) understate the memory used by a DataFrame with string columns?"
+    answer: "For object dtype columns, the array pandas reports on by default only holds pointers to the actual Python string objects living elsewhere in memory — deep=True is what makes pandas follow those pointers and add up the real size of every string object. Without it, an object column full of long strings can report as barely bigger than an empty array of pointers, wildly understating its true footprint. For accurate memory planning on any DataFrame with text columns, deep=True (or .info(memory_usage='deep')) is the number to trust."
+  - question: "What's the difference between pd.to_numeric(col, downcast='integer') and just casting with .astype('int16') directly?"
+    answer: "downcast='integer' asks pandas to find the smallest safe integer dtype for the column's actual value range automatically (it might pick int8, int16, or int32 depending on what fits), whereas .astype('int16') forces that exact dtype regardless of whether the data actually fits or whether a smaller type would also work — and it can silently overflow/wrap values if they don't fit, rather than checking first. downcast is the safer default when you want 'as small as correctly possible' without manually inspecting the value range yourself."
+blocks:
+  - type: text
+    body: >
+      Vectorization (the previous lesson) is about speed. This lesson is about the other resource that
+      matters at scale: **memory**. A DataFrame loaded with default dtypes is very often carrying far
+      more memory than the data actually needs — this lesson measures that gap on a real table and
+      closes it, with every number verified rather than assumed.
+  - type: heading
+    text: "Measuring real memory usage"
+  - type: code
+    language: python
+    code: |2
+      import pandas as pd
+
+      sessions = pd.read_csv("data/sample/ecommerce/sessions.csv")
+      sessions.dtypes
+    caption: Default dtypes straight out of read_csv
+  - type: output
+    body: |2
+      session_id                  int64
+      customer_id                float64
+      session_start                 object
+      session_end                   object
+      device                         object
+      landing_page                   object
+      marketing_campaign_id       float64
+      converted                       bool
+      dtype: object
+  - type: code
+    language: python
+    code: |2
+      before = sessions.memory_usage(deep=True)
+      before
+    caption: Per-column memory, with deep=True to account for the real size of string columns
+  - type: output
+    body: |2
+      Index                       132
+      session_id                96000
+      customer_id                96000
+      session_start             324000
+      session_end                324000
+      device                    172039
+      landing_page              233784
+      marketing_campaign_id      96000
+      converted                  12000
+      dtype: int64
+  - type: callout
+    variant: warning
+    title: deep=True is not optional for an honest number
+    body: >
+      Without deep=True, object-dtype columns like device and landing_page would report close to
+      96,000 bytes each (just the pointer array) instead of their real sizes above (172,039 and
+      233,784) — deep=True walks into the actual string data, which is the number you actually care
+      about for memory planning.
+  - type: heading
+    text: "Optimization 1 — downcast numeric columns"
+  - type: text
+    body: >
+      session_id never exceeds a few thousand — far smaller than int64's range needs. customer_id and
+      marketing_campaign_id are float64 only because they contain NaN (a plain int column can't hold
+      NaN), but they don't need float64's precision. pd.to_numeric(..., downcast=...) finds the
+      smallest safe dtype automatically.
+  - type: code
+    language: python
+    code: |2
+      opt = sessions.copy()
+      opt["session_id"] = pd.to_numeric(opt["session_id"], downcast="integer")
+      opt["customer_id"] = pd.to_numeric(opt["customer_id"], downcast="float")
+      opt["marketing_campaign_id"] = pd.to_numeric(opt["marketing_campaign_id"], downcast="float")
+
+      opt[["session_id", "customer_id", "marketing_campaign_id"]].dtypes
+    caption: int64 -> int16, float64 -> float32, chosen automatically based on the actual value range
+  - type: output
+    body: |2
+      session_id                  int16
+      customer_id                float32
+      marketing_campaign_id      float32
+      dtype: object
+  - type: heading
+    text: "Optimization 2 — category for low-cardinality text"
+  - type: code
+    language: python
+    code: |2
+      sessions[["device", "landing_page"]].nunique()
+
+      opt["device"] = opt["device"].astype("category")
+      opt["landing_page"] = opt["landing_page"].astype("category")
+    caption: "device (3 unique values) and landing_page (6 unique values) are ideal category candidates"
+  - type: output
+    body: |2
+      device            3
+      landing_page      6
+      dtype: int64
+  - type: heading
+    text: "Optimization 3 — real datetimes instead of strings"
+  - type: code
+    language: python
+    code: |2
+      opt["session_start"] = pd.to_datetime(opt["session_start"])
+      opt["session_end"] = pd.to_datetime(opt["session_end"])
+    caption: "Bonus effect: datetime64 is also more compact than the equivalent string, on top of being the correct dtype"
+  - type: heading
+    text: "The full before/after"
+  - type: code
+    language: python
+    code: |2
+      after = opt.memory_usage(deep=True)
+      pd.DataFrame({"before": before, "after": after})
+    caption: Every column, before and after — real, measured bytes
+  - type: output
+    body: |2
+                              before   after
+      Index                      132     132
+      session_id               96000   24000
+      customer_id              96000   48000
+      session_start           324000   96000
+      session_end             324000   96000
+      device                  172039   12044
+      landing_page             233784   12118
+      marketing_campaign_id    96000   48000
+      converted                12000   12000
+  - type: code
+    language: python
+    code: |2
+      before.sum(), after.sum(), round((1 - after.sum() / before.sum()) * 100, 1)
+    caption: Total DataFrame memory footprint, before vs. after
+  - type: output
+    body: |2
+      before = 1,353,955 bytes  (1,322.2 KB)
+      after  =   348,294 bytes  (  340.1 KB)
+      reduction = 74.3%
+  - type: callout
+    variant: important
+    title: "74.3% smaller, zero information lost"
+    body: >
+      Every value is still exactly recoverable — this isn't sampling or truncation, just storing the
+      same information in tighter, more appropriate dtypes. The biggest single win came from device and
+      landing_page (category conversion cut them by roughly 93% each), with session_start/session_end
+      also nearly halving in size by becoming real datetimes instead of strings.
+  - type: heading
+    text: ".info(memory_usage='deep') — the same picture, one call"
+  - type: code
+    language: python
+    code: |2
+      opt.info(memory_usage="deep")
+    caption: A quick, single-call summary — this is usually the first thing to run when auditing a DataFrame's memory
+  - type: output
+    body: |2
+      <class 'pandas.DataFrame'>
+      RangeIndex: 12000 entries, 0 to 11999
+      Data columns (total 8 columns):
+       #   Column                 Non-Null Count  Dtype
+      ---  ------                 --------------  -----
+       0   session_id             12000 non-null  int16
+       1   customer_id            7826 non-null   float32
+       2   session_start          12000 non-null  datetime64[us]
+       3   session_end            12000 non-null  datetime64[us]
+       4   device                 12000 non-null  category
+       5   landing_page           12000 non-null  category
+       6   marketing_campaign_id  4830 non-null   float32
+       7   converted              12000 non-null  bool
+      dtypes: bool(1), category(2), datetime64[us](2), float32(2), int16(1)
+      memory usage: 340.1 KB
+  - type: question
+    prompt: "A DataFrame column stores integers with a NaN present in some rows. Why can't it be downcast directly to a plain (non-nullable) integer dtype like int16?"
+    choices:
+      - "NaN forces the column to be float dtype — plain integer dtypes in pandas can't represent a missing value at all"
+      - "int16 simply doesn't support downcasting on columns with any missing data"
+      - "This isn't actually a problem — pd.to_numeric handles it automatically with no special handling needed"
+    correct_index: 0
+    explanation: >
+      Standard (non-nullable) NumPy-backed integer dtypes have no representation for a missing value —
+      a column with any NaN is forced to float dtype instead, which is exactly why customer_id and
+      marketing_campaign_id showed up as float64 in this lesson despite holding whole numbers. To keep
+      such a column as an actual integer dtype while preserving missing values, you'd need pandas'
+      nullable integer types (Int16, Int32, ...) instead of the plain NumPy ones.

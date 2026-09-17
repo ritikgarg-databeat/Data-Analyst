@@ -1,0 +1,20 @@
+slug: abt-null-alternative-hypothesis
+skill: experimentation
+title: Framing a Null and Alternative Hypothesis
+description: You're testing a new checkout button color against the current one. What is the correct null hypothesis?
+exercise_type: MULTIPLE_CHOICE
+difficulty: BEGINNER
+points: 5
+tags:
+- ab-testing
+- hypothesis-testing
+prompt: You're testing a new checkout button color against the current one. What is the correct null hypothesis?
+correct_answer: There is no difference in conversion rate between the new button color and the current one
+explanation: The null hypothesis is always the 'no effect' / status-quo claim that the experiment is designed to
+  potentially reject -- 'the new color increases conversion' is the alternative hypothesis, the thing you're trying
+  to find evidence FOR, not the null.
+choices:
+- There is no difference in conversion rate between the new button color and the current one
+- The new button color increases conversion rate
+- The new button color will definitely perform worse
+- The sample size is large enough to detect any difference

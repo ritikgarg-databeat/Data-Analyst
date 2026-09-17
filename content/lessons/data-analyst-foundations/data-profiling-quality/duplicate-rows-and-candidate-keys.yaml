@@ -1,0 +1,104 @@
+slug: duplicate-rows-and-candidate-keys
+module_slug: data-profiling-quality
+title: "Duplicate Rows and Candidate Keys"
+description: The difference between a fully duplicate row and a duplicated candidate key with conflicting data, and why either one quietly inflates a sum or a count until you specifically check for it.
+difficulty: BEGINNER
+estimated_minutes: 11
+display_order: 3
+objectives:
+  - Distinguish a fully duplicate row from a duplicated candidate key with differing non-key values
+  - Explain the mechanism by which either kind of duplicate silently inflates a downstream sum or count
+  - State what a cluster of duplicates, if found, would suggest about the pipeline that produced the data
+prerequisites: [missing-values-what-to-do]
+skills: [exploratory-data-analysis]
+datasets: [ecommerce]
+tags: [foundations, beginner, real-world]
+key_takeaways:
+  - "A fully duplicate row (every column identical) is the easy case — it's unambiguous and almost always safe to collapse to one row. A duplicated candidate key (the same order_id, customer_id, or other identifying value appearing on two or more rows with DIFFERENT other data) is the harder, more consequential case, because it's not obvious which row — if either — is correct."
+  - "Either kind of duplicate inflates any SUM or COUNT computed at that key's grain, for exactly the reason the grain lesson covers: a value that should be counted once gets counted twice (or more), and the error looks like a plausible number, not an error message."
+  - "This course's ecommerce tables (orders, order_items, payments, sessions) have zero fully-duplicate rows and zero duplicated candidate keys — a genuinely clean synthetic dataset. That's not the point to memorize; the point is knowing exactly which checks would have caught it if it weren't clean, so you run those checks by habit on data that isn't this tidy."
+  - "The useful question when you DO find duplicates isn't just 'how many' — it's 'what process would produce duplicates shaped like this,' because the answer usually points straight at the specific upstream bug."
+common_mistakes:
+  - "Checking only for fully-duplicate rows and missing duplicated candidate keys entirely — a table can have zero fully-identical rows and still have a badly duplicated primary key, if a retried write produced two DIFFERENT versions of what should be one row."
+  - "Assuming duplicates are always accidental — a repeated customer_id + product_id combination in an order history table can be a completely legitimate repeat purchase, not an error, depending on what the table's grain is actually meant to be."
+  - "De-duplicating silently and moving on without ever identifying why the duplicates existed — that skips the one insight (a broken retry, a fan-out join upstream, a re-run job) that would prevent the same problem from recurring."
+practical_applications:
+  - "Running a count-of-full-duplicates AND a count-of-duplicated-candidate-keys check on any newly imported dataset, since these catch different failure modes and a clean result on one doesn't imply a clean result on the other."
+  - "Investigating a suspiciously round or large revenue/count total by checking whether a duplicated key (rather than a join fan-out, covered in the grain lesson) is behind the inflation."
+interview_questions:
+  - question: "What's the difference between checking for duplicate rows and checking for duplicate keys, and why check both?"
+    answer: "A duplicate-row check looks for rows that are identical across every column — straightforward to find and almost always safe to collapse. A duplicate-key check looks specifically at whatever should be a unique identifier — an order_id, a customer_id — and flags cases where that identifier appears more than once, even if the other columns differ between those occurrences. The second check catches a real, common failure mode the first one misses entirely: a record that got updated or re-inserted with slightly different data instead of a truly exact copy. I run both, because a table can pass one check and completely fail the other."
+  - question: "You find that an order_id appears twice in a table, with two different order_date values. How do you decide what happened?"
+    answer: "I'd treat 'the same order_id with different data' as a signal to investigate the source system's behavior, not something to resolve by picking one row arbitrarily. Common explanations: a retried write that inserted instead of updated (a bug), a legitimate correction to an existing record that got appended rather than updated in place, or two genuinely different orders that were accidentally assigned the same ID (an ID-generation bug). Each explanation implies a different fix — keep the latest, keep both as distinct events, or escalate a serious ID-collision bug — so I wouldn't silently drop one row without understanding which case this is."
+resources:
+  - title: "Pandas documentation — duplicated()"
+    url: "https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.duplicated.html"
+blocks:
+  - type: heading
+    text: "Two different kinds of duplicate"
+  - type: table
+    headers: ["Kind", "What it looks like", "How obvious it is", "What to do"]
+    rows:
+      - ["Fully duplicate row", "Every column identical across two or more rows", "Easy to detect and usually easy to resolve — collapse to one row", "Safe to de-duplicate in almost all cases"]
+      - ["Duplicated candidate key", "The identifying column (order_id, customer_id, etc.) repeats, but OTHER columns differ between the occurrences", "Easy to detect the repeat, hard to know which row (if either) is correct", "Needs investigation before you decide what to keep"]
+  - type: text
+    body: >
+      The second kind is the one that catches people off guard. A table can have zero fully-identical
+      rows — every single row looks unique at a glance — and still have a seriously duplicated key, if two
+      rows share an order_id but disagree on order_date, status, or channel. A naive "check for duplicate
+      rows" pass finds nothing wrong, because technically nothing IS fully duplicated. The key is duplicated
+      instead, which is a different, more dangerous problem.
+  - type: heading
+    text: "A checked, real result on this course's data"
+  - type: table
+    headers: ["Table", "Candidate key checked", "Fully duplicate rows", "Duplicated candidate keys"]
+    rows:
+      - ["orders", "order_id", "0", "0"]
+      - ["order_items", "order_id + product_id", "0", "0"]
+      - ["payments", "order_id", "0", "0"]
+      - ["sessions", "session_id", "0", "0"]
+  - type: callout
+    variant: tip
+    title: "A clean result here is the exception, not something to expect by default"
+    body: >
+      This dataset was generated without either kind of defect, which makes it a good baseline but not a
+      realistic expectation for data you'll encounter on the job. The value in this lesson isn't "this
+      dataset happens to have zero duplicates" — it's the two specific checks (full-row, and candidate-key)
+      that would have caught the problem immediately if it existed, so you run both by habit the moment you
+      meet a dataset that isn't this tidy.
+  - type: heading
+    text: "How a duplicate inflates a number — the same mechanism as a bad join"
+  - type: text
+    body: >
+      If order_id 3887 appeared twice in the orders table — once correctly, once as a stray duplicate from
+      a retried insert — any query computing "total orders" via COUNT(order_id) would count it twice. Any
+      query joining payments to that duplicated order_id would similarly double the associated payment
+      amount, for exactly the reason the grain lesson's fan-out example does: a value that should exist
+      once gets multiplied by however many times its key repeats.
+  - type: heading
+    text: "What a duplicate pattern usually points to"
+  - type: table
+    headers: ["What you observe", "Likely upstream cause"]
+    rows:
+      - ["Exact full-row duplicates, spread evenly across the whole dataset", "An ETL job or export that ran twice, or a retried API call that double-inserted rows"]
+      - ["Duplicates concentrated in a narrow time window", "A specific incident — a job re-run, a retry storm during an outage"]
+      - ["Same key, but other columns differ (e.g. same order_id, two different status values)", "Often an update-in-place that got appended instead — worth checking which row is the corrected one"]
+      - ["Duplicates concentrated in one channel, segment, or source system", "That specific upstream integration is the broken one, not the pipeline as a whole"]
+  - type: checklist
+    title: "The two checks to run on any new table"
+    items:
+      - "Full-row duplicate check: are there rows identical across every single column?"
+      - "Candidate-key duplicate check: does the column(s) that should uniquely identify a row repeat, even if other columns differ?"
+      - "If either check finds something: is it spread evenly, or concentrated in a time window, channel, or segment?"
+      - "What upstream process would produce a pattern shaped like this — and does fixing the analysis also mean flagging the pipeline?"
+  - type: question
+    prompt: "A table has zero fully-duplicate rows, but a candidate-key check reveals that order_id 512 appears twice, with two different status values ('pending' and 'completed'). What does the full-row check alone miss here, and why does it matter?"
+    choices:
+      - "The full-row check finds nothing wrong because the two rows aren't identical, but the order is still effectively duplicated at the order_id grain — any COUNT or SUM keyed on order_id would double-count this order unless the candidate-key duplicate is specifically investigated"
+      - "Nothing is missed — if the full-row check passes, the table has no meaningful duplication problem"
+      - "This situation is impossible if order_id is supposed to be a primary key, so no further action is needed"
+    correct_index: 0
+    explanation: >
+      A candidate-key duplicate can hide from a full-row duplicate check entirely, since the rows genuinely
+      differ in some column. But for any analysis keyed on order_id, this order still gets counted or joined
+      twice — which is exactly why both checks are necessary, not just one.

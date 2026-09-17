@@ -1,0 +1,119 @@
+slug: exceptions
+module_slug: python-for-analysts
+title: Exceptions
+description: Handling errors gracefully with try/except, and why analysts should expect and plan for bad data.
+difficulty: BEGINNER
+estimated_minutes: 12
+display_order: 8
+objectives:
+  - Explain what an exception is and why an unhandled one crashes a script
+  - Use try/except to catch specific errors and keep a script running
+  - Design a data-cleaning loop that logs or skips bad rows instead of failing on the first one
+prerequisites: [dictionaries]
+skills: [python-fundamentals, data-cleaning]
+tags: [python, beginner, foundations]
+key_takeaways:
+  - "An unhandled exception stops the entire script immediately — in a loop processing thousands of rows, that means one malformed row can prevent every row after it from being processed."
+  - "try/except lets you catch a specific error, handle it (skip, log, substitute a default), and keep going — this is standard practice for real-world data, which is never as clean as a schema promises."
+  - "Catch specific exception types (ValueError, KeyError) rather than a bare except — a bare except also swallows genuine bugs in your own code, making them silently disappear instead of surfacing."
+common_mistakes:
+  - "Using a bare except: that catches every possible error, which hides real bugs (a typo in a variable name, a logic error) as silently as it hides the bad-data case you meant to catch."
+  - "Wrapping an entire large block of code in one try/except instead of just the risky line, making it unclear which operation actually failed when the except block runs."
+  - "Catching an exception and doing nothing with it (an empty except: pass) — at minimum, log or count what was skipped, or bad data disappears from the analysis without a trace."
+blocks:
+  - type: text
+    body: >
+      Real data is never as clean as a schema promises. A "numeric" column has a stray "N/A" in it. A
+      date field has a typo. An API call times out. Without any handling, the very first bad row stops
+      your entire script — in a loop over 50,000 rows, one malformed row on row 12 means the other
+      49,988 never get processed. **Exceptions** are Python's mechanism for errors, and `try`/`except`
+      is how you handle them instead of letting them crash the program.
+  - type: heading
+    text: What happens without handling
+  - type: code
+    language: python
+    code: |
+      raw_totals = ["150.00", "89.99", "N/A", "42.50"]
+
+      cleaned = []
+      for raw in raw_totals:
+          cleaned.append(float(raw))   # crashes on "N/A"
+
+      # ValueError: could not convert string to float: 'N/A'
+      # The script stops here. "42.50" is never processed.
+    caption: One bad value halts the entire loop
+  - type: heading
+    text: try / except
+  - type: code
+    language: python
+    code: |
+      raw_totals = ["150.00", "89.99", "N/A", "42.50"]
+
+      cleaned = []
+      skipped = 0
+      for raw in raw_totals:
+          try:
+              cleaned.append(float(raw))
+          except ValueError:
+              skipped += 1
+              continue
+
+      print(cleaned)   # [150.0, 89.99, 42.50]
+      print(f"Skipped {skipped} bad values")   # Skipped 1 bad values
+    caption: "Catching ValueError specifically, and tracking what was skipped"
+  - type: text
+    body: >
+      The code inside `try:` runs normally. If it raises an exception matching the type named in
+      `except`, Python jumps straight to that except block instead of crashing — and everything after
+      the try/except keeps running. Tracking `skipped` here matters: silently dropping bad rows with no
+      record of it just moves the data-quality problem somewhere less visible.
+  - type: callout
+    variant: warning
+    title: Don't catch everything blindly
+    body: >
+      A bare `except:` (with no exception type named) catches *every* error — including genuine bugs in
+      your own code, like a typo'd variable name or calling a function with the wrong number of
+      arguments. Those get silently swallowed right alongside the bad-data case you meant to handle,
+      which makes real bugs much harder to find. Always name the specific exception type you expect,
+      such as `except ValueError:` or `except KeyError:`.
+  - type: heading
+    text: Common exception types an analyst runs into
+  - type: table
+    headers: ["Exception", "Typical cause"]
+    rows:
+      - ["ValueError", 'Casting fails, e.g. float("N/A")']
+      - ["KeyError", "Accessing a dictionary key that doesn't exist, e.g. row['email'] when the field is missing"]
+      - ["IndexError", "Indexing past the end of a list, e.g. row[10] on a 3-element list"]
+      - ["TypeError", "Applying an operation to the wrong type, e.g. adding a string and an int directly"]
+      - ["ZeroDivisionError", "Dividing by zero — common when computing a rate whose denominator can legitimately be 0"]
+  - type: example
+    title: A realistic cleaning loop
+    body: >
+      This is close to what real ingestion code looks like: process what can be processed, log or
+      count what can't, and never let one bad record silently corrupt or halt the whole run.
+    code: |
+      def safe_parse_total(raw):
+          try:
+              value = float(raw)
+              return value if value >= 0 else None
+          except ValueError:
+              return None
+
+      raw_totals = ["150.00", "89.99", "N/A", "-5.00", "42.50"]
+      parsed = [safe_parse_total(r) for r in raw_totals]
+      valid = [v for v in parsed if v is not None]
+
+      print(valid)   # [150.0, 89.99, 42.50]
+    language: python
+  - type: question
+    prompt: Why is `except ValueError:` generally better practice than a bare `except:` in a data-cleaning loop?
+    choices:
+      - "except ValueError: runs faster than a bare except"
+      - "A bare except also silently swallows unrelated bugs in your own code, not just the bad-data case you meant to catch"
+      - "Bare except is not valid Python syntax inside a for loop"
+    correct_index: 1
+    explanation: >
+      Naming the specific exception type you expect (like ValueError from a failed cast) means only
+      that kind of error gets caught and handled. A bare except catches everything, including a typo'd
+      variable name or a logic bug elsewhere in the block — those get silently absorbed as if they were
+      expected bad data, making genuine bugs much harder to notice and debug.

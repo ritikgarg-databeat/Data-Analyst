@@ -1,0 +1,98 @@
+slug: pa-py-month1-retention-trend
+lesson_slug: pa-cohort-retention-python
+skill: pandas
+dataset: saas-product
+title: Month-1 Retention Trend Across Cohorts in pandas
+description: Compute month-1 retention for every cohort with a complete window and check for a real trend versus noise.
+exercise_type: PYTHON
+difficulty: ADVANCED
+points: 20
+tags: [python, product, saas, cohort, retention, advanced]
+business_context: >
+  Before greenlighting a retention-focused project, leadership wants to see the trend line of month-1
+  retention across every eligible cohort, not just a couple of recent months, to judge whether
+  there's a real drift or just ordinary variation.
+prompt: >
+  Using the `events` DataFrame, compute classic month-1 retention (active in exactly the calendar
+  month after signup) for every signup-month cohort between 2024-07-01 and 2025-12-01 inclusive.
+  Store a DataFrame in a variable named `result` with columns `cohort_month`, `n_users` (cohort
+  size), `retained_month1` (distinct users active in exactly period 1, as an integer — use 0 for a
+  cohort with none), and `month1_retention` (retained_month1 / n_users, rounded to 4 decimals),
+  sorted ascending by `cohort_month`.
+python_datasets: [events]
+python_starter_code: |
+  # events is already loaded as a DataFrame. signup_date and event_timestamp load as plain strings,
+  # so convert them with pd.to_datetime(...) before doing any date arithmetic.
+  events.dtypes
+python_solution_code: |
+  df = events.copy()
+  df["signup_date"] = pd.to_datetime(df["signup_date"])
+  df["event_timestamp"] = pd.to_datetime(df["event_timestamp"])
+  df = df[df["event_timestamp"] >= df["signup_date"]]
+  df["cohort_month"] = df["signup_date"].values.astype("datetime64[M]")
+  df["event_month"] = df["event_timestamp"].values.astype("datetime64[M]")
+  df["period_number"] = (
+      (df["event_month"].dt.year - df["cohort_month"].dt.year) * 12
+      + (df["event_month"].dt.month - df["cohort_month"].dt.month)
+  )
+
+  cohort_sizes = df[df["period_number"] == 0].groupby("cohort_month")["user_id"].nunique().rename("n_users")
+  month1_counts = df[df["period_number"] == 1].groupby("cohort_month")["user_id"].nunique().rename("retained_month1")
+
+  trend = pd.DataFrame(cohort_sizes).join(month1_counts).fillna(0)
+  trend["retained_month1"] = trend["retained_month1"].astype(int)
+  trend["month1_retention"] = (trend["retained_month1"] / trend["n_users"]).round(4)
+  trend = trend.reset_index()
+
+  mask = (trend["cohort_month"] >= "2024-07-01") & (trend["cohort_month"] <= "2025-12-01")
+  result = trend.loc[mask].sort_values("cohort_month").reset_index(drop=True)
+python_result_variable: result
+python_row_order_matters: true
+python_numeric_tolerance: 0.001
+python_hidden_tests:
+  - name: result has exactly 18 cohorts (2024-07 through 2025-12)
+    code: |
+      assert len(result) == 18, f"Expected exactly 18 cohort rows, got {len(result)}."
+  - name: no cohort_month later than 2025-12-01 is included
+    code: |
+      assert (result["cohort_month"] <= pd.Timestamp("2025-12-01")).all(), (
+          "Cohorts after 2025-12-01 don't have a complete month-1 window given this dataset's cutoff "
+          "and should be excluded."
+      )
+hints:
+  - "signup_date and event_timestamp load as plain strings — run pd.to_datetime(...) on both columns before any date arithmetic, or .values.astype('datetime64[M]') will raise on the raw string column."
+  - "Compute cohort_sizes and month1_counts as two separate Series (grouped by cohort_month, filtered to period_number == 0 and period_number == 1 respectively), then join them with pd.DataFrame(cohort_sizes).join(month1_counts) rather than merging, since join aligns on the index by default."
+  - "After joining, .fillna(0) turns a cohort with genuinely zero month-1 retained users (which wouldn't appear in month1_counts at all) into an explicit 0 instead of leaving it as NaN — do this before casting to int and dividing."
+solution: |
+  ```python
+  df = events.copy()
+  df["signup_date"] = pd.to_datetime(df["signup_date"])
+  df["event_timestamp"] = pd.to_datetime(df["event_timestamp"])
+  df = df[df["event_timestamp"] >= df["signup_date"]]
+  df["cohort_month"] = df["signup_date"].values.astype("datetime64[M]")
+  df["event_month"] = df["event_timestamp"].values.astype("datetime64[M]")
+  df["period_number"] = ((df["event_month"].dt.year - df["cohort_month"].dt.year) * 12
+                          + (df["event_month"].dt.month - df["cohort_month"].dt.month))
+  cohort_sizes = df[df["period_number"] == 0].groupby("cohort_month")["user_id"].nunique().rename("n_users")
+  month1_counts = df[df["period_number"] == 1].groupby("cohort_month")["user_id"].nunique().rename("retained_month1")
+  trend = pd.DataFrame(cohort_sizes).join(month1_counts).fillna(0)
+  trend["retained_month1"] = trend["retained_month1"].astype(int)
+  trend["month1_retention"] = (trend["retained_month1"] / trend["n_users"]).round(4)
+  trend = trend.reset_index()
+  mask = (trend["cohort_month"] >= "2024-07-01") & (trend["cohort_month"] <= "2025-12-01")
+  result = trend.loc[mask].sort_values("cohort_month").reset_index(drop=True)
+  ```
+  Run against the real data, month-1 retention bounces between roughly 21.8% and 34.3% across 18
+  cohorts with no clear directional trend — evidence this is noise around a stable rate, not a
+  worsening or improving pattern.
+explanation: >
+  This dataset's date columns load from CSV as plain strings, so `pd.to_datetime(...)` has to run
+  before any `.dt` or `.values.astype('datetime64[M]')` call — skipping it raises an error
+  immediately rather than silently producing wrong numbers. Beyond that, `.join()` aligns two objects
+  by their index by default, which is exactly what's needed here since
+  both `cohort_sizes` and `month1_counts` are indexed by `cohort_month` — a plain `pd.concat` or a
+  merge without specifying the join key could produce a different, wrong alignment. `.fillna(0)`
+  before casting to `int` matters because any cohort with zero month-1 retained users simply won't
+  appear as a row in `month1_counts` at all (there's nothing to group), which becomes `NaN` after the
+  join — silently leaving it as NaN (or worse, dropping the row entirely with certain join types)
+  would misrepresent that cohort's retention as missing data rather than a real zero.

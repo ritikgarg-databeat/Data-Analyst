@@ -1,0 +1,26 @@
+slug: dw-ex-oltp-vs-olap-workload
+lesson_slug: dw-oltp-vs-olap
+skill: data-warehousing
+title: Spotting an OLAP-Shaped Workload
+description: Identify which of three real actions against the ecommerce dataset is genuinely OLAP-shaped, versus OLTP-shaped.
+exercise_type: MULTIPLE_CHOICE
+difficulty: BEGINNER
+points: 10
+tags: [oltp, olap, beginner, foundations]
+prompt: >
+  The ecommerce dataset's `orders` table currently holds 4,205 rows. Which of the following actions
+  against it is the clearest example of an OLAP-shaped (analytical) workload, rather than an
+  OLTP-shaped (transactional) one?
+choices:
+  - "Looking up order_id = 4213 to check its current status before showing a customer their order confirmation page"
+  - "Inserting one new row into orders the instant a customer completes checkout"
+  - "Computing total gross revenue by product category for every quarter across all 4,205 orders, to build a trend chart"
+correct_answer: "Computing total gross revenue by product category for every quarter across all 4,205 orders, to build a trend chart"
+explanation: >
+  The first two are OLTP-shaped: a fast, single-row lookup and a fast, single-row insert, exactly the
+  workload a production application performs continuously. The third scans and aggregates across
+  every order, grouped by category and time period — a large-scan, aggregation-heavy workload with a
+  seconds-not-milliseconds latency expectation, which is the defining shape of an OLAP query. This is
+  precisely the kind of query a warehouse's marts (like fct_orders, joined to dim_products) are built
+  to answer efficiently, and that a production OLTP database is not optimized to run without
+  contending with live transactional traffic.

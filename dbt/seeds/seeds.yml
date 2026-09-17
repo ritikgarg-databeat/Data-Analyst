@@ -1,0 +1,12 @@
+version: 2
+
+seeds:
+  - name: seed_channel_labels
+    description: >
+      Small reference mapping from the raw order `channel` code to a
+      human-readable label and category — the kind of tiny, rarely-changing
+      lookup table that's easiest to hand-maintain as a CSV in the dbt
+      project (via `dbt seed`) rather than pulling from a source system.
+    columns:
+      - name: channel
+        tests: [unique, not_null]

@@ -1,0 +1,86 @@
+slug: working-with-a-cloud-warehouse
+module_slug: cloud-data-warehouses
+title: "How an Analyst Actually Touches a Cloud Warehouse"
+description: >-
+  What an analyst does day-to-day against a real cloud warehouse versus
+  what a platform team owns, semi-structured data support, and the cost
+  levers worth recognizing even without configuring them yourself.
+difficulty: INTERMEDIATE
+estimated_minutes: 20
+display_order: 2
+prerequisites: [cloud-warehouse-landscape]
+objectives:
+  - Distinguish the ways an analyst typically interacts with a cloud warehouse from what a platform/data engineering team owns.
+  - Explain semi-structured data support (native JSON-like columns) and why it matters for modern event data.
+  - Recognize the basic cost-control levers (partitioning, clustering, auto-suspend) well enough to reason about a slow or expensive query, without needing to configure any of them.
+skills: [cloud-data-warehouses, modern-data-stack]
+tags: [cloud, data-warehouse, architecture, modern-data-stack, intermediate]
+key_takeaways:
+  - "An analyst's real, day-to-day surface area on a cloud warehouse is narrow and mostly familiar: writing SQL and dbt models against it, connecting a BI tool to it, and reading a query's cost/bytes-scanned estimate before running something expensive — provisioning, security, and capacity planning belong to a platform team."
+  - "Semi-structured columns (JSON/VARIANT/STRUCT types) let a warehouse ingest a raw event payload without every field being defined as a column ahead of time — the same 'land it raw, shape it in SQL later' idea behind ELT and this platform's own staging layer, just applied one level lower, inside a single column."
+  - "Partitioning (physically grouping rows, commonly by date) and clustering (co-locating related rows within a partition) are what let a huge table be queried cheaply and fast, by letting a well-written query skip scanning data it doesn't need — the same WHERE-clause instincts from SQL fundamentals are what make that possible."
+common_mistakes:
+  - "Assuming an analyst needs to configure partitioning, clustering, or warehouse sizing to work effectively with a cloud warehouse — recognizing why a query is slow or expensive because of these is the analyst-level skill; actually setting them up is typically a platform/data-engineering responsibility."
+  - "Running SELECT * over a huge, date-partitioned table out of habit — on a bytes-scanned pricing model (like BigQuery's on-demand pricing), that single habit can turn a query that should scan a few megabytes into one that scans the entire table's history and costs accordingly."
+interview_questions:
+  - question: "A dashboard query against a multi-terabyte, date-partitioned table in a cloud warehouse is unexpectedly slow and expensive. What's the first thing you'd check?"
+    answer: >
+      Whether the query's WHERE clause actually filters on the partition column (commonly a date). If a
+      query selects "last 7 days" but does the date filtering with a function or comparison the warehouse
+      can't use to skip partitions (or omits a date filter entirely), it ends up scanning the entire
+      table's history instead of the 7 days' worth of partitions it actually needs — which explains both
+      the slowness and, on usage-based pricing, the unexpected cost. That's a change well within an
+      analyst's own SQL, not something that requires a platform team.
+blocks:
+  - type: heading
+    text: "What an analyst actually owns here — and what they don't"
+  - type: table
+    headers: ["An analyst typically...", "A platform/data engineering team typically..."]
+    rows:
+      - ["Writes SQL and dbt models that query and transform data already in the warehouse", "Provisions the warehouse account itself and sets up the initial connection"]
+      - ["Reads a query's estimated cost/bytes-scanned before running something large", "Sets organization-wide cost budgets, alerts, and spending caps"]
+      - ["Connects a BI tool to the warehouse using credentials/roles already set up for them", "Configures IAM roles, network access, and security policy"]
+      - ["Notices a query is slow because it isn't filtering on the partition column", "Chooses the partition/clustering keys on a large table in the first place"]
+  - type: heading
+    text: "Semi-structured data: the same 'land it raw' idea, one level lower"
+  - type: text
+    body: >
+      Modern cloud warehouses support semi-structured column types — BigQuery's `JSON`/`STRUCT`,
+      Snowflake's `VARIANT`, and similar constructs elsewhere — that let a raw event payload (say, a
+      product-view event with a nested, evolving set of properties) be loaded as-is into a single column,
+      without predefining every field as its own column ahead of time. This is the same philosophy behind
+      ELT and this platform's own staging layer — land the data first, shape it with SQL afterward — just
+      applied one level lower: instead of "land the whole raw table, then transform it into models," it's
+      "land the whole raw event as one column's value, then pull specific fields out of it with SQL when
+      you actually need them."
+  - type: heading
+    text: "Cost levers worth recognizing, even if you never configure them"
+  - type: table
+    headers: ["Lever", "What it does", "Why an analyst should recognize it"]
+    rows:
+      - ["Partitioning", "Physically groups a table's rows (commonly by date) so a query can skip partitions it doesn't need", "A query without a filter on the partition column scans the whole table instead of the slice it actually needs — often the single biggest cost/speed lever available"]
+      - ["Clustering", "Co-locates related rows within a partition (e.g. by customer_id) so filtering within a partition is also fast", "Explains why two similarly-sized queries against the same table can have very different costs depending on which columns they filter on"]
+      - ["Auto-suspend", "Automatically stops billing a compute cluster (e.g. a Snowflake virtual warehouse) once it's sat idle", "Explains why a warehouse someone forgot to configure this on can keep incurring cost even when nobody is actively querying it"]
+  - type: callout
+    variant: tip
+    title: "Why your query cost more than you expected"
+    body: >
+      On a bytes-scanned pricing model, a query's cost is driven by how much data it has to read, not how
+      much it returns. `SELECT * FROM orders` over a table partitioned by order_date, with no date filter
+      at all, scans every partition — years of history — to return maybe a handful of rows. The fix is
+      almost always a WHERE clause on the partition column, which is ordinary SQL, not a warehouse-specific
+      skill.
+  - type: question
+    prompt: "Which of these is a typical analyst-level responsibility on a cloud warehouse, rather than a platform/data-engineering one?"
+    choices:
+      - "Choosing which column a multi-terabyte table should be partitioned by"
+      - "Provisioning the initial warehouse account and connection"
+      - "Writing a WHERE clause that actually filters on the partition column to keep a query's cost and runtime down"
+      - "Setting an organization-wide monthly spending cap on warehouse compute"
+    correct_index: 2
+    explanation: >
+      Choosing a table's partition key, provisioning accounts, and setting org-wide spending caps are all
+      platform/data-engineering-level decisions made once for a whole table or organization. Writing a
+      query that takes advantage of an existing partition scheme by filtering on the right column is
+      exactly the kind of everyday, SQL-level judgment call an analyst makes on their own, every time they
+      write a new query.

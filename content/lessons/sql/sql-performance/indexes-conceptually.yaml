@@ -1,0 +1,115 @@
+slug: indexes-conceptually
+module_slug: sql-performance
+title: Indexes, Conceptually
+description: What an index actually is and why it speeds up lookups, joins, and filters — plus why DuckDB's columnar, analytical design changes the picture compared to a row-store OLTP database.
+difficulty: ADVANCED
+estimated_minutes: 12
+display_order: 3
+objectives:
+  - Explain what an index is at a conceptual level, without needing to implement one
+  - Describe why an index speeds up equality/range lookups but isn't free to maintain
+  - Contrast how a row-store OLTP database uses indexes with how a columnar analytical engine like DuckDB gets similar benefits differently
+prerequisites: [reading-explain-plans]
+skills: [advanced-sql]
+datasets: [ecommerce]
+tags: [sql, advanced]
+key_takeaways:
+  - "An index is an extra, separately maintained structure that maps values in a column to the locations of the rows that contain them — trading additional storage and write cost for much faster reads on the columns it covers."
+  - "Indexes speed up equality lookups, range scans, and join conditions specifically because they let the database avoid scanning every row to find matches — the exact gap the previous lesson's full-scan example exposed."
+  - "DuckDB is a columnar, analytical (OLAP) engine, not a row-store OLTP database — it gets much of its speed from storing each column contiguously and skipping whole blocks of data via automatic min/max metadata ('zone maps'), rather than from the kind of B-tree indexes you'd hand-build in Postgres or MySQL for point lookups."
+common_mistakes:
+  - "Assuming more indexes are always better — every index has to be updated on every INSERT/UPDATE/DELETE to the columns it covers, so indexes trade write speed and storage for read speed, and aren't free."
+  - "Expecting indexing advice from an OLTP database (Postgres, MySQL, SQL Server) to transfer directly to DuckDB — DuckDB's storage model already does a lot of what a B-tree index does for analytical (scan-heavy, aggregate-heavy) queries, so the tuning knobs and priorities are different."
+practical_applications:
+  - "Explaining, in an interview or a design discussion, why a lookup by primary key is fast while a lookup by an unindexed text column is slow, in terms of what the database has to physically do."
+  - "Knowing when to reach for an index (an OLTP app doing lots of single-row lookups) versus when a columnar/analytical engine already handles the workload well without one (dashboards, reporting, ad hoc analysis)."
+blocks:
+  - type: heading
+    text: What a table looks like without an index
+  - type: text
+    body: >
+      Without any extra structure, finding rows matching a condition means checking every row, one at a
+      time — a full scan, exactly like the previous lesson's `customer_id = 842` example scanning all
+      1,500 rows of `customers` to find one match. That's fine for small tables. It gets expensive fast
+      as tables grow into the millions of rows.
+  - type: heading
+    text: What an index actually is
+  - type: text
+    body: >
+      An **index** is a separate, ordered structure the database builds and maintains alongside a
+      table, mapping values of one or more columns to the physical location of the rows that have
+      those values — conceptually similar to the index at the back of a textbook: instead of reading
+      every page to find every mention of a topic, you look the topic up in a sorted list that points
+      you straight to the right pages.
+  - type: table
+    headers: ["Without an index", "With an index on the filtered/joined column"]
+    rows:
+      - ["Scan every row, check each one against the condition", "Look the value up in the index's sorted structure, jump directly to matching rows"]
+      - ["Cost grows roughly with table size", "Cost grows roughly with the *number of matches*, largely independent of table size"]
+      - ["No extra storage or write overhead", "Extra storage for the index, and every write has to update it too"]
+  - type: text
+    body: >
+      That last row is the trade-off that makes indexing a decision, not a default. An index speeds up
+      the reads it covers, but every INSERT, UPDATE, or DELETE touching an indexed column has to update
+      the index too — more indexes on a heavily-written table means slower writes and more storage, in
+      exchange for faster specific reads.
+  - type: callout
+    variant: tip
+    title: What indexes are good at
+    body: >
+      Indexes shine on equality lookups (`WHERE customer_id = 842`), range scans (`WHERE order_date
+      BETWEEN ... AND ...` on an indexed date column), and join conditions (`JOIN orders ON
+      orders.customer_id = customers.customer_id` benefits enormously if `customer_id` is indexed on at
+      least one side) — all cases where the database can use the index to jump straight to a small
+      subset of rows instead of touching every row in the table.
+  - type: heading
+    text: Why this looks different in DuckDB
+  - type: text
+    body: >
+      Everything above describes indexing the way it works in a classic **row-store OLTP** database —
+      Postgres, MySQL, SQL Server — engines optimized for many small transactions (look up one order,
+      update one row, insert one payment) where a B-tree index pointing straight at one row's physical
+      location is exactly the right tool. This platform's engine, DuckDB, is built for a different job.
+  - type: comparison
+    title: Row-store OLTP vs. DuckDB's columnar analytical design
+    columns: ["Aspect", "Row-store OLTP (e.g. Postgres)", "DuckDB (columnar, analytical)"]
+    rows:
+      - ["Storage layout", "Whole rows stored together, so reading one row is cheap", "Each column stored contiguously, so scanning/aggregating one column across many rows is cheap"]
+      - ["Typical workload", "Many small reads/writes of individual rows", "Fewer queries, each scanning/aggregating large numbers of rows"]
+      - ["How it avoids unnecessary reads", "B-tree/hash indexes you explicitly create on chosen columns", "Automatic per-block min/max metadata ('zone maps') that skip whole blocks of data that can't match a filter, largely without manual indexing"]
+      - ["Where a hand-built index still helps most", "Point lookups and joins on high-cardinality columns", "Much less central — DuckDB is usually reasoned about in terms of what it scans and how much data it can skip, not which indexes exist"]
+  - type: text
+    body: >
+      In practice this means the "add an index" instinct from an OLTP background doesn't transfer
+      directly to this platform's engine. A columnar layout already means a query that only needs
+      `unit_price` and `discount` from `order_items` never has to read the other columns at all — no
+      index required for that benefit, because it comes from how the data is stored in the first place.
+      Zone maps give a similar effect to an index for range filters on sorted-ish data: DuckDB can skip
+      an entire block of rows once it knows that block's minimum and maximum values can't satisfy a
+      filter, without ever building a traditional index.
+  - type: callout
+    variant: warning
+    title: This doesn't mean structure never matters in DuckDB
+    body: >
+      Column order, data types, and how a table was loaded can still affect how well zone-map skipping
+      works, and DuckDB does support its own index types for specific cases (like enforcing uniqueness).
+      The point isn't "indexes are irrelevant here" — it's that the *default* reasoning changes: for
+      analytical, scan-heavy queries on a columnar engine, think first about how much data a query has
+      to touch and whether it can be narrowed (the next lesson's topic, sargable filters), rather than
+      immediately reaching for a manually created index the way you would in Postgres.
+  - type: question
+    prompt: >
+      Why does a columnar engine like DuckDB get less mileage out of hand-built B-tree indexes than a
+      row-store OLTP database typically does?
+    choices:
+      - "DuckDB doesn't support the CREATE INDEX syntax at all"
+      - "DuckDB's column-oriented storage plus automatic zone-map block skipping already avoids reading irrelevant data for many scan-heavy queries, which is the same problem a B-tree index exists to solve in a row-store engine"
+      - "Indexes only matter for write-heavy workloads, and DuckDB never handles writes"
+    correct_index: 1
+    explanation: >
+      A B-tree index in an OLTP database exists mainly to avoid scanning irrelevant rows to find a
+      small number of matches. DuckDB's columnar storage (reading only the columns a query needs) and
+      automatic zone-map metadata (skipping blocks whose min/max values can't match a filter) address
+      a large part of that same problem structurally, without requiring an explicitly created index —
+      which is why analytical engines like this one are reasoned about differently than row-store OLTP
+      systems.

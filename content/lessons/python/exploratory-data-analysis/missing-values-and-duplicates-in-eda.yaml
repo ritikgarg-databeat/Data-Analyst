@@ -1,0 +1,146 @@
+slug: missing-values-and-duplicates-in-eda
+module_slug: exploratory-data-analysis
+title: "Missing Values and Duplicates: The EDA Question, Not the Cleaning Mechanics"
+description: Is missingness random or systematic, and what a cluster of duplicates might reveal about a dataset's origin — the judgment layer EDA adds on top of the Data Cleaning module's mechanics.
+difficulty: INTERMEDIATE
+estimated_minutes: 12
+display_order: 3
+objectives:
+  - Distinguish, in plain language, missingness that looks random from missingness that looks systematic
+  - Investigate whether missing values in a real column are associated with other variables, using groupby
+  - Explain what a cluster of duplicate rows can reveal about a dataset's upstream origin
+prerequisites: [inspecting-a-new-dataset]
+skills: [pandas]
+datasets: [ecommerce]
+tags: [python, intermediate, real-world]
+key_takeaways:
+  - "This lesson builds on the Data Cleaning module's missing-values and duplicates lessons — go there for the mechanics (isna(), dropna(), fillna(), drop_duplicates()). This lesson is about the judgment call those mechanics don't make for you: is this missingness safe to handle mechanically, or does it change what the data can honestly tell you?"
+  - "Missingness that looks like it 'could have happened to any row' (MCAR, missing completely at random, in plain language) is comparatively low-risk to drop or impute. Missingness that's associated with some other variable in the data (MAR, missing at random but not by chance) can silently bias any statistic computed only from the non-missing rows."
+  - "In this course's sessions table, customer_id is missing on 34.8% of rows — and those rows convert at 3.0% vs. 21.7% for rows with a customer_id. That's a textbook systematic pattern: if you dropped the missing rows before computing a conversion rate, you'd overstate it substantially, because you'd have quietly removed almost all of the sessions least likely to convert."
+  - "A cluster of duplicate rows is rarely 'just noise' — it's often a symptom worth investigating: a retried API call that double-inserted a row, a join that fanned out unexpectedly, or a scheduled job that ran twice. The EDA question isn't just 'how many duplicates,' it's 'what process would produce duplicates shaped like this.'"
+common_mistakes:
+  - "Dropping every row with a missing value as a default first move, without first checking whether the missingness is associated with anything else in the data — this is exactly the move that silently biases a conversion rate, an average, or any other summary statistic computed from the remaining rows."
+  - "Treating 'percent missing' as the only number that matters, and skipping the question of whether that missingness correlates with any other column — 5% missing that's random is a very different problem from 5% missing that's concentrated entirely in your highest-value customer segment."
+  - "Assuming duplicate rows are always a mistake to delete, without asking what upstream process could have produced them — sometimes 'duplicates' are actually valid repeat events (the same customer legitimately buying the same product twice) rather than an error at all."
+practical_applications:
+  - "Checking, before computing any rate or average from a column with missing values, whether that missingness is associated with the very outcome you're measuring — exactly the check this lesson runs on session conversion rate."
+  - "Investigating a spike in duplicate rows as a signal of an upstream pipeline bug, rather than silently de-duplicating and moving on without ever finding the root cause."
+interview_questions:
+  - question: "You find that 30% of a column is missing. What do you do next?"
+    answer: "Before deciding how to handle it mechanically, I'd check whether that missingness is random or systematic — specifically, whether it's associated with other columns in the data, including the outcome I'm ultimately trying to measure. I'd group other variables by whether the value is missing and compare. If missingness turns out to be associated with the outcome (as it often is), naively dropping those rows would bias any statistic I compute afterward, so the fix has to account for why the data is missing, not just that it's missing."
+  - question: "What's the practical difference between missingness that's random versus systematic, in terms of risk to an analysis?"
+    answer: "Missingness that looks unrelated to anything else in the data (roughly, MCAR) is comparatively safe to drop or impute — the remaining rows are still a representative sample. Missingness that's associated with another variable, especially the outcome you're measuring (roughly, MAR), is dangerous to just drop, because the rows you're removing aren't a random subset — they're systematically different, and removing them shifts your statistic in a specific, misleading direction."
+resources:
+  - title: "Pandas documentation — Working with missing data"
+    url: "https://pandas.pydata.org/docs/user_guide/missing_data.html"
+blocks:
+  - type: text
+    body: >
+      The Data Cleaning module already covered the mechanics of missing values and duplicates —
+      `.isna()`, `.dropna()`, `.fillna()`, `.duplicated()`, `.drop_duplicates()`. This lesson doesn't
+      repeat any of that. It asks the question EDA adds on top: **before you clean anything, does the
+      pattern of what's missing or duplicated tell you something you need to know?**
+  - type: heading
+    text: "Random vs. systematic missingness, in plain language"
+  - type: text
+    body: >
+      Statisticians have precise names for this (MCAR, MAR, MNAR), but the plain-language version is
+      what actually matters for a working analyst:
+  - type: table
+    headers: ["Pattern", "Plain-language meaning", "Risk if you just drop the missing rows"]
+    rows:
+      - ["Missing completely at random (MCAR)", "Whether a value is missing has nothing to do with anything else in the data — it's essentially a coin flip", "Low — the remaining rows are still a representative sample"]
+      - ["Missing at random / systematically (MAR)", "Whether a value is missing depends on something else you *can* observe in the data — a device type, a customer segment, an outcome", "High — dropping those rows changes the composition of what's left, in a specific direction"]
+  - type: callout
+    variant: important
+    title: "The EDA move: check whether missingness correlates with anything"
+    body: >
+      You don't need a formal statistical test to get most of the value here. Group other columns by
+      whether a value is missing, and compare. If the groups look similar, missingness is probably
+      close to random. If they look different — especially if they differ on the outcome you actually
+      care about — you've found something systematic, and it changes how you should handle it.
+  - type: heading
+    text: "A real, systematic example: sessions.customer_id"
+  - type: code
+    language: python
+    code: |
+      import pandas as pd
+
+      sessions = pd.read_csv("data/sample/ecommerce/sessions.csv")
+      n = len(sessions)
+      missing_pct = sessions["customer_id"].isna().mean() * 100
+      print(f"customer_id missing: {missing_pct:.1f}%")
+    caption: The sessions table has a real, substantial chunk of missing customer_id values
+  - type: output
+    body: |
+      customer_id missing: 34.8%
+    caption: "Real output — 4,174 of 12,000 sessions have no customer_id (likely anonymous, not-yet-logged-in visits)"
+  - type: text
+    body: >
+      34.8% missing is already a number worth pausing on. The next question is the one that actually
+      matters: is that missingness spread evenly across the data, or concentrated somewhere?
+  - type: code
+    language: python
+    code: |
+      sessions["missing_customer"] = sessions["customer_id"].isna()
+      conversion_by_missingness = sessions.groupby("missing_customer")["converted"].mean() * 100
+      print(conversion_by_missingness.round(2))
+    caption: Comparing the outcome you'd actually care about (conversion) across missing vs. present
+  - type: output
+    body: |
+      missing_customer
+      False    21.74
+      True      3.02
+      Name: converted, dtype: float64
+    caption: "Real output — sessions WITH a customer_id convert at 21.74%; sessions MISSING one convert at just 3.02%"
+  - type: callout
+    variant: warning
+    title: "This is exactly the trap: dropping missing rows here would badly bias your conversion rate"
+    body: >
+      Overall conversion rate across all 12,000 sessions is 15.22%. If you'd dropped the 4,174 rows
+      missing customer_id before computing conversion rate — a very natural-feeling first move, since
+      you 'need' a customer_id for some later join — you'd be left computing conversion only over the
+      65.2% of sessions that are far more likely to convert in the first place, and you'd report a
+      number well above the true 15.22%. The missingness here isn't noise, it's informative: sessions
+      missing a customer_id are disproportionately anonymous browsing that never converts, and that's a
+      real, useful thing to know about the business, not just a data quality nuisance to clean away.
+  - type: text
+    body: >
+      For contrast, checking the same missingness against `device` — a variable it turns out *not* to
+      be associated with — shows roughly the same ~35% missing rate on desktop, mobile, and tablet
+      alike. That's the "looks random with respect to this variable" result — a useful negative check
+      that tells you the missingness isn't a device-tracking bug, specifically.
+  - type: heading
+    text: What a cluster of duplicates can tell you
+  - type: text
+    body: >
+      The mechanics lesson in Data Cleaning covers `.duplicated()` and `.drop_duplicates()`. The EDA
+      question is upstream of the fix: **what process would produce duplicates that look like this?**
+      A few realistic patterns, and what each usually points to:
+  - type: table
+    headers: ["What you observe", "Likely origin"]
+    rows:
+      - ["Exact full-row duplicates, evenly spread across the dataset", "An upstream export or ETL job that ran twice, or a retried API call that double-inserted rows"]
+      - ["Duplicates concentrated in a narrow time window", "A specific incident — a job re-run, a retry storm during an outage — rather than an ongoing systemic issue"]
+      - ["Same key columns repeated but other columns differ (e.g. same order_id, different payment_date)", "Not necessarily an error at all — could be a legitimate update-in-place pattern (a corrected record) rather than a true duplicate"]
+      - ["Duplicates concentrated in one segment, channel, or source system", "A specific upstream integration is the broken one, not the pipeline as a whole"]
+  - type: callout
+    variant: tip
+    title: "This dataset happens to be clean — use that as a contrast, not a rule"
+    body: >
+      Checking orders.duplicated().sum() and order_items.duplicated(subset=["order_id","product_id"]).sum()
+      on this course's synthetic dataset returns zero for both — it was generated without this kind of
+      defect. Real production data is rarely this tidy. The value of this lesson isn't "this dataset has
+      duplicates, go find them" — it's building the habit of asking what a duplicate pattern would mean
+      about the pipeline behind it, the moment you do encounter one for real.
+  - type: question
+    prompt: "In the sessions table, customer_id is missing on 34.8% of rows, and those rows convert at 3.02% vs. 21.74% for rows with a customer_id present. What's the risk of computing an overall conversion rate using only rows where customer_id is present?"
+    choices:
+      - "It would overstate the true conversion rate, because the dropped rows are disproportionately the ones least likely to convert"
+      - "There's no risk — the sample size would still be large enough to be accurate"
+      - "It would understate the true conversion rate, because missing values always represent the best customers"
+    correct_index: 0
+    explanation: >
+      The missing-customer_id rows convert far less often than average. Excluding them means your
+      remaining sample skews toward sessions that were always more likely to convert, so the computed
+      rate would come out meaningfully higher than the dataset's true overall conversion rate of 15.22%.

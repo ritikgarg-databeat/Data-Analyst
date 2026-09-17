@@ -1,0 +1,26 @@
+slug: dm-ex-grain-basics
+lesson_slug: dm-entities-and-grain
+skill: dimensional-modeling
+dataset: ecommerce
+title: "What Does Grain Actually Mean?"
+description: A conceptual check on what a stated grain does and doesn't tell you about a table, using order_items from the real ecommerce dataset.
+exercise_type: MULTIPLE_CHOICE
+difficulty: BEGINNER
+points: 10
+tags: [grain, data-modeling, beginner]
+prompt: >
+  In the ecommerce dataset, order_items is registered with the grain "1 row = 1 product line within an order."
+  What does that grain statement tell you is safe to compute directly from order_items, without joining to any
+  other table?
+choices:
+  - "COUNT(*) answers 'how many orders exist', since order_items is related to orders"
+  - "COUNT(*) answers 'how many product lines exist across all orders' — not the number of orders, since one order can have several lines"
+  - "COUNT(*) answers 'how many distinct customers have ordered', since every line eventually belongs to a customer"
+correct_answer: "COUNT(*) answers 'how many product lines exist across all orders' — not the number of orders, since one order can have several lines"
+hints:
+  - "Compare order_items' grain statement to orders' grain statement — they're different, even though every line belongs to exactly one order."
+explanation: >
+  order_items' grain is the product-line level, so COUNT(*) run directly against it always answers "how many
+  lines," never "how many orders" or "how many customers." Translating a line-grain count into an order count
+  requires COUNT(DISTINCT order_id) instead — exactly the fan-out trap this domain's why-data-modeling-matters
+  module walks through on this same table.

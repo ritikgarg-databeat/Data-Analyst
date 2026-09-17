@@ -1,0 +1,47 @@
+slug: excel-clean-and-combine-name
+skill: excel-fundamentals
+title: Cleaning and Combining a Messy Name Field
+description: On `Data`, `A2` and `B2` hold a messy first and last name. On `Answer`, fill in `C2` with a formula
+  that trims extra whitespace from both, upper-cases both, and joins them with a single space, e.g. `=UPPER(TRIM(Data!A2))&"
+  "&UPPER(TRIM(Data!B2))`.
+exercise_type: EXCEL
+difficulty: BEGINNER
+points: 10
+tags:
+- excel
+business_context: A customer-import file has first and last names with inconsistent spacing and casing that need
+  to be cleaned before use in a mail merge.
+prompt: On `Data`, `A2` and `B2` hold a messy first and last name. On `Answer`, fill in `C2` with a formula that
+  trims extra whitespace from both, upper-cases both, and joins them with a single space, e.g. `=UPPER(TRIM(Data!A2))&"
+  "&UPPER(TRIM(Data!B2))`.
+excel_starter_sheets:
+- name: Data
+  cells:
+    A1: FirstRaw
+    B1: LastRaw
+    A2: '  john  '
+    B2: 'smith  '
+- name: Answer
+  cells:
+    A1: CleanFullName
+excel_solution_sheets:
+- name: Data
+  cells:
+    A1: FirstRaw
+    B1: LastRaw
+    A2: '  john  '
+    B2: 'smith  '
+- name: Answer
+  cells:
+    A1: CleanFullName
+    C2: =UPPER(TRIM(Data!A2))&" "&UPPER(TRIM(Data!B2))
+excel_check_cells:
+- Answer!C2
+hints:
+- TRIM removes leading/trailing (and repeated internal) whitespace; UPPER standardizes casing so "John" and "JOHN"
+  don't look like two different customers later.
+- '`&` concatenates text, the same as CONCATENATE -- either works, but `&` is more common for a couple of pieces.'
+solution: '`=UPPER(TRIM(Data!A2))&" "&UPPER(TRIM(Data!B2))` evaluates to "JOHN SMITH".'
+explanation: TRIM strips the stray leading/trailing spaces from each raw field, UPPER standardizes casing, and `&"
+  "&` joins them with exactly one space in between -- a standard data-cleaning combination before any downstream
+  matching or reporting that assumes consistent name formatting.

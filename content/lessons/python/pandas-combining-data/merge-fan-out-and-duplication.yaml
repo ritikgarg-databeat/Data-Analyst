@@ -1,0 +1,168 @@
+slug: merge-fan-out-and-duplication
+module_slug: pandas-combining-data
+title: "Merge Fan-Out and Row Duplication"
+description: "The classic real-world merge bug — merging a one-to-many relationship without aggregating first silently inflates any SUM computed afterward. A verified before/after with orders, order_items, and payments."
+content_type: READING
+difficulty: INTERMEDIATE
+estimated_minutes: 15
+display_order: 3
+objectives:
+  - Explain why merging a one-to-many relationship causes row duplication ("fan-out")
+  - Show how a naive fan-out merge silently inflates a SUM computed after the merge
+  - Use len(df) before and after a merge as a smell test, and fix a fan-out bug by aggregating first
+prerequisites: [concat]
+skills: [pandas]
+datasets: [ecommerce]
+tags: [python, intermediate, real-world]
+key_takeaways:
+  - "Merging a table with a one-to-many relationship (one order, many order_items) duplicates the 'one' side's columns across every matching row on the 'many' side — that's fan-out, and it's completely expected merge behavior, not a bug in pandas."
+  - "The danger is what happens next: if you then sum() a column that came from the 'one' side (like a per-order payment amount) after the fan-out, that value gets counted once per duplicated row instead of once per order — silently inflating the total, in this dataset by a factor of ~3.7x."
+  - "len(df) before and after every merge is a cheap, always-worth-doing smell test — if the row count grew and you weren't expecting it to, you likely have a fan-out on your hands."
+common_mistakes:
+  - "Summing a column immediately after a merge without checking whether the merge changed the row count — an inflated total from fan-out often looks plausible enough to ship without a second look."
+  - "Fixing fan-out by deduplicating too late or too crudely (e.g. dropping duplicate rows on the wrong subset of columns) instead of aggregating the many-side table to one row per key before merging, which prevents the fan-out from happening at all."
+  - "Assuming the row count after a merge should always equal the left table's row count — it doesn't, whenever the right table isn't unique on the join key."
+practical_applications:
+  - "Auditing a revenue report before it ships: comparing len(orders) to len(merged_result) catches a fan-out before an inflated total reaches a dashboard or a stakeholder."
+  - "Correctly computing total revenue when you need order_items detail (e.g. to filter by product or category) alongside order-level payment data, without letting the item-level fan-out corrupt the order-level sum."
+interview_questions:
+  - question: "You merge an orders table (one row per order) with an order_items table (many rows per order) and then run merged['payment_amount'].sum(). The total comes out way too high. What happened, and how do you fix it?"
+    answer: "This is merge fan-out: because order_items has multiple rows per order_id, merging duplicates every order-level column — including payment_amount — once per matching item row. Summing payment_amount afterward counts each order's payment once per item it contains, inflating the total by roughly the average number of items per order. The fix is to aggregate order_items down to one row per order_id first (e.g. count of items, sum of quantity) and merge that summary — not the raw line-item table — onto orders, so there's no fan-out to begin with. If you need the raw per-item detail for something else, keep that as a separate merge and never sum an order-level column off of it directly."
+  - question: "What's a quick, general way to detect whether a merge you just ran caused unwanted duplication?"
+    answer: "Compare len(df) before and after the merge, and compare it against what you expect analytically — e.g. if you're doing a left join and the right table isn't guaranteed unique on the join key, the result can have more rows than the left table alone. A row count that jumped when you expected a 1:1 preserve, or that doesn't match either input table's length under an inner join, is a strong signal to check the join key's uniqueness on both sides (df['key'].is_unique) before trusting any aggregation you compute downstream."
+blocks:
+  - type: text
+    body: >
+      This is the merge bug that quietly ships wrong numbers into real reports more often than any
+      other pandas mistake: merging a **one-to-many** relationship and then aggregating a column from
+      the "one" side, without first collapsing the "many" side down to one row per key. It has a name
+      — **fan-out** — and once you've seen it broken, you'll never merge without checking `len()`
+      again.
+  - type: heading
+    text: The setup — a real one-to-many relationship
+  - type: text
+    body: >
+      In the ecommerce dataset, `orders` has one row per order (4,205 rows) and `order_items` has one
+      row per **item within an order** (12,627 rows — about three items per order on average). Every
+      order also has one row in `payments` giving its total amount, which — by construction of this
+      dataset — exactly equals the sum of that order's line-item revenue.
+  - type: code
+    language: python
+    code: |2
+      import pandas as pd
+
+      orders = pd.read_csv("data/sample/ecommerce/orders.csv")
+      items = pd.read_csv("data/sample/ecommerce/order_items.csv")
+      payments = pd.read_csv("data/sample/ecommerce/payments.csv")
+
+      len(orders), len(items), len(payments)
+    caption: "4,205 orders, 12,627 order_items, 3,699 payments — order_items is many-to-one against orders"
+  - type: output
+    body: "(4205, 12627, 3699)"
+  - type: heading
+    text: "The bug — merging order_items in, then summing amount"
+  - type: text
+    body: >
+      Say you want each order's item detail alongside its payment amount — a natural-looking thing to
+      merge together. If you then compute a total by summing `amount` **after** that merge, you get a
+      badly wrong number, because `amount` (an order-level value) got duplicated onto every item row
+      for that order.
+  - type: example
+    title: "WRONG — summing amount after a fan-out merge"
+    body: >
+      Merging orders + payments (safe, 1:1-ish) is fine on its own. The problem starts the moment
+      order_items also gets merged in on order_id: every order's amount is now repeated once per item
+      it contains, and summing it afterward counts that amount multiple times.
+    code: |2
+      merged = (
+          orders
+          .merge(payments[["order_id", "amount"]], on="order_id", how="left")
+          .merge(items, on="order_id", how="left")
+      )
+
+      len(orders), len(merged)          # row count jumped — the smell test fires
+      wrong_total = merged["amount"].sum()
+      wrong_total
+    language: python
+  - type: output
+    body: |2
+      len(orders) = 4205
+      len(merged) = 12627          <- grew from 4,205 to 12,627: fan-out happened
+
+      wrong_total = 22917161.75
+  - type: code
+    language: python
+    code: |2
+      correct_total = payments["amount"].sum()
+      correct_total, round(wrong_total / correct_total, 2)
+    caption: The true total, and how badly the fan-out inflated it
+  - type: output
+    body: |2
+      correct_total = 6248160.5
+      inflation factor = 3.67x
+  - type: callout
+    variant: important
+    title: This is not a rare edge case
+    body: >
+      $22.9M reported instead of the real $6.2M — a 3.67x overstatement, purely from merging in a
+      one-to-many table and summing an already-order-level column afterward. Fan-out inflation scales
+      with however many rows the "many" side contributes per key — here, roughly 3 order_items per
+      order on average.
+  - type: heading
+    text: "RIGHT — aggregate the many side first, then merge"
+  - type: text
+    body: >
+      The fix is to never let the fan-out happen in the first place: collapse `order_items` down to
+      **one row per order_id** before merging it onto orders. Whatever you need from order_items
+      (item count, total quantity, etc.) gets computed correctly at the order level, and the merge
+      stays 1:1.
+  - type: code
+    language: python
+    code: |2
+      items_summary = items.groupby("order_id", as_index=False).agg(
+          n_items=("order_item_id", "count"),
+          total_qty=("quantity", "sum"),
+      )
+
+      right = (
+          orders
+          .merge(payments[["order_id", "amount"]], on="order_id", how="left")
+          .merge(items_summary, on="order_id", how="left")
+      )
+
+      len(right), right["amount"].sum()
+    caption: Row count stays at 4,205 — no fan-out — and the sum is correct
+  - type: output
+    body: |2
+      len(right) = 4205
+      right['amount'].sum() = 6248160.5
+  - type: heading
+    text: "The smell test: len(df) before and after every merge"
+  - type: table
+    headers: ["Step", "Row count", "What it tells you"]
+    rows:
+      - ["orders alone", "4,205", "baseline"]
+      - ["orders merged with payments (1:1-ish, how='left')", "4,205", "row count unchanged — safe, no fan-out"]
+      - ["...then merged with raw order_items (1:many, how='left')", "12,627", "row count jumped — fan-out has occurred; do not sum order-level columns from here"]
+      - ["orders merged with items_summary (pre-aggregated to 1 row/order)", "4,205", "row count unchanged again — the aggregate-first fix"]
+  - type: callout
+    variant: tip
+    title: A one-line habit that catches this every time
+    body: >
+      After any merge, get in the habit of comparing len(result) to len(left_table). If it grew and
+      you didn't design for that on purpose (e.g. an intentional many-to-many join), stop and check
+      whether the right-side table is unique on the join key with right['key'].is_unique before
+      trusting any sum computed on the result.
+  - type: question
+    prompt: "You merge orders (4,000 rows, unique order_id) with order_items (10,000 rows, several per order_id) on order_id. What is the length of the merged result, and is that a bug?"
+    choices:
+      - "4,000 rows — merge always preserves the left table's row count"
+      - "10,000 rows (roughly) — this is expected fan-out behavior, not a bug on its own"
+      - "It will raise an error, since order_id isn't unique on the right side"
+    correct_index: 1
+    explanation: >
+      Merging a 1-row-per-key table against a many-rows-per-key table on that key correctly produces
+      one output row per match — so the result lands around 10,000 rows (order_items' size), with
+      every order's columns duplicated across its items. That's expected, correct merge behavior. The
+      bug only appears later, if you sum an order-level column on that fanned-out result without
+      first aggregating order_items back down to one row per order.

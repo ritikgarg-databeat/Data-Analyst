@@ -1,0 +1,115 @@
+slug: modules
+module_slug: python-for-analysts
+title: Modules and Imports
+description: import, from...import, and import...as, plus a first look at the standard library modules analysts reach for constantly.
+difficulty: BEGINNER
+estimated_minutes: 9
+display_order: 13
+objectives:
+  - Use import, from...import, and import...as to bring code from another module into a script
+  - Name a few standard library modules relevant to everyday analysis work (math, datetime, collections)
+  - Describe, at a conceptual level, what a module and a package are
+prerequisites: [list-comprehensions]
+skills: [python-fundamentals]
+datasets: []
+tags: [python, beginner, foundations]
+key_takeaways:
+  - "A module is just a Python file full of reusable functions and values; import brings its contents into your script under that module's name."
+  - "import x, from x import y, and import x as alias are three ways to control exactly what name(s) end up in your script — the underlying code being imported is identical in all three."
+  - "Analysts import libraries constantly — pandas, numpy, and matplotlib are all just modules (well, packages) you import the same way as anything in the standard library."
+common_mistakes:
+  - "Writing from math import * to avoid prefixing every call with math. — this pulls an unknown number of names into your script's namespace and can silently shadow variables you already defined, so it's best avoided."
+  - "Forgetting the alias after import pandas as pd and then writing pandas.read_csv(...) instead of pd.read_csv(...) — once aliased, the original full name is no longer available."
+  - "Re-importing the same module under two different names in the same script (import datetime and also import datetime as dt), which works but makes code harder to read for no benefit."
+blocks:
+  - type: text
+    body: >
+      A **module** is nothing more mysterious than a Python file full of functions, classes, and values
+      that someone else (or you, on a previous project) already wrote. `import` is how you pull a
+      module's contents into the script you're currently writing, instead of copy-pasting its code. This
+      is how every library you'll use as an analyst — pandas, numpy, matplotlib — gets into your scripts.
+  - type: heading
+    text: Three ways to import
+  - type: code
+    language: python
+    code: |
+      import math
+      math.sqrt(16)        # 4.0 — access everything through the module name
+
+      from math import sqrt
+      sqrt(16)              # 4.0 — import just one name directly, no prefix needed
+
+      import math as m
+      m.sqrt(16)            # 4.0 — import under a shorter alias
+    caption: "All three forms import the exact same code — they differ only in what name(s) you use to reach it"
+  - type: table
+    headers: ["Form", "When to reach for it"]
+    rows:
+      - ["import module_name", "Default choice — keeps the module's origin obvious at every call site (math.sqrt)"]
+      - ["from module_name import thing", "You use one or two names from a module constantly and want to skip the prefix"]
+      - ["import module_name as alias", "The module has a long name and a well-known short alias — import pandas as pd, import numpy as np"]
+  - type: heading
+    text: "A few standard library modules analysts reach for"
+  - type: text
+    body: >
+      Python ships with a large **standard library** — modules that are always available, no
+      installation required. You won't need most of it, but a handful of modules come up constantly in
+      analysis work.
+  - type: code
+    language: python
+    code: |
+      import math
+      math.sqrt(16)     # 4.0
+      math.pi            # 3.141592653589793
+
+      from datetime import date
+      date.today()        # today's date as a date object
+
+      from collections import Counter
+      channels = ["email", "organic", "email", "paid", "organic", "email"]
+      Counter(channels)
+      # Counter({'email': 3, 'organic': 2, 'paid': 1})
+    caption: "math for numeric functions, datetime for dates/times, collections for handy container types like Counter"
+  - type: example
+    title: "Counter as a quick frequency count"
+    body: >
+      Counter(some_list) tallies how many times each value appears — a one-line replacement for a
+      manual loop with a dictionary of running counts. .most_common(n) then gives the top n values.
+    code: |
+      from collections import Counter
+
+      channels = ["email", "organic", "email", "paid", "organic", "email"]
+      counts = Counter(channels)
+
+      print(counts.most_common(2))
+      # [('email', 3), ('organic', 2)]
+    language: python
+  - type: heading
+    text: What's a module vs. a package?
+  - type: text
+    body: >
+      A **module** is a single Python file. A **package** is a folder of related modules bundled
+      together and distributed as one unit — pandas, for instance, is a package containing many modules
+      under the hood, but you interact with it as a single `import pandas as pd`. As an analyst, you'll
+      import packages constantly but rarely need to think about how they're organized internally — that
+      packaging detail matters far more to the people building the library than to the people using it.
+  - type: callout
+    variant: tip
+    title: Third-party packages need installing first
+    body: >
+      Standard library modules (math, datetime, collections) are always available. Third-party packages
+      like pandas and numpy have to be installed first (typically with `pip install pandas`) before
+      `import pandas` will work — this platform's sandbox already has the data-analysis libraries you'll
+      need pre-installed.
+  - type: question
+    prompt: "After from collections import Counter, which of these works?"
+    choices:
+      - "Counter([1, 1, 2])"
+      - "collections.Counter([1, 1, 2])"
+      - "Both of the above work identically"
+    correct_index: 0
+    explanation: >
+      from collections import Counter imports the name Counter directly into your script — you use it
+      unprefixed. Writing collections.Counter(...) would raise a NameError here, because the name
+      collections itself was never imported, only Counter was pulled out of it. (import collections
+      followed by collections.Counter(...) is the form that would make the second option work.)

@@ -1,0 +1,52 @@
+slug: campaign-budget-by-channel
+skill: sql-fundamentals
+dataset: ecommerce
+title: Total Campaign Budget by Channel
+description: Write a query that totals marketing campaign budgets per channel and sorts channels from highest to lowest total spend.
+exercise_type: SQL
+difficulty: BEGINNER
+points: 15
+tags: [sql, beginner]
+business_context: >
+  Marketing finance is closing out the annual budget review and wants to see total committed spend
+  across all campaigns broken down by channel — display, email, search, and social — with the
+  highest-spend channel listed first.
+prompt: >
+  Using the `marketing_campaigns` table, write a query that returns each `channel` together with the
+  total budget committed across all campaigns on that channel (`total_budget`, rounded to 2 decimal
+  places), sorted from the highest total budget to the lowest.
+sql_tables: [marketing_campaigns]
+sql_starter_query: |
+  -- Explore the marketing_campaigns table first
+  SELECT * FROM marketing_campaigns LIMIT 20;
+sql_solution_query: |
+  SELECT channel, ROUND(SUM(budget), 2) AS total_budget
+  FROM marketing_campaigns
+  GROUP BY channel
+  ORDER BY total_budget DESC, channel ASC;
+sql_row_order_matters: true
+sql_numeric_tolerance: 0.01
+sql_hidden_tests:
+  - name: "Highest-budget channel is correct"
+    query: |
+      SELECT channel, ROUND(SUM(budget), 2) AS total_budget
+      FROM marketing_campaigns
+      GROUP BY channel
+      ORDER BY total_budget DESC, channel ASC
+      LIMIT 1
+    key_columns: 1
+hints:
+  - "Each campaign has its own budget, and you need one total per channel — that means grouping by channel before you sum anything."
+  - "GROUP BY channel, SUM(budget) rounded to 2 decimals, then ORDER BY that total descending so the biggest-spend channel appears first."
+solution: |
+  ```sql
+  SELECT channel, ROUND(SUM(budget), 2) AS total_budget
+  FROM marketing_campaigns
+  GROUP BY channel
+  ORDER BY total_budget DESC, channel ASC;
+  ```
+explanation: >
+  A strong answer groups campaigns by channel, sums each group's budget with SUM(budget), and orders the
+  result by that total descending. A common mistake is aggregating across the whole table with a single
+  SUM(budget) and no GROUP BY at all, which collapses every channel into one number and loses exactly
+  the per-channel breakdown the finance team asked for.

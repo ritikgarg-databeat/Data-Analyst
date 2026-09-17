@@ -1,0 +1,93 @@
+slug: revenue-trend-chart-data
+lesson_slug: line-charts
+skill: pandas
+dataset: ecommerce
+title: Monthly Revenue Trend Chart
+description: Build the monthly revenue series behind a board-deck line chart of successful-payment revenue.
+exercise_type: PYTHON
+difficulty: INTERMEDIATE
+points: 20
+tags: [python, intermediate, real-world]
+business_context: >
+  The exec team wants a monthly revenue trend line chart for the board deck, showing how
+  successful-payment revenue has moved month over month since the business launched.
+prompt: >
+  Using `payments`, compute total revenue from successful payments (`payments.status ==
+  "success"`) for each calendar month, and plot it as a line chart. Bucket each payment into its
+  calendar month using `payment_date`. Store your answer in a variable named `result`: a
+  DataFrame with columns `month` (a string like `"2024-01"`) and `revenue` (rounded to 2 decimal
+  places), sorted chronologically by month ascending. Then, using matplotlib, draw a line chart
+  of `revenue` over `month` with a title and axis labels — the chart itself isn't graded, but a
+  complete answer includes it.
+python_datasets: [payments]
+python_starter_code: |
+  import matplotlib.pyplot as plt
+
+  # payments is already loaded as a DataFrame.
+  # Explore it first:
+  payments.head()
+python_solution_code: |
+  import matplotlib.pyplot as plt
+
+  success = payments[payments["status"] == "success"].copy()
+  success["month"] = pd.to_datetime(success["payment_date"]).dt.to_period("M").astype(str)
+  result = (
+      success.groupby("month")["amount"]
+      .sum()
+      .round(2)
+      .reset_index()
+      .rename(columns={"amount": "revenue"})
+      .sort_values("month")
+      .reset_index(drop=True)
+  )
+
+  plt.figure(figsize=(10, 5))
+  plt.plot(result["month"], result["revenue"], marker="o")
+  plt.title("Monthly Revenue Trend")
+  plt.xlabel("Month")
+  plt.ylabel("Revenue ($)")
+  plt.xticks(rotation=45)
+  plt.tight_layout()
+python_result_variable: result
+python_row_order_matters: true
+python_numeric_tolerance: 0.01
+python_hidden_tests:
+  - name: "Roughly two years of monthly data"
+    code: |
+      assert len(result) >= 20, f"Expected at least 20 months of data, got {len(result)}"
+hints:
+  - "Filter payments to status == 'success' first. pd.to_datetime(...).dt.to_period('M') buckets a date into its calendar month; .astype(str) turns that into a label like '2024-01'."
+  - "Group by the month column and sum amount, then sort by month ascending before plotting — plt.plot(result['month'], result['revenue']) needs the x-axis already in chronological order to draw a sensible line."
+solution: |
+  ```python
+  import matplotlib.pyplot as plt
+
+  success = payments[payments["status"] == "success"].copy()
+  success["month"] = pd.to_datetime(success["payment_date"]).dt.to_period("M").astype(str)
+  result = (
+      success.groupby("month")["amount"]
+      .sum()
+      .round(2)
+      .reset_index()
+      .rename(columns={"amount": "revenue"})
+      .sort_values("month")
+      .reset_index(drop=True)
+  )
+
+  plt.figure(figsize=(10, 5))
+  plt.plot(result["month"], result["revenue"], marker="o")
+  plt.title("Monthly Revenue Trend")
+  plt.xlabel("Month")
+  plt.ylabel("Revenue ($)")
+  plt.xticks(rotation=45)
+  plt.tight_layout()
+  ```
+explanation: >
+  Filtering to successful payments before bucketing by month is essential — refunded payments
+  are still real rows in the table, but including them would overstate revenue actually
+  collected. `dt.to_period("M")` is the cleanest way to bucket a date into a calendar month
+  without manually extracting year and month and concatenating strings, and sorting
+  chronologically before plotting is what makes a line chart actually readable as a trend rather
+  than a scrambled zig-zag. Since a fresh sandbox can't inspect a chart drawn in a previous run,
+  correctness here is graded on the underlying `result` data — the chart-drawing code is still
+  expected as part of a complete, presentable answer.

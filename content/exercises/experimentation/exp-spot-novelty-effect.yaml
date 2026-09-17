@@ -1,0 +1,40 @@
+slug: exp-spot-novelty-effect
+lesson_slug: exp-novelty-seasonality-network-contaminated-control
+skill: data-interpretation
+dataset: saas-product
+title: "A Feature Launch That Looked Great, Then Faded"
+description: Diagnose a novelty effect from a week-by-week pattern of decaying lift, and recommend a next step.
+exercise_type: DATA_INTERPRETATION
+difficulty: INTERMEDIATE
+points: 15
+tags: [experimentation, ab-testing, saas, real-world, intermediate]
+prompt: >
+  A SaaS product tests a redesigned in-app dashboard, randomizing users into control (old dashboard) and
+  treatment (new dashboard) for 5 weeks. Weekly active-usage lift for treatment vs. control is: week 1,
+  +22%; week 2, +14%; week 3, +8%; week 4, +4%; week 5, +3%. Control's usage stayed essentially flat all
+  5 weeks. The team's Slack channel is already celebrating "a +22% engagement win" based on the week-1
+  number. What's actually going on in this data, and what would you tell the team before they lock in
+  that number as the feature's expected impact?
+hints:
+  - "Look at the shape of the lift over the five weeks, not just the first number — is it holding steady, or trending toward something smaller?"
+  - "Think about what would cause people to engage more with something purely because it's unfamiliar or newly changed, independent of whether it's actually better."
+solution: >
+  This is a novelty effect: the lift is largest in week 1 (+22%) and steadily shrinks every week after
+  that (14% → 8% → 4% → 3%), appearing to be converging toward a much smaller — though still
+  positive — steady-state effect rather than holding at 22%. The most likely explanation is that some of
+  the early lift came from users noticing and exploring something new and different, not purely from the
+  redesign being durably better at driving engagement. I'd tell the team not to lock in the week-1 number
+  (+22%) as the expected ongoing impact — that figure is inflated by novelty and will not hold once the
+  new dashboard becomes routine. Instead, I'd recommend continuing to measure for at least a few more
+  weeks to see whether the lift has actually stabilized (the week-4-to-week-5 change, +4% to +3%, suggests
+  it may be leveling off around 2-3%), and treat the eventual steady-state number, not the week-1 number,
+  as the one to use for any revenue or engagement projections tied to shipping this feature. If the
+  team ships broadly, keeping a small permanent holdout group would also let them keep tracking the
+  durable effect over time.
+explanation: >
+  A strong answer identifies the decaying-lift pattern specifically (not just "engagement went up") and
+  explains the underlying mechanism (novelty/curiosity effects, not durable behavior change) rather than
+  just asserting "it's probably temporary." It also gives a concrete recommendation — keep measuring
+  toward a stabilized number, and/or maintain a holdout — rather than only warning the team not to trust
+  the week-1 figure. A weaker answer treats the +22% as the real number and only questions it in vague
+  terms, without diagnosing the specific novelty-effect pattern in the week-by-week data.

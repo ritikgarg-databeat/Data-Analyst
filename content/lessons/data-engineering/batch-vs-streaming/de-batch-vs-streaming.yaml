@@ -1,0 +1,101 @@
+slug: de-batch-vs-streaming
+module_slug: batch-vs-streaming
+title: Batch vs Streaming Processing
+description: Processing data on a schedule versus as it arrives — the core latency tradeoff behind the decision, and a practical test for telling which a problem actually needs.
+difficulty: INTERMEDIATE
+estimated_minutes: 22
+display_order: 1
+objectives:
+  - Define batch processing and streaming processing, and place micro-batch between them
+  - State the real tradeoff (latency vs. complexity/cost) that drives the choice between them
+  - Apply a practical test — "how fresh does this actually need to be, and what breaks if it's not?" — to a given business scenario
+prerequisites: [de-foundations-what-is-data-engineering]
+skills: [data-pipelines]
+datasets: [ecommerce]
+tags: [batch-processing, streaming, data-engineering, intermediate]
+key_takeaways:
+  - "Batch processing runs on a schedule (hourly, nightly) against accumulated data since the last run; streaming processes each event as it arrives, continuously."
+  - "The real tradeoff is latency versus complexity and cost — streaming gets you fresher data, but at the price of meaningfully more operational complexity than a scheduled job."
+  - "The right question isn't \"which is more modern\" but \"what actually breaks if this data is an hour old, and does fixing that justify streaming's added complexity?\" — most business reporting genuinely doesn't need to be real-time."
+common_mistakes:
+  - "Reaching for streaming because it sounds more advanced or impressive, on a problem (like a weekly revenue report) where a nightly batch job would serve the business exactly as well at a fraction of the operational cost."
+  - "Assuming batch processing means \"slow\" in some absolute sense — a batch job can run every five minutes if needed; batch describes running on a *schedule against accumulated data*, not necessarily running rarely."
+interview_questions:
+  - question: "How would you decide whether a new reporting requirement needs streaming instead of batch?"
+    answer: >
+      Start from the decision the data supports, not the data itself: ask what specifically happens
+      if the number is an hour stale, or a day stale, versus truly real-time. If nothing meaningfully
+      changes about what someone does with the number (a weekly executive revenue report doesn't
+      need to the minute), batch is the right, cheaper, simpler choice. Streaming earns its added
+      complexity only when a real operational action depends on sub-minute freshness — like blocking
+      a fraudulent transaction before it completes, not just reporting on it afterward.
+blocks:
+  - type: heading
+    text: Two ways to move through data
+  - type: text
+    body: >
+      **Batch processing** runs on a schedule — every hour, every night, every week — against
+      whatever data has accumulated since the last run. **Streaming processing** instead processes
+      each record continuously, as it arrives, with no fixed schedule at all. Between them sits
+      **micro-batch**, which processes small batches on a very short interval (say, every 30
+      seconds) — fast enough to feel close to real-time, while still being implemented with
+      batch-style tooling.
+  - type: table
+    headers: ["", "Batch", "Micro-batch", "Streaming"]
+    rows:
+      - ["Runs", "On a schedule (hourly, nightly)", "On a short fixed interval (seconds)", "Continuously, per event"]
+      - ["Typical latency", "Minutes to a day", "Seconds", "Sub-second to a few seconds"]
+      - ["Operational complexity", "Lower — a scheduled job, retryable as a whole", "Moderate", "Higher — needs to handle out-of-order and duplicate events, state, backpressure"]
+      - ["Example", "Nightly load of yesterday's `orders` into the warehouse", "Refreshing an ops dashboard every minute", "Flagging a fraudulent transaction the instant it's placed"]
+  - type: example
+    title: "The same ecommerce data, two different needs"
+    body: >
+      Loading the `ecommerce` dataset's `orders` and `payments` tables into a warehouse for a daily
+      executive revenue report is a textbook batch use case — a nightly job that picks up everything
+      placed since the previous run is simple, cheap, and exactly as useful to that report as
+      anything faster would be. Contrast that with a fraud-detection system that needs to block a
+      suspicious payment *before* it completes: waiting for the next nightly batch would mean the
+      fraudulent charge has already gone through by the time anyone notices. That's a genuine
+      streaming need — the business action (blocking the transaction) is only possible if the data
+      is processed within seconds of the event happening.
+  - type: heading
+    text: The real tradeoff isn't "old vs. new"
+  - type: text
+    body: >
+      It's easy to frame batch as the legacy approach and streaming as the modern one, but that
+      framing misses the actual tradeoff: **latency versus complexity and cost**. Streaming systems
+      have to handle problems batch jobs mostly get for free — events arriving out of order, the
+      same event being delivered twice, and maintaining running state across a feed that never
+      stops. That's real engineering overhead, worth paying only when the business genuinely needs
+      the freshness it buys.
+  - type: callout
+    variant: common_mistake
+    title: "Streaming for its own sake"
+    body: >
+      A common mistake is building a streaming pipeline for a dashboard that's only ever looked at
+      once a day. If nobody's decision changes based on whether the number is 3 minutes old or 10
+      hours old, all that additional complexity bought nothing. Ask what specifically breaks with
+      batch-level freshness before reaching for streaming.
+  - type: heading
+    text: A practical test
+  - type: checklist
+    title: "Questions to ask before choosing streaming over batch"
+    items:
+      - "What decision or action actually depends on this data being fresh?"
+      - "What specifically breaks, or what gets worse, if this data is an hour old? A day old?"
+      - "Is there a real-time action tied to the data (blocking a transaction, triggering an alert), or is it purely reporting/analysis after the fact?"
+      - "Can the team realistically operate and debug a streaming system, or would a much simpler scheduled batch job get 90% of the value at a fraction of the operational burden?"
+  - type: question
+    prompt: >
+      A team wants to know, within the hour, if website conversion rate has dropped sharply so they
+      can investigate quickly. Which approach is most appropriate?
+    choices:
+      - "Full real-time streaming with sub-second latency, since any delay is unacceptable"
+      - "A micro-batch or frequent scheduled batch job (e.g. every 10-15 minutes) is very likely sufficient — the decision (investigate) doesn't require sub-second data, just \"soon enough\""
+      - "A single once-a-week batch job, since conversion rate is a long-term metric"
+    correct_index: 1
+    explanation: >
+      The stated need is "within the hour," which a frequent batch or micro-batch job comfortably
+      satisfies without streaming's added operational complexity. True streaming is worth reaching
+      for when the required latency is seconds, not minutes-to-an-hour, and when a real-time action
+      (not just an alert to investigate) depends on it.

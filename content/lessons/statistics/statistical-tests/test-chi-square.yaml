@@ -1,0 +1,91 @@
+slug: test-chi-square
+module_slug: statistical-tests
+title: The Chi-Square Test of Independence
+description: Testing whether two categorical variables are actually related, worked through with a dramatic real result and a contrasting non-result from the same domain.
+difficulty: ADVANCED
+estimated_minutes: 15
+display_order: 3
+objectives:
+  - Build a contingency table and run a chi-square test of independence between two categorical variables.
+  - Interpret a real, highly significant chi-square result and translate it into an actionable business recommendation.
+skills: [statistics, statistical-reasoning, data-interpretation]
+datasets: [saas-product, ecommerce]
+tags: [statistics, advanced, saas, e-commerce]
+prerequisites: [test-choosing-the-right-test]
+key_takeaways:
+  - "A chi-square test of independence compares the counts actually observed in a contingency table (categorical variable x categorical variable) to the counts you'd expect if the two variables were unrelated."
+  - "A large chi-square statistic (and small p-value) means the observed counts deviate substantially from what independence would predict — evidence the two variables are related, not proof of why."
+  - "Statistical significance from a chi-square test tells you a relationship is unlikely to be chance; it does not by itself tell you the relationship is large enough, or causal enough, to act on without further thought."
+common_mistakes:
+  - "Running a chi-square test on very small expected cell counts (a common rule of thumb — expected count under 5 in any cell) without checking that assumption, which can make the test unreliable."
+  - Treating a significant chi-square result as proof of *why* two variables are related, when it only establishes *that* they're related more than chance would predict — the mechanism still needs investigation.
+interview_questions:
+  - question: A chi-square test comparing acquisition channel and activation status returns chi2 = 128.2, p ≈ 9e-27. What can you conclude, and what can't you conclude?
+    answer: >
+      You can conclude the relationship between acquisition channel and activation is essentially
+      certainly not due to chance — a chi-square statistic this large, with this p-value, is
+      overwhelming evidence the two are related in this data. You cannot conclude *why* — the test
+      doesn't say whether paid channels attract lower-intent users, whether onboarding differs by
+      channel, or something else entirely. That requires follow-up investigation (or a designed
+      experiment) into the mechanism.
+blocks:
+  - type: heading
+    text: Comparing observed counts to what independence would predict
+  - type: text
+    body: >
+      A **chi-square test of independence** starts from a contingency table — counts of one
+      categorical variable broken out by another — and compares the observed counts in each cell to
+      the counts you'd expect if the two variables had no relationship at all (independence). The
+      **chi-square statistic** summarizes how far the real table is from that independence
+      baseline; **degrees of freedom** depends on the table's shape ((rows-1) x (columns-1)).
+  - type: example
+    title: "A dramatic real result: acquisition channel and activation"
+    body: >
+      In the SaaS dataset, the overall activation rate is 69.1% across 3,000 signed-up users. Broken
+      out by acquisition channel, it ranges from 55.9% (paid_social) and 61.7% (paid_search) up to
+      78.9% (organic) and 78.2% (referral) — a 23-point spread. A chi-square test on the full
+      contingency table gives chi2 = 128.21, p ≈ 9.4 x 10⁻²⁷ — overwhelming evidence this spread is
+      not due to chance.
+  - type: code
+    language: python
+    code: |
+      from scipy.stats import chi2_contingency
+
+      activated_ids = set(events.loc[events.event_name == "activated", "user_id"])
+      users2 = users.copy()
+      users2["activated"] = users2["user_id"].isin(activated_ids)
+      contingency = pd.crosstab(users2["acquisition_channel"], users2["activated"])
+
+      chi2, p_value, dof, expected = chi2_contingency(contingency)
+      print(round(chi2, 2), p_value, dof)  # 128.21, 9.4e-27, 4
+    caption: A vanishingly small p-value — acquisition channel and activation are clearly related in this data.
+  - type: callout
+    variant: important
+    title: A significant result with a clear business lever
+    body: >
+      Unlike the checkout_redesign experiment (a promising but inconclusive result), this chi-square
+      test gives genuinely strong evidence: paid_social and paid_search users activate at
+      meaningfully lower rates than organic and referral users. That's actionable — it points growth
+      and lifecycle teams toward either improving onboarding specifically for paid-acquired users, or
+      re-examining whether paid channels are bringing in lower-intent signups in the first place.
+  - type: example
+    title: "A contrasting non-result, same test: device and conversion"
+    body: >
+      For comparison, a chi-square test on device type (desktop/mobile/tablet) versus ecommerce
+      session conversion gives chi2 = 0.82, p = 0.66 — nowhere near significant. Conversion rates by
+      device (15.3%, 14.8%, 15.6%) are close enough to the overall 15.2% rate that this data gives no
+      reason to believe device type affects conversion. Same test, same rigor, a genuinely different
+      (and equally useful) conclusion: don't prioritize device-specific checkout work based on this.
+  - type: question
+    prompt: >
+      A chi-square test comparing signup month and subscription plan tier returns chi2 = 2.1,
+      p = 0.83 across a reasonably large sample. What's the appropriate conclusion?
+    choices:
+      - "Signup month and plan tier are clearly unrelated in any statistical sense worth investigating further with this framing"
+      - "The result is significant and signup month should be treated as a key driver of plan choice"
+      - "The test is inconclusive because chi-square can't be used for more than two categories"
+    correct_index: 0
+    explanation: >
+      A small chi-square statistic and a large p-value (0.83) mean the observed counts look very
+      close to what independence would predict — this data gives no evidence that signup month and
+      plan tier are related, which is itself a useful (if less exciting) finding.

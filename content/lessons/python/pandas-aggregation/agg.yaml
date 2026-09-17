@@ -1,0 +1,154 @@
+slug: agg
+module_slug: pandas-aggregation
+title: Aggregating with .agg()
+description: Applying single and multiple aggregation functions per group, the dict form for multi-column aggregation, and named aggregations for clean output column names.
+content_type: READING
+difficulty: INTERMEDIATE
+estimated_minutes: 13
+display_order: 2
+objectives:
+  - Apply a single aggregation function and a list of functions to a grouped column with .agg()
+  - Aggregate multiple columns with different functions each using the dict form of .agg()
+  - Produce clean, predictable output column names with named aggregations
+prerequisites: [groupby]
+skills: [pandas]
+datasets: [ecommerce]
+tags: [python, intermediate, real-world]
+key_takeaways:
+  - ".agg() is the general-purpose way to summarize groups — pass a single function name, a list of function names, or a dict mapping columns to functions."
+  - "The dict form ({'col': ['sum', 'mean']}) produces a MultiIndex on the columns, which is often awkward to work with downstream."
+  - "Named aggregations (col=('source_col', 'func')) sidestep the MultiIndex column problem entirely, giving you flat, self-documenting output column names in one step."
+common_mistakes:
+  - "Forgetting that the dict form of .agg() produces MultiIndex columns (e.g. ('line_revenue', 'sum')) — code that expects a flat column name like 'sum' will break until you flatten or rename."
+  - "Reaching for .apply() with a custom row-by-row function when a built-in aggregation string ('sum', 'mean', 'nunique', etc.) would do the same job faster and more clearly."
+  - "Using generic names like sum and mean as output columns when the same base column is aggregated two ways — named aggregations exist specifically to avoid this ambiguity."
+practical_applications:
+  - "Building a per-status summary table (total revenue, average order value, item count) for a finance or ops dashboard in one aggregation call."
+  - "Producing clean, ready-to-plot columns like total_revenue and avg_order_value directly from .agg() instead of renaming columns in a separate step."
+interview_questions:
+  - question: "How do you compute both the sum and the mean of a column within each group, in a single .agg() call?"
+    answer: "Pass a list of function names to .agg() on that column, e.g. df.groupby('status')['amount'].agg(['sum', 'mean']). This returns a DataFrame with one column per function. If you're aggregating multiple source columns with different functions each, use the dict form instead: df.groupby('status').agg({'amount': ['sum', 'mean'], 'quantity': 'sum'})."
+  - question: "What problem do named aggregations solve?"
+    answer: "The dict form of .agg() can produce MultiIndex columns like ('amount', 'sum') and ('amount', 'mean'), which are clunky to reference and don't self-document what they represent. Named aggregations — df.groupby('status').agg(total_revenue=('amount', 'sum'), avg_order=('amount', 'mean')) — let you assign a clear, flat output column name to each (source column, function) pair in one step, so the result is immediately usable without a follow-up rename."
+blocks:
+  - type: text
+    body: >
+      `.groupby(...).sum()` and similar shortcuts cover the simplest cases, but real summarization
+      work usually needs more than one statistic, on more than one column, at once. **`.agg()`** is
+      the general-purpose tool for that: it accepts a single function, a list of functions, or a
+      dict mapping columns to functions.
+  - type: heading
+    text: A single function
+  - type: code
+    language: python
+    code: |2
+      import pandas as pd
+
+      orders = pd.read_csv("data/sample/ecommerce/orders.csv")
+      items = pd.read_csv("data/sample/ecommerce/order_items.csv")
+      items["line_revenue"] = (items["unit_price"] - items["discount"]) * items["quantity"]
+
+      merged = orders.merge(items, on="order_id")
+
+      merged.groupby("status")["line_revenue"].agg("sum").round(2)
+      # identical to merged.groupby("status")["line_revenue"].sum().round(2)
+    caption: ".agg('sum') is equivalent to .sum() — .agg() is the general form"
+  - type: output
+    body: |2
+      status
+      cancelled     631907.13
+      completed    5802628.15
+      pending       216711.82
+      refunded      445532.35
+      Name: line_revenue, dtype: float64
+  - type: heading
+    text: Multiple functions on one column
+  - type: text
+    body: >
+      Pass a **list** of function names to compute several statistics for the same column at once.
+  - type: code
+    language: python
+    code: |2
+      merged.groupby("status")["line_revenue"].agg(["sum", "mean", "count"]).round(2)
+    caption: Sum, mean, and row count of line_revenue, per status
+  - type: output
+    body: |2
+                        sum    mean  count
+      status
+      cancelled   631907.13  565.21   1118
+      completed  5802628.15  562.27  10320
+      pending     216711.82  574.83    377
+      refunded    445532.35  548.69    812
+  - type: heading
+    text: The dict form — different functions per column
+  - type: code
+    language: python
+    code: |2
+      merged.groupby("status").agg({
+          "line_revenue": ["sum", "mean"],
+          "quantity": "sum",
+      }).round(2)
+    caption: line_revenue gets sum and mean; quantity only gets sum
+  - type: output
+    body: |2
+                line_revenue         quantity
+                         sum    mean      sum
+      status
+      cancelled     631907.13  565.21     2762
+      completed    5802628.15  562.27    25753
+      pending       216711.82  574.83      955
+      refunded      445532.35  548.69     2065
+  - type: callout
+    variant: warning
+    title: MultiIndex columns
+    body: >
+      The dict form produces columns like ("line_revenue", "sum") and ("line_revenue", "mean") — a
+      MultiIndex on the columns, not flat names. You'll typically flatten these with something like
+      result.columns = ['_'.join(c) for c in result.columns], or avoid the problem entirely with
+      named aggregations, covered next.
+  - type: heading
+    text: Named aggregations — clean output columns in one step
+  - type: text
+    body: >
+      Pandas' **named aggregation** syntax lets you assign the exact output column name you want,
+      inline, using `output_name=('source_column', 'function')` keyword arguments. This is the
+      pattern to reach for whenever you're building a summary table meant to be read or plotted
+      directly — no MultiIndex, no follow-up renaming.
+  - type: code
+    language: python
+    code: |2
+      summary = merged.groupby("status").agg(
+          total_revenue=("line_revenue", "sum"),
+          avg_order_line=("line_revenue", "mean"),
+          items_sold=("quantity", "sum"),
+          n_line_items=("order_item_id", "count"),
+      ).round(2)
+
+      summary
+    caption: Every output column is flat and self-documenting
+  - type: output
+    body: |2
+                 total_revenue  avg_order_line  items_sold  n_line_items
+      status
+      cancelled      631907.13          565.21        2762          1118
+      completed     5802628.15          562.27       25753         10320
+      pending        216711.82          574.83         955           377
+      refunded       445532.35          548.69        2065           812
+  - type: callout
+    variant: tip
+    title: Equivalent to pd.NamedAgg
+    body: >
+      output_name=('col', 'func') is shorthand for output_name=pd.NamedAgg(column='col',
+      aggfunc='func'). The tuple form is what you'll see in almost all real-world code because it's
+      shorter to type and behaves identically.
+  - type: question
+    prompt: "Which .agg() call produces flat column names like total_revenue and avg_revenue, with no MultiIndex to flatten afterward?"
+    choices:
+      - "df.groupby('status')['revenue'].agg(['sum', 'mean'])"
+      - "df.groupby('status').agg({'revenue': ['sum', 'mean']})"
+      - "df.groupby('status').agg(total_revenue=('revenue', 'sum'), avg_revenue=('revenue', 'mean'))"
+    correct_index: 2
+    explanation: >
+      Named aggregations (the third form) let you specify the exact output column name for each
+      (source column, function) pair as a keyword argument, so the result comes back with flat,
+      readable columns immediately — no MultiIndex column flattening required, unlike the dict form.

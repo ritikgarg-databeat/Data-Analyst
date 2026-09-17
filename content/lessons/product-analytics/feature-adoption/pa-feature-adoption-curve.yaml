@@ -1,0 +1,104 @@
+slug: pa-feature-adoption-curve
+module_slug: feature-adoption
+title: "Trial vs. Adoption: Why 'Used It Once' Isn't 'Adopted'"
+description: >
+  Distinguishing trying a feature once from truly adopting it (repeat, sustained use), and measuring
+  the real gap between the two on this dataset's core activation action.
+difficulty: INTERMEDIATE
+estimated_minutes: 20
+display_order: 1
+objectives:
+  - Distinguish "tried a feature once" from "adopted a feature" (repeat, sustained use) and explain why conflating them overstates adoption
+  - Compute a repeat-usage rate as the fraction of first-time users who come back to use the same feature again
+  - Read a repeat-usage rate as a signal of value clarity, separate from a trial or discovery rate
+prerequisites: [feature-adoption]
+skills: [product-analytics, product-metrics]
+datasets: [saas-product]
+tags: [product, saas, intermediate]
+key_takeaways:
+  - "A trial rate (did they try it at least once?) and an adoption/repeat rate (did they come back and use it again?) are different metrics that answer different questions — a feature can have a high trial rate and a low repeat rate, which usually means people find it but don't find it valuable enough to return to."
+  - "In this dataset, 2,074 of 3,000 signups (69.1%) try the core action ('activated'), but only 1,125 of those 2,074 (54.2%) come back and use the product again afterward ('engaged') — nearly half of everyone who tries the core action doesn't return to it."
+  - Repeat usage is a stronger signal of real product-market fit than trial alone, precisely because trying something once can be driven by curiosity or a prompt, while coming back a second time usually requires the first experience to have delivered real value.
+common_mistakes:
+  - Reporting "69% of users adopted the core feature" when 69% is actually the trial rate (tried it at least once) — the two numbers measure fundamentally different things and shouldn't be used interchangeably.
+  - Treating a low repeat-usage rate as a discovery problem (the same fix as a low trial rate) when it's usually a value or usability problem instead — a user who already found and tried the feature, and still didn't come back, needs a different intervention than a user who never found it in the first place.
+blocks:
+  - type: text
+    body: >
+      The `product-metrics` module's feature-adoption lesson focused on getting the *denominator*
+      right — measuring adoption against the population actually eligible to use a feature. This
+      lesson focuses on a different, equally common mistake: conflating *trial* with *adoption*.
+      Every user in this dataset is eligible for the core action (there's no gating), which makes it
+      a clean setting to isolate the trial-vs-adoption distinction on its own.
+  - type: heading
+    text: Two different questions, two different metrics
+  - type: table
+    headers: ["Question", "Metric", "What a high number means", "What a low number means"]
+    rows:
+      - ["Did they try it at least once?", "Trial rate", "The feature is discoverable and inviting enough to attempt", "A discovery or messaging problem — people don't know it exists or don't understand what it does"]
+      - ["Did they come back and use it again?", "Repeat / adoption rate", "The feature delivered enough value on first use to justify returning", "A value or usability problem — people tried it, and that wasn't enough to bring them back"]
+  - type: heading
+    text: "Measuring both on this dataset's core action"
+  - type: code
+    language: sql
+    caption: Trial rate (activated) vs. repeat-usage rate (activated users who go on to engage)
+    code: |
+      WITH per_user AS (
+        SELECT
+          user_id,
+          MAX(CASE WHEN event_name = 'activated' THEN 1 ELSE 0 END) AS activated,
+          MAX(CASE WHEN event_name = 'engaged'   THEN 1 ELSE 0 END) AS engaged
+        FROM events
+        GROUP BY user_id
+      )
+      SELECT
+        COUNT(*)                                                       AS all_signups,
+        SUM(activated)                                                 AS tried_core_action,
+        SUM(CASE WHEN activated = 1 AND engaged = 1 THEN 1 END)        AS came_back_again,
+        ROUND(SUM(activated) * 1.0 / COUNT(*), 4)                      AS trial_rate,
+        ROUND(SUM(CASE WHEN activated = 1 AND engaged = 1 THEN 1 END)
+              * 1.0 / SUM(activated), 4)                                AS repeat_usage_rate
+      FROM per_user;
+  - type: output
+    body: "all_signups=3000, tried_core_action=2074, came_back_again=1125, trial_rate=0.6913, repeat_usage_rate=0.5424"
+  - type: table
+    headers: ["Metric", "Value", "Reads as"]
+    rows:
+      - ["Trial rate", "69.1%", "Most signups do try the core action at least once"]
+      - ["Repeat-usage rate (of those who tried)", "54.2%", "Fewer than half of everyone who tried it fails to return — nearly half don't come back"]
+  - type: callout
+    variant: important
+    title: A 69% "adoption" headline would be misleading here
+    body: >
+      69.1% sounds like a strong adoption story on its own. But the repeat-usage rate tells a
+      different, more sobering one: of the 2,074 users who tried the core action, 949 of them (45.8%)
+      never touched the product again afterward. Reporting only the trial number and calling it
+      "adoption" would hide almost half of the real story — that trying it once frequently doesn't
+      lead to actually adopting it as an ongoing habit.
+  - type: heading
+    text: What a repeat-usage gap points to
+  - type: callout
+    variant: tip
+    title: This is a different problem than a discovery problem — and needs a different fix
+    body: >
+      Since these 949 users already found and tried the core action, low-repeat-usage is not a
+      discoverability issue — messaging or onboarding prompts that get more people to *try* it
+      wouldn't fix this gap, since it isn't a trial problem. A repeat-usage gap this size is more
+      often addressed by looking at what happens in that first session itself: was the value delivered
+      clearly and quickly, was there a confusing next step, or did the user simply not have a
+      recurring need for the action yet.
+  - type: question
+    prompt: >
+      A feature shows a 70% trial rate but only a 30% repeat-usage rate among users who tried it.
+      Which intervention is most likely to address the repeat-usage gap specifically?
+    choices:
+      - "Add more prompts and banners to get more users to try the feature for the first time"
+      - "Investigate what happens during and immediately after the first use — whether the value was clear and the next step was obvious — since these users already found and tried it once"
+      - "Lower the trial rate to make the repeat-usage rate look better by comparison"
+      - "Nothing can be done once a user has already tried a feature and not returned"
+    correct_index: 1
+    explanation: >
+      A low repeat-usage rate among users who already tried a feature is a value or usability
+      question, not a discovery question — more prompts to drive trial won't help someone who
+      already tried it. The fix has to focus on what the first use actually delivered and whether it
+      created a reason to come back.

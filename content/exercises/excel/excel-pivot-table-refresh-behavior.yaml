@@ -1,0 +1,19 @@
+slug: excel-pivot-table-refresh-behavior
+skill: excel-fundamentals
+title: Pivot Tables and New Data
+description: 'True or False: a Pivot Table automatically updates its summary the moment new rows are added to its
+  underlying source data, with no further action needed.'
+exercise_type: TRUE_FALSE
+difficulty: BEGINNER
+points: 5
+tags:
+- excel
+prompt: 'True or False: a Pivot Table automatically updates its summary the moment new rows are added to its underlying
+  source data, with no further action needed.'
+correct_answer: 'False'
+explanation: False -- a Pivot Table only reflects new source rows after you explicitly refresh it (right-click ->
+  Refresh, or Data > Refresh All). This is a common source of a stale-looking report when someone adds rows and
+  doesn't refresh.
+choices:
+- 'True'
+- 'False'

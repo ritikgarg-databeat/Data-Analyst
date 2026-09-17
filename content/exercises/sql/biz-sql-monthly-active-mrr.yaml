@@ -1,0 +1,78 @@
+slug: biz-sql-monthly-active-mrr
+lesson_slug: biz-recurring-revenue-and-margin
+skill: business-metrics
+dataset: saas-product
+title: Compute Monthly Active MRR
+description: Compute a month-by-month snapshot of active Monthly Recurring Revenue from subscription start and end dates.
+exercise_type: SQL
+difficulty: ADVANCED
+points: 25
+tags: [sql, business-analytics, advanced, saas]
+business_context: >
+  Finance wants a clean, month-by-month MRR trend line reconstructed directly from subscription
+  records — a snapshot of what was actually active at the end of each month, not a sum of every
+  subscription that ever existed.
+prompt: >
+  Using `subscriptions`, write a query that returns one row per calendar month from 2025-01-01
+  through 2026-01-01 (inclusive of both endpoints, 13 months total), with columns `month_start`
+  (the first day of the month) and `active_mrr` (`ROUND(SUM(mrr), 2)` across every subscription
+  active at the end of that month — i.e. `start_date` on or before the month's last day, and
+  `end_date` either NULL or after the month's last day). Order the result chronologically.
+sql_tables: [subscriptions]
+sql_starter_query: |
+  -- Explore the table first
+  SELECT * FROM subscriptions LIMIT 20;
+sql_solution_query: |
+  WITH months AS (
+    SELECT UNNEST(generate_series(DATE '2025-01-01', DATE '2026-01-01', INTERVAL 1 MONTH)) AS month_start
+  )
+  SELECT
+    m.month_start,
+    ROUND(SUM(CASE
+      WHEN s.start_date <= (m.month_start + INTERVAL 1 MONTH - INTERVAL 1 DAY)
+       AND (s.end_date IS NULL OR s.end_date > (m.month_start + INTERVAL 1 MONTH - INTERVAL 1 DAY))
+      THEN s.mrr ELSE 0 END), 2) AS active_mrr
+  FROM months m
+  LEFT JOIN subscriptions s ON true
+  GROUP BY m.month_start
+  ORDER BY m.month_start;
+sql_row_order_matters: true
+sql_numeric_tolerance: 0.01
+sql_hidden_tests:
+  - name: "October 2025 active_mrr matches an independent recomputation"
+    query: |
+      SELECT DATE '2025-10-01' AS month_start,
+             ROUND(SUM(CASE
+               WHEN s.start_date <= DATE '2025-10-31'
+                AND (s.end_date IS NULL OR s.end_date > DATE '2025-10-31')
+               THEN s.mrr ELSE 0 END), 2) AS active_mrr
+      FROM subscriptions s
+    key_columns: 1
+hints:
+  - "Generate a calendar spine of month-start dates first (e.g. with generate_series), since months with zero relevant subscription changes still need to appear in the output — you can't get every month just by grouping subscriptions themselves."
+  - "For each month, a subscription counts as active if it started on or before that month's last day AND (it has no end_date yet, or its end_date is after that month's last day) — join every subscription against every month (a cross join is fine here) and sum mrr conditionally with a CASE expression."
+solution: >
+  ```sql
+  WITH months AS (
+    SELECT UNNEST(generate_series(DATE '2025-01-01', DATE '2026-01-01', INTERVAL 1 MONTH)) AS month_start
+  )
+  SELECT
+    m.month_start,
+    ROUND(SUM(CASE
+      WHEN s.start_date <= (m.month_start + INTERVAL 1 MONTH - INTERVAL 1 DAY)
+       AND (s.end_date IS NULL OR s.end_date > (m.month_start + INTERVAL 1 MONTH - INTERVAL 1 DAY))
+      THEN s.mrr ELSE 0 END), 2) AS active_mrr
+  FROM months m
+  LEFT JOIN subscriptions s ON true
+  GROUP BY m.month_start
+  ORDER BY m.month_start;
+  ```
+explanation: >
+  MRR is a point-in-time snapshot, not a sum over history, so the query has to ask "which subscriptions
+  were active as of this specific month-end" rather than simply grouping subscriptions by their own
+  start or end date. Generating an explicit calendar spine and cross-joining it against every subscription
+  makes each month's active set independently re-derivable, rather than relying on a subscription's own
+  date fields to imply which months it should appear in. A common mistake is grouping subscriptions by
+  `DATE_TRUNC('month', start_date)` and treating that as "MRR for that month" — that computes *new* MRR
+  added that month, not total *active* MRR, which also needs every still-active subscription that started
+  in an earlier month to keep being counted going forward.

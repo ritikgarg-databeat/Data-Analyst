@@ -1,0 +1,89 @@
+slug: dw-the-lakehouse
+module_slug: the-lakehouse
+title: "The Lakehouse: A Lake's Economics, a Warehouse's Guarantees"
+description: How the lakehouse pattern combines a data lake's cheap, flexible storage with a warehouse's structure, reliability, and query performance — and why it emerged instead of just picking one.
+difficulty: INTERMEDIATE
+estimated_minutes: 30
+display_order: 1
+objectives:
+  - "Explain the core problem the lakehouse pattern was invented to solve: choosing between a lake and a warehouse used to mean giving something up either way."
+  - List the warehouse-like guarantees a lakehouse adds on top of lake-style storage (ACID transactions, schema enforcement, time travel).
+  - Reason about where the ecommerce dataset's dbt build sits relative to lake/warehouse/lakehouse — and why the distinction is about table format and guarantees, not the file type alone.
+skills: [data-warehousing, cloud-data-warehouses]
+datasets: [ecommerce]
+tags: [lakehouse, data-lake, data-warehouse, architecture, intermediate]
+prerequisites: [dw-the-data-lake]
+key_takeaways:
+  - "Before the lakehouse pattern, teams effectively had to choose: a data lake (cheap, flexible, but no transactional guarantees or reliable schema enforcement) or a data warehouse (reliable and fast to query, but expensive to store huge or semi-structured volumes in)."
+  - "A lakehouse keeps data in open, lake-style file formats (like Parquet) on cheap object storage, but adds a transactional metadata layer (technologies like Delta Lake, Apache Iceberg, or Apache Hudi) on top that provides ACID transactions, schema enforcement, and versioned \"time travel\" queries — the reliability guarantees that used to require a warehouse."
+  - "The distinction is about table format and guarantees, not file extension: a folder of Parquet files is lake-shaped; the same Parquet files managed by an Iceberg or Delta table format, with transaction logs and schema enforcement, is lakehouse-shaped — the physical bytes can look similar, but what you can safely rely on is very different."
+common_mistakes:
+  - "Assuming \"lakehouse\" just means \"a lake and a warehouse used together, as two separate systems.\" The point of the pattern is specifically to avoid maintaining two separate copies of the data (one in the lake, one ETL'd into the warehouse) — a lakehouse is one storage layer that plays both roles, via a transactional table format on top of lake storage."
+  - "Believing a lakehouse requires proprietary, one-vendor infrastructure. The formats behind it (Apache Iceberg, Delta Lake, Apache Hudi) are open table formats specifically designed so multiple engines can read and write the same underlying data reliably — openness is part of the pitch, not an afterthought."
+blocks:
+  - type: heading
+    text: The gap the lakehouse closes
+  - type: text
+    body: >
+      For years, teams had a real choice to make, and both options gave something up. A **data lake**
+      (raw files on cheap object storage) was cheap and flexible but offered no transactional
+      guarantees — two concurrent writers could corrupt a dataset, there was no reliable way to
+      enforce a schema, and "what did this table look like last Tuesday" wasn't really an answerable
+      question. A **data warehouse** solved all of that, but at higher storage cost and less
+      flexibility for the raw, high-volume, or semi-structured data a lake handled well. The
+      **lakehouse** pattern is an attempt to get both: a lake's storage economics, with a warehouse's
+      reliability guarantees, on the same copy of the data.
+  - type: text
+    body: >
+      What actually makes this possible is a **transactional table format** layered on top of
+      ordinary lake files. Open formats like Apache Iceberg, Delta Lake, and Apache Hudi keep the
+      underlying data in a format like Parquet, but add a metadata/transaction log alongside it that
+      tracks exactly which files make up which version of the table. That log is what enables ACID
+      transactions (a write either fully succeeds or fully fails — no partial, corrupted state),
+      schema enforcement (a write that doesn't match the declared schema gets rejected, the way a
+      warehouse table would reject it), and time travel (querying the table *as it looked* at a
+      specific past version, because old file references are retained rather than immediately
+      deleted).
+  - type: comparison
+    title: "Lake, warehouse, and lakehouse: what each one gives up"
+    columns: ["Property", "Data lake", "Data warehouse", "Lakehouse"]
+    rows:
+      - ["Storage cost at scale", "Low (cheap object storage)", "Higher (structured, indexed storage)", "Low (still object storage under the hood)"]
+      - ["Schema enforcement", "None by default (schema-on-read)", "Yes (schema-on-write)", "Yes, via the table format's metadata layer"]
+      - ["ACID transactions", "No", "Yes", "Yes, via the table format (Iceberg/Delta/Hudi)"]
+      - ["Time travel / versioning", "Not built in", "Sometimes, via warehouse features", "Yes, a core feature of the table format"]
+      - ["Handles raw/semi-structured data well", "Yes", "Poorly / not designed for it", "Yes"]
+      - ["Multiple engines reading the same copy", "Yes, but no shared guarantees", "Usually one warehouse engine", "Yes, with shared guarantees across engines"]
+  - type: example
+    title: "Where this project's own build sits"
+    body: >
+      The `data/sample/ecommerce/*.csv` files, read directly as a dbt source, are lake-shaped: raw
+      files, schema-on-read, no transactional guarantees over the files themselves. The `marts`
+      schema the dbt project builds (`dim_customers`, `dim_products`, `fct_orders`,
+      `fct_daily_revenue`) is warehouse-shaped: structured tables with an enforced schema, built by
+      transformations that run as atomic steps. Neither one, on its own, is a lakehouse — there's no
+      Iceberg/Delta/Hudi table format sitting on top of the raw CSVs providing ACID guarantees and
+      time travel over the *raw* layer. A real lakehouse setup would keep the raw ecommerce event data
+      in an open table format on object storage from the start, and query and transform it in place,
+      instead of needing a separate warehouse copy at all.
+  - type: callout
+    variant: important
+    title: "It's about the table format, not the file extension"
+    body: >
+      A folder of `.parquet` files is not automatically a lakehouse. What makes it lakehouse-shaped is
+      whether a transactional table format (Iceberg, Delta Lake, Hudi) is managing those files —
+      tracking which ones are the current valid version, enforcing schema on writes, and supporting
+      versioned reads. The same physical file format can be "just a lake" or "part of a lakehouse"
+      depending entirely on whether that metadata layer sits on top of it.
+  - type: question
+    prompt: "What specifically does a lakehouse add on top of ordinary data-lake storage to close the reliability gap with a warehouse?"
+    choices:
+      - "Nothing technical — it's purely a marketing term for a data lake that also has a BI tool connected to it"
+      - "A transactional table format (like Apache Iceberg, Delta Lake, or Apache Hudi) layered on top of the lake's files, providing ACID transactions, schema enforcement, and time travel"
+      - "A requirement that all data be converted to CSV before storage, for maximum compatibility"
+    correct_index: 1
+    explanation: >
+      The lakehouse pattern's real technical substance is the open table format sitting on top of
+      lake-style file storage — that metadata/transaction layer is what provides the ACID guarantees,
+      schema enforcement, and time-travel queries that used to require a separate data warehouse,
+      while the underlying files stay in cheap, open formats on object storage.

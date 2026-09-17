@@ -1,0 +1,105 @@
+slug: biz-sql-monthly-revenue-growth-rate
+lesson_slug: biz-revenue-growth-rate
+skill: business-metrics
+dataset: ecommerce
+title: Compute Month-over-Month Net Revenue Growth
+description: Compute each calendar month's net completed-order revenue and its percent change versus the prior month.
+exercise_type: SQL
+difficulty: INTERMEDIATE
+points: 20
+tags: [sql, business-analytics, intermediate, e-commerce, window-functions]
+business_context: >
+  Finance wants a revenue trend line for the board deck that flags acceleration and slowdowns
+  automatically, computed off net (discount-adjusted) revenue from completed orders only — not
+  raw payment totals, which would include refunded transactions.
+prompt: >
+  Using `orders` and `order_items`, write a query that returns one row per calendar month of
+  completed orders (`orders.status = 'completed'`), with columns `order_month`
+  (`DATE_TRUNC('month', order_date)`), `net_revenue` (`ROUND(SUM(quantity * (unit_price - discount)), 2)`
+  for that month), and `pct_change` — the percent change in `net_revenue` versus the immediately
+  preceding month, computed as `100.0 * (this_month - prev_month) / prev_month` and rounded to 1
+  decimal place. The earliest month has no preceding month, so its `pct_change` should be NULL.
+  Order the result chronologically from earliest month to latest.
+sql_tables: [orders, order_items]
+sql_starter_query: |
+  -- Explore the tables first
+  SELECT * FROM orders LIMIT 20;
+sql_solution_query: |
+  WITH monthly AS (
+    SELECT
+      DATE_TRUNC('month', o.order_date) AS order_month,
+      SUM(i.quantity * (i.unit_price - i.discount)) AS net_revenue
+    FROM orders o
+    JOIN order_items i USING (order_id)
+    WHERE o.status = 'completed'
+    GROUP BY 1
+  )
+  SELECT
+    order_month,
+    ROUND(net_revenue, 2) AS net_revenue,
+    ROUND(
+      100.0 * (net_revenue - LAG(net_revenue) OVER (ORDER BY order_month))
+      / LAG(net_revenue) OVER (ORDER BY order_month),
+      1
+    ) AS pct_change
+  FROM monthly
+  ORDER BY order_month;
+sql_row_order_matters: true
+sql_numeric_tolerance: 0.5
+sql_hidden_tests:
+  - name: "Most recent month's pct_change matches an independent recomputation"
+    query: |
+      WITH monthly AS (
+        SELECT
+          DATE_TRUNC('month', o.order_date) AS order_month,
+          SUM(i.quantity * (i.unit_price - i.discount)) AS net_revenue
+        FROM orders o
+        JOIN order_items i USING (order_id)
+        WHERE o.status = 'completed'
+        GROUP BY 1
+      )
+      SELECT
+        order_month,
+        ROUND(
+          100.0 * (net_revenue - LAG(net_revenue) OVER (ORDER BY order_month))
+          / LAG(net_revenue) OVER (ORDER BY order_month),
+          1
+        ) AS pct_change
+      FROM monthly
+      ORDER BY order_month DESC
+      LIMIT 1
+    key_columns: 1
+hints:
+  - "Build a CTE that collapses completed orders down to one row per calendar month using GROUP BY DATE_TRUNC('month', order_date), summing quantity * (unit_price - discount) across order_items."
+  - "On top of that CTE, use LAG(net_revenue) OVER (ORDER BY order_month) to reach the previous month's total, and compute 100.0 * (this - prev) / prev — the 100.0 (a float) avoids integer-division truncation."
+solution: >
+  ```sql
+  WITH monthly AS (
+    SELECT
+      DATE_TRUNC('month', o.order_date) AS order_month,
+      SUM(i.quantity * (i.unit_price - i.discount)) AS net_revenue
+    FROM orders o
+    JOIN order_items i USING (order_id)
+    WHERE o.status = 'completed'
+    GROUP BY 1
+  )
+  SELECT
+    order_month,
+    ROUND(net_revenue, 2) AS net_revenue,
+    ROUND(
+      100.0 * (net_revenue - LAG(net_revenue) OVER (ORDER BY order_month))
+      / LAG(net_revenue) OVER (ORDER BY order_month),
+      1
+    ) AS pct_change
+  FROM monthly
+  ORDER BY order_month;
+  ```
+explanation: >
+  A strong answer filters to `status = 'completed'` before aggregating (not after, and not omitting the
+  filter entirely) so refunded and cancelled orders never enter the revenue total, and computes net
+  revenue as `quantity * (unit_price - discount)` rather than just `unit_price`, since discounts reduce
+  what the business actually kept. `LAG(net_revenue) OVER (ORDER BY order_month)` is the right tool for
+  a period-over-period comparison because it reaches back exactly one row in a chronologically ordered
+  sequence without a self-join. A common mistake is grouping by the raw `order_date` instead of
+  `DATE_TRUNC('month', order_date)`, which produces one row per exact date rather than per month and
+  breaks the intended month-over-month comparison entirely.

@@ -1,0 +1,100 @@
+slug: corr-interpreting-regression-coefficients
+module_slug: correlation-regression
+title: Interpreting Regression Coefficients With Caution
+description: Why a statistically significant coefficient can still explain very little, what R-squared does and doesn't tell you, and the confounding-variable question every coefficient deserves before you act on it.
+difficulty: ADVANCED
+estimated_minutes: 14
+display_order: 4
+objectives:
+  - Distinguish a coefficient's statistical significance from how much of the outcome's variation the overall model actually explains.
+  - Ask the right follow-up question (omitted variable / confounding) before treating a regression coefficient as a causal, actionable number.
+skills: [statistics, statistical-reasoning, data-interpretation]
+datasets: [ecommerce]
+tags: [statistics, advanced, e-commerce]
+prerequisites: [corr-simple-linear-regression]
+key_takeaways:
+  - "A statistically significant coefficient (small p-value) tells you the relationship is unlikely to be exactly zero — it says nothing about how much of the outcome's overall variation that one predictor actually accounts for."
+  - "A low R-squared alongside a significant coefficient is a completely coherent, common result: it means 'this predictor reliably matters, but a lot of the outcome is still driven by other factors not in this model.'"
+  - "A regression coefficient describes an association observed in the data used to fit it — treating it as the causal effect of intervening on that predictor requires ruling out confounding variables and reverse causation, the same caution as with any correlation."
+common_mistakes:
+  - "Treating a significant p-value on a coefficient as proof the predictor is \"the\" driver of the outcome, when R-squared may show it explains only a small share of the total variation."
+  - Reporting a regression coefficient as if it were a guaranteed causal effect of changing that input, without considering what else might be driving both the predictor and the outcome together.
+interview_questions:
+  - question: "A regression of discount amount on unit price gives slope = 0.076 (p < 0.001) but R-squared = 0.178. How do you explain both numbers to a stakeholder who says \"if it's significant, price must be the main driver of discounting\"?"
+    answer: >
+      Significance and explanatory power are different questions. The p < 0.001 says we're
+      confident the true slope isn't zero — unit price really is associated with discount amount.
+      But R-squared = 0.178 says unit price only accounts for about 17.8% of the variation in
+      discount amounts across all order line items — meaning roughly 82% of why discounts vary is
+      driven by something else entirely (promotions, category-specific discounting rules, timing).
+      "Significant" does not mean "the main driver" — it means "reliably non-zero," which is a much
+      weaker claim.
+blocks:
+  - type: heading
+    text: Significant, but not the whole story
+  - type: text
+    body: >
+      A coefficient's p-value answers "is this relationship distinguishable from zero?" R-squared
+      answers a completely different question: "how much of the outcome's total variation does this
+      model explain?" A predictor can be highly statistically significant while still explaining
+      only a modest share of what's actually driving the outcome — both things can be true
+      simultaneously, and it's a normal, common result, not a contradiction.
+  - type: example
+    title: Discount amount as a function of unit price
+    body: >
+      Regressing order-line discount (dollar amount) on unit price across the ecommerce dataset's
+      12,627 order line items gives slope = 0.076 (p < 0.001 — for every additional dollar of unit
+      price, discount rises by about 7.6 cents on average) but R-squared = 0.178 — unit price
+      explains only about 17.8% of the total variation in discount amounts.
+  - type: code
+    language: python
+    code: |
+      import statsmodels.api as sm
+
+      X = sm.add_constant(order_items["unit_price"])
+      model = sm.OLS(order_items["discount"], X).fit()
+      print(round(model.params["unit_price"], 3), model.pvalues["unit_price"])  # 0.076, ~0.0
+      print(round(model.rsquared, 3))                                          # 0.178
+    caption: A highly significant slope alongside a modest R-squared — both numbers are telling you something different and both are correct.
+  - type: callout
+    variant: important
+    title: "\"Significant\" is not the same claim as \"the main driver\""
+    body: >
+      With 82.2% of discount variation left unexplained by price alone, there's clearly something
+      else generating most of the variation — likely category-specific promotion rules, timing of
+      sales events, or manual pricing decisions not captured in this simple model. A stakeholder
+      hearing "highly significant" should not walk away thinking price is *the* explanation for
+      discounting — it's *a* reliable factor among several, and the R-squared is the number that
+      keeps that claim honest.
+  - type: heading
+    text: The confounding-variable question, before acting on any coefficient
+  - type: text
+    body: >
+      Before treating a coefficient as something you could act on ("if we raise prices, discounts
+      will rise too, so let's account for that"), ask: is there a third factor driving both variables
+      that this simple model doesn't capture? Here, product category is a natural candidate — some
+      categories may have both higher list prices *and* separately-set, more aggressive promotional
+      discount policies, which would produce exactly this kind of price-discount relationship without
+      price itself being the reason discounts are set the way they are.
+  - type: callout
+    variant: warning
+    title: A coefficient describes an association in this data, not a lever you've proven you can pull
+    body: >
+      Acting on "raising price increases discount" as a causal lever would require evidence that
+      changing price *causes* a change in discounting policy, not just that the two move together in
+      historical data — which is exactly the correlation-versus-causation caution from the previous
+      lesson, applied to a regression coefficient instead of a raw correlation.
+  - type: question
+    prompt: >
+      A regression finds that "hours since last login" significantly predicts churn (p < 0.001), but
+      the model's overall R-squared is only 0.09. What's the most accurate way to summarize this to a
+      product team?
+    choices:
+      - "Hours since last login is the main cause of churn and should be the top priority to fix"
+      - "Hours since last login is a reliable, statistically real predictor of churn, but it only accounts for about 9% of why churn varies — most of the story lies elsewhere, and this alone doesn't establish it causes churn"
+      - "An R-squared of 0.09 means the result should be disregarded entirely"
+    correct_index: 1
+    explanation: >
+      Significance (p < 0.001) and explanatory power (R-squared = 0.09) are separate facts. This
+      predictor is real but far from the whole picture, and a regression coefficient alone doesn't
+      establish causation — both nuances matter for setting the product team's priorities correctly.

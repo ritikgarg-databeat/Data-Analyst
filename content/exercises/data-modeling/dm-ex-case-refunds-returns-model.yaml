@@ -1,0 +1,74 @@
+slug: dm-ex-case-refunds-returns-model
+lesson_slug: dm-facts-and-dimensions
+skill: dimensional-modeling
+dataset: ecommerce
+title: "Case: Modeling Refunds for Finance"
+description: A rubric-scored case study on whether a brand-new fact table is actually warranted for a refund-rate report, or whether the existing star schema already answers it.
+exercise_type: MODELING
+difficulty: ADVANCED
+points: 25
+tags: [case-study, fact-table, real-world, data-modeling]
+business_context: >
+  Finance wants a "refund rate by product category" report and has asked you to design the dimensional model
+  for it, using only the tables already in the ecommerce dataset (orders, order_items, products, categories,
+  payments — no separate returns/refund-reason table exists in the source system).
+stakeholder: "Director of Finance"
+constraints:
+  - "There is no separate 'returns' or 'refunds' table in the source system — refund status lives as orders.status = 'refunded' (258 of 4,205 real orders) and is confirmed by payments.status = 'refunded' on the matching payment row (all 258 refunded orders have a payment row also marked refunded, with zero mismatches)."
+  - "There is no return-reason, return-date, or restocking-cost column anywhere in the current schema."
+expected_deliverables:
+  - "A recommendation on whether a brand-new fact table is actually needed, or whether the existing fct_orders (filtered by status) already supports the question"
+  - "The specific dimensional design: fact table (existing or new), its grain, and the dimensions it joins to answer 'refund rate by category'"
+  - "The real refund-rate number for this dataset, computed correctly"
+  - "A clear statement of what the model cannot yet answer, and what schema change would be needed to answer it"
+prompt: >
+  Design, in prose, the dimensional model you'd use to answer "what's our refund rate by product category?" for
+  Finance, using only the tables that actually exist in the ecommerce dataset. Be explicit about whether a new
+  fact table is warranted here or whether reusing an existing one is the more honest answer, and state the real
+  refund-rate figure computed from the data.
+hints:
+  - "Before designing a new fact table, check whether the grain and status flag you need already exist somewhere in the model — building a new table nobody strictly needs is its own kind of modeling mistake."
+  - "Refund revenue by category requires joining through order_items and products/categories, the same path a normal revenue-by-category report would use, just filtered differently."
+rubric:
+  - criterion: "Recognizes that a brand-new fact table is not required for this specific question — fct_orders already carries status and (via order_items/products/categories) supports a category-level refund breakdown by filtering rather than modeling a separate returns fact"
+    points: 25
+  - criterion: "Correctly states the query path/grain needed: joining orders (filtered to status='refunded') through order_items to products to categories, at the order-line grain, to get category-level refunded revenue"
+    points: 25
+  - criterion: "Computes and cites a real, correct refund-rate figure from the actual data rather than an invented number"
+    points: 25
+  - criterion: "Clearly states the real gap (no return-reason/return-date/restocking-cost data) and what schema addition would be needed to go further, rather than implying the current data supports reason-level analysis"
+    points: 25
+solution: >
+  A brand-new fact table isn't warranted here. `fct_orders` already carries `status` at the order grain, and
+  refund status is already a real, populated value on it (`status = 'refunded'`) — confirmed consistent with
+  `payments.status = 'refunded'` on the matching payment for all 258 refunded orders in this dataset, with zero
+  mismatches. Building a separate `fct_returns` fact table would duplicate information that's already correctly
+  modeled, for no analytical benefit — its own kind of mistake (an unnecessarily "thick" model rather than an
+  unnecessarily "thin" one).
+
+  The correct design reuses the existing star: join `orders` (filtered to `status = 'refunded'`) to
+  `order_items` (grain: 1 row = 1 product line within an order) to `products` to `categories`, summing
+  `quantity * unit_price - discount` per category — the identical query pattern a normal revenue-by-category
+  report uses, just filtered to the refunded subset instead of the completed subset.
+
+  The real refund rate: total refunded revenue across all refunded orders is $468,292.57, against $6,094,645.49
+  in completed-order revenue — a refund rate of 468292.57 / 6094645.49 ≈ 7.68% of completed revenue. By
+  category, refunded revenue ranges from $13,305.47 (Home & Kitchen) up to $68,434.63 (Books) — Books also has
+  the highest completed revenue of any category, so a raw refunded-dollar ranking mostly tracks category size; a
+  fair "refund rate by category" comparison should divide each category's refunded revenue by that same
+  category's completed revenue rather than compare raw refunded dollars across categories of very different
+  sizes.
+
+  What the model cannot answer: *why* an order was refunded. There is no return-reason, return-date, or
+  restocking-cost column anywhere in the current schema — orders.status and payments.status only confirm *that*
+  a refund happened, not what drove it (defective item, wrong size, changed mind, fraud). Answering "why are
+  Books refunded most" would require a genuine upstream schema addition — a return_reason field captured at the
+  point a refund is issued — which doesn't exist today.
+explanation: >
+  The strongest answers actively argue against building a new fact table where the existing one already
+  suffices, which is the harder and more valuable skill than defaulting to "add a table for every new
+  question." They also correctly normalize the refunded-dollar comparison by each category's own completed
+  revenue rather than presenting raw dollar rankings, which mostly just reflects category size. A weaker answer
+  invents a fct_returns table from scratch, reports raw refunded dollars by category as if that answers "refund
+  rate" without normalizing, or implies reason-level analysis is possible when the schema doesn't carry that
+  data.

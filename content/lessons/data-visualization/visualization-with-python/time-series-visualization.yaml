@@ -1,0 +1,178 @@
+slug: time-series-visualization
+module_slug: visualization-with-python
+title: "Time Series Visualization: Smoothing Noise, Building Interactive Trends"
+description: Layering a rolling average over a noisy daily line to reveal the real trend, and plotly as the modern default for interactive time series with hover tooltips.
+difficulty: BEGINNER
+estimated_minutes: 12
+display_order: 8
+objectives:
+  - Explain why a raw daily time series is often too noisy to read on its own, using real day-to-day order counts
+  - Layer a rolling average on top of a noisy daily line to reveal the underlying trend without discarding the raw data
+  - Build an interactive plotly time series chart with hover tooltips, and explain why that's the modern default for dashboards
+prerequisites: [heatmaps]
+skills: [data-visualization]
+datasets: [ecommerce]
+tags: [python, beginner, foundations]
+key_takeaways:
+  - "Daily order counts in this dataset genuinely are noisy — a mean of 5.84 orders/day with a standard deviation of 5.96 (almost as large as the mean itself) means a raw daily line chart bounces around too much to show a trend clearly, even though a real, strong growth trend exists underneath it."
+  - "A rolling average (e.g. a 7-day mean) smooths that day-to-day noise into a readable trend line, but it should be layered on top of the raw daily line, not shown instead of it — the raw line still carries real information (volatility, individual spikes and drops) that smoothing intentionally discards."
+  - "A wider rolling window smooths more aggressively but also lags further behind real recent changes — a 7-day window on daily data is a common starting point, not a universal default; the right window size depends on how noisy the metric is and how much lag is acceptable."
+  - "plotly (via go.Scatter or px.line) renders an interactive chart with hover tooltips showing the exact date and value at any point, zoom/pan, and toggleable series by clicking the legend — for a dashboard or any chart someone will actually interact with rather than just look at once, that interactivity is worth the extra dependency over a static matplotlib line."
+common_mistakes:
+  - "Plotting raw daily data with no smoothing and concluding a metric is 'too volatile to see a trend,' when a rolling average over the same data often reveals a clear, stable trend underneath the day-to-day noise."
+  - "Replacing the raw line with only the smoothed line, which hides real volatility and any genuine single-day spikes or drops that a stakeholder might actually need to see."
+  - "Defaulting to matplotlib for every time series chart even when it's headed into an interactive dashboard, losing hover tooltips and zoom for no real reason beyond habit."
+practical_applications:
+  - "Smoothing a noisy daily metric (orders, revenue, active users) with a rolling average before presenting a trend to stakeholders, while keeping the raw daily line visible for context."
+  - "Choosing a rolling window size (7-day for daily data with a weekly rhythm, 30-day for longer-horizon smoothing) deliberately, based on how noisy the metric is."
+  - "Building an interactive plotly time series for a dashboard where someone needs to hover over a specific date to get the exact value, not just eyeball an overall shape."
+interview_questions:
+  - question: "You plot daily revenue and it looks extremely jagged with no clear direction. What would you do?"
+    answer: "First, I'd check that the jaggedness is really just noise and not a data issue (missing days, a logging bug). Assuming it's real day-to-day variation, I'd add a rolling average — a 7-day mean is a reasonable starting point for daily data — plotted as a second line layered over the raw daily one. That smooths out the noise enough to see the underlying direction, while the raw line stays visible underneath for anyone who needs to see actual daily volatility or spot a specific bad day."
+  - question: "Why would you reach for plotly instead of matplotlib for a time series chart?"
+    answer: "Mainly interactivity: plotly renders hover tooltips showing the exact value and date at any point, supports zoom and pan out of the box, and lets a viewer toggle individual series on and off by clicking the legend — all useful when someone is actually going to explore the chart, like in a dashboard. matplotlib produces a static image, which is often exactly right for a report or a slide where the chart just needs to communicate one fixed view. I'd pick based on where the chart is going: static output, matplotlib; something a person will interact with, plotly."
+resources:
+  - title: "Plotly documentation — Time series and date axes"
+    url: "https://plotly.com/python/time-series/"
+  - title: "Pandas documentation — rolling()"
+    url: "https://pandas.pydata.org/docs/reference/api/pandas.Series.rolling.html"
+blocks:
+  - type: text
+    body: >
+      The Line Charts lesson showed monthly order volume — a clean, steadily rising trend. Real
+      operational dashboards are rarely built at monthly granularity, though; they run daily, and daily
+      data is noisier. This lesson picks up exactly that gap: what a raw daily line actually looks like,
+      how a rolling average recovers the trend hiding underneath it, and plotly as the modern way to make
+      that chart interactive.
+  - type: heading
+    text: "The raw daily line: noisier than it looks at monthly granularity"
+  - type: code
+    language: python
+    code: |
+      import pandas as pd
+
+      orders = pd.read_csv("data/sample/ecommerce/orders.csv")
+      orders["order_date"] = pd.to_datetime(orders["order_date"])
+
+      daily = orders.groupby("order_date").size()
+      daily = daily.reindex(pd.date_range(daily.index.min(), daily.index.max(), freq="D"), fill_value=0)
+      print(daily.describe())
+    caption: One count per calendar day, including days with zero orders, across the full date range
+  - type: output
+    body: |
+      count    720.000000
+      mean       5.840278
+      std        5.963570
+      min        0.000000
+      25%        1.000000
+      50%        4.000000
+      75%        8.000000
+      max       33.000000
+    caption: "Real output — the standard deviation (5.96) is nearly as large as the mean (5.84): a genuinely noisy daily series"
+  - type: text
+    body: >
+      A standard deviation almost as large as the mean is a strong signal that a raw plot of this series
+      will bounce around a lot from one day to the next — some days will show 0-1 orders, others 15-20,
+      purely from normal day-to-day variation, even if the underlying business trend is smooth and
+      strongly upward (which, per the Line Charts lesson's monthly view, it is: from 3 orders in January
+      2024 to 713 in December 2025).
+  - type: heading
+    text: "Layering a rolling average on top"
+  - type: code
+    language: python
+    code: |
+      import matplotlib.pyplot as plt
+
+      rolling_7d = daily.rolling(7).mean()
+
+      fig, ax = plt.subplots(figsize=(11, 4))
+      ax.plot(daily.index, daily.values, alpha=0.35, label="Daily orders (raw)")
+      ax.plot(rolling_7d.index, rolling_7d.values, linewidth=2, label="7-day rolling average")
+      ax.legend()
+      ax.set_ylabel("Orders placed")
+    caption: The raw line stays visible (faded) underneath the smoothed trend line, not replaced by it
+  - type: output
+    body: |
+      date          daily   7-day rolling avg
+      2025-12-18      18          22.43
+      2025-12-19      27          21.86
+      2025-12-20      21          22.00
+      2025-12-21      23          22.71
+      2025-12-22      22          22.14
+      2025-12-23      19          22.14
+      2025-12-24      21          21.57
+      2025-12-25      28          23.00
+      2025-12-26      27          23.00
+      2025-12-27      33          24.71
+      2025-12-28      26          25.14
+      2025-12-29      22          25.14
+      2025-12-30      28          26.43
+      2025-12-31      30          27.71
+    caption: "Real output, last two weeks of the data — the raw column swings 18-33; the rolling average moves smoothly from 22.43 to 27.71"
+  - type: text
+    body: >
+      Over these same 14 days, the raw daily count jumps around with no obvious pattern by eye — 18, 27,
+      21, 23... — while the 7-day rolling average moves in one clear direction, climbing steadily from
+      22.43 to 27.71. That's the same underlying growth trend the monthly chart showed, just recovered
+      from noisier daily data instead of discarding the daily granularity entirely.
+  - type: callout
+    variant: tip
+    title: "Window size is a real tradeoff, not a default to leave alone"
+    body: >
+      A 7-day window on daily data is a reasonable starting point — long enough to average out routine
+      day-to-day noise, short enough to still track real recent changes without much lag. A 30-day window
+      would smooth even more aggressively but would also lag further behind a genuine recent shift (a
+      launch, an outage). There's no universally correct window; pick one relative to how noisy the raw
+      metric is and how much lag is tolerable for the decision the chart supports.
+  - type: heading
+    text: "plotly: the same chart, interactive"
+  - type: code
+    language: python
+    code: |
+      import plotly.graph_objects as go
+
+      fig = go.Figure()
+      fig.add_trace(go.Scatter(
+          x=daily.index, y=daily.values, mode="lines",
+          name="Daily orders (raw)", line=dict(width=1), opacity=0.4,
+      ))
+      fig.add_trace(go.Scatter(
+          x=rolling_7d.index, y=rolling_7d.values, mode="lines",
+          name="7-day rolling average", line=dict(width=3),
+      ))
+      fig.update_layout(
+          title="Daily order volume",
+          xaxis_title="Date", yaxis_title="Orders placed",
+          hovermode="x unified",
+      )
+      fig.show()
+    caption: "Same two series, now interactive — hovering any date shows both the raw count and the smoothed value together"
+  - type: text
+    body: >
+      `hovermode="x unified"` shows both series' values for whatever date the viewer's cursor is over, in
+      one tooltip — exactly the comparison ("what was the raw count vs. the smoothed trend on this
+      specific day") that a static image can't offer. Viewers can also zoom into a date range (say, just
+      December) by dragging, pan across the full two years, and toggle either line on or off by clicking
+      it in the legend.
+  - type: callout
+    variant: important
+    title: "matplotlib vs. plotly: pick based on where the chart is going"
+    body: >
+      A static report, a slide, or a chart embedded as a fixed image is still usually best served by
+      matplotlib or seaborn — simpler, faster to render, no added dependency for something nobody will
+      interact with. A dashboard, a notebook someone will explore, or anything where a viewer benefits
+      from hovering, zooming, or toggling series is where plotly earns its place as the modern default.
+      The underlying data and even the general chart-type choices (line chart for a trend, per lesson 1's
+      framework) don't change — only the rendering library does.
+  - type: question
+    prompt: "Daily order counts have a standard deviation almost as large as their mean. What does that suggest about plotting them as a raw daily line chart, and what's a common fix?"
+    choices:
+      - "A high standard deviation relative to the mean signals a genuinely noisy series — the raw daily line will be hard to read on its own; layering a rolling average (e.g. 7-day) on top typically reveals the underlying trend"
+      - "It means the data almost certainly contains errors and should be discarded before charting"
+      - "It has no implication for charting — standard deviation only matters for statistical tests, not visualization choices"
+    correct_index: 0
+    explanation: >
+      A standard deviation close to the mean indicates substantial day-to-day variability relative to the
+      typical value, which is exactly what makes a raw daily line chart look jagged and hard to read. A
+      rolling average layered on top (not replacing the raw line) smooths that noise into a readable
+      trend, exactly as the 7-day rolling average did against the real daily order data above.

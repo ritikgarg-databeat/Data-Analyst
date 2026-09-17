@@ -1,0 +1,80 @@
+slug: dw-ex-case-warehouse-vs-direct-query
+lesson_slug: dw-oltp-vs-olap
+skill: data-warehousing
+dataset: ecommerce
+title: "Case: Should the Dashboard Just Query Production Directly?"
+description: Make and justify a recommendation on whether to keep building the warehouse layer or point the BI tool directly at the production OLTP tables, grounded in this dataset's real growth trajectory and data-integration history.
+exercise_type: BUSINESS_REASONING
+difficulty: INTERMEDIATE
+points: 25
+tags: [oltp, olap, data-warehouse, architecture, case-study]
+business_context: >
+  A newly-hired engineering lead, trying to save time, proposes connecting the executive revenue
+  dashboard directly to the production `orders`, `order_items`, and `payments` tables instead of
+  continuing to maintain the staging/marts pipeline. Real numbers worth knowing: `orders` grew from
+  638 rows placed in 2024 to 3,567 rows placed in 2025 — roughly 5.6x year-over-year growth — while
+  `order_items` already holds 12,627 rows. The production `orders.status` column is also not
+  perfectly clean on its own (this is exactly why `stg_orders.sql` applies `trim(lower(status))`
+  before anything downstream trusts it), and `fct_orders` is built by reconciling three separately
+  structured tables (orders, order_items, payments) into one row per order.
+stakeholder: "VP of Engineering"
+constraints:
+  - "The production database also serves live checkout traffic — it cannot be taken offline or meaningfully slowed down to accommodate this decision."
+  - "The recommendation needs to be a clear yes/no on continuing to invest in the warehouse pipeline, not a list of open considerations."
+expected_deliverables:
+  - "A recommendation (keep the warehouse pipeline, or move to direct queries) stated plainly up front"
+  - "An argument grounded in the real order-volume growth trend (638 to 3,567 rows year over year) about why the workload-contention risk gets worse, not better, over time"
+  - "An argument citing the real integration work already done (status standardization, reconciling three tables into fct_orders) as evidence of value already delivered, not just theoretical benefit"
+  - "Acknowledgment of at least one legitimate cost of the warehouse approach (freshness lag, pipeline maintenance) so the recommendation reads as a genuine tradeoff, not a one-sided argument"
+prompt: >
+  Recommend whether to keep investing in the staging/marts pipeline or move the executive revenue
+  dashboard to direct queries against production. Ground your argument in the real order-volume
+  growth trend and the real integration work this project's staging layer already does, and
+  acknowledge at least one genuine cost of the warehouse approach.
+hints:
+  - "Growth compounds the contention risk: if 638 orders in 2024 already needed careful handling to avoid a dashboard query slowing checkout, 3,567 orders in 2025 (5.6x more) makes that risk larger, not smaller — and there's no reason to expect growth to reverse."
+  - "Don't argue only from theory (\"warehouses are best practice\") — cite the specific, already-existing integration fix (stg_orders standardizing status) as concrete evidence that raw production data needed reconciliation work before it could be trusted, which is exactly what a direct-query approach would skip."
+rubric:
+  - criterion: "States a clear, unambiguous recommendation up front (keep the pipeline) rather than a hedged list of considerations"
+    points: 20
+  - criterion: "Correctly argues that the order-volume growth trend (638 → 3,567 rows, ~5.6x year over year) makes OLTP/OLAP contention risk worse over time, not better, strengthening the case for a separate warehouse rather than weakening it"
+    points: 30
+  - criterion: "Cites the real, already-existing integration work (status standardization in stg_orders, reconciling orders/order_items/payments into fct_orders) as concrete, already-realized evidence of the warehouse's value, not just a hypothetical benefit"
+    points: 30
+  - criterion: "Acknowledges at least one genuine, specific cost of the warehouse approach (e.g., data freshness lag between pipeline runs, ongoing maintenance of staging/marts models) rather than presenting the recommendation as costless"
+    points: 20
+solution: >
+  Recommendation: keep investing in the staging/marts pipeline — do not move the executive dashboard
+  to direct production queries.
+
+  Growth argument: order volume grew from 638 rows in 2024 to 3,567 in 2025, roughly 5.6x
+  year-over-year, with order_items already at 12,627 rows. Whatever contention risk exists today
+  between a dashboard's aggregate queries and live checkout traffic on the same production database
+  only grows as volume grows — there's no reason to expect this trend to reverse, and building a
+  direct-query dependency now means the exposure to that risk scales right along with the business,
+  at exactly the moment reliability matters more, not less.
+
+  Integration argument: this isn't a theoretical concern — the staging layer has already done real,
+  necessary reconciliation work. `stg_orders.sql`'s `trim(lower(status))` exists because the raw
+  `orders.status` column can't be trusted to be consistently cased on its own; skipping this layer
+  would mean the dashboard (or whoever queries production directly) has to reimplement that same
+  cleaning logic themselves, with no guarantee it's done consistently every time. `fct_orders`
+  additionally reconciles three separately-shaped tables (orders, order_items, payments) into one
+  correct, order-grain row — logic a direct dashboard query would otherwise have to reinvent, with a
+  real risk of getting the join and aggregation subtly wrong (e.g., a fan-out from an unaggregated
+  order_items join).
+
+  Genuine cost, acknowledged: the pipeline does introduce freshness lag — the dashboard reflects data
+  as of the last pipeline run, not the live production state, and someone has to maintain the
+  staging/intermediate/marts models as the business's data evolves. That's a real, ongoing cost, but
+  it's a substantially smaller and more predictable one than the combined risk of production
+  contention at growing scale and every dashboard consumer re-deriving (and potentially
+  mis-deriving) the same cleaning and join logic independently.
+explanation: >
+  A strong answer leads with a clear recommendation rather than a balanced-sounding list of pros and
+  cons, then supports it with the specific real numbers available (the 5.6x growth figure) rather than
+  a generic "warehouses are best practice" appeal, and points to the concrete, already-existing
+  integration fix (status standardization) as proof the reconciliation work has real, demonstrated
+  value rather than being a hypothetical future benefit. It also doesn't oversell the recommendation —
+  naming a genuine cost (freshness lag, maintenance burden) makes the argument more credible, not less,
+  because it shows the tradeoff was actually considered rather than assumed away.

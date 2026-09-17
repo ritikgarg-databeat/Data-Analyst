@@ -1,0 +1,53 @@
+slug: de-sql-duplicate-order-id-check
+lesson_slug: de-data-quality-dimensions
+skill: data-quality-engineering
+dataset: ecommerce
+title: "Verify a Uniqueness Assumption: Are order_ids Really Unique?"
+description: Write the uniqueness check a data quality rule engine would run to confirm order_id is a reliable primary key, rather than just assuming it.
+exercise_type: SQL
+difficulty: BEGINNER
+points: 15
+tags: [sql, data-quality, data-engineering, beginner]
+business_context: >
+  Before building any report that joins on `order_id`, it's worth actually confirming the
+  assumption that it's unique, rather than trusting the column name — a retried extraction or a
+  bug upstream could easily introduce duplicate rows.
+prompt: >
+  Using the `orders` table, write a query that would catch a uniqueness violation: return every
+  `order_id` that appears more than once, along with `occurrences` (how many times it appears).
+  Order the result by `occurrences` descending, then by `order_id` ascending.
+sql_tables: [orders]
+sql_starter_query: |
+  -- Explore the table first
+  SELECT * FROM orders LIMIT 20;
+sql_solution_query: |
+  SELECT
+    order_id,
+    COUNT(*) AS occurrences
+  FROM orders
+  GROUP BY order_id
+  HAVING COUNT(*) > 1
+  ORDER BY occurrences DESC, order_id ASC;
+sql_row_order_matters: false
+sql_numeric_tolerance: 0.01
+hints:
+  - "GROUP BY the column you're checking for uniqueness, then use HAVING COUNT(*) > 1 to keep only the groups that violate it."
+  - "A clean result here is zero rows — that's not a bug in your query, it's a real (and useful) confirmation that the assumption holds."
+solution: >
+  ```sql
+  SELECT
+    order_id,
+    COUNT(*) AS occurrences
+  FROM orders
+  GROUP BY order_id
+  HAVING COUNT(*) > 1
+  ORDER BY occurrences DESC, order_id ASC;
+  ```
+explanation: >
+  GROUP BY order_id followed by HAVING COUNT(*) > 1 is the standard shape of a uniqueness check —
+  it surfaces exactly the rows that violate the "one row per order_id" assumption, regardless of
+  how many rows total exist. Running this against the real `orders` table returns zero rows: every
+  order_id here genuinely appears exactly once, confirming it's safe to treat as a primary key. The
+  value of writing this check isn't finding a problem every time — it's replacing an assumption with
+  a verified fact, and this exact query is what would catch it the moment that assumption ever
+  stopped holding (for example, after a pipeline change introduces a retried, duplicated extract).

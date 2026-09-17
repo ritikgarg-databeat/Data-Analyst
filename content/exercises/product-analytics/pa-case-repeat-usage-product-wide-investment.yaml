@@ -1,0 +1,74 @@
+slug: pa-case-repeat-usage-product-wide-investment
+lesson_slug: pa-product-case-walkthrough
+skill: product-analytics
+dataset: saas-product
+title: "Case: Is the Repeat-Usage Gap a Channel Problem or a Product Problem?"
+description: Given one quarter of engineering budget, decide between a channel-specific fix and a product-wide fix using segmented repeat-usage data.
+exercise_type: BUSINESS_REASONING
+difficulty: ADVANCED
+points: 25
+tags: [case-study, product-analytics, real-world, funnel]
+business_context: >
+  The VP of Product has exactly one quarter of engineering capacity to allocate: either a
+  channel-specific onboarding project (targeting paid_social and paid_search specifically), or a
+  broader change to what happens in a user's first session with the core action. She's asked you to
+  make the call using the data, not gut feel, since committing to the wrong one wastes the whole
+  quarter.
+stakeholder: "VP of Product"
+constraints:
+  - "You only have the events and users tables — no session recordings, no qualitative user research yet."
+  - "Engineering can only take on one of the two projects this quarter, not both — your recommendation needs to pick one."
+expected_deliverables:
+  - "Trial rate and repeat-usage rate for the core action, overall and segmented by acquisition_channel"
+  - "A clear read on whether the segmented metric is meaningfully varying by channel or essentially flat"
+  - "A recommendation for which of the two projects to fund, with reasoning tied to the data"
+  - "A quantified estimate of the opportunity available if the recommended project succeeds"
+prompt: >
+  Using the `events` and `users` tables, compute the trial rate (users who ever attempt the core
+  'activated' action) and the repeat-usage rate (of those, the % who go on to 'engage' again),
+  overall and segmented by acquisition_channel. Based on how much the segmented rate actually varies
+  across channels, recommend which of the two projects (channel-specific onboarding vs. a
+  product-wide first-session change) the VP should fund this quarter, and quantify the opportunity if
+  the recommended fix works.
+hints:
+  - "Compute the repeat-usage rate per channel and compare the spread (max minus min) to the size of the overall trial-to-repeat-usage gap — which one is actually large?"
+  - "A metric that's nearly identical across every channel, computed on the same underlying population, is itself evidence about where the cause lives."
+rubric:
+  - criterion: "Builds trial rate and repeat-usage rate, both overall and segmented by acquisition_channel, from the real data"
+    points: 30
+  - criterion: "Correctly reads the segmented pattern (repeat-usage rate nearly flat at 53.3%-55.3% across channels) versus the larger overall trial-to-repeat gap (69.1% vs. 54.2%)"
+    points: 25
+  - criterion: "Recommends the product-wide fix with reasoning tied explicitly to the flat cross-channel pattern, not gut feel"
+    points: 20
+  - criterion: "Quantifies the opportunity available if the product-wide fix succeeds"
+    points: 25
+solution: >
+  Trial rate (ever attempted the core action): 69.1% of all 3,000 signups (2,074 users). Repeat-usage
+  rate (of those, % who go on to engage again): 54.2% overall. Segmented by channel, repeat-usage
+  rate is nearly flat: referral 55.29%, paid_search 54.79%, organic 54.03%, content 53.70%,
+  paid_social 53.30% — a roughly 2-point spread. Compare that to the much larger 15-point gap between
+  trial (69.1%) and repeat usage (54.2%) overall, and to the 23-point channel spread already found in
+  activation rate on the same population.
+
+  A metric that barely moves across every acquisition channel, on the same underlying users, points
+  toward a cause that's uniform across the product — something about what happens during or right
+  after the first attempt at the core action — rather than something tied to how any particular
+  channel's users arrive. The channel-specific onboarding project would only ever address a
+  difference that isn't actually showing up in this metric; the product-wide first-session project
+  targets exactly where the data says the gap actually lives.
+
+  Recommendation: fund the product-wide first-session project. Quantified opportunity: of the 2,074
+  users who tried the core action, 949 (45.8%) never came back to it. Even a partial improvement —
+  closing a third of that gap, bringing repeat-usage rate from 54.2% toward roughly 69% — would
+  translate to roughly 300+ additional users continuing to use the core action, a meaningfully larger
+  pool than either channel individually contributes to the funnel at this step (paid_social and
+  paid_search together account for 349+449=798 activated users, smaller than the 949-user opportunity
+  identified here).
+explanation: >
+  A strong answer makes the recommendation turn on the actual shape of the segmented data — a flat
+  metric across channels — rather than assuming a channel-specific story is inherently more
+  compelling. It quantifies the opportunity using the real gap (949 users who tried but didn't
+  return) and compares it in scale to the channel-specific alternative, making the recommendation a
+  data-driven trade-off rather than an assertion. A weaker answer picks a project without comparing
+  the size of the channel spread to the size of the overall gap, or recommends the channel-specific
+  project despite the metric being essentially flat across channels — which the data doesn't support.

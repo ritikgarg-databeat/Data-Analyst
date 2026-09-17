@@ -1,0 +1,86 @@
+slug: count
+module_slug: sql-aggregation
+title: COUNT
+description: The difference between COUNT(*), COUNT(column), and COUNT(DISTINCT column) — and the NULL-handling rule behind it.
+difficulty: BEGINNER
+estimated_minutes: 10
+display_order: 3
+objectives:
+  - Explain the difference between COUNT(*), COUNT(column), and COUNT(DISTINCT column)
+  - Predict how NULLs affect each of the three forms
+  - Choose the right form of COUNT for a given question
+prerequisites: [having]
+skills: [sql-fundamentals]
+datasets: [orders-sample]
+tags: [sql, beginner]
+key_takeaways:
+  - COUNT(*) counts rows, full stop — it doesn't care whether any column is NULL.
+  - COUNT(column) counts only the rows where that specific column is non-NULL.
+  - COUNT(DISTINCT column) counts the number of distinct non-NULL values in that column, which can be far smaller than either of the other two.
+common_mistakes:
+  - "Using COUNT(order_total) when the intent was \"how many orders are there,\" not realizing it silently excludes orders with a NULL order_total (cancelled/pending ones)."
+  - Assuming COUNT(column) and COUNT(DISTINCT column) are the same thing — COUNT(column) counts every non-NULL row, including repeated values; only COUNT(DISTINCT column) dedupes.
+blocks:
+  - type: heading
+    text: Three forms of COUNT, three different answers
+  - type: text
+    body: >
+      COUNT is an aggregate function, so like SUM and AVG it's typically used alongside GROUP BY (or
+      on its own to summarize a whole table). But COUNT has three distinct forms that answer three
+      different questions, and mixing them up is one of the most common aggregation mistakes.
+  - type: table
+    headers: ["Form", "Counts", "Does it care about NULLs?"]
+    rows:
+      - ["COUNT(*)", "Every row", "No — every row counts, NULL columns or not"]
+      - ["COUNT(column)", "Rows where that column is non-NULL", "Yes — a NULL in that column means the row is skipped"]
+      - ["COUNT(DISTINCT column)", "Distinct non-NULL values in that column", "Yes — NULLs are excluded, and repeats collapse to one"]
+  - type: code
+    language: sql
+    caption: "How many orders total, vs. how many have a recorded total, vs. how many distinct customers"
+    code: |
+      SELECT
+        COUNT(*)                     AS all_orders,
+        COUNT(order_total)           AS orders_with_total,
+        COUNT(DISTINCT customer_id)  AS distinct_customers
+      FROM orders;
+  - type: example
+    title: "Reading the difference on orders-sample"
+    body: >
+      orders-sample has 10 rows total. Two of them (a cancelled order and a pending order) have a
+      NULL order_total. The 10 orders were placed by 5 distinct customers, each placing multiple
+      orders. Running the query above against that data returns all_orders = 10 (every row, NULLs
+      included), orders_with_total = 8 (the two NULL rows are excluded), and distinct_customers = 5
+      (10 rows collapse down to their 5 unique customer_ids).
+    code: |
+      all_orders: 10
+      orders_with_total: 8
+      distinct_customers: 5
+    language: text
+  - type: callout
+    variant: common_mistake
+    title: COUNT(column) is not "how many rows"
+    body: >
+      It's tempting to write COUNT(order_total) when you mean "how many orders are there," but that
+      silently drops any row where order_total is NULL. If the goal is "how many orders exist,
+      regardless of whether they have a total yet," COUNT(*) is the correct choice — it never
+      excludes a row based on a column's value. Paired with GROUP BY, any of these forms answers
+      "how many, per group?" instead of "how many, overall" — for example, how many orders each
+      customer has placed.
+  - type: code
+    language: sql
+    caption: Orders placed per customer
+    code: |
+      SELECT customer_id, COUNT(*) AS orders_placed
+      FROM orders
+      GROUP BY customer_id;
+  - type: question
+    prompt: A table has 100 rows. A column named discount_code is NULL on 40 of them. What does COUNT(discount_code) return?
+    choices:
+      - "100 — COUNT always counts every row"
+      - "60 — only the rows where discount_code is not NULL"
+      - "40 — the number of NULL rows"
+    correct_index: 1
+    explanation: >
+      COUNT(column) counts only rows where that specific column has a non-NULL value. With 100 total
+      rows and 40 NULLs in discount_code, 60 rows have a non-NULL value there, so COUNT(discount_code)
+      returns 60. COUNT(*) is the one that would return 100 regardless of NULLs.

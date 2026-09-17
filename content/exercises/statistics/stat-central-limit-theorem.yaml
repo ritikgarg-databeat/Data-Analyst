@@ -1,0 +1,24 @@
+slug: stat-central-limit-theorem
+skill: statistics
+title: Why the Central Limit Theorem Matters
+description: Why does the Central Limit Theorem matter for analysts computing confidence intervals on a sample mean,
+  even when the underlying data isn't normally distributed?
+exercise_type: MULTIPLE_CHOICE
+difficulty: INTERMEDIATE
+points: 5
+tags:
+- statistics
+- distributions
+prompt: Why does the Central Limit Theorem matter for analysts computing confidence intervals on a sample mean,
+  even when the underlying data isn't normally distributed?
+correct_answer: Because the distribution of the SAMPLE MEAN approaches normal as sample size grows, regardless of
+  the underlying data's shape
+explanation: The CLT is about the sampling distribution of the mean, not the underlying data -- it's why normal-theory
+  confidence intervals and t-tests remain valid on a large-enough sample even when individual observations are skewed
+  or non-normal.
+choices:
+- Because the distribution of the SAMPLE MEAN approaches normal as sample size grows, regardless of the underlying
+  data's shape
+- Because it proves the underlying data itself must be normally distributed
+- Because it guarantees the sample mean equals the true population mean
+- It only applies to data that is already normally distributed

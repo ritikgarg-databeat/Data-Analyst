@@ -1,0 +1,20 @@
+slug: biz-cross-sell-upsell-metric
+skill: business-metrics
+title: Measuring Cross-Sell and Upsell
+description: Which metric best captures the impact of a cross-sell/upsell program on existing customers?
+exercise_type: MULTIPLE_CHOICE
+difficulty: INTERMEDIATE
+points: 5
+tags:
+- revenue
+prompt: Which metric best captures the impact of a cross-sell/upsell program on existing customers?
+correct_answer: Net revenue retention (or expansion revenue) among the existing customer base, isolated from new-customer
+  revenue
+explanation: Cross-sell/upsell specifically affects EXISTING customers' spend -- net revenue retention (or a direct
+  expansion-revenue metric) isolates that from new-customer acquisition, whereas overall company growth blends both
+  together and can't isolate the upsell program's specific impact.
+choices:
+- Net revenue retention (or expansion revenue) among the existing customer base, isolated from new-customer revenue
+- Total new customer signups this quarter
+- Total marketing spend
+- Overall company revenue growth, unsegmented

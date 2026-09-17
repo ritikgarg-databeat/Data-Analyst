@@ -1,0 +1,35 @@
+slug: bhv-ambiguity-incomplete-recommendation
+skill: behavioral-interviewing
+title: Recommending Without Complete Information
+description: Tell me about a time you had to make a recommendation without complete information.
+exercise_type: INTERVIEW_RESPONSE
+difficulty: INTERMEDIATE
+points: 10
+tags:
+- behavioral
+- star-method
+- ambiguity
+prompt: Tell me about a time you had to make a recommendation without complete information.
+hints:
+- The STAR framework (Situation, Task, Action, Result) is a useful structure, not a script -- use it to
+  make sure you cover what actually happened, in what context, what you personally did, and what came
+  of it.
+- Interviewers are listening for a specific, real example -- a vague 'sometimes this happens on my team'
+  answer is much weaker than one concrete story with real details.
+rubric:
+- criterion: Describes one specific, real situation rather than a hypothetical or a generic pattern
+  points: 25
+- criterion: Clearly states the task or goal and the person's own specific role in it
+  points: 20
+- criterion: Explains concrete actions the person personally took, not just what the team did
+  points: 30
+- criterion: States a clear, ideally measurable outcome and what was learned from it
+  points: 25
+solution: 'Leadership needed a go/no-go recommendation on a pricing change within a day, but we had only
+  two weeks of A/B test data instead of the planned four. I was explicit about the uncertainty: I presented
+  the point estimate along with a wider confidence interval than usual, and explicitly said what additional
+  data would tighten it. I recommended proceeding with a monitored rollout rather than a full launch,
+  since the direction of the effect was consistent even though the magnitude was uncertain.'
+explanation: The answer's strength is being explicit about uncertainty rather than presenting an under-powered
+  result with false confidence, and proposing a decision (monitored rollout) that matched the actual confidence
+  level of the data.

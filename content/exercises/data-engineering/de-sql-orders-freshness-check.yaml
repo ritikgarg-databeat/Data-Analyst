@@ -1,0 +1,46 @@
+slug: de-sql-orders-freshness-check
+lesson_slug: de-automating-data-quality-checks
+skill: data-quality-engineering
+dataset: ecommerce
+title: "A FRESHNESS Check: How Stale Is the orders Table?"
+description: Write the query a FRESHNESS rule would run to measure how many days old the most recent row in a table is, relative to a fixed reference date.
+exercise_type: SQL
+difficulty: BEGINNER
+points: 15
+tags: [sql, data-quality, data-engineering, beginner]
+business_context: >
+  A FRESHNESS rule needs a concrete number to compare against a threshold (e.g. "alert if the table
+  is more than 2 days stale") — not just a vague sense that "it might be a bit old."
+prompt: >
+  Using `orders`, write a query that returns two columns: `most_recent_order_date` (the maximum
+  `order_date` in the table) and `days_since_last_order` (the number of days between that date and
+  a fixed reference date of `2026-01-01`, computed as `DATEDIFF('day', MAX(order_date), DATE
+  '2026-01-01')`).
+sql_tables: [orders]
+sql_starter_query: |
+  -- Explore the table first
+  SELECT * FROM orders ORDER BY order_date DESC LIMIT 10;
+sql_solution_query: |
+  SELECT
+    MAX(order_date) AS most_recent_order_date,
+    DATEDIFF('day', MAX(order_date), DATE '2026-01-01') AS days_since_last_order
+  FROM orders;
+sql_row_order_matters: false
+sql_numeric_tolerance: 0.01
+hints:
+  - "MAX(order_date) gives you the most recent order in the table — the starting point for any freshness check."
+  - "DATEDIFF('day', earlier_date, later_date) returns the number of days between the two dates; here the 'later_date' is the fixed reference point 2026-01-01, not today's real date, so the result is reproducible."
+solution: >
+  ```sql
+  SELECT
+    MAX(order_date) AS most_recent_order_date,
+    DATEDIFF('day', MAX(order_date), DATE '2026-01-01') AS days_since_last_order
+  FROM orders;
+  ```
+explanation: >
+  This returns `most_recent_order_date = 2025-12-31` and `days_since_last_order = 1` — the table's
+  newest row is from one day before the fixed reference date. A real FRESHNESS rule in a data
+  quality engine runs exactly this shape of query on a schedule (using the actual current date
+  instead of a fixed one) and compares the resulting gap against a threshold — for example, alerting
+  if `days_since_last_order` exceeds 1 or 2, which would indicate the ingestion pipeline feeding
+  `orders` has stopped running or is falling behind.

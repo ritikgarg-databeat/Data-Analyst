@@ -1,0 +1,24 @@
+slug: pa-segmentation-for-product-analysis
+skill: product-metrics
+title: Why Segment a Product Metric
+description: Overall conversion rate is flat month-over-month. Why would an analyst still segment it by platform,
+  acquisition channel, and user tenure before concluding nothing changed?
+exercise_type: MULTIPLE_CHOICE
+difficulty: BEGINNER
+points: 5
+tags:
+- segmentation
+- product-analytics
+prompt: Overall conversion rate is flat month-over-month. Why would an analyst still segment it by platform, acquisition
+  channel, and user tenure before concluding nothing changed?
+correct_answer: An aggregate flat number can hide offsetting shifts -- one segment improving while another declines
+  by a similar amount
+explanation: 'This is Simpson''s-paradox-adjacent reasoning: an unchanged aggregate can conceal a real, meaningful,
+  and actionable shift underneath it (e.g. mobile improving while desktop worsens) -- segmenting before declaring
+  ''nothing changed'' is standard due diligence.'
+choices:
+- An aggregate flat number can hide offsetting shifts -- one segment improving while another declines by a similar
+  amount
+- Segmentation is unnecessary once the aggregate number is known
+- Segmenting always changes the underlying data
+- Only marketing metrics benefit from segmentation, not conversion

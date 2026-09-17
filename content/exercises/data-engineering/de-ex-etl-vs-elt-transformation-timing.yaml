@@ -1,0 +1,24 @@
+slug: de-ex-etl-vs-elt-transformation-timing
+lesson_slug: de-elt-and-modern-warehouses
+skill: etl-elt
+title: "ETL or ELT: Where Does Transformation Happen?"
+description: Identify the single distinguishing feature between ETL and ELT pipelines.
+exercise_type: MULTIPLE_CHOICE
+difficulty: BEGINNER
+points: 10
+tags: [etl, elt, data-engineering, beginner]
+prompt: >
+  A pipeline extracts raw order data from a source system, loads it into the warehouse completely
+  untouched, and only afterward runs SQL inside the warehouse to clean and standardize it into a
+  final `orders` table. What pattern is this, and what's the key giveaway?
+choices:
+  - "ETL — because transformation happens at all"
+  - "ELT — because the raw data is loaded into the warehouse before any transformation runs, with the transform step executing afterward, inside the warehouse itself"
+  - "Neither — a pipeline can only be called ETL or ELT if it uses a specific named tool like dbt or Airflow"
+correct_answer: "ELT — because the raw data is loaded into the warehouse before any transformation runs, with the transform step executing afterward, inside the warehouse itself"
+explanation: >
+  Both ETL and ELT extract, transform, and load — the entire distinction is the order of the last
+  two steps and where transformation physically runs. Loading raw, untransformed data first and
+  then transforming it afterward, using the warehouse's own compute, is the defining shape of ELT.
+  ETL would transform the data on separate infrastructure *before* ever loading it into the
+  warehouse.

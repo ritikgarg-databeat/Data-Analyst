@@ -1,0 +1,41 @@
+slug: aov-query
+lesson_slug: aov
+skill: business-metrics
+dataset: ecommerce
+title: Calculate Average Order Value
+description: Write a SQL query that computes average order value from successful payments in the ecommerce dataset.
+exercise_type: SQL
+difficulty: BEGINNER
+points: 15
+tags: [sql, business-analytics]
+business_context: >
+  Finance is benchmarking marketing spend efficiency for next quarter and wants a single number:
+  the average order value (AOV) across every order that was actually paid for.
+prompt: >
+  Using the `payments` table, write a SQL query that returns the average order value (AOV) across
+  successful payments only (`status = 'success'`), rounded to 2 decimal places. Return one row with
+  one column.
+sql_tables: [payments]
+sql_starter_query: |
+  -- Explore the payments table first
+  SELECT * FROM payments LIMIT 20;
+sql_solution_query: |
+  SELECT ROUND(AVG(amount), 2) AS aov
+  FROM payments
+  WHERE status = 'success';
+sql_row_order_matters: false
+sql_numeric_tolerance: 0.01
+hints:
+  - "AOV is a straightforward aggregate — think about which single SQL function computes an average directly."
+  - "Don't forget the status filter — refunded payments in the average understate what a real, kept purchase is actually worth. Filter to status = 'success'."
+solution: >
+  ```sql
+  SELECT ROUND(AVG(amount), 2) AS aov
+  FROM payments
+  WHERE status = 'success';
+  ```
+explanation: >
+  The core of the answer is `AVG(amount)` — AOV is literally the mean order value. What separates
+  a strong answer from a shallow one is filtering to `status = 'success'` first: including refunded
+  payments in the average silently mixes in orders that were ultimately reversed, pulling the number
+  away from what "the average kept purchase" really means to the business.

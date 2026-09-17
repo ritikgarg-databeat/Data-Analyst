@@ -1,0 +1,73 @@
+slug: stats-acquisition-channel-chi-square
+lesson_slug: test-chi-square
+skill: statistics
+dataset: saas-product
+title: "Does Acquisition Channel Affect Activation? A Chi-Square Test"
+description: Build a contingency table of acquisition channel versus activation status and run a chi-square test of independence.
+exercise_type: PYTHON
+difficulty: ADVANCED
+points: 25
+tags: [python, statistics, advanced, saas]
+business_context: >
+  Growth wants to know whether the channel a user signed up through is actually related to whether
+  they go on to activate, before deciding whether channel-specific onboarding is worth building.
+prompt: >
+  Using `users` and `events`, determine which users ever have an `activated` event, build a
+  contingency table of `acquisition_channel` versus that activated flag, and run a chi-square test
+  of independence (`scipy.stats.chi2_contingency`). Store your answer in a variable named `result`:
+  a dict with keys `chi2` (rounded to 2 decimals), `p_value` (the raw, unrounded value), and `dof`
+  (an int).
+python_datasets: [users, events]
+python_starter_code: |
+  # users and events are already loaded as DataFrames.
+  # Explore them first:
+  events["event_name"].value_counts()
+python_solution_code: |
+  from scipy.stats import chi2_contingency
+
+  activated_ids = set(events.loc[events.event_name == "activated", "user_id"])
+  users2 = users.copy()
+  users2["activated"] = users2["user_id"].isin(activated_ids)
+  contingency = pd.crosstab(users2["acquisition_channel"], users2["activated"])
+
+  chi2, p_value, dof, expected = chi2_contingency(contingency)
+  result = {"chi2": round(chi2, 2), "p_value": p_value, "dof": int(dof)}
+python_result_variable: result
+python_numeric_tolerance: 0.05
+python_hidden_tests:
+  - name: "paid_social has the lowest activation rate, and the relationship is highly significant"
+    code: |
+      activated_ids_check = set(events.loc[events.event_name == "activated", "user_id"])
+      rates_check = (
+          users.assign(activated=users["user_id"].isin(activated_ids_check))
+          .groupby("acquisition_channel")["activated"]
+          .mean()
+      )
+      assert rates_check.idxmin() == "paid_social", (
+          "paid_social should have the lowest activation rate among acquisition channels."
+      )
+      assert result["p_value"] < 0.001, (
+          "This relationship should be highly statistically significant given the real data."
+      )
+      assert result["dof"] == 4, f"Expected 4 degrees of freedom (5 channels - 1), got {result['dof']}"
+hints:
+  - "Build a set of user_ids that have an 'activated' row in `events`, then use `.isin(...)` against that set to create a boolean 'activated' column on a copy of `users`."
+  - "`pd.crosstab(col1, col2)` builds the contingency table directly from two columns — pass it straight into `scipy.stats.chi2_contingency`."
+solution: |
+  ```python
+  from scipy.stats import chi2_contingency
+
+  activated_ids = set(events.loc[events.event_name == "activated", "user_id"])
+  users2 = users.copy()
+  users2["activated"] = users2["user_id"].isin(activated_ids)
+  contingency = pd.crosstab(users2["acquisition_channel"], users2["activated"])
+
+  chi2, p_value, dof, expected = chi2_contingency(contingency)
+  result = {"chi2": round(chi2, 2), "p_value": p_value, "dof": int(dof)}
+  ```
+explanation: >
+  Activation rates range from 55.9% (paid_social) and 61.7% (paid_search) up to 78.9% (organic) and
+  78.2% (referral) — a 23-point spread. The chi-square test confirms this is essentially certain to
+  be a real relationship (chi2 = 128.21, p ≈ 9.4e-27, dof = 4), not a coincidence of small samples —
+  a clear, actionable signal that paid-acquired users need onboarding attention, or that paid
+  channels may be bringing in lower-intent signups in the first place.

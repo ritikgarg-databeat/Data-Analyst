@@ -1,0 +1,78 @@
+slug: limit
+module_slug: sql-fundamentals
+title: LIMIT
+description: Restricting how many rows a query returns, and why LIMIT is meaningless without ORDER BY.
+difficulty: BEGINNER
+estimated_minutes: 6
+display_order: 4
+objectives:
+  - Restrict a result set to a fixed number of rows with LIMIT
+  - Explain why LIMIT without ORDER BY produces an arbitrary, unreliable subset
+  - Combine LIMIT with ORDER BY to answer "top N" questions correctly
+prerequisites: [order-by]
+skills: [sql-fundamentals]
+datasets: [orders-sample]
+tags: [sql, beginner, foundations]
+key_takeaways:
+  - LIMIT caps the number of rows returned; it says nothing about which rows unless ORDER BY has already put them in a defined order.
+  - "LIMIT N with ORDER BY is the standard pattern for \"top N\" or \"most recent N\" questions."
+  - LIMIT runs after ORDER BY, so it trims from the already-sorted list rather than sorting an arbitrary sample.
+common_mistakes:
+  - "Writing \"SELECT * FROM orders LIMIT 5\" and treating those 5 rows as \"the top 5\" or \"the most recent 5\" — without ORDER BY, they're just whichever 5 the database happened to return first."
+  - Using LIMIT to sample a table for a quick estimate, forgetting that an unordered LIMIT is not a random sample and can be biased toward however rows are physically stored.
+blocks:
+  - type: heading
+    text: Restricting result size
+  - type: text
+    body: >
+      LIMIT caps how many rows a query returns. It's useful for previewing a large table, capping the
+      size of a report, or answering "top N" style questions — but only when it's paired with an
+      ORDER BY that defines what "top" means.
+  - type: code
+    language: sql
+    caption: Just the 5 highest-value orders
+    code: |
+      SELECT order_id, customer_id, order_total
+      FROM orders
+      ORDER BY order_total DESC
+      LIMIT 5;
+  - type: callout
+    variant: warning
+    title: LIMIT without ORDER BY is not "the first N rows"
+    body: >
+      "SELECT * FROM orders LIMIT 5" will return exactly 5 rows, but which 5 is undefined — the
+      database can return any 5 rows it likes, and that choice can change between runs even on
+      unchanged data. LIMIT does not imply any ordering on its own; it just stops after the database
+      hands it enough rows, whatever order those happen to arrive in.
+  - type: heading
+    text: LIMIT runs after ORDER BY
+  - type: text
+    body: >
+      Conceptually, the database sorts the full result set first (ORDER BY), and only then trims it
+      down to the requested count (LIMIT). That's why "top N" queries always pair the two: ORDER BY
+      decides what "top" means, and LIMIT decides how many of the top you want.
+  - type: example
+    title: "Most recent 3 orders from a single customer"
+    body: >
+      To answer "what were customer C1's last 3 orders?", filter to that customer, sort by date
+      descending so the newest orders come first, then limit to 3. Each clause does one job, and the
+      order they're written in (WHERE, then ORDER BY, then LIMIT) matches the order they conceptually
+      apply in.
+    code: |
+      SELECT order_id, order_date, order_total
+      FROM orders
+      WHERE customer_id = 'C1'
+      ORDER BY order_date DESC
+      LIMIT 3;
+    language: sql
+  - type: question
+    prompt: A teammate runs "SELECT * FROM orders LIMIT 10" and says "here are the 10 most recent orders." What's wrong with that claim?
+    choices:
+      - Nothing — LIMIT always returns the most recently inserted rows by default
+      - LIMIT alone doesn't define any order, so those 10 rows aren't guaranteed to be the most recent — an ORDER BY order_date DESC is needed first
+      - LIMIT can only be used with ORDER BY, so the query would have failed
+    correct_index: 1
+    explanation: >
+      LIMIT only controls how many rows come back, not which ones or in what order. Without an
+      ORDER BY clause specifying order_date DESC, those 10 rows are just whichever 10 the database
+      happened to return, which may have nothing to do with recency.

@@ -1,0 +1,117 @@
+slug: pa-retention-classic-vs-rolling
+module_slug: product-retention
+title: "Classic vs. Rolling Retention, Computed on the Same Cohort"
+description: >
+  Computing both classic (exact-period) and rolling (bracket) retention for the same real cohort to
+  see exactly how much the two definitions can differ, and reading a pooled retention floor.
+difficulty: INTERMEDIATE
+estimated_minutes: 20
+display_order: 1
+objectives:
+  - Compute classic (exact-period) retention and rolling (bracket) retention for the same cohort and quantify the difference
+  - Explain why rolling retention is always greater than or equal to classic retention for the same window
+  - Read a multi-period pooled retention curve and identify the "floor" it flattens toward
+prerequisites: [product-retention]
+skills: [product-analytics, product-metrics]
+datasets: [saas-product]
+tags: [product, saas, retention, intermediate]
+key_takeaways:
+  - "Classic retention asks \"active in exactly period N?\"; rolling (bracket) retention asks \"active any time in periods N through N+x?\" — rolling retention is mathematically always ≥ classic retention for the same starting period, since it's counting a strict superset of users."
+  - "On this dataset's 2025-01 signup cohort (126 users), classic month-1 retention is 26.98% (34 users) while rolling month 1-3 retention is 29.37% (37 users) — a real but modest 3-user difference, not the dramatic gap the two definitions can produce on noisier or more irregular usage patterns."
+  - Pooled across 13 cohorts with complete period 0-4 data (1,615 users total), the retention curve drops from 100% to 26.4% by month 1, then keeps declining toward roughly 6.6% by month 4 — still falling, not yet flattened into a stable floor at this horizon.
+common_mistakes:
+  - Reporting "month-1 retention" without saying whether it's classic or rolling — on data with irregular usage (like this dataset's monthly-granularity events), the two can genuinely disagree, and a reader comparing two teams' numbers needs to know they're the same definition.
+  - Assuming a retention curve has "flattened" the first time two adjacent points look similar, without checking a few more periods — this dataset's curve is still declining through month 4, even though month-3-to-month-4 (10.3% to 6.6%) is a smaller absolute drop than month-1-to-month-2.
+blocks:
+  - type: text
+    body: >
+      The `product-metrics` retention lesson introduced classic vs. range retention as two different
+      questions applied to the same cohort. This lesson computes both, on the same real cohort, so
+      the difference is a concrete number rather than an abstract distinction.
+  - type: heading
+    text: "Same cohort, two definitions"
+  - type: text
+    body: >
+      Take the 126 users who signed up in January 2025 (this dataset's `signup_date`, truncated to
+      month, defines the cohort). "Month 1" here means the calendar month after signup.
+  - type: code
+    language: sql
+    caption: Classic (exact period 1) vs. rolling (any of periods 1-3) retention, same cohort
+    code: |
+      WITH activity AS (
+        SELECT
+          user_id,
+          DATE_TRUNC('month', signup_date) AS cohort_month,
+          DATEDIFF('month', DATE_TRUNC('month', signup_date),
+                    DATE_TRUNC('month', event_timestamp)) AS period_number
+        FROM events
+        WHERE event_timestamp >= signup_date
+      ),
+      cohort AS (
+        SELECT DISTINCT user_id
+        FROM activity
+        WHERE period_number = 0 AND cohort_month = DATE '2025-01-01'
+      )
+      SELECT
+        (SELECT COUNT(*) FROM cohort)                                          AS cohort_size,
+        COUNT(DISTINCT CASE WHEN a.period_number = 1 THEN a.user_id END)       AS classic_month1,
+        COUNT(DISTINCT CASE WHEN a.period_number BETWEEN 1 AND 3
+                            THEN a.user_id END)                               AS rolling_month1_3
+      FROM cohort c
+      LEFT JOIN activity a ON a.user_id = c.user_id;
+  - type: table
+    headers: ["Definition", "Retained users", "Rate"]
+    rows:
+      - ["Classic (active in exactly month 1)", "34 of 126", "26.98%"]
+      - ["Rolling (active any time in months 1-3)", "37 of 126", "29.37%"]
+  - type: callout
+    variant: important
+    title: Rolling retention is always ≥ classic retention on the same starting window
+    body: >
+      This isn't a coincidence of this particular cohort — rolling retention counts every user who
+      was active in the *exact* period, plus anyone active in any later period in the window who
+      wasn't. It's mathematically a superset, so it can never be smaller. Here the gap is modest (3
+      extra users, from people who skipped month 1 but came back in month 2 or 3) — but on products
+      with more irregular, bursty usage patterns, the two numbers can diverge far more sharply, which
+      is exactly why a report needs to name which one it means.
+  - type: heading
+    text: "Reading a pooled retention curve"
+  - type: text
+    body: >
+      Pooling 13 signup cohorts (July 2024 through July 2025 — chosen because these are the cohorts
+      with complete month 0-4 data available given the dataset's cutoff) into one weighted curve,
+      across 1,615 total users:
+  - type: table
+    headers: ["Month after signup", "Active users", "Retention"]
+    rows:
+      - ["0 (signup)", "1,615", "100%"]
+      - ["1", "426", "26.4%"]
+      - ["2", "251", "15.5%"]
+      - ["3", "167", "10.3%"]
+      - ["4", "106", "6.6%"]
+  - type: callout
+    variant: tip
+    title: This curve hasn't flattened yet — don't call month 4 "the floor" prematurely
+    body: >
+      Each step from month 1 to month 4 still shows a real percentage-point drop (26.4 → 15.5 → 10.3
+      → 6.6), even though the absolute size of each drop is shrinking. Calling 6.6% "the floor" after
+      only 4 months would be premature — a genuine floor is a curve that stops declining meaningfully
+      across several *further* periods, not just one where the drop looks smaller than the previous
+      one. Without more periods of data for these cohorts, the honest read is "still declining,
+      slope decreasing" rather than "flattened."
+  - type: question
+    prompt: >
+      A team reports "our rolling month-1 retention is 29%" for a cohort, and a different team reports
+      "our month-1 retention is 27%" for what they say is the same cohort. What's the most likely
+      explanation?
+    choices:
+      - "One of the two numbers must be a calculation error"
+      - "They are very likely using different retention definitions (rolling/bracket vs. classic exact-period), which can legitimately produce different numbers from the same underlying data"
+      - "The two teams must be looking at different cohorts even though they claim otherwise"
+      - "Retention rates can never differ between teams looking at the same data"
+    correct_index: 1
+    explanation: >
+      Classic and rolling retention are both legitimate, commonly used definitions that can produce
+      different numbers on the exact same cohort and data — as shown here, where the same January
+      2025 cohort's month-1 number is 26.98% classic versus 29.37% rolling. The gap is a definitional
+      difference, not necessarily an error.

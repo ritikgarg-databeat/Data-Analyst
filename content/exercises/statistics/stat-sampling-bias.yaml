@@ -1,0 +1,24 @@
+slug: stat-sampling-bias
+skill: statistics
+title: Recognizing Sampling Bias
+description: A company surveys customer satisfaction by emailing an in-app survey link only to users who logged
+  in during the last week. What's the main statistical concern with this sample?
+exercise_type: MULTIPLE_CHOICE
+difficulty: INTERMEDIATE
+points: 5
+tags:
+- statistics
+- sampling
+prompt: A company surveys customer satisfaction by emailing an in-app survey link only to users who logged in during
+  the last week. What's the main statistical concern with this sample?
+correct_answer: It's biased toward currently-active users, likely overstating satisfaction relative to the full
+  customer base including churned/inactive users
+explanation: Sampling only currently-active, logged-in users systematically excludes dissatisfied users who already
+  left -- a classic survivorship-style sampling bias that inflates the apparent satisfaction score regardless of
+  how many people respond.
+choices:
+- It's biased toward currently-active users, likely overstating satisfaction relative to the full customer base
+  including churned/inactive users
+- The sample size is definitely too small to be valid
+- Email surveys are never a valid data collection method
+- There is no concern as long as enough people respond

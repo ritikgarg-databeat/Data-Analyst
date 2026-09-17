@@ -1,0 +1,140 @@
+slug: communicating-your-query-approach
+module_slug: sql-interview-prep
+title: Communicating Your Query Approach
+description: Narrating your thought process while you write SQL, and structuring a query incrementally with CTEs so an interviewer (or a teammate) can follow every step.
+difficulty: INTERMEDIATE
+estimated_minutes: 11
+display_order: 3
+objectives:
+  - Explain why narrating your reasoning while writing SQL is part of what's being evaluated, not a distraction from it
+  - Break a multi-step query into named CTEs that each do one understandable thing
+  - Verify and describe an intermediate CTE's output before building the next step on top of it
+prerequisites: [common-sql-interview-patterns]
+skills: [interview-sql]
+datasets: [ecommerce]
+tags: [sql, interview, intermediate]
+key_takeaways:
+  - "An interviewer can only evaluate reasoning they can actually see — a silent five minutes followed by a correct query gives them far less signal than the same five minutes narrated out loud, even if the final SQL is identical."
+  - "Building a query as a sequence of named CTEs — one per logical step — turns 'here's my finished query' into 'here's how I got there,' which is both easier to narrate and easier for someone else to check for mistakes."
+  - "Checking an intermediate CTE's output (mentally or by actually running just that CTE) before building the next layer on top of it catches mistakes early, instead of debugging a five-layer query all at once."
+common_mistakes:
+  - "Writing the entire query silently and only speaking once it's finished — even a correct final answer gives the interviewer very little insight into how you think, which is usually most of what's being scored."
+  - "Cramming every step into one large query with no CTEs or intermediate structure — even if it's correct, it's much harder for anyone (including you, mid-interview) to verify each piece independently."
+interview_questions:
+  - question: "Walk me through how you'd approach this problem before you start writing SQL."
+    answer: >
+      Restate the question in my own words, confirm any ambiguous terms, then describe the query as a
+      sequence of steps out loud — e.g. "First I need each customer's order count and total spend,
+      then I need to rank customers within that, then filter to the top N" — before typing anything, so
+      the structure is agreed on before the syntax gets written.
+  - question: "Why did you break this into three CTEs instead of one big query?"
+    answer: >
+      Each CTE does one clearly-named, independently checkable thing — for example first computing
+      per-customer revenue, then scoring it, then filtering — so a mistake shows up in one specific
+      layer instead of being tangled through a single dense query, and it's easier for someone reviewing
+      the query (an interviewer, or a teammate later) to follow the logic step by step.
+blocks:
+  - type: heading
+    text: The reasoning is the thing being evaluated
+  - type: text
+    body: >
+      A correct final query, produced in total silence, tells an interviewer almost nothing about how
+      you think — only that you eventually landed on a right answer, by some unknown process. Most of
+      what a SQL interview is actually trying to measure (recall the earlier lesson on interview
+      format) is visible only if you narrate it: what ambiguity you noticed, why you chose one approach
+      over another, how you're checking your own work as you go.
+  - type: callout
+    variant: interview_tip
+    title: Narrate decisions, not keystrokes
+    body: >
+      Narrating doesn't mean reading the SQL syntax aloud as you type it ("now I'm writing SELECT,
+      now I'm adding a comma..."). It means saying the *decisions*: "I'm going to start with a CTE that
+      gets one row per customer with their order count and total spend, since I'll need both of those
+      for the next step" — the kind of sentence that would make sense even to someone not looking at
+      your screen.
+  - type: heading
+    text: Build in layers, not in one shot
+  - type: text
+    body: >
+      A query that would otherwise be one dense block — nested subqueries, window functions, and a CASE
+      expression all tangled together — becomes much easier to write, narrate, and check when it's
+      built as a sequence of named CTEs, each doing exactly one understandable thing before the next
+      one builds on it.
+  - type: example
+    title: The same RFM-style query, built incrementally
+    body: >
+      Rather than writing one query with three nested levels of window functions and a CASE expression
+      all at once, build and narrate it as three named steps — reusing a shape from this dataset's
+      analytical SQL module. Each CTE below could be run and inspected on its own before moving to the
+      next.
+    code: |
+      -- Step 1: one row per customer with their raw recency/frequency/monetary numbers
+      WITH customer_orders AS (
+        SELECT
+          o.customer_id,
+          MAX(o.order_date) AS last_order_date,
+          COUNT(*) AS frequency,
+          SUM(p.amount) AS monetary
+        FROM orders o
+        JOIN payments p ON p.order_id = o.order_id AND p.status = 'success'
+        WHERE o.status = 'completed'
+        GROUP BY o.customer_id
+      ),
+      -- Step 2: turn those raw numbers into comparable 1-4 scores
+      rfm_scores AS (
+        SELECT
+          customer_id,
+          NTILE(4) OVER (ORDER BY DATE_DIFF('day', last_order_date, CURRENT_DATE) DESC) AS r_score,
+          NTILE(4) OVER (ORDER BY frequency ASC) AS f_score,
+          NTILE(4) OVER (ORDER BY monetary ASC) AS m_score
+        FROM customer_orders
+      )
+      -- Step 3: label segments from the scores
+      SELECT
+        customer_id,
+        CASE WHEN r_score = 4 AND f_score = 4 AND m_score = 4 THEN 'Champions'
+             ELSE 'Other' END AS segment
+      FROM rfm_scores;
+    language: sql
+  - type: text
+    body: >
+      Narrated, this becomes: "Step one gets me the raw recency, frequency, and monetary numbers per
+      customer — I'll pause and sanity-check a few rows here. Step two turns those into comparable
+      scores with NTILE, which I need before I can combine them. Step three labels segments from the
+      scores." An interviewer following along can verify each claim against the CTE that backs it,
+      instead of having to hold the whole query in their head at once.
+  - type: callout
+    variant: interview_tip
+    title: Check a CTE before building on it
+    body: >
+      Before writing the next CTE, say (or actually run, if the environment allows it) something like
+      "let me check that customer_orders is producing what I expect — one row per customer, with
+      reasonable-looking numbers" before layering rfm_scores on top of it. Catching a mistake in step
+      one immediately is far cheaper than discovering, after the whole query is written, that
+      everything downstream inherited a bug from the first CTE.
+  - type: callout
+    variant: warning
+    title: Don't over-narrate the obvious
+    body: >
+      Narration should focus on decisions and judgment calls, not describe every trivial line. Saying
+      "I'm aliasing the orders table as o for brevity" adds nothing; saying "I'm using LEFT JOIN here
+      instead of an inner join because I want customers with zero orders to still show up with a count
+      of 0" explains an actual choice. If everything gets narrated at the same level of detail, the
+      decisions that matter get buried in commentary about the ones that don't.
+  - type: question
+    prompt: >
+      Two candidates produce the exact same correct final query. Candidate A writes it silently in one
+      block and says "here you go" at the end. Candidate B builds it as three narrated CTEs, explaining
+      each step's purpose and briefly checking the first CTE's output before continuing. Why would most
+      interview rubrics score Candidate B higher despite an identical final answer?
+    choices:
+      - "They wouldn't — only the final query's correctness matters, so both should score identically"
+      - "Candidate B's narration and incremental structure make their reasoning visible and verifiable, which is most of what a SQL interview is designed to assess beyond a working final query"
+      - "CTEs are always technically superior to a single query, regardless of how they're used"
+    correct_index: 1
+    explanation: >
+      SQL interviews are typically scored on more than "does the query run" — they weigh whether the
+      candidate handled ambiguity well, whether their logic is sound, and whether their reasoning is
+      clear enough to follow. Candidate A's silent approach gives the interviewer none of that signal
+      even with a correct answer; Candidate B's narrated, incremental build makes the reasoning
+      directly observable and checkable, which is exactly what most rubrics are built to reward.

@@ -1,0 +1,173 @@
+slug: polars-lazy-execution
+module_slug: polars-for-analysts
+title: "Lazy Execution: Building a Query Plan Before Running It"
+description: pl.scan_csv() and the LazyFrame — deferring execution so Polars can optimize a whole pipeline at once, and why eager pandas code structurally can't do the same.
+difficulty: INTERMEDIATE
+estimated_minutes: 12
+display_order: 2
+objectives:
+  - Explain the difference between pl.read_csv() (eager) and pl.scan_csv() (lazy)
+  - Build a multi-step LazyFrame query and run it with .collect()
+  - Explain predicate and projection pushdown, and why lazy execution enables optimizations eager code can't get
+prerequisites: [polars-dataframe-basics]
+skills: [pandas]
+datasets: [ecommerce]
+tags: [python, intermediate, real-world]
+key_takeaways:
+  - "pl.read_csv() is eager — it loads the file and returns a DataFrame immediately. pl.scan_csv() is lazy — it returns a LazyFrame that represents a plan, not yet-loaded data."
+  - "Nothing runs on a LazyFrame until you call .collect(). Every .filter(), .select(), .group_by() you chain before that just extends the plan."
+  - "Because Polars sees the whole plan before running anything, its query optimizer can reorder and combine steps — most importantly pushing filters and column selection down to the file read itself, so you never load data you were going to throw away."
+  - "Eager pandas code can't do this by construction: pd.read_csv() has already loaded every row and column into memory before your first .query() or column selection even runs, so there is nothing left to optimize away."
+common_mistakes:
+  - "Forgetting to call .collect() and being confused that print(lazy_query) shows a query plan description instead of your data — a LazyFrame is not a preview of the result, it's an unexecuted plan."
+  - "Assuming lazy execution is only about speed on huge files — it also matters on data that fits in memory just fine, because pushdown means Polars reads less off disk and does less work even at moderate scale."
+  - "Calling .collect() repeatedly inside a loop or multiple times on the same LazyFrame variable, re-running the entire plan from scratch each time instead of collecting once and reusing the resulting DataFrame."
+practical_applications:
+  - "Building a data pipeline step that reads a large exported CSV, filters to the last quarter, and aggregates by category — writing it as a lazy pipeline so only the relevant slice of the file is ever actually read into memory."
+  - "Prototyping a multi-step transformation with .explain() to see exactly what Polars intends to do before running it against a production-sized file."
+interview_questions:
+  - question: "What's the difference between pl.read_csv() and pl.scan_csv()?"
+    answer: "pl.read_csv() eagerly loads the file into a DataFrame immediately. pl.scan_csv() returns a LazyFrame — a query plan that hasn't executed yet. You chain operations onto a LazyFrame (filter, select, group_by) and nothing actually runs until you call .collect(), at which point Polars' query optimizer can rewrite the whole plan — for example pushing a filter down so it's applied while reading the file, rather than after loading everything."
+  - question: "Why can't pandas do the same kind of query-plan optimization that Polars' lazy mode does?"
+    answer: "pandas executes each line eagerly — pd.read_csv() has already materialized the full DataFrame in memory before your next line of code (a filter, a column selection) even runs. There's no query plan to optimize because by the time you'd optimize it, the expensive work (reading everything) is already done. Polars' LazyFrame defers execution specifically so the optimizer can see the whole pipeline first."
+resources:
+  - title: "Polars User Guide — Lazy API"
+    url: "https://docs.pola.rs/user-guide/lazy/using/"
+blocks:
+  - type: text
+    body: >
+      In the last lesson every example used `pl.read_csv()`, which behaves like pandas'
+      `pd.read_csv()` — it reads the whole file and hands you back a DataFrame immediately. That's
+      called **eager** execution: each line runs the instant Python reaches it. Polars also has a
+      second mode, **lazy** execution, which is arguably its single most important idea — and one
+      pandas has no real equivalent for.
+  - type: heading
+    text: "pl.scan_csv() vs. pl.read_csv()"
+  - type: code
+    language: python
+    code: |
+      import polars as pl
+
+      # Eager — reads the file right now, returns a DataFrame
+      orders_df = pl.read_csv("data/sample/ecommerce/orders.csv")
+      print(type(orders_df))
+
+      # Lazy — returns a plan, reads nothing yet
+      orders_lazy = pl.scan_csv("data/sample/ecommerce/orders.csv")
+      print(type(orders_lazy))
+    caption: Same file, two different return types
+  - type: output
+    body: |
+      <class 'polars.dataframe.frame.DataFrame'>
+      <class 'polars.lazyframe.frame.LazyFrame'>
+    caption: Real output — scan_csv() returns a LazyFrame, not data
+  - type: text
+    body: >
+      A `LazyFrame` is not "a preview of your data." It holds no rows. It's a description of *how* to
+      produce a result, which you build up by chaining operations, and which only actually runs when
+      you call `.collect()`.
+  - type: heading
+    text: "Building a plan, then collecting it"
+  - type: code
+    language: python
+    code: |
+      query = (
+          pl.scan_csv("data/sample/ecommerce/orders.csv")
+          .filter(pl.col("status") == "completed")
+          .group_by("channel")
+          .agg(pl.len().alias("n_orders"))
+      )
+
+      # Nothing has run yet — query is still just a plan
+      result = query.collect()
+      print(result)
+    caption: "Filter, then group and count — only .collect() actually executes anything"
+  - type: output
+    body: |
+      shape: (3, 2)
+      ┌─────────────┬──────────┐
+      │ channel     ┆ n_orders │
+      │ ---         ┆ ---      │
+      │ str         ┆ u32      │
+      ╞═════════════╪══════════╡
+      │ mobile      ┆ 1199     │
+      │ marketplace ┆ 352      │
+      │ web         ┆ 1890     │
+      └─────────────┴──────────┘
+    caption: Real output — 1,890 completed web orders, 1,199 mobile, 352 marketplace
+  - type: heading
+    text: "Why deferring execution matters: pushdown"
+  - type: text
+    body: >
+      Because Polars sees the *entire* plan — filter, then group, then aggregate — before running any
+      of it, its query optimizer can rewrite that plan into a more efficient one. The two rewrites you
+      benefit from most, on almost every real query, are:
+  - type: table
+    headers: ["Optimization", "What it does"]
+    rows:
+      - ["Predicate pushdown", "Moves a .filter() as early as possible — ideally into the file read itself — so rows that would be filtered out are never fully materialized in the first place."]
+      - ["Projection pushdown", "Notices which columns your query actually uses and reads only those from disk, ignoring the rest of the file entirely."]
+  - type: text
+    body: >
+      You can see this directly by asking Polars to explain the plan it settled on with `.explain()`,
+      instead of running it:
+  - type: code
+    language: python
+    code: |
+      query = (
+          pl.scan_csv("data/sample/ecommerce/orders.csv")
+          .filter(pl.col("status") == "completed")
+          .group_by("channel")
+          .agg(pl.len().alias("n_orders"))
+      )
+      print(query.explain())
+    caption: Asking Polars what it actually intends to do, before doing it
+  - type: output
+    body: |
+      AGGREGATE[maintain_order: false]
+        [len().alias("n_orders")] BY [col("channel")]
+        FROM
+        simple π 1/1 ["channel"]
+          Csv SCAN [data/sample/ecommerce/orders.csv]
+          PROJECT 2/5 COLUMNS
+          SELECTION: col("status") == "completed"
+          ESTIMATED ROWS: 4678
+    caption: "Real output — note PROJECT 2/5 COLUMNS and SELECTION applied at the scan step itself, not after"
+  - type: callout
+    variant: important
+    title: This is the part eager pandas structurally cannot do
+    body: >
+      `pd.read_csv("orders.csv")` has already loaded all 5 columns and all 4,205 rows into memory
+      before your next line — a `.query()` filter or column selection — even executes. There is no
+      "plan" left to optimize at that point, because the expensive step (reading everything) already
+      happened. You'd have to hand-optimize it yourself, e.g. by passing `usecols=` to `read_csv()` to
+      avoid reading unneeded columns. Polars' lazy mode does this kind of optimization automatically,
+      across an arbitrarily long chain of operations, because it waits until it has seen the whole
+      pipeline before running any of it.
+  - type: comparison
+    title: "Eager pandas pipeline vs. lazy Polars pipeline"
+    columns: ["Step", "pandas (eager)", "Polars (lazy)"]
+    rows:
+      - ["Read file", "Loads all rows/columns immediately", "Records intent to read — nothing loaded yet"]
+      - ["Filter rows", "Runs immediately, on the fully loaded DataFrame", "Added to the plan — not run yet"]
+      - ["Select/aggregate", "Runs immediately, on the filtered DataFrame", "Added to the plan — not run yet"]
+      - ["Optimization opportunity", "None — each step already ran before the next one is even written", "Full pipeline optimized together at .collect() time"]
+  - type: callout
+    variant: tip
+    title: "When to reach for scan_ instead of read_"
+    body: >
+      As a default habit for anything beyond a quick one-off look at a file, prefer `pl.scan_csv()` /
+      `pl.scan_parquet()` over `pl.read_csv()` / `pl.read_parquet()`, and end your pipeline with
+      `.collect()`. It costs you almost nothing when the data is small, and it's the difference between
+      "reads the whole file" and "reads only what the query actually needs" once the data is large.
+  - type: question
+    prompt: "You write pl.scan_csv('big_file.csv').filter(pl.col('year') == 2025). At this point, how many rows of big_file.csv has Polars actually read?"
+    choices:
+      - "Zero — nothing runs until .collect() is called"
+      - "All of them, but only the year column"
+      - "Only the rows where year == 2025"
+    correct_index: 0
+    explanation: >
+      A LazyFrame is a plan, not data. Chaining .filter() onto it just extends the plan — Polars hasn't
+      touched the file yet. Only .collect() (or an equivalent like .fetch() for a preview) triggers
+      actual execution, at which point the optimizer can apply the filter as part of the read itself.

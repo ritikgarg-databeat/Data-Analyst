@@ -1,0 +1,104 @@
+slug: reading-a-schema
+module_slug: data-profiling-quality
+title: "Reading a Schema in Under a Minute"
+description: What a schema viewer actually shows you — column name, type, null%, unique count — and how to turn that into a first impression of a dataset before you've run a single query.
+difficulty: BEGINNER
+estimated_minutes: 10
+display_order: 1
+objectives:
+  - Read the four core fields a schema viewer shows for every column — name, type, null%, unique count/%
+  - Form a specific, checkable first impression of an unfamiliar dataset from its schema alone
+  - Identify which columns are likely keys, which are likely low-cardinality categories, and which need a closer look
+prerequisites: [what-is-a-dataset, rows-columns-and-grain, data-types-for-analysts]
+soft_prerequisites: [working-with-the-dataset-hub]
+skills: [exploratory-data-analysis]
+datasets: [ecommerce]
+tags: [foundations, beginner, real-world]
+key_takeaways:
+  - "A schema viewer's four core fields — column name, data type, null percentage, and unique count/percentage — are enough to form a specific first impression of a dataset before you've written a single query."
+  - "Unique count near the row count usually signals a key (or near-key) column; unique count of 2-10 with plenty of repeats usually signals a genuine categorical column; a mid-range unique count on a text-typed column is worth a second look."
+  - "Null percentage isn't just a data-quality checkbox — a 0% null column you'd expect to have gaps (like a campaign attribution field) is as informative as a high null percentage you didn't expect."
+  - "This is a one-minute-per-table habit, not a deep investigation — it's meant to generate specific hypotheses ('this looks like the primary key,' 'this is probably nullable by design') that later profiling and EDA steps confirm or correct, not to answer every question on its own."
+common_mistakes:
+  - "Skipping the schema and going straight to a SELECT * — a schema viewer answers 'what am I even looking at' faster than scrolling through sample rows, and it's designed to be read before any query."
+  - "Treating every low-null column as clean and every high-null column as broken — some columns are legitimately, by design, sparse (like sessions.marketing_campaign_id, which is only populated for sessions that came from a tracked campaign)."
+  - "Not cross-checking unique count against row count for a column you assume is a key — a column named `*_id` isn't automatically unique per row; the schema viewer's unique count tells you in seconds whether that assumption holds."
+practical_applications:
+  - "The first thing to do on any newly-imported dataset: open the schema viewer and, for each table, note which column looks like the key, which look categorical, and which nulls look surprising, before writing a single query."
+  - "Spotting a likely join key between two tables by comparing column names and unique counts in their schemas side by side, before writing the join itself."
+interview_questions:
+  - question: "You're handed access to a table you've never seen before. What's the very first thing you do?"
+    answer: "Before writing any query, I'd look at the schema: column names, types, null percentages, and unique counts. That alone tells me a lot — which column is probably the primary key (unique count near the row count), which columns are categorical (a handful of distinct values), and which nulls look surprising versus expected by design. It takes under a minute and gives me specific things to verify with an actual query next, instead of guessing at the table's shape from scratch."
+resources:
+  - title: "PostgreSQL documentation — information_schema"
+    url: "https://www.postgresql.org/docs/current/information-schema.html"
+blocks:
+  - type: heading
+    text: "Four fields, one minute, a real first impression"
+  - type: text
+    body: >
+      Every table's schema view on this platform's Dataset Hub shows the same four things for every
+      column: **name**, **data type** (numeric/categorical/datetime/text/boolean, from the previous
+      module), **null percentage**, and **unique count** (and its percentage of total rows). That's a
+      small amount of information — and it's enough to form a genuinely useful first impression of an
+      entire table before you've written a single query.
+  - type: heading
+    text: "A worked read: the orders table's schema"
+  - type: table
+    headers: ["Column", "Type", "Null %", "Unique count", "First impression"]
+    rows:
+      - ["order_id", "numeric", "0%", "4,205 / 4,205 (100%)", "Unique count equals row count — this is the primary key"]
+      - ["customer_id", "numeric", "0%", "1,362 / 4,205 (32%)", "Far fewer unique values than rows — customers place multiple orders, as expected"]
+      - ["order_date", "datetime", "0%", "636 / 4,205", "Many orders share a date — normal for a datetime column at daily granularity"]
+      - ["status", "categorical", "0%", "4 / 4,205", "Very low unique count relative to rows — a clean categorical column (completed/pending/cancelled/refunded)"]
+      - ["channel", "categorical", "0%", "3 / 4,205", "Same pattern — another clean categorical column (web/mobile/marketplace)"]
+  - type: text
+    body: >
+      Without running anything, this table already tells a specific, checkable story: order_id is the key,
+      customer_id is a foreign key with real repeats (customers order more than once, on average), and
+      status/channel are exactly the kind of low-cardinality categorical columns you'd segment or group by.
+      That's five concrete hypotheses in under a minute, each one you could now go verify with a query if
+      you needed to.
+  - type: heading
+    text: "The pattern-matching rules"
+  - type: comparison
+    title: "What unique count relative to row count usually signals"
+    columns: ["Pattern", "Likely meaning", "What to do next"]
+    rows:
+      - ["Unique count = row count", "Primary key or a near-key identifier", "Good candidate for joins; check it's truly non-null too"]
+      - ["Unique count is a small, fixed number (2-15ish) with heavy repeats", "A genuine categorical column", "Good candidate for a frequency table, GROUP BY, or segmentation"]
+      - ["Unique count is high but well below row count", "A foreign key (many rows per distinct value) or a genuinely variable numeric/text field", "Check the data type to tell these apart"]
+      - ["Unique count is close to row count on a text-typed column", "Likely near-unique free text (email, a description field) — not a segmentation candidate", "Don't try to build a frequency table over it"]
+  - type: heading
+    text: "Null percentage: a signal, not a verdict"
+  - type: callout
+    variant: important
+    title: "Ask 'expected or surprising,' not just 'high or low'"
+    body: >
+      A null percentage on its own doesn't tell you if something is wrong — it tells you where to direct
+      your judgment. sessions.marketing_campaign_id being ~60% null isn't a defect; it's expected, because
+      only sessions that arrived via a tracked marketing campaign have one populated — organic and direct
+      traffic legitimately have nothing to put there. The next lesson goes deep on this exact judgment
+      call. For now, the schema-reading habit is simply: note every null percentage that surprises you,
+      and every 0% you'd have expected to see some gaps in.
+  - type: heading
+    text: "Practicing the read"
+  - type: checklist
+    title: "What to note for every table's schema, in under a minute"
+    items:
+      - "Which column has unique count = row count? That's your working hypothesis for the primary key."
+      - "Which columns have a small, fixed number of unique values? Those are your categorical/segmentation candidates."
+      - "Which null percentages surprise you, in either direction — too high or suspiciously exactly 0%?"
+      - "Do any column names suggest a join to another table (a column ending in _id)? Note it to check unique counts on both sides later."
+  - type: question
+    prompt: "A column named customer_id has a null percentage of 0% and a unique count of 4,205 out of 4,205 rows in the orders table. What does that unique count tell you, and is it consistent with customer_id being a normal foreign key?"
+    choices:
+      - "It's NOT consistent with a normal foreign key — a foreign key to customers should show far fewer unique values than rows, since customers typically place more than one order; a unique count equal to row count here would be a signal worth double-checking, not customer_id's expected pattern"
+      - "It confirms customer_id is working exactly as expected for a foreign key"
+      - "Unique count is irrelevant to interpreting a foreign key column"
+    correct_index: 0
+    explanation: >
+      A genuine foreign key to a table where entities repeat (customers placing multiple orders) should
+      have a unique count well below the row count. A unique count equal to the row count would mean every
+      order has a distinct customer_id — worth investigating, since it would mean no repeat customers at
+      all, an unusual and checkable claim rather than a normal pattern.

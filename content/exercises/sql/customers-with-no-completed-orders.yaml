@@ -1,0 +1,55 @@
+slug: customers-with-no-completed-orders
+lesson_slug: subqueries-in-where
+skill: advanced-sql
+dataset: ecommerce
+title: Find Customers With No Completed Orders
+description: Write a query using a subquery in the WHERE clause to find customers who have never had a completed order.
+exercise_type: SQL
+difficulty: INTERMEDIATE
+points: 20
+tags: [sql, intermediate, real-world, cross-training]
+business_context: >
+  The retention team is planning a win-back campaign and needs a clean list of customers who signed up
+  but never actually completed a purchase — either they never ordered at all, or every order they
+  placed was cancelled, refunded, or is still pending.
+prompt: >
+  Using the `customers` and `orders` tables, write a query that returns every customer who has never
+  had an order with `status = 'completed'`. Return `customer_id`, `first_name`, `last_name`, and
+  `signup_date`. Row order does not matter.
+sql_tables: [customers, orders]
+sql_starter_query: |
+  -- Explore both tables first
+  SELECT * FROM customers LIMIT 20;
+sql_solution_query: |
+  SELECT c.customer_id, c.first_name, c.last_name, c.signup_date
+  FROM customers c
+  WHERE NOT EXISTS (
+    SELECT 1
+    FROM orders o
+    WHERE o.customer_id = c.customer_id
+      AND o.status = 'completed'
+  );
+sql_row_order_matters: false
+sql_numeric_tolerance: 0.01
+hints:
+  - "A customer belongs on this list if there is no row in orders for them with status = 'completed' — that's naturally phrased as 'does not exist' or 'not in' a set built from a subquery on orders, not as a join."
+  - "Use NOT EXISTS (SELECT 1 FROM orders o WHERE o.customer_id = c.customer_id AND o.status = 'completed') in the WHERE clause of a query selecting from customers c. This correctly keeps customers with zero orders as well as customers whose orders are all non-completed."
+solution: >
+  ```sql
+  SELECT c.customer_id, c.first_name, c.last_name, c.signup_date
+  FROM customers c
+  WHERE NOT EXISTS (
+    SELECT 1
+    FROM orders o
+    WHERE o.customer_id = c.customer_id
+      AND o.status = 'completed'
+  );
+  ```
+explanation: >
+  A strong answer uses NOT EXISTS (or an equivalent NOT IN with a subquery) rather than a join, because
+  the question is about absence: no matching completed order should exist anywhere for that customer.
+  A LEFT JOIN ... WHERE o.order_id IS NULL approach only catches customers with zero orders at all — it
+  incorrectly drops customers who placed orders that were all cancelled or refunded, since those
+  customers do have matching rows in a plain join on customer_id. The subquery must filter to
+  status = 'completed' inside itself so "no completed order" is evaluated per customer, independent of
+  however many non-completed orders they placed.

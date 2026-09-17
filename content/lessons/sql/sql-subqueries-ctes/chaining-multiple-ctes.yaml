@@ -1,0 +1,114 @@
+slug: chaining-multiple-ctes
+module_slug: sql-subqueries-ctes
+title: Chaining Multiple CTEs
+description: Defining several CTEs that build on each other in one query, turning a complex analysis into readable steps.
+difficulty: INTERMEDIATE
+estimated_minutes: 14
+display_order: 5
+objectives:
+  - Define more than one CTE in a single WITH clause, separated by commas
+  - Reference an earlier CTE from within a later CTE's definition
+  - Break a multi-step analytical question into a sequence of small, named CTEs
+prerequisites: [common-table-expressions]
+skills: [advanced-sql]
+datasets: [ecommerce]
+tags: [sql, intermediate]
+key_takeaways:
+  - "Multiple CTEs go in one WITH clause separated by commas: WITH a AS (...), b AS (...) SELECT ... — and b's definition can reference a."
+  - Chaining CTEs turns a single, dense query into a sequence of small, individually-readable transformations, each one a clear step toward the final answer.
+  - A CTE can only reference CTEs defined earlier in the same WITH clause, not ones defined later — the chain flows in one direction, top to bottom.
+common_mistakes:
+  - "Trying to reference a CTE from within another CTE defined before it in the list — order matters; a later CTE can build on an earlier one, but not the reverse."
+  - "Cramming everything into one giant CTE instead of splitting the logic into named steps — if a single CTE's SELECT is doing three different jobs at once, it's usually a sign it should be split into two or three chained CTEs."
+blocks:
+  - type: heading
+    text: One WITH clause, several named steps
+  - type: text
+    body: >
+      A single WITH clause isn't limited to one CTE — you can define several, separated by commas,
+      and each one after the first is free to reference any CTE defined before it. This is where
+      CTEs really start to pay off: a genuinely multi-step analysis can be written as a literal
+      sequence of steps, each with a name that says what it computes.
+  - type: text
+    body: >
+      Say the goal is "compare average completed-order revenue between business and consumer
+      customers." That's naturally three steps: revenue per order, then revenue per customer, then
+      the average across customers grouped by segment. Each step becomes one CTE.
+  - type: code
+    language: sql
+    caption: Three chained CTEs answering a business question, one step at a time
+    code: |
+      WITH order_revenue AS (
+        SELECT
+          oi.order_id,
+          SUM((oi.unit_price - oi.discount) * oi.quantity) AS revenue
+        FROM order_items oi
+        GROUP BY oi.order_id
+      ),
+      customer_revenue AS (
+        SELECT
+          o.customer_id,
+          SUM(order_revenue.revenue) AS total_revenue
+        FROM orders o
+        JOIN order_revenue ON order_revenue.order_id = o.order_id
+        WHERE o.status = 'completed'
+        GROUP BY o.customer_id
+      )
+      SELECT
+        c.customer_segment,
+        ROUND(AVG(customer_revenue.total_revenue), 2) AS avg_customer_revenue,
+        COUNT(*) AS customers
+      FROM customer_revenue
+      JOIN customers c ON c.customer_id = customer_revenue.customer_id
+      GROUP BY c.customer_segment
+      ORDER BY avg_customer_revenue DESC;
+  - type: output
+    caption: Business customers spend slightly more on average per completed order history
+    body: |
+      customer_segment | avg_customer_revenue | customers
+      ------------------+-----------------------+-----------
+      business          |               4647.43 |       365
+      consumer          |               4582.94 |       896
+  - type: text
+    body: >
+      Read the query the way it's written: `order_revenue` turns line items into one revenue number
+      per order. `customer_revenue` builds directly on that — it joins to `order_revenue`, keeps only
+      completed orders, and rolls revenue up to one number per customer. The final SELECT builds on
+      `customer_revenue` in turn, joining to customers to bring in `customer_segment` and averaging
+      within each segment. Nothing skips ahead — each CTE only uses what came before it.
+  - type: callout
+    variant: tip
+    title: Debug by running a prefix of the chain
+    body: >
+      Because each CTE is a self-contained step, you can debug this kind of query by temporarily
+      changing the final SELECT to just `SELECT * FROM order_revenue LIMIT 10` (or `customer_revenue`)
+      to confirm each intermediate step looks right before trusting the final aggregation on top of
+      it. This is the single biggest practical reason to chain CTEs instead of writing the equivalent
+      logic as deeply nested subqueries — there, you can't easily "peek" at an intermediate step
+      without rewriting the whole query.
+  - type: heading
+    text: The chain flows one way
+  - type: text
+    body: >
+      Order matters. `customer_revenue` can reference `order_revenue` because it's defined later in
+      the same WITH clause — but `order_revenue` could never reference `customer_revenue`, even
+      though they're part of the same statement. Think of a WITH clause as a short script: each
+      statement can use anything defined above it, never below.
+  - type: comparison
+    title: "One dense query vs. a chained-CTE version"
+    columns: ["", "Single nested query", "Chained CTEs"]
+    rows:
+      - ["Readable top-to-bottom?", "No — logic is nested inside-out", "Yes — one named step at a time"]
+      - ["Can you test one step alone?", "Only by rewriting", "Yes — just SELECT * FROM that CTE"]
+      - ["Does the database execute it differently?", "No — same logical result either way", "No — same logical result either way"]
+  - type: question
+    prompt: "In WITH a AS (...), b AS (...), c AS (...) SELECT ... FROM c, which CTEs is c allowed to reference in its own definition?"
+    choices:
+      - Only a
+      - a and b, since both are defined earlier in the WITH clause
+      - "a, b, and c itself, recursively"
+    correct_index: 1
+    explanation: >
+      A CTE can reference any CTE defined earlier in the same WITH clause, so c's definition can use
+      both a and b. It cannot reference itself (that would require WITH RECURSIVE, covered next) and
+      it obviously can't be referenced by a or b, since those come first.

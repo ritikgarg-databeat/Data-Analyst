@@ -1,0 +1,139 @@
+slug: ecommerce-paid-channel-cac-concern
+title: "Is Our Marketing Spend Still Paying Off?"
+category: MARKETING_ANALYTICS
+difficulty: INTERMEDIATE
+estimated_minutes: 60
+
+company_context: >
+  Brightcart is a mid-sized direct-to-consumer online retailer. Its marketing team runs paid
+  campaigns across four channels — display, social, email, and search — each with its own budget
+  and date range. Website and app sessions are tracked separately, and a session can optionally be
+  attributed to one of these campaigns; sessions without an attributed campaign are organic or
+  otherwise untracked traffic.
+stakeholder_name: "Elena Cho"
+stakeholder_role: "VP of Marketing"
+problem_statement: >
+  "Marketing spend is up and leadership wants to know if we're still getting a good return. I need
+  something I can bring to the exec team next week — is our paid marketing actually working, or are
+  we just spending more for the same results? I don't want a vague answer; I need to know which
+  channels are actually pulling their weight."
+business_context: >
+  Marketing is finalizing next quarter's channel budget allocation. Leadership has noticed spend
+  trending up and wants a channel-level efficiency read before committing more money to any single
+  channel. No one has yet checked whether a precise revenue-based return figure is even something
+  the current tracking setup can support.
+objective: >
+  Assess paid marketing channel efficiency using real campaign spend and session/conversion data,
+  identify which channel(s) look weakest, and recommend where budget should shift — while being
+  explicit about what this data can and cannot support (for example, whether a true revenue-based
+  return on ad spend is computable, or only a cost-per-conversion figure).
+initial_information: >
+  marketing_campaigns has one row per campaign: campaign_id, campaign_name, channel, start_date,
+  end_date, and budget. sessions has one row per website/app session: session_id, customer_id
+  (nullable), session_start, session_end, device, landing_page, marketing_campaign_id (nullable —
+  null means no campaign is attributed to this session), and converted (true/false). Neither table
+  contains an order_id or a link to a specific payment.
+constraints:
+  - "Sessions carry no order_id or payment link, so no individual session's exact dollar revenue can be traced directly. Decide what metric is actually defensible given that gap before making a spend recommendation."
+  - "A session with a null marketing_campaign_id is not the same as 'no marketing influence' — it only means this dataset does not attribute it to a tracked campaign (it could be organic, direct, or an untracked channel)."
+  - "A campaign's budget is a single total for its whole date range — do not assume it can be evenly split by day or session without stating that as an assumption."
+available_datasets: ["ecommerce"]
+expected_deliverables:
+  - "Per-channel cost-per-session and cost-per-conversion, computed from real campaign budgets and real session/conversion counts"
+  - "A comparison of each paid channel's conversion rate against the conversion rate of non-campaign (organic) sessions, as a baseline"
+  - "An explicit statement of whether a revenue-based return on ad spend is computable from this data, and why or why not"
+  - "A recommendation on which channel(s) look weakest and what should change in next quarter's budget"
+learning_objectives:
+  - "Compute a defensible unit-economics metric (cost per conversion) from campaign spend joined through session-level attribution"
+  - "Recognize the limits of an analytics schema (no session-to-order link) and avoid presenting an unsupported metric, like a precise return on ad spend, as if it were solid"
+  - "Compare paid-channel conversion performance against a non-campaign/organic baseline, not just against other paid channels"
+  - "Build a specific, defensible budget-reallocation recommendation from real cost-per-outcome numbers"
+stages: [CLARIFY, FRAME, EXPLORE, ANALYZE, INSIGHTS, RECOMMEND, SUBMIT]
+required_exercise_slugs: []
+tags: [e-commerce, marketing, business-analytics, funnel, case-study, real-world, intermediate]
+skills: [business-metrics, exploratory-data-analysis, data-interpretation, root-cause-analysis, decision-making]
+
+clarification_guidance:
+  - "A good clarifying question asks what 'getting a good return' should be measured as — conversion rate, cost per conversion, or a full revenue-based return — and confirms which of those is actually computable from the available tables."
+  - "A good clarifying question asks whether 'marketing spend' covers all four tracked channels (display, social, email, search) or whether Elena has a specific channel in mind already."
+  - "A good clarifying question asks what time period 'spend is up' refers to, and whether the comparison should be spend-over-time or channel-versus-channel."
+  - "A good clarifying question asks whether organic/non-campaign sessions should be used as a baseline for what 'good' performance looks like."
+rubric:
+  - category: "Problem Framing & Clarification"
+    weight: 15
+    criteria:
+      - criterion: "Clarifies which return metric is actually being asked for, and checks it against what the schema can support before proceeding"
+        points: 8
+      - criterion: "Establishes whether all four channels or a specific one is in scope, and what baseline ('good return') means"
+        points: 7
+  - category: "Technical Analysis"
+    weight: 35
+    is_technical: true
+    criteria:
+      - criterion: "Correctly joins campaigns to sessions on marketing_campaign_id and correctly treats null-campaign sessions as a separate organic baseline group"
+        points: 12
+      - criterion: "Correctly computes cost-per-session and cost-per-conversion per channel from real budget and session/conversion totals"
+        points: 13
+      - criterion: "Correctly compares each paid channel's conversion rate to the organic/non-campaign baseline rate"
+        points: 10
+  - category: "Insight Quality"
+    weight: 20
+    criteria:
+      - criterion: "Correctly identifies which channel looks weakest on a cost-per-conversion basis, and explains why (e.g., high cost per session without a compensating conversion-rate advantage)"
+        points: 10
+      - criterion: "Correctly determines whether a precise revenue-based return on ad spend is supportable from this schema, and states why or why not"
+        points: 10
+  - category: "Recommendation & Business Judgment"
+    weight: 20
+    criteria:
+      - criterion: "Gives a specific budget-reallocation recommendation grounded in the computed cost-per-conversion figures"
+        points: 12
+      - criterion: "Flags the missing session-to-order link as something to fix before a true return-on-spend claim can be trusted, rather than forcing a revenue number"
+        points: 8
+  - category: "Communication"
+    weight: 10
+    criteria:
+      - criterion: "Clearly separates what was measured (cost per conversion, conversion rate) from what could not be measured (revenue-based return) in the final write-up"
+        points: 10
+hints:
+  - "Join marketing_campaigns to sessions on marketing_campaign_id, and treat sessions with a null campaign_id as a separate 'no campaign' baseline group, not as missing data to drop."
+  - "Before computing anything about revenue or return on ad spend, check whether any table actually links a session to a specific order or payment — if it doesn't, plan your metric around what you CAN compute (cost per session, cost per conversion), not what you wish you could compute."
+  - "Compare each paid channel's conversion rate to the organic baseline rate, not just to other paid channels — a paid channel that barely beats organic is a much weaker story than one that clearly outperforms it."
+  - "Look at cost-per-session and cost-per-conversion together — a channel can look cheap per session but expensive per conversion if its conversion rate is low, or vice versa."
+reference_solution:
+  summary: >
+    Across the 15 tracked campaigns, total budget is $164,918.98, split across four channels:
+    display (6 campaigns, $76,614.79), social (5 campaigns, $54,300.54), email (3 campaigns,
+    $21,776.99), and search (1 campaign, $12,226.66). Of 12,000 total sessions, 7,170 (59.75%) carry
+    no attributed campaign; the remainder are attributed as display 1,880, social 1,654, email 980,
+    and search 316. Conversion rate by channel is: display 14.41% (271/1,880), social 14.63%
+    (242/1,654), email 13.06% (128/980), and search 15.51% (49/316) — versus 15.86% (1,137/7,170)
+    for sessions with no attributed campaign at all. Every single paid channel converts at or below
+    the organic/non-campaign baseline. Cost per session is display $40.75, search $38.69, social
+    $32.83, and email $22.22. Cost per conversion is display $282.71 (highest of all four), search
+    $249.52, social $224.38, and email $170.13 (lowest). Display is both the largest budget line
+    (46.4% of total spend) and the least cost-efficient channel by cost-per-conversion, without a
+    conversion-rate advantage that would justify its much higher cost per session. A true
+    revenue-based return on ad spend is NOT reliably computable from this schema: sessions carry no
+    order_id, and orders/payments carry no session_id or campaign reference, so there is no direct
+    join path from a converted session to the dollar value of what was actually purchased.
+    Cost-per-conversion and cost-per-session are the defensible metrics here; any revenue-per-
+    channel figure would require assumptions this data does not support.
+  key_insights:
+    - "Total tracked campaign budget is $164,918.98 across 15 campaigns in 4 channels: display $76,614.79 (46.4%), social $54,300.54, email $21,776.99, search $12,226.66."
+    - "Every paid channel converts at or below the organic/no-campaign baseline (15.86%): display 14.41%, social 14.63%, search 15.51%, email 13.06%."
+    - "Display has the highest cost-per-conversion ($282.71) of all four channels despite being the largest budget line, with no conversion-rate advantage over the other channels to justify it; email has the lowest cost-per-conversion ($170.13) on the smallest budget."
+    - "A precise revenue-based return on ad spend cannot be computed from this schema — sessions have no order_id/payment link — so cost-per-conversion and cost-per-session are the metrics that can actually be trusted here."
+  recommendation: >
+    Recommend shifting some budget away from display — currently the largest spend line and the
+    least efficient channel by cost-per-conversion, with a conversion rate that does not outperform
+    even organic traffic — toward email, which has the lowest cost-per-conversion, and cautiously
+    toward search, which has the best paid conversion rate but is backed by only one campaign and
+    316 sessions, so it should be scaled up gradually rather than all at once. Separately, flag to
+    leadership that a real return-on-ad-spend analysis would require instrumenting a session-to-
+    order link (for example, a shared identifier connecting a converted session to its order/payment
+    record) before a dollar-for-dollar return can be measured with confidence.
+  acceptable_alternatives:
+    - "Recommending a controlled test (e.g., reduce display spend by a fixed percentage for one quarter and re-measure) rather than an immediate reallocation, given how much of the story rests on comparing rates rather than dollars."
+    - "Flagging search's small sample size (316 sessions, 1 campaign) as a reason to scale it cautiously rather than aggressively, even though it has the best paid conversion rate."
+version: 1

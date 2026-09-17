@@ -1,0 +1,90 @@
+slug: stats-checkout-redesign-significance-test
+lesson_slug: hyp-p-values
+skill: statistics
+dataset: saas-product
+title: "Is the Checkout Redesign Actually Better? A Two-Proportion Test"
+description: Run a two-proportion z-test comparing control and treatment conversion rates for the checkout_redesign experiment.
+exercise_type: PYTHON
+difficulty: INTERMEDIATE
+points: 25
+tags: [python, statistics, intermediate, experimentation, ab-testing]
+business_context: >
+  The checkout team ran an A/B test on a redesigned checkout flow and wants a rigorous read on
+  whether the treatment group's higher observed conversion rate is strong enough evidence to ship
+  the redesign, rather than eyeballing the two percentages.
+prompt: >
+  Using `experiment_assignments`, filter to `experiment_id == "checkout_redesign"`, then compute the
+  conversion rate for the `control` and `treatment` variants and run a two-proportion z-test
+  comparing them (`statsmodels.stats.proportion.proportions_ztest`, with treatment listed first).
+  Store your answer in a variable named `result`: a dict with keys `control_rate`, `treatment_rate`
+  (each the mean of `converted` for that variant, rounded to 4 decimals), `z_stat` (rounded to 3
+  decimals), and `p_value` (rounded to 4 decimals).
+python_datasets: [experiment_assignments]
+python_starter_code: |
+  # experiment_assignments is already loaded as a DataFrame.
+  # Explore it first:
+  experiment_assignments["experiment_id"].value_counts()
+python_solution_code: |
+  from statsmodels.stats.proportion import proportions_ztest
+
+  cr = experiment_assignments[experiment_assignments.experiment_id == "checkout_redesign"]
+  control = cr[cr.variant == "control"]
+  treatment = cr[cr.variant == "treatment"]
+  control_conv = int(control["converted"].sum())
+  treatment_conv = int(treatment["converted"].sum())
+  control_n = len(control)
+  treatment_n = len(treatment)
+
+  z_stat, p_value = proportions_ztest([treatment_conv, control_conv], [treatment_n, control_n])
+  result = {
+      "control_rate": round(control_conv / control_n, 4),
+      "treatment_rate": round(treatment_conv / treatment_n, 4),
+      "z_stat": round(z_stat, 3),
+      "p_value": round(p_value, 4),
+  }
+python_result_variable: result
+python_numeric_tolerance: 0.0005
+python_hidden_tests:
+  - name: "Rates match a fresh recomputation, and this sample doesn't reach significance"
+    code: |
+      cr_check = experiment_assignments[experiment_assignments.experiment_id == "checkout_redesign"]
+      control_rate_check = cr_check.loc[cr_check.variant == "control", "converted"].mean()
+      treatment_rate_check = cr_check.loc[cr_check.variant == "treatment", "converted"].mean()
+      assert abs(result["control_rate"] - round(control_rate_check, 4)) < 0.001, (
+          "control_rate doesn't match a fresh recomputation."
+      )
+      assert abs(result["treatment_rate"] - round(treatment_rate_check, 4)) < 0.001, (
+          "treatment_rate doesn't match a fresh recomputation."
+      )
+      assert result["p_value"] > 0.05, (
+          "This particular sample (1,000 users per arm) should not reach conventional significance."
+      )
+hints:
+  - "Filter `experiment_assignments` down to `experiment_id == 'checkout_redesign'` first, then split into `control` and `treatment` DataFrames using the `variant` column."
+  - "`proportions_ztest` takes two lists: successes (conversion counts) and nobs (sample sizes) for each group — pass treatment's numbers first in both lists to get a positive z-statistic when treatment converts higher."
+solution: |
+  ```python
+  from statsmodels.stats.proportion import proportions_ztest
+
+  cr = experiment_assignments[experiment_assignments.experiment_id == "checkout_redesign"]
+  control = cr[cr.variant == "control"]
+  treatment = cr[cr.variant == "treatment"]
+  control_conv = int(control["converted"].sum())
+  treatment_conv = int(treatment["converted"].sum())
+  control_n = len(control)
+  treatment_n = len(treatment)
+
+  z_stat, p_value = proportions_ztest([treatment_conv, control_conv], [treatment_n, control_n])
+  result = {
+      "control_rate": round(control_conv / control_n, 4),
+      "treatment_rate": round(treatment_conv / treatment_n, 4),
+      "z_stat": round(z_stat, 3),
+      "p_value": round(p_value, 4),
+  }
+  ```
+explanation: >
+  Control converts at 11.3% and treatment at 12.5% — a promising-looking gap — but the two-proportion
+  z-test returns p = 0.407, well above the conventional 0.05 threshold. As the Type I/II error lesson
+  covers, this particular test (1,000 users per arm) only has about 43% power to detect a real effect
+  of this size, so the honest conclusion is "inconclusive, likely underpowered" rather than "the
+  redesign doesn't work."

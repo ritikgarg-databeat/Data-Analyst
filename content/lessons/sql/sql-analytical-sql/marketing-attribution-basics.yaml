@@ -1,0 +1,131 @@
+slug: marketing-attribution-basics
+module_slug: sql-analytical-sql
+title: Marketing Attribution Basics
+description: Joining sessions to marketing_campaigns to see which channel and campaign drove conversions, and handling the sessions that arrived organically with no campaign at all.
+difficulty: ADVANCED
+estimated_minutes: 13
+display_order: 6
+objectives:
+  - Join session-level data to campaign data to attribute conversions to a channel or campaign
+  - Use a LEFT JOIN (or explicit grouping) to keep organic/direct traffic visible instead of silently dropping it
+  - Compute and compare conversion rate by channel, not just raw conversion counts
+prerequisites: [period-over-period-growth]
+skills: [advanced-sql]
+datasets: [ecommerce]
+tags: [sql, advanced, business-analytics]
+key_takeaways:
+  - "Basic attribution here is a straightforward join: sessions.marketing_campaign_id to marketing_campaigns.campaign_id, then aggregating the sessions.converted flag by channel or campaign."
+  - "A session with marketing_campaign_id = NULL isn't bad data — in this dataset it means organic or direct traffic. An INNER JOIN silently drops that (often large) segment; a LEFT JOIN or a CASE-based bucket keeps it visible."
+  - "Conversion *rate* (conversions / sessions), not raw conversion count, is what should drive channel comparisons — a channel with more traffic will usually have more raw conversions even if it converts worse."
+common_mistakes:
+  - "INNER JOINing sessions to marketing_campaigns and reporting the result as 'total conversions' — that quietly excludes every organic/direct session, which in this dataset is the majority of traffic."
+  - "Comparing channels by raw conversion count alone — a channel that runs more sessions will tend to produce more total conversions even with a mediocre conversion rate, making it look like the best channel when it isn't."
+practical_applications:
+  - "A monthly marketing report showing conversion rate by channel to help decide where next quarter's budget should shift."
+  - "Spotting an underperforming campaign (high spend, low conversion rate) that would be invisible from a total-conversions-only view."
+blocks:
+  - type: heading
+    text: What attribution means at its simplest
+  - type: text
+    body: >
+      "Marketing attribution" is a whole discipline (multi-touch, first-touch, last-touch models,
+      and more), but its simplest and most common form in SQL is a join: each `sessions` row optionally
+      links to a `marketing_campaigns` row via `marketing_campaign_id`, and each campaign has a
+      `channel` (display, email, search, social). Joining the two and aggregating `sessions.converted`
+      answers "which channel is actually driving conversions?"
+  - type: code
+    language: sql
+    caption: Conversions and conversion rate by channel
+    code: |
+      SELECT
+        mc.channel,
+        COUNT(*) AS sessions,
+        SUM(CASE WHEN s.converted THEN 1 ELSE 0 END) AS conversions,
+        ROUND(
+          100.0 * SUM(CASE WHEN s.converted THEN 1 ELSE 0 END) / COUNT(*), 1
+        ) AS conversion_rate_pct
+      FROM sessions s
+      JOIN marketing_campaigns mc ON mc.campaign_id = s.marketing_campaign_id
+      GROUP BY mc.channel
+      ORDER BY conversions DESC;
+  - type: output
+    body: |
+      channel | sessions | conversions | conversion_rate_pct
+      --------+----------+-------------+----------------------
+      display |     1880 |         271 |                 14.4
+      social  |     1654 |         242 |                 14.6
+      email   |      980 |         128 |                 13.1
+      search  |      316 |          49 |                 15.5
+  - type: text
+    body: >
+      Ranked by raw conversions, display and social look like the top channels — but they also ran the
+      most sessions. Ranked by conversion_rate_pct instead, search actually converts best (15.5%),
+      just off a much smaller volume. Which ranking matters depends on the question: "where did most of
+      our conversions come from" vs. "which channel is most efficient per session."
+  - type: heading
+    text: Don't lose organic and direct traffic
+  - type: text
+    body: >
+      That query used an INNER JOIN, which only keeps sessions that matched a campaign row — meaning
+      it silently drops every session where `marketing_campaign_id IS NULL`. In this dataset, roughly
+      60% of sessions have no campaign at all (organic search, typing the URL directly, a bookmark).
+      Reporting "total conversions" from the INNER JOIN result alone would understate the real total
+      by ignoring the largest traffic segment.
+  - type: code
+    language: sql
+    caption: Keeping organic/direct visible as its own bucket
+    code: |
+      SELECT
+        CASE WHEN marketing_campaign_id IS NULL THEN 'organic/direct' ELSE 'campaign' END AS source,
+        COUNT(*) AS sessions,
+        SUM(CASE WHEN converted THEN 1 ELSE 0 END) AS conversions
+      FROM sessions
+      GROUP BY 1;
+  - type: output
+    body: |
+      source          | sessions | conversions
+      -----------------+----------+-------------
+      organic/direct   |     7170 |        1137
+      campaign         |     4830 |         690
+  - type: callout
+    variant: important
+    title: LEFT JOIN when you need campaign detail *and* the organic bucket together
+    body: >
+      To see both per-channel detail and an explicit "no campaign" row in one result, LEFT JOIN
+      sessions to marketing_campaigns and coalesce the missing channel to a label like
+      `'organic/direct'`: `LEFT JOIN marketing_campaigns mc ON mc.campaign_id = s.marketing_campaign_id`
+      then `COALESCE(mc.channel, 'organic/direct') AS channel` in the SELECT and GROUP BY. An INNER
+      JOIN can never produce that row, because by definition it only keeps sessions that found a match.
+  - type: example
+    title: Attribution down to the individual campaign
+    body: >
+      The same join works at campaign granularity instead of channel granularity — useful for deciding
+      whether a *specific* campaign (not just its channel) is worth its budget.
+    code: |
+      SELECT
+        mc.campaign_name,
+        mc.channel,
+        mc.budget,
+        COUNT(*) AS sessions,
+        SUM(CASE WHEN s.converted THEN 1 ELSE 0 END) AS conversions
+      FROM sessions s
+      JOIN marketing_campaigns mc ON mc.campaign_id = s.marketing_campaign_id
+      GROUP BY mc.campaign_name, mc.channel, mc.budget
+      ORDER BY conversions DESC
+      LIMIT 5;
+    language: sql
+  - type: question
+    prompt: >
+      A report joins sessions to marketing_campaigns with an INNER JOIN and states "our channels drove
+      1,431 total conversions last quarter." Sessions with marketing_campaign_id = NULL are known to
+      exist and convert at a similar rate to campaign traffic. What's wrong with that statement?
+    choices:
+      - "Nothing — INNER JOIN is the correct join for attribution reporting"
+      - "It understates total conversions, because the INNER JOIN drops every organic/direct session (marketing_campaign_id IS NULL) along with whatever conversions those sessions produced"
+      - "It's wrong because conversion counts should always use LEFT JOIN with campaigns, never channels"
+    correct_index: 1
+    explanation: >
+      An INNER JOIN only keeps rows that match on both sides — sessions with a NULL
+      marketing_campaign_id have nothing to match in marketing_campaigns, so they're excluded entirely.
+      If those organic/direct sessions convert too (which the question states they do), the reported
+      1,431 is missing all of their conversions and doesn't represent the business's true total.

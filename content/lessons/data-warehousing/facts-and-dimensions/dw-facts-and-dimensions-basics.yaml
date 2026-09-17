@@ -1,0 +1,110 @@
+slug: dw-facts-and-dimensions-basics
+module_slug: facts-and-dimensions
+title: "Facts and Dimensions: The Two Building Blocks"
+description: What distinguishes a fact table from a dimension table, the keys that connect them, and the difference between additive, semi-additive, and non-additive measures.
+difficulty: INTERMEDIATE
+estimated_minutes: 40
+display_order: 1
+objectives:
+  - Distinguish a fact table (measurements/events, numeric and usually additive) from a dimension table (descriptive context, mostly text/categorical attributes).
+  - Explain the role of foreign keys in connecting a fact table to its dimensions, using fct_orders as a real example.
+  - Classify a measure as additive, semi-additive, or non-additive, and explain why that classification determines whether SUM() gives a meaningful answer.
+skills: [data-warehousing, dimensional-modeling, data-modeling]
+datasets: [ecommerce]
+tags: [fact-table, dimension-table, star-schema, aggregation, intermediate]
+prerequisites: [dw-declaring-grain]
+key_takeaways:
+  - "A fact table holds measurements of something that happened — usually numeric, usually additive columns (revenue, quantity, margin) — plus foreign keys pointing to the dimensions that give it context. A dimension table holds descriptive attributes about an entity (a customer's country, a product's category) that rarely change and are mostly text/categorical."
+  - "fct_orders connects to its dimensions through foreign keys: customer_id links to dim_customers.customer_id. dbt's relationships test on fct_orders.customer_id (declared in marts.yml) is exactly the mechanical check that every foreign key value actually exists in the referenced dimension — an orphaned foreign key would mean a fact row pointing at a customer that doesn't exist."
+  - "Measures fall into three categories: additive (safe to SUM across every dimension — gross_revenue, item_count), semi-additive (safe to SUM across some dimensions but not others — a snapshot balance can be summed across customers at one point in time, but not across time itself), and non-additive (never safe to SUM — a ratio like gross_margin_pct must be recomputed from its additive parts, not summed directly)."
+common_mistakes:
+  - "Summing a percentage or ratio column (like gross_margin_pct) directly across rows. Summing five orders' margin percentages and calling that \"total margin percentage\" is meaningless — the correct approach is to sum the additive numerator and denominator separately (gross_margin and gross_revenue) and divide once, at the end."
+  - "Treating every foreign key relationship as automatically valid without checking it. A fact row with a customer_id that doesn't exist in dim_customers (an orphaned key) would silently disappear from any inner join to that dimension, undercounting results with no error raised — this is exactly why marts.yml declares a `relationships` test on fct_orders.customer_id against dim_customers."
+blocks:
+  - type: heading
+    text: "Fact tables measure; dimension tables describe"
+  - type: text
+    body: >
+      A **fact table** holds measurements of something that happened — usually numeric columns that
+      are meaningful to aggregate (revenue, quantity, margin, a count) — connected to the entities
+      involved via foreign keys. A **dimension table** holds descriptive, mostly textual or
+      categorical attributes about one of those entities — a customer's country and signup date, a
+      product's name and category. The fact table answers "how much / how many"; the dimension
+      tables answer "who / what / when / where" by providing the context a fact row's foreign keys
+      point to.
+  - type: table
+    headers: ["", "Fact table", "Dimension table"]
+    rows:
+      - ["Holds", "Measurements/events (numeric, additive columns)", "Descriptive attributes (mostly text/categorical)"]
+      - ["Typical size", "Large, grows with every new event", "Small relative to facts, grows slowly"]
+      - ["Changes", "Rows are added, rarely updated", "Attributes update occasionally (see the SCD module)"]
+      - ["Real example", "fct_orders — gross_revenue, gross_margin, item_count", "dim_customers — country, signup_date, customer_segment"]
+      - ["Connects via", "Foreign keys to each relevant dimension's primary key", "Its own primary key, referenced by fact tables"]
+  - type: example
+    title: "fct_orders' foreign key into dim_customers"
+    body: >
+      `fct_orders.customer_id` is a foreign key: it doesn't describe anything about the order itself,
+      it points at a row in `dim_customers`. `marts.yml` declares this relationship explicitly as a
+      dbt test: `relationships` with `to: ref('dim_customers')`, `field: customer_id`. That test runs
+      a real check — effectively, "does every `customer_id` in `fct_orders` also exist in
+      `dim_customers`?" — and fails the build if it finds even one order pointing at a customer that
+      doesn't exist. Without that check, an orphaned foreign key would silently drop out of any
+      `INNER JOIN` to `dim_customers`, quietly undercounting a report with no visible error.
+  - type: code
+    language: yaml
+    code: |
+      # dbt/models/marts/marts.yml
+      - name: fct_orders
+        columns:
+          - name: customer_id
+            tests:
+              - not_null
+              - relationships:
+                  arguments:
+                    to: ref('dim_customers')
+                    field: customer_id
+    caption: "A real, automated check that every fact row's foreign key actually resolves to a dimension row — the mechanical version of \"does this relationship hold?\""
+  - type: heading
+    text: "Additive, semi-additive, non-additive: whether SUM() means anything"
+  - type: text
+    body: >
+      Not every numeric column in a fact table can be safely summed across every dimension. An
+      **additive** measure can be summed across any dimension and the result still means something —
+      `fct_orders.gross_revenue` summed across all orders, or filtered to one country and summed,
+      both give a real total. A **semi-additive** measure can be summed across some dimensions but not
+      others — a balance-at-a-point-in-time measure can be summed across customers (total balance
+      across all customers today), but summing it *across time* would double-count the same balance
+      on different days. A **non-additive** measure should never be summed directly — a ratio or
+      percentage like `fct_orders.gross_margin_pct` has to be recomputed from its additive components
+      (`gross_margin` and `gross_revenue`, summed separately, then divided) rather than averaged or
+      summed as-is.
+  - type: formula
+    expression: "Total margin % across N orders ≠ SUM(gross_margin_pct) or AVG(gross_margin_pct);  it = SUM(gross_margin) / SUM(gross_revenue)"
+    description: >
+      Ratios are non-additive: recompute them from their additive numerator and denominator after
+      aggregating those, rather than aggregating the ratio itself.
+  - type: callout
+    variant: common_mistake
+    title: "Averaging a percentage column is (almost always) wrong"
+    body: >
+      Given ten orders' `gross_margin_pct` values, `AVG(gross_margin_pct)` treats every order as
+      equally weighted regardless of its size — a $10 order at 90% margin and a $10,000 order at 20%
+      margin would be averaged as if they mattered equally to the business, which they don't. The
+      correct "overall margin percentage across these ten orders" is
+      `SUM(gross_margin) / SUM(gross_revenue)`, which naturally weights each order by its actual
+      revenue.
+  - type: question
+    prompt: >
+      fct_orders has a gross_margin_pct column. A report needs "overall margin percentage across all
+      completed orders in Q1." What's the correct way to compute it?
+    choices:
+      - "AVG(gross_margin_pct) across all Q1 completed orders"
+      - "SUM(gross_margin) / SUM(gross_revenue), computed across all Q1 completed orders, since a ratio is non-additive and must be recomputed from its additive parts"
+      - "SUM(gross_margin_pct) across all Q1 completed orders"
+    correct_index: 1
+    explanation: >
+      gross_margin_pct is a non-additive, derived measure — it can't be meaningfully summed or
+      averaged directly without distorting the result toward smaller orders (AVG) or producing a
+      number with no real meaning at all (SUM). The correct approach recomputes the ratio from its
+      additive components after they've been separately aggregated, which naturally revenue-weights
+      the result.

@@ -1,0 +1,52 @@
+slug: customer-name-formatting
+lesson_slug: string-functions
+skill: sql-fundamentals
+dataset: ecommerce
+title: Build a "Lastname, Firstname" Display Name
+description: Write a query that concatenates a customer's last and first name into a single formatted display name.
+exercise_type: SQL
+difficulty: BEGINNER
+points: 15
+tags: [sql, beginner]
+business_context: >
+  Support is rebuilding their ticket-lookup screen and wants a single "Display Name" field per customer,
+  formatted the way agents expect to see a name on a case file: "Lastname, Firstname" (for example,
+  "Williams, Mia").
+prompt: >
+  Using the `customers` table, write a query that returns `customer_id` and a `display_name` column
+  formatted as "Lastname, Firstname" (last name, a comma and a space, then first name), for customers
+  with `customer_id` less than or equal to 10. Sort the result by `customer_id` ascending.
+sql_tables: [customers]
+sql_starter_query: |
+  -- Explore the customers table first
+  SELECT * FROM customers LIMIT 20;
+sql_solution_query: |
+  SELECT customer_id, last_name || ', ' || first_name AS display_name
+  FROM customers
+  WHERE customer_id <= 10
+  ORDER BY customer_id;
+sql_row_order_matters: true
+sql_numeric_tolerance: 0.01
+sql_hidden_tests:
+  - name: "Display name for customer_id 1 is formatted correctly"
+    query: |
+      SELECT customer_id, last_name || ', ' || first_name AS display_name
+      FROM customers
+      WHERE customer_id = 1
+    key_columns: 1
+hints:
+  - "You need to join two text columns together with some literal punctuation in between — that's string concatenation, not a function that operates on numbers."
+  - "Use the || operator (or CONCAT) to build last_name || ', ' || first_name — note the comma and space are a literal string sitting between the two column references."
+solution: |
+  ```sql
+  SELECT customer_id, last_name || ', ' || first_name AS display_name
+  FROM customers
+  WHERE customer_id <= 10
+  ORDER BY customer_id;
+  ```
+explanation: >
+  A strong answer concatenates last_name, a literal ", " separator, and first_name in that exact order
+  using || (or CONCAT), producing "Lastname, Firstname" rather than "Firstname Lastname" or some other
+  arrangement. A common mistake is getting the argument order backwards or forgetting the comma
+  altogether, which produces a name that reads correctly to a human skimming it but doesn't match the
+  exact formatting the support team's ticket screen expects.

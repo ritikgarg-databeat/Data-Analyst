@@ -1,0 +1,53 @@
+slug: sql-second-highest-order-per-channel
+skill: advanced-sql
+dataset: ecommerce
+title: Second-Highest Order Revenue per Channel
+description: Using `orders` and `order_items`, compute each completed order's total revenue (quantity * unit_price
+  * (1 - discount/100.0), summed across its line items), then return the SECOND-highest order revenue per `channel`
+  -- columns `channel`, `order_id`, and `revenue` (rounded to 2 decimals) -- ordered by `channel`.
+exercise_type: SQL
+difficulty: INTERMEDIATE
+points: 20
+tags:
+- sql
+- window-functions
+business_context: Merchandising wants to know each channel's second-highest single-order revenue, as a check against
+  relying only on the single top outlier order.
+prompt: Using `orders` and `order_items`, compute each completed order's total revenue (quantity * unit_price *
+  (1 - discount/100.0), summed across its line items), then return the SECOND-highest order revenue per `channel`
+  -- columns `channel`, `order_id`, and `revenue` (rounded to 2 decimals) -- ordered by `channel`.
+sql_tables:
+- orders
+- order_items
+sql_starter_query: '-- Start by computing total revenue per completed order, joined to its channel
+
+  SELECT o.order_id, o.channel, SUM(oi.quantity * oi.unit_price * (1 - oi.discount/100.0)) AS revenue
+
+  FROM orders o JOIN order_items oi ON oi.order_id = o.order_id
+
+  WHERE o.status = ''completed''
+
+  GROUP BY o.order_id, o.channel
+
+  LIMIT 20;'
+sql_solution_query: "WITH order_revenue AS (\n  SELECT o.order_id, o.channel,\n         SUM(oi.quantity * oi.unit_price\
+  \ * (1 - oi.discount/100.0)) AS revenue\n  FROM orders o JOIN order_items oi ON oi.order_id = o.order_id\n  WHERE\
+  \ o.status = 'completed'\n  GROUP BY o.order_id, o.channel\n),\nranked AS (\n  SELECT channel, order_id, revenue,\n\
+  \         DENSE_RANK() OVER (PARTITION BY channel ORDER BY revenue DESC) AS rnk\n  FROM order_revenue\n)\nSELECT\
+  \ channel, order_id, ROUND(revenue, 2) AS revenue\nFROM ranked WHERE rnk = 2\nORDER BY channel;"
+sql_row_order_matters: true
+sql_numeric_tolerance: 0.5
+hints:
+- Compute each order's total revenue first (a GROUP BY on order_id, joined to order_items), then rank orders within
+  each channel by that revenue.
+- DENSE_RANK() (not ROW_NUMBER()) is the safer choice if two orders could tie exactly for the top revenue in a channel
+  -- ROW_NUMBER would arbitrarily split a tie across two rank positions.
+solution: "```sql\nWITH order_revenue AS (\n  SELECT o.order_id, o.channel,\n         SUM(oi.quantity * oi.unit_price\
+  \ * (1 - oi.discount/100.0)) AS revenue\n  FROM orders o JOIN order_items oi ON oi.order_id = o.order_id\n  WHERE\
+  \ o.status = 'completed'\n  GROUP BY o.order_id, o.channel\n),\nranked AS (\n  SELECT channel, order_id, revenue,\n\
+  \         DENSE_RANK() OVER (PARTITION BY channel ORDER BY revenue DESC) AS rnk\n  FROM order_revenue\n)\nSELECT\
+  \ channel, order_id, ROUND(revenue, 2) AS revenue\nFROM ranked WHERE rnk = 2\nORDER BY channel;\n```"
+explanation: Revenue must be computed per order first (summing its line items), since `order_items` is at the line-item
+  grain, not the order grain. DENSE_RANK() partitioned by channel and ordered by revenue descending assigns rank
+  1 to the top order in each channel and rank 2 to the true second-highest, correctly handling a tie for first place
+  (which ROW_NUMBER would not).

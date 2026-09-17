@@ -1,0 +1,74 @@
+slug: excel-index-match-two-way-lookup
+skill: excel-fundamentals
+title: Two-Way Price Lookup with INDEX/MATCH
+description: The `Prices` sheet has product names down column A (`A2:A4`) and region names across row 1 (`B1:D1`),
+  with prices in `B2:D4`. On `Answer`, fill in `B1` with an INDEX/MATCH formula that returns the price for the product
+  named in `Answer!A1` and the region named in `Answer!A2`.
+exercise_type: EXCEL
+difficulty: ADVANCED
+points: 10
+tags:
+- excel
+business_context: Prices vary by both product and region -- a single VLOOKUP can't look up on two dimensions at
+  once, but INDEX/MATCH can.
+prompt: The `Prices` sheet has product names down column A (`A2:A4`) and region names across row 1 (`B1:D1`), with
+  prices in `B2:D4`. On `Answer`, fill in `B1` with an INDEX/MATCH formula that returns the price for the product
+  named in `Answer!A1` and the region named in `Answer!A2`.
+excel_starter_sheets:
+- name: Prices
+  cells:
+    A1: Product
+    B1: West
+    C1: East
+    D1: South
+    A2: Widget
+    B2: '9.99'
+    C2: '10.99'
+    D2: '11.99'
+    A3: Gadget
+    B3: '19.99'
+    C3: '20.99'
+    D3: '21.99'
+    A4: Gizmo
+    B4: '14.5'
+    C4: '15.5'
+    D4: '16.5'
+- name: Answer
+  cells:
+    A1: Gadget
+    A2: East
+    B1: ''
+excel_solution_sheets:
+- name: Prices
+  cells:
+    A1: Product
+    B1: West
+    C1: East
+    D1: South
+    A2: Widget
+    B2: '9.99'
+    C2: '10.99'
+    D2: '11.99'
+    A3: Gadget
+    B3: '19.99'
+    C3: '20.99'
+    D3: '21.99'
+    A4: Gizmo
+    B4: '14.5'
+    C4: '15.5'
+    D4: '16.5'
+- name: Answer
+  cells:
+    A1: Gadget
+    A2: East
+    B1: =INDEX(Prices!B2:D4,MATCH(A1,Prices!A2:A4,0),MATCH(A2,Prices!B1:D1,0))
+excel_check_cells:
+- Answer!B1
+hints:
+- Use one MATCH to find which ROW the product is on, and a second MATCH to find which COLUMN the region is in, then
+  feed both into INDEX as INDEX(range, row_num, col_num).
+- MATCH's third argument 0 means an exact match -- always pass it explicitly for text lookups.
+solution: '`=INDEX(Prices!B2:D4,MATCH(A1,Prices!A2:A4,0),MATCH(A2,Prices!B1:D1,0))` evaluates to 20.99.'
+explanation: '`MATCH("Gadget",Prices!A2:A4,0)` returns 2 (Gadget is the 2nd product), and `MATCH("East",Prices!B1:D1,0)`
+  returns 2 (East is the 2nd region column). `INDEX(Prices!B2:D4,2,2)` then returns the value in the 2nd row, 2nd
+  column of that range -- 20.99. INDEX/MATCH generalizes VLOOKUP to lookups on more than one dimension.'

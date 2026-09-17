@@ -1,0 +1,48 @@
+slug: excel-year-month-day-extraction
+skill: excel-fundamentals
+title: Extracting Year, Month, and Day from a Date
+description: On `Data`, `A2` holds an order date. On `Answer`, fill in `B2` with `=YEAR(Data!A2)`, `C2` with `=MONTH(Data!A2)`,
+  and `D2` with `=DAY(Data!A2)`.
+exercise_type: EXCEL
+difficulty: BEGINNER
+points: 10
+tags:
+- excel
+business_context: A report needs to group orders by year and month separately, which first requires pulling those
+  parts out of a single order-date field.
+prompt: On `Data`, `A2` holds an order date. On `Answer`, fill in `B2` with `=YEAR(Data!A2)`, `C2` with `=MONTH(Data!A2)`,
+  and `D2` with `=DAY(Data!A2)`.
+excel_starter_sheets:
+- name: Data
+  cells:
+    A1: OrderDate
+    A2: =DATE(2024,7,4)
+- name: Answer
+  cells:
+    A1: Year
+    B1: Month
+    C1: Day
+excel_solution_sheets:
+- name: Data
+  cells:
+    A1: OrderDate
+    A2: =DATE(2024,7,4)
+- name: Answer
+  cells:
+    A1: Year
+    B1: Month
+    C1: Day
+    B2: =YEAR(Data!A2)
+    C2: =MONTH(Data!A2)
+    D2: =DAY(Data!A2)
+excel_check_cells:
+- Answer!B2
+- Answer!C2
+- Answer!D2
+hints:
+- YEAR/MONTH/DAY each take a single date value and return just that one numeric part.
+- These are the building blocks for grouping data by month/year, before any pivot table or SUMIF-by-month formula.
+solution: '`=YEAR(Data!A2)`=2024, `=MONTH(Data!A2)`=7, `=DAY(Data!A2)`=4.'
+explanation: DATE(2024,7,4) builds a single date serial value; YEAR/MONTH/DAY each pull one component back out of
+  it. This decomposition is the usual first step before grouping a date column into monthly or yearly buckets for
+  a SUMIF/pivot summary.

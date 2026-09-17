@@ -1,0 +1,67 @@
+slug: campaign-channel-crosstab
+lesson_slug: crosstab
+skill: pandas
+dataset: ecommerce
+title: Campaign Channel vs. Device Cross-Tab
+description: Cross-tabulate session device type against marketing campaign channel for campaign-driven sessions.
+exercise_type: PYTHON
+difficulty: INTERMEDIATE
+points: 20
+tags: [python, intermediate, real-world]
+business_context: >
+  Marketing wants to see how campaign-driven traffic breaks down by device type across channels —
+  a quick cross-tab to spot whether, say, social campaigns skew mobile while search campaigns skew
+  desktop, before deciding where to shift budget.
+prompt: >
+  Using `sessions` and `marketing_campaigns`, build a cross-tab of session device type against
+  campaign channel, counting sessions — but only sessions that actually came through some
+  campaign (`sessions.marketing_campaign_id` is not null). Merge those sessions to
+  `marketing_campaigns` to bring in `channel`, then use `pd.crosstab(device_column,
+  channel_column)` to count sessions in each device/channel combination. Store your answer in a
+  variable named `result`: the resulting cross-tab DataFrame (device values as the index,
+  channel values as the columns, cell values are session counts).
+python_datasets: [sessions, marketing_campaigns]
+python_starter_code: |
+  # sessions and marketing_campaigns are already loaded as DataFrames.
+  # Explore them first:
+  sessions.head()
+python_solution_code: |
+  sessions_campaign = sessions[sessions["marketing_campaign_id"].notna()].copy()
+  merged = sessions_campaign.merge(
+      marketing_campaigns[["campaign_id", "channel"]],
+      left_on="marketing_campaign_id", right_on="campaign_id",
+  )
+  result = pd.crosstab(merged["device"], merged["channel"])
+python_result_variable: result
+python_row_order_matters: false
+python_numeric_tolerance: 0.01
+python_hidden_tests:
+  - name: "Cross-tab total equals the number of campaign-driven sessions"
+    code: |
+      campaign_session_count = sessions["marketing_campaign_id"].notna().sum()
+      assert result.values.sum() == campaign_session_count, (
+          f"Expected the cross-tab's cells to sum to {campaign_session_count} "
+          f"campaign-driven sessions, got {result.values.sum()}"
+      )
+hints:
+  - "Filter sessions down to rows where marketing_campaign_id is not null first (sessions['marketing_campaign_id'].notna()) — sessions with no campaign shouldn't appear in the cross-tab at all."
+  - "After merging in channel from marketing_campaigns (match sessions.marketing_campaign_id to marketing_campaigns.campaign_id), pd.crosstab(merged['device'], merged['channel']) does the counting for you in one call — no manual groupby needed."
+solution: |
+  ```python
+  sessions_campaign = sessions[sessions["marketing_campaign_id"].notna()].copy()
+  merged = sessions_campaign.merge(
+      marketing_campaigns[["campaign_id", "channel"]],
+      left_on="marketing_campaign_id", right_on="campaign_id",
+  )
+  result = pd.crosstab(merged["device"], merged["channel"])
+  ```
+explanation: >
+  Filtering to campaign-driven sessions before merging matters for two reasons: it matches the
+  business question (organic, non-campaign traffic isn't relevant here) and it avoids an
+  unnecessary inner-join mismatch, since a merge on `marketing_campaign_id` would naturally drop
+  null-campaign rows anyway. `pd.crosstab` is purpose-built for exactly this "count combinations
+  of two categorical columns" task — it's a shortcut for
+  `merged.groupby(['device', 'channel']).size().unstack(fill_value=0)`, but far more readable. A
+  common mistake is forgetting the `.notna()` filter and cross-tabbing all sessions, which would
+  silently exclude organic sessions from the result anyway (since they have no channel to merge
+  against) while making the "total sessions considered" number confusing to reconcile.

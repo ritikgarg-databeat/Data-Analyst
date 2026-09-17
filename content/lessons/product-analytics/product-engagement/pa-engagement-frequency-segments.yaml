@@ -1,0 +1,100 @@
+slug: pa-engagement-frequency-segments
+module_slug: product-engagement
+title: "Engagement Segments by Channel: Where Power Users Come From"
+description: >
+  Crossing engagement depth with acquisition channel to see whether power users are evenly
+  distributed or concentrated — and what that means for where to invest engagement effort.
+difficulty: INTERMEDIATE
+estimated_minutes: 20
+display_order: 2
+objectives:
+  - Compute an engagement-intensity metric (average events per user) segmented by a second dimension
+  - Interpret a moderate cross-segment spread differently from a dramatic one, using real magnitudes as the judge
+  - Decide whether an engagement gap is worth acting on given its size relative to a bigger, already-known gap (activation)
+prerequisites: [pa-engagement-depth]
+skills: [product-analytics, product-metrics, data-interpretation]
+datasets: [saas-product]
+tags: [product, saas, intermediate]
+key_takeaways:
+  - Average events per user, segmented by acquisition channel, ranges from 2.34 (paid_social) to 2.99 (referral) in this dataset — a real but modest 28% relative spread, clearly smaller than the 23-point (41% relative) spread already found in activation rate by the same channels.
+  - When two segmented metrics both show a gap, compare their relative sizes before deciding where to focus — a large, well-established gap (activation) usually deserves more first attention than a smaller one (engagement intensity) found on the same dimension.
+  - "A gap that's real but modest is still worth reporting accurately: describing it as \"dramatically underengaged\" would overstate what a 0.65-events-per-user difference actually represents."
+common_mistakes:
+  - Treating every segmented gap as equally urgent, regardless of size — a 28% relative spread and a 41% relative spread are both real, but they don't deserve equal weight in a prioritization conversation.
+  - Reporting a modest gap using dramatic language ("massively underengaged") that isn't supported by the actual magnitude, which erodes trust in future findings once someone checks the underlying numbers.
+blocks:
+  - type: text
+    body: >
+      The previous lesson found that engagement depth (events per user) predicts monetization
+      dramatically. A natural next question: does engagement intensity itself vary by acquisition
+      channel, the same way activation rate did? And if so, how does that gap compare in size to the
+      activation gap already found?
+  - type: code
+    language: sql
+    caption: Average events per user, by acquisition channel
+    code: |
+      SELECT
+        u.acquisition_channel,
+        COUNT(*)                                          AS n_events,
+        COUNT(DISTINCT e.user_id)                         AS n_users,
+        ROUND(COUNT(*) * 1.0 / COUNT(DISTINCT e.user_id), 2) AS avg_events_per_user
+      FROM events e
+      JOIN users u ON u.user_id = e.user_id
+      GROUP BY u.acquisition_channel
+      ORDER BY avg_events_per_user DESC;
+  - type: table
+    headers: ["Channel", "Users", "Total events", "Avg events per user"]
+    rows:
+      - ["referral", "435", "1,302", "2.99"]
+      - ["organic", "913", "2,540", "2.78"]
+      - ["content", "300", "782", "2.61"]
+      - ["paid_search", "728", "1,779", "2.44"]
+      - ["paid_social", "624", "1,460", "2.34"]
+  - type: heading
+    text: Comparing this gap's size to the activation gap
+  - type: table
+    headers: ["Metric", "Best channel", "Worst channel", "Spread", "Relative spread (worst vs. best)"]
+    rows:
+      - ["Activation rate", "organic: 78.9%", "paid_social: 55.9%", "23.0 points", "29% lower"]
+      - ["Avg. events per user", "referral: 2.99", "paid_social: 2.34", "0.65 events", "22% lower"]
+  - type: callout
+    variant: tip
+    title: Two real gaps, but not equal priorities
+    body: >
+      Both metrics show paid_social near the bottom, which is a consistent, real pattern worth
+      noting. But the activation gap (a 23-point absolute spread, on a metric bounded between 0% and
+      100%) represents a much larger, more clearly actionable difference than the engagement-depth
+      gap (a 0.65-event difference on a metric with no natural upper bound and much noisier
+      unit-level variation). Given limited investigation time, the activation gap — already
+      quantified in the previous module as worth roughly 143 additional activated users if closed —
+      is the higher-priority lead. The engagement gap is worth monitoring, but describing it with the
+      same urgency as the activation gap would overstate the case.
+  - type: heading
+    text: Precision in language matters as much as the analysis itself
+  - type: callout
+    variant: warning
+    title: Don't inflate a modest finding to sound more impressive
+    body: >
+      "paid_social users average 2.34 events versus referral's 2.99" is accurate and specific.
+      "paid_social users are massively underengaged" is not supported by that same number — a
+      roughly 22% relative difference is real but modest, especially compared to the 29% relative gap
+      already established in activation. A report that consistently calibrates language to actual
+      magnitude is what lets stakeholders trust the *next* finding without re-checking every number
+      themselves.
+  - type: question
+    prompt: >
+      Activation rate shows a 23-point spread by channel (78.9% vs. 55.9%); average events per user
+      shows a 0.65-event spread by the same channels (2.99 vs. 2.34). Both point at paid_social
+      trailing. Which is the more defensible prioritization?
+    choices:
+      - "Treat both gaps as equally urgent, since both involve the same channel"
+      - "Prioritize the activation gap first — it's a larger, more clearly bounded, already-quantified difference — while continuing to monitor the smaller engagement-depth gap"
+      - "Ignore the engagement-depth gap entirely, since it's smaller"
+      - "Prioritize the engagement-depth gap first, since events per user is a more granular metric"
+    correct_index: 1
+    explanation: >
+      Both gaps are real, but they're not the same size in practical terms — the activation gap is a
+      larger, already-quantified difference on a bounded percentage metric, while the engagement gap
+      is a smaller, noisier difference. Prioritizing by actual magnitude (not just by which metric
+      sounds more sophisticated) is what a defensible investigation does, while still tracking the
+      smaller finding rather than discarding it.

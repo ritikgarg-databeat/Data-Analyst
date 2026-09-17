@@ -1,0 +1,118 @@
+slug: replace-and-rename
+module_slug: pandas-transformation
+title: rename() and replace()
+description: ".rename(columns={...}) for renaming COLUMNS vs .replace() for substituting VALUES — two easily-confused names, one clear distinction."
+difficulty: INTERMEDIATE
+estimated_minutes: 9
+display_order: 4
+objectives:
+  - "Rename columns with .rename(columns={...})"
+  - "Substitute values within a column using .replace()"
+  - Confidently tell .rename() and .replace() apart despite the similar names
+prerequisites: [map]
+skills: [pandas]
+datasets: [ecommerce]
+tags: [python, intermediate, real-world]
+key_takeaways:
+  - ".rename() changes LABELS — column names (or, less commonly, index labels) — never the data itself. .replace() changes VALUES — the actual data inside a column (or DataFrame) — never column names."
+  - "Both default to returning a new object rather than modifying in place; both accept inplace=True if you genuinely want to mutate the original, though returning a new object and reassigning is generally the safer habit."
+  - ".rename(columns={'old': 'new'}) also accepts a function (like str.upper) applied to every column name at once, which is handy for a blanket formatting change."
+common_mistakes:
+  - "Mixing the two up by name alone — reaching for .replace() when you meant to rename a column, or .rename() when you meant to substitute a value. The names are similar enough that this happens even to experienced pandas users."
+  - "Calling .rename({'old': 'new'}) without columns= or index= and being surprised by the result — .rename() needs to be told whether the dictionary refers to column names or index labels; without that, its default behavior (renaming index labels) is rarely what was intended."
+blocks:
+  - type: text
+    body: >
+      `.rename()` and `.replace()` are two of the most confusable method names in pandas — similar
+      spelling, similar call shape, doing genuinely different jobs. Getting this distinction solid now
+      saves a surprising number of "why didn't this work" moments later.
+  - type: heading
+    text: ".rename() — changing column LABELS"
+  - type: code
+    language: python
+    code: |
+      import pandas as pd
+
+      products = pd.read_csv("data/sample/ecommerce/products.csv")
+
+      renamed = products.rename(columns={"unit_price": "price", "product_name": "name"})
+      print(renamed.columns.tolist())
+    caption: "The DATA is untouched — only the column names 'unit_price' and 'product_name' changed"
+  - type: output
+    body: |
+      ['product_id', 'name', 'category_id', 'price', 'cost', 'is_active']
+  - type: text
+    body: >
+      Every value in every row is exactly what it was before — a 321.10 that used to live under
+      `unit_price` now lives under `price`, unchanged. `.rename()` only ever touches labels: column names
+      by default when you pass `columns={...}`, or row index labels if you pass `index={...}` instead.
+  - type: code
+    language: python
+    code: |
+      loud = products.rename(columns=str.upper)
+      print(loud.columns.tolist())
+    caption: ".rename() also accepts a function, applied to every column name at once"
+  - type: output
+    body: |
+      ['PRODUCT_ID', 'PRODUCT_NAME', 'CATEGORY_ID', 'UNIT_PRICE', 'COST', 'IS_ACTIVE']
+  - type: heading
+    text: ".replace() — changing VALUES"
+  - type: code
+    language: python
+    code: |
+      orders = pd.read_csv("data/sample/ecommerce/orders.csv")
+      print(orders["channel"].unique())
+
+      replaced = orders.replace({"channel": {"web": "website"}})
+      print(replaced["channel"].unique())
+    caption: "The COLUMN NAME 'channel' is untouched — only the value 'web' inside it changed to 'website'"
+  - type: output
+    body: |
+      <ArrowStringArray>
+      ['mobile', 'web', 'marketplace']
+      Length: 3, dtype: str
+      <ArrowStringArray>
+      ['mobile', 'website', 'marketplace']
+      Length: 3, dtype: str
+  - type: code
+    language: python
+    code: |
+      relabeled_status = orders["status"].replace({"completed": "fulfilled", "cancelled": "canceled"})
+      print(relabeled_status.value_counts())
+    caption: "Called directly on a Series, .replace() substitutes matching values the same way"
+  - type: output
+    body: |
+      status
+      fulfilled    3441
+      canceled      379
+      refunded      258
+      pending       127
+      Name: count, dtype: int64
+  - type: callout
+    variant: important
+    title: The distinction, spelled out
+    body: >
+      rename → RE-NAME → change what a column is CALLED. replace → RE-PLACE → put a different VALUE in
+      the place of an existing one. If what needs to change is a header at the top of a column, it's
+      .rename(). If what needs to change is data inside the rows, it's .replace(). Neither one ever
+      touches the other's territory — .rename() never looks at cell values, and .replace() never looks
+      at column names.
+  - type: comparison
+    title: ".rename() vs .replace()"
+    columns: ["", ".rename()", ".replace()"]
+    rows:
+      - ["Changes", "Column names (or index labels)", "Values inside the data"]
+      - ["Typical call", "df.rename(columns={'old': 'new'})", "df.replace({'col': {'old_val': 'new_val'}}) or series.replace({...})"]
+      - ["Leaves untouched", "Every actual data value", "Every column name"]
+      - ["Also accepts", "A function, applied to every label", "A single value, a list, or a nested dict scoped by column"]
+  - type: question
+    prompt: "You want the 'unit_price' column to be called 'price', with the actual numbers unchanged. Which method?"
+    choices:
+      - ".rename(columns={'unit_price': 'price'})"
+      - ".replace({'unit_price': 'price'})"
+      - "Either works identically here"
+    correct_index: 0
+    explanation: >
+      Changing what a column is CALLED is exactly what .rename() is for. .replace() would instead search
+      the DATA for the literal value 'unit_price' and try to substitute 'price' in its place — it has
+      nothing to do with column names.

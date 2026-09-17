@@ -1,0 +1,75 @@
+slug: repeat-completed-customers
+lesson_slug: common-table-expressions
+skill: advanced-sql
+dataset: ecommerce
+title: Identify Repeat Customers by Completed Orders
+description: Use a CTE to isolate completed orders, then aggregate to find customers with more than one completed order.
+exercise_type: SQL
+difficulty: INTERMEDIATE
+points: 20
+tags: [sql, intermediate, real-world]
+business_context: >
+  The loyalty team wants to seed a repeat-customer rewards program. They need every customer who has
+  completed more than one order, ranked from most completed orders down, so they can prioritize their
+  most loyal buyers first.
+prompt: >
+  Using the `orders` table, write a query that returns every customer with more than one completed
+  order (`status = 'completed'`). Return `customer_id` and their completed-order count, with the
+  customer with the highest count first (break ties by `customer_id` ascending).
+sql_tables: [orders]
+sql_starter_query: |
+  -- Explore the orders table first
+  SELECT * FROM orders LIMIT 20;
+sql_solution_query: |
+  WITH completed_orders AS (
+    SELECT customer_id
+    FROM orders
+    WHERE status = 'completed'
+  )
+  SELECT customer_id, COUNT(*) AS completed_order_count
+  FROM completed_orders
+  GROUP BY customer_id
+  HAVING COUNT(*) > 1
+  ORDER BY completed_order_count DESC, customer_id ASC;
+sql_row_order_matters: true
+sql_numeric_tolerance: 0.01
+sql_hidden_tests:
+  - name: "Top repeat customer's completed-order count is correct"
+    query: |
+      WITH completed_orders AS (
+        SELECT customer_id
+        FROM orders
+        WHERE status = 'completed'
+      )
+      SELECT customer_id, COUNT(*) AS completed_order_count
+      FROM completed_orders
+      GROUP BY customer_id
+      HAVING COUNT(*) > 1
+      ORDER BY completed_order_count DESC, customer_id ASC
+      LIMIT 1
+    key_columns: 1
+hints:
+  - "Break this into two steps: first narrow orders down to only the completed ones, then count how many each customer has. A CTE is a clean way to name that first, filtered step before you aggregate."
+  - "Write `WITH completed_orders AS (SELECT customer_id FROM orders WHERE status = 'completed')`, then `SELECT customer_id, COUNT(*) AS completed_order_count FROM completed_orders GROUP BY customer_id HAVING COUNT(*) > 1 ORDER BY completed_order_count DESC, customer_id ASC`. HAVING filters on the aggregate; WHERE can't do that."
+solution: >
+  ```sql
+  WITH completed_orders AS (
+    SELECT customer_id
+    FROM orders
+    WHERE status = 'completed'
+  )
+  SELECT customer_id, COUNT(*) AS completed_order_count
+  FROM completed_orders
+  GROUP BY customer_id
+  HAVING COUNT(*) > 1
+  ORDER BY completed_order_count DESC, customer_id ASC;
+  ```
+explanation: >
+  A strong answer names the filtered "completed orders only" step as a CTE before aggregating, which
+  keeps the WHERE status = 'completed' filter cleanly separated from the GROUP BY/HAVING logic and
+  reads like the two-step business question it actually is. It filters rows with WHERE before grouping
+  (not HAVING, since status isn't an aggregate), filters groups with HAVING COUNT(*) > 1 after
+  aggregating (not WHERE, since COUNT(*) isn't known until the group is built), and adds a tiebreaker
+  (customer_id ASC) after the primary DESC sort so the ranking among customers with equal counts is
+  well-defined and stable. A common mistake is trying to filter on COUNT(*) > 1 with WHERE, which fails
+  because the aggregate doesn't exist yet at the row-filtering stage.

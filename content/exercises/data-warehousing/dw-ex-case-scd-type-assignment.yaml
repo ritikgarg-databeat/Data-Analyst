@@ -1,0 +1,85 @@
+slug: dw-ex-case-scd-type-assignment
+lesson_slug: dw-scd-type-2-dbt-snapshots
+skill: dimensional-modeling
+dataset: ecommerce
+title: "Case: Assigning SCD Types Across dim_customers and dim_products"
+description: Assign and justify an SCD type for four real-shaped dimension attribute changes, reasoning about when a fact table's own point-in-time columns already make a dimension-level SCD Type 2 unnecessary.
+exercise_type: BUSINESS_REASONING
+difficulty: ADVANCED
+points: 30
+tags: [scd, dimension-table, case-study]
+business_context: >
+  dim_customers currently holds 1,500 customers (1,065 "consumer," 435 "business"), and dim_products
+  holds 150 products across 10 categories. Four real-shaped changes need an SCD strategy decided:
+  (1) a customer's country field is corrected from a typo ("Mexio" to "Mexico"); (2) a customer's
+  customer_segment genuinely changes from "consumer" to "business" after an account upgrade — the
+  exact case this project's real customer_segment_snapshot already tracks with SCD Type 2; (3) a
+  product is reassigned from one category_id to another because it was originally miscategorized at
+  launch; (4) a product's unit_price genuinely increases due to a real price change. Note: order_items
+  already stores unit_price as it was at the time each historical line was recorded, independent of
+  whatever dim_products.unit_price says today.
+stakeholder: "Analytics Engineering Lead"
+constraints:
+  - "You only have the four scenarios described above — no access to how frequently each type of change actually occurs in this specific business, so your reasoning should be about the type of change, not an observed frequency."
+  - "Assume dim_customers and dim_products are rebuilt from clean staging data on every run, the way this project's real models are — there's no hand-editing of individual dimension rows."
+expected_deliverables:
+  - "An SCD type (0, 1, or 2) assigned to each of the four scenarios, each with a one-to-two sentence justification"
+  - "For the customer_segment scenario specifically, a reference to how this project's real customer_segment_snapshot already implements the recommended type"
+  - "For the product price scenario specifically, explicit reasoning about whether a dimension-level SCD Type 2 is actually needed, given that order_items already captures the price at the time of each historical sale"
+prompt: >
+  For each of the four scenarios, state which SCD type (0, 1, or 2) fits best, and justify your
+  choice in one or two sentences. Pay particular attention to the product price scenario: explain
+  whether tracking unit_price history at the dimension level (dim_products) is actually necessary
+  here, given what order_items already captures on its own.
+hints:
+  - "Ask, for each scenario: if this attribute were simply overwritten (Type 1), would any real, currently-answerable business question start giving a silently wrong historical answer? If no, Type 1 is probably fine or even preferable."
+  - "A fact table (or a fact-adjacent table like order_items) that already stores a point-in-time value directly on its own rows can make a dimension-level SCD Type 2 for that same attribute redundant for historical analysis — the history is already captured somewhere else, at the grain where it's actually needed."
+rubric:
+  - criterion: "Correctly assigns SCD Type 1 to the country typo correction, reasoning that the old value was never actually true, so preserving it as \"history\" would only preserve an error rather than a real past state"
+    points: 20
+  - criterion: "Correctly assigns SCD Type 2 to the customer_segment change, explicitly connecting the answer to how this project's real customer_segment_snapshot (check strategy, dbt_valid_from/dbt_valid_to) already implements exactly this"
+    points: 25
+  - criterion: "Reasons through the category reassignment scenario with a defensible, justified conclusion (Type 1 if treated as a correction of a launch-time mistake with no analytical value in the old category; Type 2 if the business genuinely wants to preserve \"how this product was categorized at the time of each historical order\" for trend analysis) rather than picking one type without stating the tradeoff"
+    points: 25
+  - criterion: "Correctly identifies that order_items already stores unit_price at the time of each historical sale, so a dimension-level SCD Type 2 for dim_products.unit_price is not strictly necessary for historical margin accuracy — Type 1 (or Type 2 only if a separate question, like \"list-price trend over time\" independent of any sale, is explicitly needed) is a defensible, well-reasoned choice"
+    points: 30
+solution: >
+  (1) Country typo ("Mexio" → "Mexico"): **SCD Type 1**. The old value was never a real state of the
+  world — it was a data-entry error — so overwriting it loses nothing analytically meaningful.
+  Preserving "Mexio" as a valid historical version would only add noise.
+
+  (2) customer_segment change (consumer → business): **SCD Type 2**. This is exactly the case this
+  project's real `customer_segment_snapshot` already handles: using `strategy='check'` with
+  `check_cols=['customer_segment']` (since there's no reliable source timestamp to use instead),
+  producing `dbt_valid_from`/`dbt_valid_to` columns so a query can correctly ask "what segment was
+  true as of any past order's date" — a genuine historical question that Type 1 (which
+  `dim_customers` itself uses for "current segment") cannot answer correctly on its own.
+
+  (3) Product category reassignment: **defensible either way, with different implications**. If the
+  reassignment corrects a launch-time mistake — the product was simply miscategorized from day one
+  and never really belonged in the old category — Type 1 is the more honest choice, the same logic as
+  the country typo. If, instead, the business wants to preserve "how this product was actually
+  categorized at the time each historical order was placed" (e.g., for a category-revenue trend that
+  shouldn't retroactively reshuffle past orders into today's categorization), Type 2 is justified. The
+  key judgment call is whether the old categorization was ever a legitimate state worth reconstructing
+  historically, or simply wrong from the start.
+
+  (4) Product unit_price increase: **Type 1 is usually sufficient, and a dimension-level Type 2 is
+  often unnecessary** — because `order_items.unit_price` already records the price at the time of
+  each individual historical sale, independent of whatever `dim_products.unit_price` says today.
+  Historical margin analysis (joining order_items to products for cost, as `int_order_items_priced`
+  does) never actually depends on dim_products' *current* price being historically accurate, since the
+  fact-adjacent table already carries the point-in-time value it needs. A dimension-level Type 2 for
+  price would only be worth adding if a genuinely separate question existed — like tracking a
+  product's *list price* trend over time independent of any specific sale — which is a real but
+  different use case from protecting historical margin calculations.
+explanation: >
+  A strong answer doesn't apply the same SCD type mechanically to every attribute — it reasons from
+  whether a real historical question would actually be answered incorrectly by overwriting. The
+  strongest answers recognize the subtlety in scenario 4: a fact-adjacent table already capturing a
+  point-in-time value (order_items.unit_price) can make a dimension-level SCD Type 2 redundant for the
+  specific question of historical margin accuracy, even though the same attribute (price) can
+  genuinely change over time — the question isn't just "does this attribute change," it's "is there
+  already a point-in-time record of it somewhere that the analysis actually needs." A weaker answer
+  assigns Type 2 to every attribute that can change, without checking whether that history is already
+  captured elsewhere or whether it's ever actually queried.

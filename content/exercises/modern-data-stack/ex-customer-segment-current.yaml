@@ -1,0 +1,49 @@
+slug: ex-customer-segment-current
+skill: dbt
+dataset: ecommerce
+title: "dbt Exercise: The Query Behind a Snapshot"
+description: Build the exact current-state query a real SCD Type 2 snapshot is layered on top of.
+exercise_type: DBT
+difficulty: INTERMEDIATE
+points: 10
+tags: [dbt, snapshots, scd, real-execution]
+business_context: >
+  Before a snapshot can track how a customer's segment changes over time, something has to define
+  what "the current segment" even means for a given customer, right now. That current-state query is
+  the real input `customer_segment_snapshot.sql` (dbt/snapshots/) is built on top of.
+prompt: >
+  Write a dbt model named `ex_customer_segment_current` that selects `customer_id` and
+  `customer_segment` from `{{ ref('stg_customers') }}` — one row per customer, reflecting their
+  segment right now. After this builds, go look at `dbt/snapshots/customer_segment_snapshot.sql` — you
+  wrote the same current-state query it selects from; the snapshot's job is entirely about what
+  happens on top of a query exactly like this one (the `check` strategy, and the `dbt_valid_from`/
+  `dbt_valid_to` columns it adds).
+hints:
+  - "This is a plain passthrough of two columns from stg_customers — no joins needed."
+  - "One row per customer_id is the grain the unique test checks."
+dbt_model_name: ex_customer_segment_current
+dbt_starter_sql: |
+  select
+      customer_id
+      -- TODO: also select customer_segment
+  from {{ ref('stg_customers') }}
+dbt_schema_yml: |
+  columns:
+    - name: customer_id
+      tests: [unique, not_null]
+    - name: customer_segment
+      tests:
+        - accepted_values:
+            arguments:
+              values: ["consumer", "business"]
+solution: |
+  select
+      customer_id,
+      customer_segment
+  from {{ ref('stg_customers') }}
+explanation: >
+  A snapshot doesn't replace this kind of query — it wraps it. Every time `dbt snapshot` runs, dbt
+  re-evaluates a select like this one and compares it to what it recorded last time; only when
+  `customer_segment` actually changes for a given `customer_id` does it close out the old row
+  (`dbt_valid_to`) and insert a new one (`dbt_valid_from`) — the current-state logic itself is exactly
+  what you just wrote.

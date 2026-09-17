@@ -1,0 +1,161 @@
+slug: multiindex
+module_slug: pandas-advanced
+title: Working with MultiIndex
+description: What a hierarchical index actually is (the result of grouping by multiple columns), .reset_index() as the practical escape hatch, and .xs() for cross-section selection.
+content_type: READING
+difficulty: ADVANCED
+estimated_minutes: 12
+display_order: 1
+objectives:
+  - Explain what a MultiIndex is and how it arises from grouping by multiple columns
+  - Flatten a MultiIndex back into regular columns with .reset_index()
+  - Select a cross-section of a MultiIndex-ed result with .xs()
+prerequisites: [period-analysis]
+skills: [pandas]
+datasets: [ecommerce]
+tags: [python, advanced, real-world]
+key_takeaways:
+  - "Grouping by multiple columns (df.groupby(['a', 'b']).agg(...)) produces a result indexed by every unique (a, b) combination — that hierarchical row index is a MultiIndex, one level per grouping column."
+  - ".reset_index() is the practical escape hatch most analysts reach for: it turns every index level back into a regular column, giving you a flat DataFrame you can filter, merge, or export normally."
+  - ".xs(value, level='name') pulls out a cross-section — every row matching one value at a specific index level — without needing to reset the index first."
+common_mistakes:
+  - "Trying to filter a MultiIndex-ed result with normal column-style boolean indexing (df[df['status'] == 'completed']) — the grouping keys are index levels, not columns, until you reset_index() or explicitly reference them via the index."
+  - "Not knowing that .loc[('completed', 'web')] (a tuple) is how you index into a MultiIndex by exact combination — a single non-tuple value only selects on the outermost level."
+  - "Reaching for complex MultiIndex-specific methods (.swaplevel(), .droplevel(), deep .xs() chains) when reset_index() followed by ordinary column filtering would solve the same problem more simply and readably."
+practical_applications:
+  - "Flattening a multi-column groupby result back into a normal table before merging it with another DataFrame or exporting it to CSV."
+  - "Pulling out just one status's or one channel's rows from a status-by-channel summary for a focused chart, without recomputing the whole aggregation."
+interview_questions:
+  - question: "What is a MultiIndex, concretely, and how does one usually show up in day-to-day pandas work?"
+    answer: "A MultiIndex is a hierarchical row (or column) index with more than one level — instead of a single label per row, each row is identified by a tuple of labels, one per level. The most common way it shows up in everyday work is grouping by more than one column: df.groupby(['status', 'channel']).agg(...) produces a result where every row is identified by a (status, channel) pair, and those two levels together form a MultiIndex."
+  - question: "What's the simplest, most reliable way to work with a MultiIndex result once you have one?"
+    answer: "In almost all practical cases, .reset_index() — it converts every index level back into a regular column, turning the hierarchical result into an ordinary flat DataFrame that supports normal boolean filtering, merging, and exporting. Most analysts reach for reset_index() immediately after a multi-column groupby rather than learning the full MultiIndex API, and that's a reasonable, pragmatic default. .xs() and other MultiIndex-specific tools are worth knowing for quick one-off lookups, but reset_index() covers the majority of real needs."
+blocks:
+  - type: text
+    body: >
+      Grouping by more than one column doesn't just add more rows to the output — it changes the
+      **shape** of the result's index. Understanding what that hierarchical index actually is, and how
+      to get back to a normal flat table, is the practical skill this lesson covers. This isn't meant
+      to be exhaustive — just enough to work confidently with what a multi-column groupby hands you.
+  - type: heading
+    text: "Where a MultiIndex comes from"
+  - type: code
+    language: python
+    code: |2
+      import pandas as pd
+
+      orders = pd.read_csv("data/sample/ecommerce/orders.csv")
+      items = pd.read_csv("data/sample/ecommerce/order_items.csv")
+      items["line_revenue"] = (items["unit_price"] - items["discount"]) * items["quantity"]
+
+      merged = orders.merge(items, on="order_id")
+
+      summary = merged.groupby(["status", "channel"])["line_revenue"].agg(["sum", "mean"]).round(2)
+      summary
+    caption: Grouped by two columns — the row index now has two levels
+  - type: output
+    body: |2
+                              sum    mean
+      status    channel
+      cancelled marketplace  55638.48  524.89
+                mobile      240356.16  550.01
+                web         335912.49  584.20
+      completed marketplace 565261.31  528.78
+                mobile     2032897.82  563.75
+                web        3204469.02  567.67
+      pending   marketplace  11973.49  598.67
+                mobile       68785.84  517.19
+                web         135952.49  606.93
+      refunded  marketplace  30420.51  543.22
+                mobile      170171.02  565.35
+                web         244940.82  538.33
+  - type: code
+    language: python
+    code: |2
+      type(summary.index)
+      summary.index[:3].tolist()
+    caption: Each row is identified by a (status, channel) tuple, not a single label
+  - type: output
+    body: |2
+      <class 'pandas.core.indexes.multi.MultiIndex'>
+      [('cancelled', 'marketplace'), ('cancelled', 'mobile'), ('cancelled', 'web')]
+  - type: callout
+    variant: important
+    title: A MultiIndex is just "one index level per grouping column"
+    body: >
+      There's nothing exotic happening here — grouping by N columns always produces N index levels.
+      What often trips people up isn't the concept, it's that the grouping keys (status, channel) are
+      no longer regular columns you can filter with df[df['status'] == 'completed'] — they've moved
+      into the index.
+  - type: heading
+    text: ".reset_index() — the practical escape hatch"
+  - type: text
+    body: >
+      For most real work, the simplest move is to flatten the MultiIndex straight back into ordinary
+      columns. This is what the large majority of analysts do immediately after a multi-column
+      groupby, and it's a perfectly good default.
+  - type: code
+    language: python
+    code: |2
+      flat = summary.reset_index()
+      flat.head()
+    caption: status and channel are regular columns again — normal filtering and merging just work
+  - type: output
+    body: |2
+            status      channel        sum    mean
+      0  cancelled  marketplace   55638.48  524.89
+      1  cancelled       mobile  240356.16  550.01
+      2  cancelled          web  335912.49  584.20
+      3  completed  marketplace  565261.31  528.78
+      4  completed       mobile 2032897.82  563.75
+  - type: heading
+    text: ".xs() — a quick cross-section, no reset needed"
+  - type: text
+    body: >
+      When you just need one slice of a MultiIndex result — every row matching a particular value at
+      a particular level — `.xs()` does it in one call, without flattening the whole thing first.
+  - type: code
+    language: python
+    code: |2
+      summary.xs("completed", level="status")
+    caption: Every channel's numbers, for status='completed' only
+  - type: output
+    body: |2
+                        sum    mean
+      channel
+      marketplace  565261.31  528.78
+      mobile      2032897.82  563.75
+      web         3204469.02  567.67
+  - type: code
+    language: python
+    code: |2
+      summary.xs("web", level="channel")
+    caption: Every status's numbers, for channel='web' only — .xs() works on any level
+  - type: output
+    body: |2
+                       sum    mean
+      status
+      cancelled  335912.49  584.20
+      completed 3204469.02  567.67
+      pending    135952.49  606.93
+      refunded   244940.82  538.33
+  - type: callout
+    variant: tip
+    title: Exact-combination lookup with .loc and a tuple
+    body: >
+      To get one specific combination rather than a whole cross-section, index with a tuple:
+      summary.loc[('completed', 'web')] returns just that one row's sum and mean. This is worth
+      knowing, but reset_index() followed by ordinary boolean filtering is usually just as fast to
+      write and easier for a teammate to read later.
+  - type: question
+    prompt: "You have a MultiIndex-ed result from df.groupby(['region', 'product']).sum() and want to merge it onto another DataFrame using region and product as normal join columns. What should you do first?"
+    choices:
+      - "Call .xs() twice, once per level, to convert it to columns"
+      - "Call .reset_index() to turn both index levels back into regular columns"
+      - "Nothing — merge() can join directly on MultiIndex levels without any conversion"
+    correct_index: 1
+    explanation: >
+      .reset_index() is exactly the tool for this: it converts every MultiIndex level back into an
+      ordinary column, so region and product become normal columns you can pass to merge()'s on=
+      parameter. .xs() is for pulling out a cross-section, not for restructuring the whole index back
+      into columns.

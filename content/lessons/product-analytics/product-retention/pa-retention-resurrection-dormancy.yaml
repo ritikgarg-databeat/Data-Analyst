@@ -1,0 +1,111 @@
+slug: pa-retention-resurrection-dormancy
+module_slug: product-retention
+title: "Resurrection and Dormancy: The Users a Simple Retention Curve Misses"
+description: >
+  Finding users who go quiet and then come back — measuring how common resurrection actually is in
+  this dataset, and why classic retention curves can undercount real, lasting engagement.
+difficulty: ADVANCED
+estimated_minutes: 25
+display_order: 2
+objectives:
+  - Define a "resurrected" user precisely enough to query for one (active, then a gap, then active again)
+  - Measure how common resurrection actually is in a real dataset, rather than assuming it away
+  - Explain why a classic period-by-period retention curve can undercount users who are still real, still-paying customers despite an inactive gap
+prerequisites: [pa-retention-classic-vs-rolling]
+skills: [product-analytics, product-metrics, data-interpretation]
+datasets: [saas-product]
+tags: [product, saas, retention, advanced]
+key_takeaways:
+  - A "dormant" user (inactive for a period) and a "churned" user are not the same claim — some dormant users come back later, and calling every gap "lost" overstates real churn.
+  - In this dataset, 35 of the 750 users who were active beyond their signup month (4.7%) show a specific resurrection pattern — active in month 1, quiet in month 2, active again in month 3 or later — a real but minority pattern, not the dominant story.
+  - A month-by-month classic retention curve implicitly treats every gap as a loss at that moment, even for the 4.7% who return; a resurrection-aware view (like rolling retention, or explicitly counting "ever active again after a gap") is needed to see the full picture for that group.
+common_mistakes:
+  - Assuming any user inactive for one period is "churned" and modeling them as permanently gone, when a real (if minority) share of users in this data return after a gap.
+  - Building an elaborate resurrection or win-back program before checking how common resurrection actually is in your own data — 4.7% is real and worth knowing about, but it doesn't justify treating dormancy recovery as a top-line growth lever on its own.
+blocks:
+  - type: text
+    body: >
+      A classic period-by-period retention curve treats every user the same way once they miss a
+      period: gone. In reality, some users go quiet for a period and then come back — a pattern worth
+      measuring directly rather than assuming away, since it changes how a gap in activity should be
+      interpreted.
+  - type: heading
+    text: "Defining and counting resurrection precisely"
+  - type: text
+    body: >
+      A "resurrected" user, for this analysis, is defined precisely as: active in period 0 (the
+      signup month), *absent* from period 1 (the following month), and active again in period 2 or
+      later. That's a specific, queryable pattern, not a vague notion of "came back eventually."
+  - type: code
+    language: sql
+    caption: Users who were active, went quiet for exactly one period, then returned
+    code: |
+      WITH activity AS (
+        SELECT
+          user_id,
+          DATEDIFF('month', DATE_TRUNC('month', signup_date),
+                    DATE_TRUNC('month', event_timestamp)) AS period_number
+        FROM events
+        WHERE event_timestamp >= signup_date
+      ),
+      per_user_periods AS (
+        SELECT user_id, LIST(DISTINCT period_number) AS periods
+        FROM activity
+        GROUP BY user_id
+      )
+      SELECT COUNT(*) AS resurrected_users
+      FROM per_user_periods
+      WHERE list_contains(periods, 0)
+        AND NOT list_contains(periods, 1)
+        AND list_contains(periods, 2);
+  - type: table
+    headers: ["Group", "Count", "% of relevant base"]
+    rows:
+      - ["Users active beyond their signup month (period > 0)", "750", "—"]
+      - ["Of those, resurrected (active period 0, gap in period 1, back in period 2)", "35", "4.7%"]
+  - type: callout
+    variant: important
+    title: A real, minority pattern — size the response to match
+    body: >
+      4.7% is not nothing — it means roughly 1 in 21 users who show any post-signup activity follow a
+      "gap and return" pattern rather than steady or one-time engagement. That's worth knowing, and
+      worth making sure a churn or retention model doesn't silently treat these users as permanently
+      lost the moment they miss one period. But at under 5%, it's a real, minority pattern, not
+      grounds for concluding "most churn is temporary" — the far larger group in this dataset is the
+      926 users (30.9% of all signups) who never returned even once.
+  - type: heading
+    text: What classic retention curves get wrong about this group
+  - type: text
+    body: >
+      A classic month-by-month retention curve marks a resurrected user as "not retained" at month 1
+      (correctly — they weren't active then) but says nothing that distinguishes them from someone
+      who never returns at all. Both show up as a 0 in the month-1 column. The month-2 or month-3
+      column is where a resurrected user reappears, but a reader looking only at "month-1 retention
+      dropped to 26%" has no way to see that some of that drop-off already came back.
+  - type: callout
+    variant: tip
+    title: When resurrection matters for a decision
+    body: >
+      If a team is deciding whether to build a "win-back" email campaign targeting recently-dormant
+      users, this 4.7% figure is directly relevant: it says organic resurrection already happens for a
+      real minority without any intervention, which sets a baseline to beat. A campaign that claims
+      credit for "bringing back" users at a rate near or below 4.7% may just be measuring the natural
+      resurrection rate, not campaign impact — which argues for testing the campaign against a
+      held-out control group rather than crediting all resurrection observed after it launches to the
+      campaign itself.
+  - type: question
+    prompt: >
+      A user is active in their signup month, inactive the following month, then active again two
+      months later. In a classic month-by-month retention curve, how does this user's month-1 data
+      point compare to a user who signed up and never returned at all?
+    choices:
+      - "They look identical in the month-1 column — both show as 'not retained' at month 1, even though one of them returns later and the other never does"
+      - "The retention curve automatically flags the resurrected user differently"
+      - "This pattern is impossible to represent in a retention curve at all"
+      - "The resurrected user would be excluded from the cohort entirely"
+    correct_index: 0
+    explanation: >
+      A classic month-1 retention number only reflects activity in exactly that period — it can't
+      distinguish "gone for good" from "gone this month, back later," which is exactly why measuring
+      resurrection directly (as this lesson's query does) reveals information a simple period-by-period
+      curve alone cannot.

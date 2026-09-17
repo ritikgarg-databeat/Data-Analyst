@@ -1,0 +1,118 @@
+slug: pa-py-cohort-retention-pivot
+lesson_slug: pa-cohort-retention-python
+skill: pandas
+dataset: saas-product
+title: Cohort Retention Matrix in pandas
+description: Build a monthly cohort retention matrix for four signup cohorts using groupby and datetime64[M] truncation.
+exercise_type: PYTHON
+difficulty: ADVANCED
+points: 25
+tags: [python, product, saas, cohort, advanced]
+business_context: >
+  The analytics team wants the cohort retention matrix available as a pandas DataFrame so it can feed
+  directly into a Python-based visualization step, without a separate SQL export.
+prompt: >
+  Using the `events` DataFrame, assign each user to a `cohort_month` (the month of `signup_date`,
+  truncated) and compute `period_number` as the number of calendar months between `cohort_month` and
+  the month of `event_timestamp`. Only use rows where `event_timestamp >= signup_date`. Store a
+  DataFrame in a variable named `result` with columns `cohort_month`, `n_users` (cohort size, i.e.
+  distinct users active in period 0), `period_number`, `active_users` (distinct users active in that
+  period), and `retention_pct` (active_users / n_users, rounded to 4 decimals). Restrict to
+  `cohort_month` between 2025-01-01 and 2025-04-01 inclusive, and `period_number` between 0 and 4
+  inclusive. Sort by `cohort_month`, then `period_number`.
+python_datasets: [events]
+python_starter_code: |
+  # events is already loaded as a DataFrame. signup_date and event_timestamp load as plain strings,
+  # so convert them with pd.to_datetime(...) before doing any date arithmetic.
+  events.dtypes
+python_solution_code: |
+  df = events.copy()
+  df["signup_date"] = pd.to_datetime(df["signup_date"])
+  df["event_timestamp"] = pd.to_datetime(df["event_timestamp"])
+  df = df[df["event_timestamp"] >= df["signup_date"]]
+  df["cohort_month"] = df["signup_date"].values.astype("datetime64[M]")
+  df["event_month"] = df["event_timestamp"].values.astype("datetime64[M]")
+  df["period_number"] = (
+      (df["event_month"].dt.year - df["cohort_month"].dt.year) * 12
+      + (df["event_month"].dt.month - df["cohort_month"].dt.month)
+  )
+
+  cohort_sizes = df[df["period_number"] == 0].groupby("cohort_month")["user_id"].nunique().rename("n_users")
+  active = df.groupby(["cohort_month", "period_number"])["user_id"].nunique().rename("active_users").reset_index()
+  active = active.merge(cohort_sizes, on="cohort_month")
+  active["retention_pct"] = (active["active_users"] / active["n_users"]).round(4)
+
+  mask = (
+      (active["cohort_month"] >= "2025-01-01")
+      & (active["cohort_month"] <= "2025-04-01")
+      & (active["period_number"].between(0, 4))
+  )
+  result = (
+      active.loc[mask, ["cohort_month", "n_users", "period_number", "active_users", "retention_pct"]]
+      .sort_values(["cohort_month", "period_number"])
+      .reset_index(drop=True)
+  )
+python_result_variable: result
+python_row_order_matters: true
+python_numeric_tolerance: 0.001
+python_hidden_tests:
+  - name: every cohort's period-0 retention_pct is exactly 1.0
+    code: |
+      period0 = result[result["period_number"] == 0]
+      assert (period0["retention_pct"] == 1.0).all(), (
+          "Every cohort's own signup month (period_number 0) should show 100% retention by definition."
+      )
+  - name: 2025-04 cohort's period-1 active_users matches an independent recomputation
+    code: |
+      ev_signup = pd.to_datetime(events["signup_date"])
+      ev_ts = pd.to_datetime(events["event_timestamp"])
+      cohort_users = events.loc[
+          ev_signup.values.astype("datetime64[M]") == pd.Timestamp("2025-04-01"), "user_id"
+      ].unique()
+      independent_active = events[
+          (events["user_id"].isin(cohort_users))
+          & (ev_ts.values.astype("datetime64[M]") == pd.Timestamp("2025-05-01"))
+          & (ev_ts >= ev_signup)
+      ]["user_id"].nunique()
+      row = result[(result["cohort_month"] == pd.Timestamp("2025-04-01")) & (result["period_number"] == 1)].iloc[0]
+      assert row["active_users"] == independent_active, (
+          f"Expected 2025-04 cohort's period-1 active_users to be {independent_active}, "
+          f"got {row['active_users']}."
+      )
+hints:
+  - "signup_date and event_timestamp load as plain strings — convert both with pd.to_datetime(...) first. Then `series.values.astype('datetime64[M]')` truncates a datetime column to the first of its month; apply it to both (for cohort_month and event_month), and compute period_number as the difference in (year*12 + month) between the two."
+  - "Build cohort_sizes as a separate Series (nunique user_id where period_number == 0, grouped by cohort_month), then merge it onto the full active-users table by cohort_month before dividing — don't merge on (cohort_month, period_number), since cohort size is a single value per cohort, not per period."
+solution: |
+  ```python
+  df = events.copy()
+  df["signup_date"] = pd.to_datetime(df["signup_date"])
+  df["event_timestamp"] = pd.to_datetime(df["event_timestamp"])
+  df = df[df["event_timestamp"] >= df["signup_date"]]
+  df["cohort_month"] = df["signup_date"].values.astype("datetime64[M]")
+  df["event_month"] = df["event_timestamp"].values.astype("datetime64[M]")
+  df["period_number"] = (
+      (df["event_month"].dt.year - df["cohort_month"].dt.year) * 12
+      + (df["event_month"].dt.month - df["cohort_month"].dt.month)
+  )
+  cohort_sizes = df[df["period_number"] == 0].groupby("cohort_month")["user_id"].nunique().rename("n_users")
+  active = df.groupby(["cohort_month", "period_number"])["user_id"].nunique().rename("active_users").reset_index()
+  active = active.merge(cohort_sizes, on="cohort_month")
+  active["retention_pct"] = (active["active_users"] / active["n_users"]).round(4)
+  mask = ((active["cohort_month"] >= "2025-01-01") & (active["cohort_month"] <= "2025-04-01")
+          & (active["period_number"].between(0, 4)))
+  result = active.loc[mask, ["cohort_month","n_users","period_number","active_users","retention_pct"]] \
+      .sort_values(["cohort_month","period_number"]).reset_index(drop=True)
+  ```
+  Run against the real data, the 2025-01 cohort (126 users) retains 100%/26.98%/19.84%/12.70%/7.14%
+  across periods 0-4, matching the SQL version of the same matrix exactly.
+explanation: >
+  This dataset's date columns load from CSV as plain strings, not datetime — `pd.to_datetime(...)`
+  has to run first, or `.values.astype('datetime64[M]')` raises immediately on a string column. The
+  most common bug beyond that is merging `cohort_sizes` onto the per-period table using both `cohort_month`
+  and `period_number` as merge keys, when `cohort_sizes` only varies by `cohort_month` — merging on
+  the wrong key set either raises an error (missing period_number column in cohort_sizes) or, if
+  worked around carelessly, produces a subtly wrong denominator. Filtering `period_number == 0` before
+  computing `cohort_sizes` is what makes it exactly the cohort's total size (everyone is active in
+  their own signup month by construction, since that's when they generated their `signup` event) —
+  merging that single per-cohort number onto every period row is what turns raw active-user counts
+  into a comparable percentage.

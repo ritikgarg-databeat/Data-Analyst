@@ -1,0 +1,60 @@
+slug: biz-cac-increase-case
+skill: business-problem-solving
+title: Why Did CAC Increase 40% This Quarter?
+description: 'Describe how you would investigate this CAC increase: what you would decompose blended CAC into, what
+  channel-level and funnel-level data you''d examine, what hypotheses you''d test, and what you''d ultimately recommend
+  regarding spend levels. You are not given the actual root cause.'
+exercise_type: BUSINESS_REASONING
+difficulty: ADVANCED
+points: 30
+tags:
+- cac
+- root-cause
+- business-analytics
+business_context: You support the growth/marketing team. Blended customer acquisition cost (CAC) rose 40% quarter-over-quarter,
+  and leadership wants to understand whether to keep spending at current levels.
+prompt: 'Describe how you would investigate this CAC increase: what you would decompose blended CAC into, what channel-level
+  and funnel-level data you''d examine, what hypotheses you''d test, and what you''d ultimately recommend regarding
+  spend levels. You are not given the actual root cause.'
+stakeholder: null
+constraints:
+- You don't know the cause in advance -- your answer is evaluated on the analytical framework.
+- Assume access to spend-by-channel data, funnel conversion data by channel, and new-customer counts by channel.
+expected_deliverables:
+- A decomposition of blended CAC by channel (since a channel-mix shift alone can move blended CAC even with no change
+  in any individual channel)
+- Specific hypotheses (channel-mix shift, rising cost-per-click/impression, falling conversion rate, audience saturation)
+- A plan for testing each hypothesis
+- A spend recommendation tied to findings
+rubric:
+- criterion: Recognizes that BLENDED CAC can rise purely from a mix shift toward more expensive channels, even with
+    no individual channel getting worse, and proposes checking channel mix specifically
+  points: 25
+- criterion: Proposes checking each channel's own CAC trend (cost-per-click/impression rising vs. conversion rate
+    falling) rather than treating CAC as a single opaque number
+  points: 25
+- criterion: Names a specific hypothesis about audience saturation (diminishing returns from spending more in an
+    already-tapped audience) as a plausible cause to test
+  points: 20
+- criterion: Gives a spend recommendation that depends on which hypothesis the data supports (e.g. shift budget
+    away from a channel with a real CAC problem, vs. accept a mix-shift-driven change if per-channel CAC is stable)
+  points: 30
+hints:
+- Blended CAC = total spend / total new customers -- it can rise either because an individual channel got more expensive
+  OR because spend shifted toward channels that were always more expensive, which is a very different (and less
+  alarming) story.
+- '''Audience saturation'' (having already reached the highest-intent, cheapest-to-convert users in a channel, so
+  additional spend reaches lower-intent, more expensive-to-convert users) is a classic real cause worth naming explicitly.'
+solution: 'First check whether blended CAC rose because of a channel-MIX shift (more of this quarter''s spend went
+  to inherently pricier channels) versus a real per-channel deterioration -- pull spend and new-customer counts
+  by channel and compute each channel''s own CAC trend. If an individual channel''s CAC rose, check whether cost-per-click/impression
+  increased (a market/auction-price effect) or conversion rate fell (a targeting/creative/landing-page effect) --
+  these call for very different fixes. Also check for audience saturation: if a channel''s spend increased sharply,
+  its marginal CAC commonly rises as the campaign reaches further into lower-intent audience segments. Recommendation:
+  if it''s a mix shift with stable per-channel CAC, the increase may be acceptable if overall LTV:CAC still holds
+  up; if it''s a real per-channel deterioration, recommend either fixing the specific driver (creative/targeting/landing
+  page) or reallocating spend toward channels with a healthier CAC trend, rather than a blanket ''cut all spend''
+  reaction.'
+explanation: 'Like the revenue-decline case, this tests decomposition-first reasoning: blended CAC is a ratio that
+  can move for structural (mix) reasons as easily as for real per-channel problems, and conflating the two leads
+  to the wrong fix (e.g. cutting a channel that was never actually getting worse).'

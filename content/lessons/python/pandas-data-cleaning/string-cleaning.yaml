@@ -1,0 +1,160 @@
+slug: string-cleaning
+module_slug: pandas-data-cleaning
+title: String Cleaning
+description: "The .str accessor — .strip(), .lower(), .replace(), .contains(), .split() — for applying string operations to an entire column at once."
+difficulty: BEGINNER
+estimated_minutes: 11
+display_order: 4
+objectives:
+  - "Use the .str accessor to apply Python string methods across an entire column"
+  - "Chain .str.strip(), .str.lower(), and .str.replace() to clean a messy text column"
+  - "Search within text with .str.contains(), and split a column into parts with .str.split()"
+prerequisites: [fixing-data-types]
+skills: [pandas]
+datasets: [ecommerce]
+tags: [python, beginner, real-world]
+key_takeaways:
+  - "The .str accessor is what lets you run a normal Python string method (like .strip() or .lower()) across every value in a Series at once, instead of writing a loop or an .apply() call."
+  - "Cleaning a messy text column is usually a chain, not a single call: .str.strip().str.lower().str.replace(...) reads left to right as a pipeline, each step handling one specific problem."
+  - ".str.contains() gives you a boolean Series for filtering (like df[df['col'].str.contains('refund')]), and .str.split() breaks one column into multiple pieces — pair it with expand=True to get those pieces back as separate DataFrame columns."
+common_mistakes:
+  - "Calling a string method directly on a column, like df['col'].lower() — plain Series objects don't have string methods; you need the .str accessor in between: df['col'].str.lower()."
+  - "Forgetting that .str.contains() is case-sensitive by default and missing matches that only differ in casing — pass case=False when that matters, or normalize with .str.lower() first."
+  - "Cleaning a string column but forgetting to reassign the result — df['col'].str.strip() returns a new Series; it doesn't modify df['col'] in place unless you assign it back."
+blocks:
+  - type: text
+    body: >
+      Text data is rarely as clean as it looks. Stray whitespace from a copy-paste, inconsistent casing
+      from different input sources, values that need splitting apart — the `.str` accessor is how you
+      apply ordinary Python string operations across a whole column at once, vectorized, the same way
+      arithmetic operators work across a whole numeric column.
+  - type: heading
+    text: "The .str accessor"
+  - type: code
+    language: python
+    code: |
+      import pandas as pd
+
+      # A category column as it might arrive from an older, inconsistent export
+      raw_categories = pd.Series(
+          [" Electronics", "electronics ", "ELECTRONICS", "Home & Kitchen", " Home & kitchen "]
+      )
+      print(raw_categories)
+    caption: "Same two categories, four different ways of writing each one"
+  - type: output
+    body: |
+      0        Electronics
+      1       electronics
+      2        ELECTRONICS
+      3     Home & Kitchen
+      4    Home & kitchen
+      dtype: str
+  - type: code
+    language: python
+    code: |
+      print(raw_categories.str.strip())
+      print()
+      print(raw_categories.str.strip().str.lower())
+    caption: "str.strip() removes leading/trailing whitespace; chaining .str.lower() normalizes case next"
+  - type: output
+    body: |
+      0       Electronics
+      1       electronics
+      2       ELECTRONICS
+      3    Home & Kitchen
+      4    Home & kitchen
+      dtype: str
+
+      0       electronics
+      1       electronics
+      2       electronics
+      3    home & kitchen
+      4    home & kitchen
+      dtype: str
+  - type: callout
+    variant: tip
+    title: "Every column-level string method needs .str first"
+    body: >
+      raw_categories.lower() raises an AttributeError — a Series itself has no .lower() method. The
+      .str accessor is what unlocks the whole family of string methods (.strip(), .lower(), .upper(),
+      .replace(), and more) applied element-by-element down the column.
+  - type: heading
+    text: ".str.replace() — substituting within text"
+  - type: code
+    language: python
+    code: |
+      cleaned = raw_categories.str.strip().str.lower().str.replace("&", "and")
+      print(cleaned)
+    caption: "A three-step chain: strip whitespace, lowercase, then swap out a character"
+  - type: output
+    body: |
+      0         electronics
+      1         electronics
+      2         electronics
+      3    home and kitchen
+      4    home and kitchen
+      dtype: str
+  - type: heading
+    text: ".str.contains() — searching within text"
+  - type: code
+    language: python
+    code: |
+      print(raw_categories.str.contains("home", case=False))
+    caption: "case=False makes the search case-insensitive — matches 'Home & Kitchen' and 'Home & kitchen'"
+  - type: output
+    body: |
+      0    False
+      1    False
+      2    False
+      3     True
+      4     True
+      dtype: bool
+  - type: text
+    body: >
+      `.str.contains()` returns a boolean Series, so it plugs directly into filtering:
+      `df[df['col'].str.contains('home', case=False)]` keeps only the rows where the text matches — the
+      same boolean-filtering pattern from earlier in the module, applied to a text search instead of an
+      equality check.
+  - type: heading
+    text: ".str.split() — breaking a column into parts"
+  - type: code
+    language: python
+    code: |
+      names = pd.Series(["Doe, Jane", "Smith, Bob"])
+      print(names.str.split(", "))
+      print()
+      print(names.str.split(", ", expand=True))
+    caption: "Without expand: a Series of lists. With expand=True: separate DataFrame columns"
+  - type: output
+    body: |
+      0     [Doe, Jane]
+      1    [Smith, Bob]
+      dtype: object
+
+             0      1
+      0    Doe   Jane
+      1  Smith    Bob
+  - type: example
+    title: "A realistic cleanup: normalizing emails"
+    body: >
+      Cleaning a real column is usually this same strip-then-lowercase pattern — emails are a common
+      target, since case and stray whitespace don't change what address it actually is, but they do
+      break exact-match comparisons and joins if left inconsistent.
+    language: python
+    code: |
+      emails = pd.Series(["Jane.Doe@EXAMPLE.com", " bob@shop.io ", "ALICE@Store.COM"])
+      print(emails.str.strip().str.lower())
+      # 0    jane.doe@example.com
+      # 1              bob@shop.io
+      # 2         alice@store.com
+  - type: question
+    prompt: "df['category'].lower() raises an AttributeError. What's the fix?"
+    choices:
+      - "df['category'].str.lower() — Series string methods live under the .str accessor"
+      - "df.lower('category') — lower() needs to be called on the DataFrame, not the column"
+      - "df['category'].astype(str).lower() — the column needs to be cast to string first"
+    correct_index: 0
+    explanation: >
+      A pandas Series doesn't expose Python's string methods directly — they're namespaced under .str
+      specifically so pandas can tell "call this vectorized string operation" apart from a Series' own
+      methods. df['category'].str.lower() is the correct call.

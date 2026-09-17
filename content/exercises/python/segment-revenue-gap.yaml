@@ -1,0 +1,78 @@
+slug: segment-revenue-gap
+lesson_slug: segmentation-in-eda
+skill: exploratory-data-analysis
+dataset: ecommerce
+title: Segment Revenue Gap
+description: Compare average successful-payment order value between business and consumer customer segments.
+exercise_type: PYTHON
+difficulty: INTERMEDIATE
+points: 20
+tags: [python, intermediate, real-world]
+business_context: >
+  As a first cut at segmentation analysis, the analytics team wants to know whether business
+  customers spend meaningfully more per order than consumer customers — and by how much,
+  expressed as a percentage gap — to decide whether the two segments deserve separate account
+  strategies.
+prompt: >
+  Using `orders`, `payments`, and `customers`, compute the average successful-payment amount
+  (`payments.status == "success"`) per order, separately for the `business` and `consumer`
+  customer segments, and the percentage gap between them. Merge successful payments to orders
+  (to get `customer_id`) and then to customers (to get `customer_segment`), then compute the
+  mean `amount` within each segment. The gap percentage is
+  `(higher_avg - lower_avg) / lower_avg * 100` — always a non-negative magnitude, regardless of
+  which segment happens to be higher. Store your answer in a variable named `result`: a dict
+  with keys `business_avg` (float, rounded to 2 decimal places), `consumer_avg` (float, rounded
+  to 2 decimal places), and `gap_pct` (float, rounded to 1 decimal place).
+python_datasets: [orders, payments, customers]
+python_starter_code: |
+  # orders, payments, and customers are already loaded as DataFrames.
+  # Explore them first:
+  customers["customer_segment"].value_counts()
+python_solution_code: |
+  success = payments[payments["status"] == "success"].copy()
+  merged = success.merge(orders[["order_id", "customer_id"]], on="order_id").merge(
+      customers[["customer_id", "customer_segment"]], on="customer_id"
+  )
+  avg_by_segment = merged.groupby("customer_segment")["amount"].mean()
+  business_avg = round(float(avg_by_segment["business"]), 2)
+  consumer_avg = round(float(avg_by_segment["consumer"]), 2)
+  higher = max(business_avg, consumer_avg)
+  lower = min(business_avg, consumer_avg)
+  gap_pct = round((higher - lower) / lower * 100, 1)
+  result = {"business_avg": business_avg, "consumer_avg": consumer_avg, "gap_pct": gap_pct}
+python_result_variable: result
+python_row_order_matters: false
+python_numeric_tolerance: 0.01
+python_hidden_tests:
+  - name: "Gap percentage is a non-negative magnitude"
+    code: |
+      assert result["gap_pct"] >= 0, (
+          f"gap_pct should be a non-negative magnitude regardless of which segment is higher, "
+          f"got {result['gap_pct']}"
+      )
+hints:
+  - "Filter payments to status == 'success' first, then merge in customer_id from orders and customer_segment from customers so every successful payment is tagged with its segment."
+  - "groupby('customer_segment')['amount'].mean() gives you both segment averages at once. For the gap percentage, use max(...)/min(...) of the two averages rather than picking business or consumer as 'the higher one' by assumption — that keeps gap_pct correct (and non-negative) no matter which segment turns out to spend more."
+solution: |
+  ```python
+  success = payments[payments["status"] == "success"].copy()
+  merged = success.merge(orders[["order_id", "customer_id"]], on="order_id").merge(
+      customers[["customer_id", "customer_segment"]], on="customer_id"
+  )
+  avg_by_segment = merged.groupby("customer_segment")["amount"].mean()
+  business_avg = round(float(avg_by_segment["business"]), 2)
+  consumer_avg = round(float(avg_by_segment["consumer"]), 2)
+  higher = max(business_avg, consumer_avg)
+  lower = min(business_avg, consumer_avg)
+  gap_pct = round((higher - lower) / lower * 100, 1)
+  result = {"business_avg": business_avg, "consumer_avg": consumer_avg, "gap_pct": gap_pct}
+  ```
+explanation: >
+  Computing the gap as `(higher - lower) / lower * 100` rather than hardcoding
+  `(business_avg - consumer_avg) / consumer_avg * 100` is the detail that makes this analysis
+  robust: if next quarter's data flips which segment spends more, a hardcoded formula would
+  silently start reporting a negative gap, which reads as a bug rather than a business insight. In
+  this dataset, consumer orders actually average slightly higher than business orders — a useful
+  reminder in EDA not to assume a segment label like "business" implies "bigger spender" without
+  checking. As always, filtering to successful payments before merging is what keeps pending and
+  refunded transactions from distorting the average order value.

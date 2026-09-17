@@ -1,0 +1,137 @@
+slug: inspecting-data
+module_slug: pandas-dataframes-fundamentals
+title: Inspecting a New DataFrame
+description: The first five things to run on any DataFrame you haven't seen before — .head()/.tail(), .info(), .describe(), .shape, and len().
+difficulty: BEGINNER
+estimated_minutes: 10
+display_order: 4
+objectives:
+  - Preview a DataFrame's rows with .head() and .tail()
+  - Read a DataFrame's structure and memory footprint with .info()
+  - Summarize numeric columns with .describe(), and get row counts with .shape and len()
+prerequisites: [reading-files]
+skills: [pandas]
+datasets: [ecommerce]
+tags: [python, beginner, foundations]
+key_takeaways:
+  - "Before writing a single line of analysis, run .head(), .info(), and .describe() — in under a minute you'll know the shape of the data, what's in each column, and whether anything looks obviously wrong."
+  - ".head()/.tail() show you actual rows, .info() shows you structure (column names, dtypes, non-null counts, memory), and .describe() shows you numeric summary statistics — three different lenses on the same DataFrame."
+  - "A non-null count in .info() that's lower than the total row count is often your first clue that a column has missing values, well before you formally check with .isna()."
+common_mistakes:
+  - "Jumping straight into analysis or plotting without checking .shape and .dtypes first, then being confused later when a 'numeric' column turns out to be text or a join produces far more rows than expected."
+  - "Calling .describe() and only reading it for numeric columns without noticing it silently skips text and boolean columns by default."
+  - "Assuming .info() prints something you can capture in a variable — it prints directly to the console and returns None, unlike most other DataFrame methods."
+blocks:
+  - type: text
+    body: >
+      You'll load hundreds of DataFrames over the course of a real analytics job, most of which you've
+      never seen before. Before doing anything else with one, there's a fast, repeatable routine worth
+      running every single time — it takes under a minute and catches most surprises early.
+  - type: heading
+    text: ".head() and .tail() — look at actual rows"
+  - type: code
+    language: python
+    code: |
+      import pandas as pd
+
+      orders = pd.read_csv("data/sample/ecommerce/orders.csv")
+      print(orders.head())
+    caption: The first 5 rows by default
+  - type: output
+    body: |
+         order_id  customer_id order_date     status channel
+         0         1            1 2025-10-18  completed  mobile
+         1         2            1 2025-12-16  completed     web
+         2         3            2 2025-09-29  completed     web
+         3         4            2 2024-12-23  cancelled     web
+         4         5            2 2025-04-30  completed     web
+  - type: text
+    body: >
+      `.head(n)` and `.tail(n)` take an optional argument for how many rows to show (default 5). `.tail()`
+      matters more than it sounds like it should — the last rows of a file are where truncated exports,
+      trailing summary rows, or "as of" cutoffs tend to show up.
+  - type: heading
+    text: ".info() — structure and memory at a glance"
+  - type: code
+    language: python
+    code: |
+      orders.info()
+    caption: Column names, dtypes, non-null counts, and memory usage in one call
+  - type: output
+    body: |
+      <class 'pandas.DataFrame'>
+      RangeIndex: 4205 entries, 0 to 4204
+      Data columns (total 5 columns):
+       #   Column       Non-Null Count  Dtype
+      ---  ------       --------------  -----
+       0   order_id     4205 non-null   int64
+       1   customer_id  4205 non-null   int64
+       2   order_date   4205 non-null   str
+       3   status       4205 non-null   str
+       4   channel      4205 non-null   str
+      dtypes: int64(2), str(3)
+      memory usage: 261.9 KB
+  - type: callout
+    variant: tip
+    title: "Non-null count < row count = missing data"
+    body: >
+      Here every column shows "4205 non-null" out of 4205 total rows, meaning nothing is missing. If a
+      column showed, say, "3800 non-null", that's your first signal — before running a single .isna()
+      call — that 405 rows are missing a value there. You'll dig into this properly in the Data Cleaning
+      module.
+  - type: heading
+    text: ".describe() — summary statistics for numeric columns"
+  - type: code
+    language: python
+    code: |
+      print(orders.describe())
+    caption: Count, mean, std, min, quartiles, and max — for numeric columns only, by default
+  - type: output
+    body: |
+                 order_id  customer_id
+                 count  4205.00000  4205.000000
+                 mean   2103.00000   728.314625
+                 std    1214.02327   427.087643
+                 min       1.00000     1.000000
+                 25%    1052.00000   352.000000
+                 50%    2103.00000   724.000000
+                 75%    3154.00000  1101.000000
+                 max    4205.00000  1500.000000
+  - type: callout
+    variant: warning
+    title: describe() quietly skips non-numeric columns by default
+    body: >
+      order_date, status, and channel don't show up above at all — .describe() defaults to summarizing
+      only numeric columns. Pass include='all' (or include='object') if you want counts and unique-value
+      summaries for text columns too.
+  - type: heading
+    text: Row counts — .shape and len()
+  - type: code
+    language: python
+    code: |
+      print(orders.shape)
+      print(len(orders))
+    caption: Two ways to get the row count
+  - type: output
+    body: |
+      (4205, 5)
+      4205
+  - type: table
+    headers: ["Call", "What it tells you"]
+    rows:
+      - [".head(n) / .tail(n)", "Shows actual rows — the fastest sanity check that the data looks like what you expect"]
+      - [".info()", "Column names, dtypes, non-null counts, and memory usage — structure in one glance"]
+      - [".describe()", "Count/mean/std/min/quartiles/max for numeric columns"]
+      - [".shape", "(rows, columns) as a tuple"]
+      - ["len(df)", "Row count only — equivalent to df.shape[0]"]
+  - type: question
+    prompt: "orders.info() reports customer_id as '4100 non-null' out of 4205 total rows. What does that tell you?"
+    choices:
+      - "105 rows are missing a customer_id value"
+      - "The customer_id column has 4100 unique values"
+      - "The DataFrame has 105 duplicate rows"
+    correct_index: 0
+    explanation: >
+      The non-null count is exactly what it says — how many rows in that column are NOT missing. Total
+      rows (4205) minus non-null count (4100) is the number of missing values (105) — nothing here speaks
+      to uniqueness or duplicates.

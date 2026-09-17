@@ -1,0 +1,72 @@
+slug: engagement
+module_slug: product-metrics
+title: Engagement
+description: Why engagement means frequency and depth together, and how to avoid mistaking raw activity counts for genuine engagement.
+difficulty: BEGINNER
+estimated_minutes: 13
+display_order: 5
+objectives:
+  - Distinguish engagement frequency (how often) from engagement depth (how much, how broadly)
+  - Explain why a raw event count alone can be a misleading engagement signal
+  - Combine frequency and depth signals into a simple engagement view for a user segment
+prerequisites: [activation]
+skills: [product-metrics]
+tags: [product-analytics, beginner, foundations]
+key_takeaways:
+  - Engagement has at least two independent dimensions — frequency (how often someone returns) and depth (how much value or how many features they use once there) — and a healthy product needs to track both.
+  - A rising raw event count can mean genuine deeper usage, or it can mean bugs, accidental clicks, or automated/bot noise — the count alone can't tell you which.
+  - Combining frequency and depth (e.g., a simple engagement tier — casual / regular / power user) tells a richer story than either dimension reported alone.
+common_mistakes:
+  - Treating "more events per user" as automatically good news without checking whether the extra events reflect real actions (e.g., a confusing UI generating extra retry clicks looks identical to genuine extra engagement in a raw event count).
+  - Reporting only frequency (session count) and ignoring depth (feature breadth, session duration, actions per session), which misses users who log in often but only ever touch one shallow feature.
+  - Using a single "engagement score" formula copied from another company without validating that its weighting actually correlates with retention or revenue in your own product.
+blocks:
+  - type: text
+    body: >
+      DAU/WAU/MAU tell you whether someone showed up. They don't tell you what happened once they did.
+      Engagement is the next layer: how often someone comes back (**frequency**), and how much of the
+      product they actually use once they're there (**depth**). A product can have healthy DAU while
+      engagement quietly rots — users opening the app out of habit and doing almost nothing with it.
+  - type: heading
+    text: Frequency and depth are different questions
+  - type: comparison
+    title: Frequency vs. depth signals
+    columns: ["Dimension", "What it measures", "Example signals"]
+    rows:
+      - ["Frequency", "How often a user returns", "Sessions per week, days active per week, L28 (days active in last 28)"]
+      - ["Depth", "How much value or breadth a user gets per visit", "Actions per session, features used, session duration, content created vs. only consumed"]
+  - type: callout
+    variant: warning
+    title: A raw event count is not depth
+    body: >
+      Event counts are easy to game accidentally. A confusing UI that makes users tap the wrong button
+      and retry generates more events per session — and looks like "increased engagement" in a naive
+      dashboard. Bots, retries, and accidental double-taps all inflate raw counts without reflecting any
+      real increase in value delivered. Depth should be measured with actions that clearly map to
+      intent, not just "any event fired."
+  - type: example
+    title: Two users with the same DAU, very different engagement
+    body: >
+      User A opens the app once a day, views one screen for 4 seconds, and leaves — high frequency, near
+      -zero depth. User B opens the app three times a week but each session runs 8 minutes and touches
+      four different features. Both might read as "active" in a DAU count on the days they show up, but
+      a depth-aware view of engagement flags User A as at-risk far earlier than a frequency-only view
+      would — their sessions carry almost no signal of real value.
+  - type: table
+    headers: ["Segment", "Sessions / week", "Avg. actions / session", "Read"]
+    rows:
+      - ["Power users", "5+", "12+", "Core habitual users — protect this segment above all"]
+      - ["Regular users", "2-4", "5-11", "Engaged but not fully habitual — growth target"]
+      - ["Casual / at-risk", "1", "1-4", "Shows up, gets little value — early churn signal"]
+  - type: question
+    prompt: A dashboard shows average events-per-user rising 20% month over month. What should an analyst check before reporting this as improved engagement?
+    choices:
+      - Nothing — a rising event count is engagement by definition
+      - Whether the increase is concentrated in meaningful actions and spread across real users, not driven by bots, retries, or a UI bug
+      - Whether DAU also rose by the same percentage
+    correct_index: 1
+    explanation: >
+      Raw event counts don't distinguish real value-carrying actions from noise. Before treating a
+      rising event count as good news, an analyst should check the mix of event types (did meaningful
+      actions actually rise, or just background/retry events?) and whether the increase is broad-based
+      across users or concentrated in a few accounts (possibly automated).

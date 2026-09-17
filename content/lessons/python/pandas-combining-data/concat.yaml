@@ -1,0 +1,152 @@
+slug: concat
+module_slug: pandas-combining-data
+title: Concatenating DataFrames
+description: pd.concat() for stacking DataFrames row-wise (axis=0) or side-by-side (axis=1) — and why concat is not merge, since it never matches on keys.
+content_type: READING
+difficulty: INTERMEDIATE
+estimated_minutes: 11
+display_order: 2
+objectives:
+  - Stack DataFrames with the same columns into one longer DataFrame using pd.concat(axis=0)
+  - Combine DataFrames side-by-side with pd.concat(axis=1) and understand how rows are aligned
+  - Explain why concat is not a substitute for merge, since it never matches rows on a key
+prerequisites: [merge-and-join]
+skills: [pandas]
+datasets: [ecommerce]
+tags: [python, intermediate, real-world]
+key_takeaways:
+  - "pd.concat([df1, df2]) with the default axis=0 stacks DataFrames vertically — rows from df2 are appended below df1's rows, useful for combining data with the same columns from different sources or time periods."
+  - "pd.concat([df1, df2], axis=1) glues DataFrames side-by-side instead, aligning them by their index — not by matching values in any particular column."
+  - "concat never looks at key values to decide which rows belong together — axis=1 concat lines rows up purely by index position/label, which silently produces wrong results if the two DataFrames aren't already aligned the way you assume."
+common_mistakes:
+  - "Using pd.concat(axis=1) expecting it to match rows the way merge does — it doesn't look at any column's values at all, it only aligns by index. Two DataFrames with different row orders will be glued together incorrectly with no warning."
+  - "Forgetting reset_index(drop=True) before axis=0 concat when the pieces came from filtering the same original DataFrame — the result keeps the original (now duplicated) index values unless you reset it."
+  - "Reaching for concat when what you actually need is merge — if the two DataFrames represent different entities that need to be matched by a key (not just stacked or already row-aligned), merge is the right tool."
+practical_applications:
+  - "Combining several months of exported CSVs with identical columns into one DataFrame for analysis."
+  - "Stacking two filtered subsets of the same DataFrame (e.g. web orders and mobile orders, processed separately) back into one table."
+interview_questions:
+  - question: "What's the fundamental difference between pd.concat() and pd.merge()?"
+    answer: "merge combines two DataFrames by matching values in a key column — it looks at the data to decide which rows correspond to each other. concat does not look at any key at all; with axis=0 it simply stacks rows on top of each other, and with axis=1 it lines DataFrames up side-by-side purely by their index. concat is a structural operation (glue these together), while merge is a relational one (match these up by key)."
+  - question: "Why is pd.concat([df1, df2], axis=1) risky if df1 and df2 don't already share the same row order?"
+    answer: "Because axis=1 concat aligns purely by index label/position, not by any key's values — if df1's row 0 and df2's row 0 don't actually represent the same real-world entity, concat will still glue them together into one row with no error or warning. It's silent misalignment, not a matching operation. If the two DataFrames need to be lined up based on a key's values, merge is the correct tool, not concat."
+blocks:
+  - type: text
+    body: >
+      **`pd.concat()`** combines multiple DataFrames by literally stacking them together — either on
+      top of each other (more rows) or side-by-side (more columns). Unlike `merge()`, it never looks
+      at any column's values to decide how rows correspond; it just glues pieces together based on
+      position and index. That distinction is the single most important thing to understand about
+      concat, and it's a common point of confusion.
+  - type: heading
+    text: "axis=0 (default) — stacking rows"
+  - type: text
+    body: >
+      With the default `axis=0`, concat appends one DataFrame's rows below another's. This is the
+      natural tool when you have several pieces of data with the **same columns** that together form
+      one longer dataset — e.g. the same table filtered into subsets, or exports from different time
+      periods.
+  - type: code
+    language: python
+    code: |2
+      import pandas as pd
+
+      orders = pd.read_csv("data/sample/ecommerce/orders.csv")
+
+      web = orders[orders["channel"] == "web"]
+      mobile = orders[orders["channel"] == "mobile"]
+
+      stacked = pd.concat([web, mobile], axis=0)
+      len(web), len(mobile), len(stacked)
+    caption: Two filtered slices stacked back into one DataFrame
+  - type: output
+    body: "(2294, 1494, 3788)"
+  - type: callout
+    variant: tip
+    title: Reset the index after stacking filtered pieces
+    body: >
+      web and mobile above kept their original row index values from orders, so stacked has a
+      non-sequential, duplicated-looking index. Chain .reset_index(drop=True) onto the concat result
+      if you want a clean 0..n-1 index afterward.
+  - type: heading
+    text: "axis=1 — side-by-side, aligned by index"
+  - type: text
+    body: >
+      With `axis=1`, concat glues DataFrames together as new **columns** instead of new rows — but it
+      aligns them purely by their index, not by matching any key's values. If both DataFrames already
+      share the same index (in the same order, referring to the same entities), this works cleanly.
+  - type: code
+    language: python
+    code: |2
+      a = orders[["order_id", "order_date"]].head(3)
+      b = orders[["status", "channel"]].head(3)
+
+      pd.concat([a, b], axis=1)
+    caption: Both slices share index [0, 1, 2] and represent the same three orders — safe to concat
+  - type: output
+    body: |2
+         order_id order_date     status channel
+      0         1 2025-10-18  completed  mobile
+      1         2 2025-12-16  completed     web
+      2         3 2025-09-29  completed     web
+  - type: heading
+    text: "Why axis=1 concat is NOT merge — a silent-mistake demo"
+  - type: text
+    body: >
+      Here's the risk made concrete. Two slices of orders, both containing order_id — but their
+      indexes were reset independently after different filtering, so index position 0 in the left
+      slice does not refer to the same order as index position 0 in the right slice. concat has no
+      way to know that, because it never looks at order_id at all.
+  - type: example
+    title: "concat glues by position — even when the data doesn't actually line up"
+    body: >
+      left has orders 1-4; right has orders 2-5, each independently reset to index 0-3. concat(axis=1)
+      happily produces four rows, but look closely — row 0 pairs order 1's status with order 2's
+      channel. There are even two order_id columns with different values in the same row, which is
+      the giveaway that something went wrong. merge on order_id gives the correct, key-matched result
+      instead.
+    code: |2
+      left = orders[["order_id", "status"]].head(4).reset_index(drop=True)
+      right = orders[["order_id", "channel"]].iloc[1:5].reset_index(drop=True)
+
+      pd.concat([left, right], axis=1)   # WRONG — glued by position, ignores order_id
+    language: python
+  - type: output
+    body: |2
+         order_id     status  order_id channel
+      0         1  completed         2     web
+      1         2  completed         3     web
+      2         3  completed         4     web
+      3         4  cancelled         5     web
+    caption: "Two order_id columns, disagreeing with each other in every row — a clear sign concat was the wrong tool here"
+  - type: code
+    language: python
+    code: |2
+      left.merge(right, on="order_id", suffixes=("_L", "_R"))  # RIGHT — matched by key
+    caption: merge correctly keeps only the orders (2, 3, 4) present in both, matched by order_id
+  - type: output
+    body: |2
+         order_id     status channel
+      0         2  completed     web
+      1         3  completed     web
+      2         4  cancelled     web
+  - type: callout
+    variant: warning
+    title: The rule of thumb
+    body: >
+      If two DataFrames need to be lined up based on a key's actual values, use merge. Only use
+      concat(axis=1) when you're confident the DataFrames already share the same index, in the same
+      order, representing the same rows — otherwise you get a silent, hard-to-spot misalignment
+      instead of an error.
+  - type: question
+    prompt: "df_a and df_b both have 100 rows and default 0..99 integer indexes, but df_a is sorted by customer_id ascending and df_b is sorted by signup_date ascending — the rows are NOT in the same order. What happens if you run pd.concat([df_a, df_b], axis=1)?"
+    choices:
+      - "pandas raises an error because the row orders don't match"
+      - "pandas re-sorts one of the DataFrames to align them by a shared key before concatenating"
+      - "The DataFrames are glued together purely by index position (0 with 0, 1 with 1, etc.) — silently pairing unrelated rows"
+    correct_index: 2
+    explanation: >
+      concat never inspects any column's values — axis=1 concat aligns strictly by index label. Since
+      both have the default 0..99 index, row 0 of df_a gets glued to row 0 of df_b regardless of
+      whether they represent the same real-world record. No error, no re-sorting — just a silent,
+      likely-wrong pairing. merge(on='customer_id') would be the safe alternative.

@@ -1,0 +1,71 @@
+slug: standardize-country-names
+lesson_slug: inconsistent-categories
+skill: data-cleaning
+dataset: ecommerce
+title: Standardize Inconsistent Country Names
+description: Map a column of inconsistently formatted country values (mixed abbreviations, punctuation, and case) onto a small set of clean, standardized labels.
+exercise_type: PYTHON
+difficulty: INTERMEDIATE
+points: 20
+tags: [python, intermediate, real-world]
+business_context: >
+  A data engineer just loaded a batch of customer records from an old CRM export where "country"
+  was a free-text field — the same country shows up as "USA", "U.S.A.", and "us" depending on which
+  rep typed it in, which breaks any report that groups customers by country.
+prompt: >
+  Given the DataFrame `df = pd.DataFrame({"customer_id": [1,2,3,4,5], "country_raw": ["USA",
+  "U.S.A.", "us", "United States", "Mexico"]})`, standardize the country values. Build a mapping
+  from every distinct raw value to a single clean label ("United States" or "Mexico") and apply it.
+  Store your answer in a variable named `result`: the DataFrame with all of `df`'s original columns
+  plus a new `country_clean` column holding the standardized value for every row.
+python_datasets: []
+python_starter_code: |
+  df = pd.DataFrame({"customer_id": [1, 2, 3, 4, 5], "country_raw": ["USA", "U.S.A.", "us", "United States", "Mexico"]})
+
+  # country_raw has several different spellings for the same two countries.
+  # Build a mapping from each distinct raw value to a clean label, apply it to
+  # get a new country_clean column, and store the result in `result`.
+python_solution_code: |
+  df = pd.DataFrame({"customer_id": [1, 2, 3, 4, 5], "country_raw": ["USA", "U.S.A.", "us", "United States", "Mexico"]})
+  mapping = {
+      "USA": "United States",
+      "U.S.A.": "United States",
+      "us": "United States",
+      "United States": "United States",
+      "Mexico": "Mexico",
+  }
+  result = df.copy()
+  result["country_clean"] = result["country_raw"].map(mapping)
+python_result_variable: result
+python_row_order_matters: false
+python_numeric_tolerance: 0.000001
+python_hidden_tests:
+  - name: "Every row maps to one of exactly two clean countries"
+    code: |
+      assert result["country_clean"].nunique() == 2, f"Expected exactly 2 distinct clean country values, got {result['country_clean'].nunique()}"
+      assert result["country_clean"].isna().sum() == 0, "Every row should map to a clean value — no row should be left unmapped (NaN)."
+hints:
+  - "The five raw values only actually represent two real countries — list them out and decide, for each one, which clean label it should become before writing any code."
+  - "A dict mapping every raw spelling to its clean label, combined with Series.map(mapping), applies the whole mapping to the column in one call. Assign the result to a new country_clean column on a copy of df."
+solution: |
+  ```python
+  df = pd.DataFrame({"customer_id": [1, 2, 3, 4, 5], "country_raw": ["USA", "U.S.A.", "us", "United States", "Mexico"]})
+  mapping = {
+      "USA": "United States",
+      "U.S.A.": "United States",
+      "us": "United States",
+      "United States": "United States",
+      "Mexico": "Mexico",
+  }
+  result = df.copy()
+  result["country_clean"] = result["country_raw"].map(mapping)
+  ```
+explanation: >
+  A strong answer enumerates every distinct raw spelling actually present in the data and maps each
+  one explicitly to a clean label, rather than trying to guess a general-purpose rule (like
+  `.upper()` or `.replace()`) that happens to work on this particular sample but would silently
+  break on the next new spelling that shows up. Working from a copy of `df` (`df.copy()`) also
+  avoids a `SettingWithCopyWarning` from mutating a DataFrame that might be a view. A common mistake
+  is mapping only the "obvious" variants (like "USA" and "U.S.A.") and missing a case-different one
+  like "us", which leaves that row's `country_clean` as `NaN` — real messy data almost always has a
+  case-inconsistent entry hiding in it.

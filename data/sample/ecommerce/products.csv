@@ -1,0 +1,151 @@
+product_id,product_name,category_id,unit_price,cost,is_active
+1,Pro Desk Lamp,3,321.1,180.08,True
+2,Compact Blender,4,332.83,141.07,True
+3,Essential Backpack,2,341.27,182.53,True
+4,Compact Board Game,4,273.69,178.0,True
+5,Compact Water Bottle,7,415.34,192.04,True
+6,Essential Desk Lamp,4,43.07,25.83,True
+7,Essential Water Bottle,7,28.64,18.39,True
+8,Pro Notebook,9,495.36,209.86,True
+9,Classic Backpack,5,444.4,208.24,True
+10,Wireless Board Game,9,409.97,280.26,True
+11,Compact Bluetooth Speaker,3,381.78,187.23,True
+12,Wireless Desk Lamp,10,76.22,32.65,True
+13,Compact Garden Hose,9,469.28,274.36,True
+14,Pro Yoga Mat,1,304.76,185.8,True
+15,Compact Yoga Mat,8,350.02,160.06,True
+16,Compact Board Game,2,128.09,75.83,True
+17,Wireless Backpack,7,131.72,54.26,False
+18,Portable Phone Case,8,368.54,140.14,True
+19,Essential Office Chair,5,488.22,202.98,True
+20,Wireless Blender,8,169.34,92.21,True
+21,Compact Skincare Set,7,429.76,202.62,True
+22,Deluxe Skincare Set,7,18.29,11.33,True
+23,Wireless Backpack,10,100.77,54.82,False
+24,Essential Headphones,2,223.52,78.87,True
+25,Compact Backpack,8,130.22,62.72,False
+26,Premium Phone Case,3,242.14,101.28,True
+27,Wireless Backpack,7,168.15,111.05,True
+28,Classic Garden Hose,4,75.89,37.39,True
+29,Classic Cat Tree,9,481.34,201.92,False
+30,Wireless Headphones,3,304.56,116.0,True
+31,Wireless Board Game,6,287.81,119.71,True
+32,Portable Running Shoes,1,146.13,62.25,True
+33,Deluxe Bluetooth Speaker,9,179.42,91.22,True
+34,Classic Skincare Set,8,22.78,12.91,True
+35,Compact Office Chair,5,335.39,202.09,True
+36,Deluxe Garden Hose,9,319.43,207.71,True
+37,Premium Phone Case,2,104.0,60.74,True
+38,Essential Desk Lamp,4,202.51,116.27,True
+39,Deluxe Skincare Set,7,203.79,108.48,True
+40,Classic Garden Hose,3,304.26,166.59,True
+41,Deluxe Garden Hose,8,36.8,13.1,True
+42,Compact Headphones,1,478.77,286.31,True
+43,Wireless Backpack,7,330.28,209.5,True
+44,Classic Coffee Maker,4,452.04,297.86,True
+45,Classic Board Game,1,299.19,202.06,True
+46,Deluxe Coffee Maker,6,67.45,26.36,True
+47,Essential Running Shoes,3,272.75,170.05,True
+48,Wireless Office Chair,8,333.72,226.72,True
+49,Portable Cat Tree,5,98.51,49.34,False
+50,Wireless Bluetooth Speaker,4,320.93,149.86,True
+51,Compact Desk Lamp,3,95.6,66.88,True
+52,Wireless Board Game,9,98.97,37.6,True
+53,Wireless Bluetooth Speaker,7,110.68,40.33,True
+54,Pro Board Game,4,34.49,21.78,True
+55,Premium Garden Hose,3,42.68,15.85,True
+56,Classic Coffee Maker,6,422.08,227.14,True
+57,Compact Office Chair,5,188.77,68.02,True
+58,Wireless Backpack,1,336.01,136.02,True
+59,Pro Bluetooth Speaker,3,189.39,124.37,True
+60,Wireless Desk Lamp,6,353.64,233.81,True
+61,Deluxe Cat Tree,4,92.4,57.12,True
+62,Essential Office Chair,10,399.48,252.49,True
+63,Wireless Garden Hose,2,142.21,64.16,True
+64,Compact Office Chair,5,64.91,43.37,True
+65,Pro Water Bottle,10,416.07,204.54,True
+66,Premium Skincare Set,4,213.9,135.52,False
+67,Compact Backpack,9,351.2,161.75,True
+68,Essential Coffee Maker,8,136.7,70.21,True
+69,Deluxe Water Bottle,4,93.19,46.96,True
+70,Essential Board Game,4,246.27,153.69,True
+71,Pro Yoga Mat,4,352.1,239.95,True
+72,Classic Backpack,9,242.78,154.89,True
+73,Wireless Board Game,10,298.52,172.58,True
+74,Wireless Yoga Mat,5,278.72,156.1,True
+75,Portable Running Shoes,9,134.66,67.39,True
+76,Wireless Blender,7,127.04,50.1,True
+77,Classic Yoga Mat,10,208.09,133.68,True
+78,Deluxe Bluetooth Speaker,5,236.94,102.26,True
+79,Wireless Headphones,6,190.04,119.19,True
+80,Wireless Water Bottle,1,413.08,217.54,True
+81,Classic Board Game,6,43.0,20.33,True
+82,Portable Backpack,7,437.52,263.37,True
+83,Premium Bluetooth Speaker,3,129.83,64.77,True
+84,Portable Notebook,4,178.48,118.76,True
+85,Essential Bluetooth Speaker,8,256.09,148.03,True
+86,Premium Blender,9,474.92,227.25,True
+87,Premium Yoga Mat,1,283.38,102.8,True
+88,Premium Board Game,6,269.25,125.92,True
+89,Compact Coffee Maker,7,15.3,6.12,True
+90,Portable Garden Hose,1,490.37,277.55,True
+91,Compact Water Bottle,10,252.58,89.99,True
+92,Essential Phone Case,8,218.76,96.5,True
+93,Essential Garden Hose,5,155.24,104.54,True
+94,Wireless Blender,3,414.66,171.65,True
+95,Premium Skincare Set,3,317.95,128.45,True
+96,Deluxe Backpack,8,498.77,221.09,True
+97,Wireless Phone Case,7,322.01,170.84,True
+98,Essential Blender,4,187.8,91.19,True
+99,Deluxe Headphones,7,325.08,120.1,True
+100,Classic Desk Lamp,3,270.76,151.4,True
+101,Deluxe Bluetooth Speaker,1,127.41,78.12,True
+102,Premium Headphones,5,139.64,87.59,True
+103,Portable Board Game,4,233.36,131.48,True
+104,Wireless Notebook,2,172.41,88.43,True
+105,Deluxe Skincare Set,10,223.61,90.71,True
+106,Classic Notebook,7,123.25,61.52,True
+107,Compact Board Game,8,110.67,47.68,True
+108,Classic Bluetooth Speaker,7,294.36,131.32,True
+109,Deluxe Cat Tree,9,270.39,113.32,True
+110,Essential Water Bottle,1,130.63,77.78,True
+111,Deluxe Skincare Set,8,11.12,4.59,True
+112,Pro Bluetooth Speaker,1,211.58,123.32,True
+113,Pro Coffee Maker,4,109.63,54.12,True
+114,Deluxe Cat Tree,3,93.0,64.93,True
+115,Essential Yoga Mat,4,377.52,216.83,True
+116,Essential Backpack,6,377.29,233.59,True
+117,Essential Bluetooth Speaker,6,491.5,206.34,True
+118,Premium Notebook,5,63.05,25.15,False
+119,Deluxe Blender,1,453.53,240.1,True
+120,Classic Office Chair,8,335.74,217.13,True
+121,Classic Skincare Set,9,162.84,69.36,True
+122,Pro Bluetooth Speaker,8,425.68,289.6,True
+123,Portable Desk Lamp,8,77.17,34.03,True
+124,Classic Garden Hose,4,241.15,138.26,True
+125,Portable Backpack,5,269.3,161.49,True
+126,Portable Garden Hose,5,131.53,81.49,True
+127,Wireless Water Bottle,4,222.52,82.73,True
+128,Essential Skincare Set,5,12.17,5.65,False
+129,Deluxe Board Game,5,237.02,87.74,True
+130,Portable Running Shoes,3,43.77,15.7,True
+131,Classic Skincare Set,5,10.91,4.27,True
+132,Portable Coffee Maker,5,89.04,35.82,True
+133,Pro Notebook,6,328.02,155.04,True
+134,Pro Notebook,9,444.99,183.87,True
+135,Premium Blender,5,236.07,118.7,True
+136,Essential Running Shoes,5,396.02,251.67,True
+137,Premium Notebook,3,142.56,98.05,True
+138,Pro Skincare Set,6,408.53,220.81,False
+139,Classic Notebook,1,262.86,130.42,True
+140,Wireless Bluetooth Speaker,5,224.28,124.58,True
+141,Compact Office Chair,9,328.57,174.21,True
+142,Wireless Water Bottle,2,118.0,69.04,True
+143,Wireless Skincare Set,1,107.53,65.09,True
+144,Premium Garden Hose,3,201.38,77.35,True
+145,Classic Yoga Mat,7,27.77,17.05,True
+146,Essential Coffee Maker,8,429.95,154.31,True
+147,Portable Phone Case,3,15.84,8.52,True
+148,Premium Cat Tree,8,165.59,103.4,True
+149,Classic Bluetooth Speaker,4,499.81,300.61,True
+150,Essential Phone Case,1,104.02,51.13,True

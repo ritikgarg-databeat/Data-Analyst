@@ -1,0 +1,19 @@
+slug: vanity-metric-true-false
+lesson_slug: metrics
+skill: business-problem-solving
+title: Is This a Good Metric to Report Weekly?
+description: Evaluate whether an always-increasing cumulative metric is useful for a weekly business review.
+exercise_type: TRUE_FALSE
+difficulty: BEGINNER
+points: 5
+tags: [foundations, beginner, business-analytics]
+prompt: >
+  True or False: "Total signups since launch" is a good metric to feature in a weekly business review,
+  because it clearly demonstrates the company is growing.
+choices: ["True", "False"]
+correct_answer: "False"
+explanation: >
+  "Total signups since launch" is a cumulative metric — it can only go up, so it can't reflect whether
+  this particular week was good or bad, and no action taken this week will visibly move it. It's a vanity
+  metric: reassuring to look at, but not actionable for a weekly review. A better weekly metric would be
+  something like signups this week vs. last week, which can actually move in response to a decision.

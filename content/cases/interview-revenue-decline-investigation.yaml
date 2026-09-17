@@ -1,0 +1,126 @@
+slug: interview-revenue-decline-investigation
+title: Why Did Revenue Drop 8% Last Quarter?
+category: BUSINESS_ANALYTICS
+difficulty: INTERMEDIATE
+estimated_minutes: 30
+company_context: Bramwell & Co. is an online retailer selling through web, mobile, and a third-party marketplace.
+stakeholder_name: David Chen
+stakeholder_role: CFO
+problem_statement: '"Revenue came in 8% below last quarter and the board meeting is in three days. I need to know
+  why, and what we should do about it."'
+business_context: David needs a clear, defensible explanation and a recommendation before presenting to the board.
+objective: Determine what drove the 8% revenue decline and recommend a specific next step.
+initial_information: 'You have access to the full e-commerce schema: orders, order_items, products, categories,
+  customers, payments, sessions, and marketing_campaigns.'
+constraints:
+- You have limited time before the board meeting -- prioritize the highest-value checks first.
+- David needs one clear story, not a list of every possible factor.
+available_datasets:
+- ecommerce
+expected_deliverables:
+- A revenue decomposition (orders x average order value, or by channel/segment)
+- Identification of which component(s) actually declined
+- A specific, evidence-backed recommendation
+learning_objectives:
+- Decompose an aggregate revenue figure before diagnosing it
+- Distinguish a volume-driven decline from a price/mix-driven one
+- Communicate a root cause and recommendation under time pressure
+stages:
+- CLARIFY
+- ANALYZE
+- INSIGHTS
+- RECOMMEND
+- SUBMIT
+tags:
+- interview
+- business-analytics
+- revenue
+- root-cause
+- case-study
+skills:
+- business-metrics
+- root-cause-analysis
+- communication
+clarification_guidance:
+- A good clarifying question asks over what exact window the decline was measured and whether it's consistent across
+  the whole quarter or concentrated in specific weeks.
+- A good clarifying question asks whether any pricing, promotion, or marketing spend changes coincided with the
+  decline.
+rubric:
+- category: Problem Framing & Clarification
+  weight: 20
+  criteria:
+  - criterion: Establishes the precise comparison window and confirms the decline pattern before analyzing
+    points: 12
+  - criterion: Asks about concurrent pricing/promotion/marketing changes
+    points: 8
+- category: Technical Analysis
+  weight: 35
+  is_technical: true
+  criteria:
+  - criterion: Decomposes revenue into orders and average order value, or by channel/segment
+    points: 20
+  - criterion: Correctly identifies which component(s) actually declined
+    points: 15
+- category: Insight Quality
+  weight: 20
+  criteria:
+  - criterion: Distinguishes a volume-driven decline from a price/mix-driven one with supporting evidence
+    points: 20
+- category: Recommendation & Business Judgment
+  weight: 15
+  criteria:
+  - criterion: Gives a specific, evidence-tied recommendation rather than a generic 'improve sales' statement
+    points: 15
+- category: Communication
+  weight: 10
+  criteria:
+  - criterion: Explains the finding in plain terms David could repeat to the board
+    points: 10
+hints:
+- Start with revenue = orders x average order value -- figure out which side actually moved before guessing why.
+- Check whether the decline is uniform across channels/segments or concentrated in one.
+reference_solution:
+  summary: There is no quarter anywhere in the two-year history where completed-order revenue actually declined --
+    it grew every single quarter, from $54,713.04 (Q1 2024) up to $2,179,287.14 (Q4 2025). What DID happen, and is
+    the real board-relevant story, is a sharp growth deceleration in Q2 2025 -- quarter-over-quarter growth fell to
+    +14.47% ($689,368.98 to $789,093.48), versus +90.17% the quarter before and +65.17% the quarter after -- by far
+    the slowest quarter in the entire history, even though revenue still rose. Breaking Q2 2025 down by channel
+    shows the deceleration concentrated in mobile -- mobile revenue actually slipped slightly quarter-over-quarter,
+    from $269,480.32 to $266,474.26 (-1.12%), while web (+24.13%, $360,834.05 to $447,916.92) and marketplace
+    (+26.50%, $59,054.61 to $74,702.30) both grew normally that same quarter. Mobile's dip was not a traffic or
+    demand problem -- mobile session count rose (450 to 557, +23.8%) and mobile session conversion rate improved
+    substantially (10.89% to 16.16%), and mobile order count also rose (158 to 166, +5.06%). The cause was basket
+    size -- mobile average order value fell from $1,705.57 to $1,605.27 (-5.88%), driven by fewer items per order
+    (7.49 to 6.98, -6.85%) rather than per-unit pricing (average net line price actually rose slightly, $226.72 to
+    $228.17, +0.64%) or discounting (average discount rate held flat, roughly 7.3-7.6%). In short, more people
+    showed up on mobile, converted better than before, and placed slightly more orders -- but the average mobile
+    basket carried noticeably fewer items that quarter.
+  key_insights:
+  - Total completed-order revenue grew every single quarter of the two-year history -- there is no absolute decline
+    anywhere in the data, only a real, sharp deceleration in growth rate concentrated in Q2 2025 (+14.47% QoQ vs.
+    +90.17% and +65.17% in the surrounding quarters).
+  - Mobile is the only channel with a quarter-over-quarter revenue dip in Q2 2025 -- $269,480.32 to $266,474.26
+    (-1.12%), while web and marketplace grew 24.13% and 26.50% respectively that same quarter.
+  - Mobile session count (+23.8%), session conversion rate (10.89% to 16.16%), and order count (+5.06%) all
+    improved in Q2 2025, ruling out a traffic or demand-side explanation for the dip.
+  - Mobile average order value fell 5.88% ($1,705.57 to $1,605.27), driven by fewer items per order (7.49 to 6.98,
+    -6.85%) rather than per-unit price changes (+0.64%) or discounting (flat at roughly 7.3-7.6%) -- a basket-size
+    effect, not a pricing or traffic effect.
+  recommendation: Tell David the FY2025 story is not a revenue decline at all -- revenue grew every quarter -- but
+    a real, one-quarter growth deceleration in Q2 2025, isolated to the mobile channel and caused by a basket-size
+    effect, not a traffic, conversion, or pricing problem. Recommend investigating the mobile cart/checkout
+    experience active during Q2 2025 (e.g. a cross-sell placement change, a UI change that made adding multiple
+    items harder, or a catalog/search change) as the likely mechanism, since the data rules out demand and pricing
+    but cannot itself identify the specific product or UX change involved. Going forward, add items-per-order and
+    average order value by channel to the standing quarterly dashboard, so a similar basket-size shift is caught
+    within the quarter it happens rather than found later while preparing board materials.
+  acceptable_alternatives:
+  - A learner who identifies the Q2 2025 mobile AOV dip using total mobile revenue divided by order count, without
+    separately decomposing into items-per-order vs. per-item price, and correctly rules out traffic/conversion as
+    the cause should receive full credit for the core finding -- the deeper decomposition is additional rigor, not
+    a strict requirement.
+  - A learner who frames the finding as a deceleration in growth rate rather than an absolute decline from the very
+    first analytical step, rather than arriving at that distinction later, should receive extra credit for problem
+    framing, since distinguishing deceleration from decline is one of this case's explicit learning objectives.
+version: 1

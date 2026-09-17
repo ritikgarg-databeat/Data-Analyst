@@ -1,0 +1,113 @@
+slug: biz-unit-economics-fundamentals
+module_slug: business-fundamentals
+title: "Unit Economics: The Profit (or Loss) in a Single Order"
+description: How to compute what one order or one customer actually contributes after direct costs, and why "we're growing revenue" can still mean losing money on every sale.
+difficulty: BEGINNER
+estimated_minutes: 14
+display_order: 2
+objectives:
+  - Compute unit-level revenue, cost, and contribution for a single order
+  - Explain the difference between unit-level profitability and company-wide profitability
+  - Use category-level unit economics to identify which parts of a catalog are structurally more or less profitable
+prerequisites: [biz-business-models-and-revenue]
+skills: [business-analytics, business-metrics]
+datasets: [ecommerce]
+tags: [business-analytics, foundations, beginner, e-commerce]
+key_takeaways:
+  - "Unit economics asks a narrower, sharper question than \"are we profitable overall\": does a single additional unit of business (one order, one customer) generate more cash than it costs to deliver?"
+  - Gross margin per unit varies by what's actually in the unit — in this platform's ecommerce catalog, category-level gross margin on actual completed-order revenue ranges from about 38% (Books) to about 45% (Apparel), a 7-point gap that a single blended average hides.
+  - A business can have healthy unit economics (each order is profitable on its own) while still losing money overall, if fixed costs (warehouses, salaries, software) exceed the total contribution from all units combined — unit economics is necessary but not sufficient for company-wide profitability.
+common_mistakes:
+  - Reporting a single blended gross margin for an entire catalog when the underlying mix varies enough that the blended number describes no single product well.
+  - Confusing "gross margin is positive" with "the business is profitable" — unit-level profit still has to cover every fixed cost that isn't tied to any one order.
+interview_questions:
+  - question: "Two categories in a catalog both have $500K in revenue this quarter. One has a 45% gross margin, the other has 38%. What's the practical difference to the business?"
+    answer: >
+      At equal revenue, the 45%-margin category delivers $225K in gross profit versus $190K for the
+      38%-margin category — a $35K gap in the cash actually available to cover fixed costs and generate
+      profit, even though both categories look identical on a "revenue" report. This is why revenue alone
+      is a poor proxy for value: a category can be a large revenue contributor and a comparatively weak
+      profit contributor at the same time, and prioritization decisions (what to promote, discount, or
+      cut) should follow contribution, not just top-line size.
+blocks:
+  - type: heading
+    text: "Unit economics: zoom in to one order"
+  - type: text
+    body: >
+      Revenue and profit are usually reported at the company level, but the healthiest way to understand
+      whether a business model actually works is to zoom all the way in: does *one* order, sold at a
+      normal price, generate more cash than it costs to deliver? That's unit economics — the profitability
+      of a single representative unit of the business, stripped of fixed costs that don't scale with any
+      one transaction.
+  - type: formula
+    expression: "Unit Contribution = Unit Revenue − Unit Variable Cost"
+    description: >
+      "Unit revenue" is what a customer actually pays (after discounts). "Unit variable cost" is
+      everything that costs more, or less, depending on whether this specific unit sells — cost of goods,
+      payment processing fees, direct fulfillment cost. Rent, salaries, and software licenses are *not*
+      unit variable costs — they don't change based on any one order.
+  - type: example
+    title: One order, from price tag to gross profit
+    body: >
+      A single "Pro Desk Lamp" in this platform's ecommerce catalog lists at $321.10 and costs $180.08 to
+      source — a per-unit gross profit of $141.02, or a 43.9% gross margin. Sell three of them in one
+      order with no discount, and that one order contributes $423.06 in gross profit before any fixed
+      costs (warehouse rent, the analytics team's salaries, the checkout software subscription) are
+      considered at all.
+    code: |
+      SELECT product_name, unit_price, cost,
+             ROUND(unit_price - cost, 2) AS unit_gross_profit,
+             ROUND(100.0 * (unit_price - cost) / unit_price, 1) AS unit_gross_margin_pct
+      FROM products
+      WHERE product_name = 'Pro Desk Lamp';
+    language: sql
+  - type: heading
+    text: The blended average hides real spread
+    level: 3
+  - type: text
+    body: >
+      A single company-wide gross margin figure is convenient, but it usually blends together categories
+      with meaningfully different unit economics. Grouping this platform's actual completed-order revenue
+      by category — weighted by what customers really bought, not just the catalog's list prices — shows
+      real spread, directly actionable for anyone deciding where to focus merchandising or discounting.
+  - type: table
+    headers: ["Category", "Gross margin % (on completed-order revenue)"]
+    rows:
+      - ["Apparel", "45.5%"]
+      - ["Home & Kitchen", "45.5%"]
+      - ["Pet Supplies", "44.4%"]
+      - ["Electronics", "41.3%"]
+      - ["Books", "38.2%"]
+    caption: "Gross margin by category, computed as (revenue − cost) / revenue across completed orders only — weighted by actual sales volume, not a flat catalog average."
+  - type: callout
+    variant: important
+    title: Unit economics is necessary, not sufficient
+    body: >
+      A positive contribution per unit only means each additional sale doesn't lose money on its own. The
+      company can still be unprofitable overall if the total contribution across every unit sold doesn't
+      exceed fixed costs that don't scale with volume — rent, most salaries, core software. Healthy unit
+      economics is the precondition for scaling profitably; it isn't proof that scaling is already
+      profitable today.
+  - type: callout
+    variant: common_mistake
+    title: One blended number, ten different stories
+    body: >
+      Reporting "our catalog runs a 43% gross margin" is true as an average and misleading as guidance —
+      it tells a merchandiser nothing about which specific categories are dragging the average down
+      (Books, at 38.2%) versus propping it up (Apparel, at 45.5%). Decisions about what to discount,
+      promote, or delist need the category-level number, not the blended one.
+  - type: question
+    prompt: >
+      A company's overall gross margin is a healthy 45%, but it's losing money every quarter. Which
+      explanation is most consistent with both facts being true?
+    choices:
+      - "The gross margin figure must be miscalculated, since a 45% margin always implies profitability."
+      - "Fixed costs (salaries, rent, software) exceed the total contribution generated by unit sales at current volume."
+      - "Gross margin and company-wide profit are the same thing, so this scenario is impossible."
+    correct_index: 1
+    explanation: >
+      Gross margin describes unit-level economics — each sale is, on average, contributing 45 cents of
+      every revenue dollar toward covering something. It says nothing about whether that total contribution
+      is large enough in dollar terms to cover the company's fixed costs. A young or small-scale company can
+      have excellent unit economics and still lose money overall simply because it hasn't sold enough units
+      yet for total contribution to clear its fixed cost base.

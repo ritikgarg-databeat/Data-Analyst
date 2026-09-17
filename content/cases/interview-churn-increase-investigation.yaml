@@ -1,0 +1,117 @@
+slug: interview-churn-increase-investigation
+title: Why Is Monthly Churn Up 3 Points?
+category: CUSTOMER_ANALYTICS
+difficulty: INTERMEDIATE
+estimated_minutes: 30
+company_context: Fintrail is a subscription personal-finance app tracked via the saas-product analytics schema.
+stakeholder_name: Priya Nair
+stakeholder_role: Head of Customer Success
+problem_statement: '"Our monthly churn rate jumped from 4% to 7% and I don''t know if this is a blip or something
+  serious. Can you find out?"'
+business_context: Priya needs to know whether this is a real, sustained increase and what's driving it before deciding
+  on any retention program.
+objective: Determine whether the churn increase is real and sustained, identify which segment it concentrates in,
+  and recommend next steps.
+initial_information: 'You have access to the SaaS product schema: users, events, subscriptions, and experiment_assignments.'
+constraints:
+- Priya needs a real-vs-noise verdict, not just more charts.
+- One analysis pass before her next planning meeting.
+available_datasets:
+- saas-product
+expected_deliverables:
+- A verified churn rate calculation for the current and prior period
+- Segmentation showing where the increase concentrates
+- A clear recommendation
+learning_objectives:
+- Verify a reported metric change before investigating causes
+- Segment churn to localize where it's concentrated
+- Distinguish a cohort effect from a broad trend
+stages:
+- CLARIFY
+- ANALYZE
+- INSIGHTS
+- RECOMMEND
+- SUBMIT
+tags:
+- interview
+- customer-analytics
+- churn
+- root-cause
+- case-study
+skills:
+- product-metrics
+- root-cause-analysis
+- communication
+clarification_guidance:
+- A good clarifying question confirms the exact churn definition being used (cancellation vs. lapse) and the comparison
+  window.
+- A good clarifying question asks whether a specific signup cohort or plan tier is driving the increase.
+rubric:
+- category: Problem Framing & Clarification
+  weight: 20
+  criteria:
+  - criterion: Confirms the churn definition and comparison window before analyzing
+    points: 10
+  - criterion: Asks whether a specific cohort or plan tier might be driving it
+    points: 10
+- category: Technical Analysis
+  weight: 35
+  is_technical: true
+  criteria:
+  - criterion: Recomputes churn rate directly from subscription events to confirm the reported jump
+    points: 15
+  - criterion: Segments churn by signup cohort, plan tier, or acquisition channel to localize it
+    points: 20
+- category: Insight Quality
+  weight: 20
+  criteria:
+  - criterion: Distinguishes a genuine, sustained increase from a single-cohort or short-term anomaly
+    points: 20
+- category: Recommendation & Business Judgment
+  weight: 15
+  criteria:
+  - criterion: Recommends an action tied to the specific segment/cause identified
+    points: 15
+- category: Communication
+  weight: 10
+  criteria:
+  - criterion: Explains the finding in plain terms Priya could act on
+    points: 10
+hints:
+- Recompute churn from raw subscription cancellation events rather than trusting the reported number at face value.
+- Segment by signup cohort and plan tier before concluding the whole user base is churning more.
+reference_solution:
+  summary: Recomputing churn directly from subscription end dates confirms a real, sustained increase, monthly
+    churn rose from 3.33% in November 2025 (4 of 120 active subscriptions) to 7.09% in December (9 of 127) and
+    10.95% in January 2026 (15 of 137), the highest month in the whole 19-month history. The increase is not spread
+    evenly across the base, it concentrates in the starter plan tier, starter subscribers accounted for 11 of the
+    15 subscriptions that churned in January (73%), and starter's own monthly churn rate roughly tripled, from a
+    4-6% range across the prior five months to 14.1% in January, while pro (4.6%) and enterprise (13.3%, off a tiny
+    base of 15 accounts) stayed closer to their normal range. Within starter, the churned accounts are spread
+    fairly evenly across acquisition channel and country, so this looks like a tier-specific issue rather than one
+    tied to a particular marketing channel or signup cohort.
+  key_insights:
+  - Recomputed directly from subscriptions.csv end dates, overall monthly churn climbed for two straight months,
+    from 3.33% (November 2025) to 7.09% (December) to 10.95% (January 2026, the highest of the entire 19-month
+    history), confirming the increase is real and sustained, not a single-month blip.
+  - Starter-plan subscriptions drove the January spike disproportionately, 11 of the 15 subscriptions that churned
+    that month (73%) were on the starter plan, and starter's own monthly churn rate jumped to 14.1% (11 of 78
+    active), roughly triple its 4-6% range over the prior five months.
+  - Pro and enterprise churn in January (4.6% and 13.3% respectively) were within or close to their normal, noisier
+    month-to-month range for their much smaller account bases (44 and 15 active accounts), unlike starter's clear
+    break from trend.
+  - Within the 11 starter cancellations in January, acquisition channel and country are spread roughly
+    proportionally to starter's overall channel/country mix, with no single channel or geography standing out,
+    which points to something specific to the starter tier itself rather than one acquisition source.
+  recommendation: Tell Priya the churn increase is real, sustained across two consecutive months, and concentrated
+    in the starter plan specifically, not spread evenly across the whole base. Recommend a targeted retention
+    review of starter accounts (for example, checking whether a pricing or value-perception issue at that price
+    point coincided with December/January) rather than a company-wide retention program, and continue tracking
+    whether January's 10.95% overall rate holds, worsens, or reverts in February.
+  acceptable_alternatives:
+  - A recommendation to first investigate what changed operationally in December/January that could affect starter
+    subscribers specifically (a price change, a support-quality issue, a competitor offer) before designing an
+    intervention, given the case data alone cannot prove the root cause.
+  - A recommendation that also flags enterprise's elevated January rate (13.3%) as worth a quick check, while still
+    correctly identifying starter as the primary driver by both share of churned accounts and rate movement.
+version: 1

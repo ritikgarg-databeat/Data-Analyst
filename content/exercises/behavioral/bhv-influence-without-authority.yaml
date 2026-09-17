@@ -1,0 +1,35 @@
+slug: bhv-influence-without-authority
+skill: behavioral-interviewing
+title: Influencing Without Formal Authority
+description: Tell me about a time you influenced a decision without having formal authority over it.
+exercise_type: INTERVIEW_RESPONSE
+difficulty: INTERMEDIATE
+points: 10
+tags:
+- behavioral
+- star-method
+- influencing
+prompt: Tell me about a time you influenced a decision without having formal authority over it.
+hints:
+- The STAR framework (Situation, Task, Action, Result) is a useful structure, not a script -- use it to
+  make sure you cover what actually happened, in what context, what you personally did, and what came
+  of it.
+- Interviewers are listening for a specific, real example -- a vague 'sometimes this happens on my team'
+  answer is much weaker than one concrete story with real details.
+rubric:
+- criterion: Describes one specific, real situation rather than a hypothetical or a generic pattern
+  points: 25
+- criterion: Clearly states the task or goal and the person's own specific role in it
+  points: 20
+- criterion: Explains concrete actions the person personally took, not just what the team did
+  points: 30
+- criterion: States a clear, ideally measurable outcome and what was learned from it
+  points: 25
+solution: As an analyst, I had no authority over the engineering roadmap, but I believed a particular
+  data-quality issue deserved a fix before the next quarter's features. I built a small dashboard quantifying
+  how many downstream reports and decisions the bad data was silently affecting, and shared it directly
+  with the engineering lead rather than escalating through my manager. Seeing the concrete downstream
+  cost made the case for them, and the fix got prioritized into the next sprint.
+explanation: Rather than relying on hierarchy, the analyst made the cost of inaction visible and concrete
+  to the person who actually controlled the roadmap, which is a realistic and durable way to influence
+  decisions you don't own.

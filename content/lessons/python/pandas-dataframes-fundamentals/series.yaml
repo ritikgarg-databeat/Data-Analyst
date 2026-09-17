@@ -1,0 +1,134 @@
+slug: series
+module_slug: pandas-dataframes-fundamentals
+title: Series
+description: A pandas Series as a labeled one-dimensional array — creating one, understanding its index, and pulling out the raw values.
+difficulty: BEGINNER
+estimated_minutes: 10
+display_order: 1
+objectives:
+  - Explain what a pandas Series is and how it differs from a plain Python list
+  - Create a Series from a list, with both a default and a custom index
+  - Use .values to get the underlying array out of a Series
+prerequisites: [numerical-operations]
+skills: [pandas]
+datasets: [ecommerce]
+tags: [python, beginner, foundations]
+key_takeaways:
+  - "A Series is a one-dimensional, labeled array: it pairs a sequence of values with a sequence of labels (the index) — think of it as a single column of a spreadsheet, values on one side, row labels on the other."
+  - "Every column you'll ever pull out of a DataFrame is a Series — everything you learn here carries directly into DataFrames in the next lesson."
+  - ".values strips the labels off and hands you back the plain NumPy array underneath, which is what most NumPy functions actually expect."
+  - "A custom index doesn't just decorate the data — it changes how you look values up. prices['monitor'] means something different from prices[1], even if they happen to return the same row."
+common_mistakes:
+  - "Treating a Series like a plain list and forgetting it has an index — operations like addition align by index label, not by position, which matters a lot once two Series don't have the same order."
+  - "Confusing the index (the labels) with the position (0, 1, 2, ...) — a Series with a custom string index can still be positionally sliced, and mixing the two access styles up is a common source of bugs."
+blocks:
+  - type: text
+    body: >
+      Pandas is built on two core objects: the **Series** (one column of data) and the **DataFrame** (a
+      whole table). Almost everything you'll do in pandas eventually comes back to one of these two, so
+      it's worth starting with the simpler one. A Series is a one-dimensional, labeled array — a sequence
+      of values, each with an associated label called the **index**.
+  - type: heading
+    text: Creating a Series
+  - type: code
+    language: python
+    code: |
+      import pandas as pd
+
+      order_totals = pd.Series([42.50, 108.00, 19.99, 250.00])
+      print(order_totals)
+    caption: A Series built from a plain list
+  - type: output
+    body: |
+      0     42.50
+      1    108.00
+      2     19.99
+      3    250.00
+      dtype: float64
+  - type: text
+    body: >
+      Two things printed alongside the values: the **index** on the left (0, 1, 2, 3 — pandas assigned
+      this automatically since we didn't specify one) and the **dtype** at the bottom (float64, since
+      every value is a decimal number). A Series always has exactly one dtype — it's a single, uniformly
+      typed column, unlike a Python list which can freely mix types.
+  - type: heading
+    text: A custom index
+  - type: text
+    body: >
+      By default, a Series gets a positional index (0, 1, 2, ...) — a `RangeIndex`. But you can label
+      each value with something more meaningful, which turns lookups into readable, self-documenting
+      code.
+  - type: code
+    language: python
+    code: |
+      prices = pd.Series(
+          [899.00, 349.50, 129.99],
+          index=["laptop", "monitor", "keyboard"],
+      )
+      print(prices)
+      print()
+      print(prices["monitor"])
+    caption: Labeling values with a custom index
+  - type: output
+    body: |
+      laptop      899.00
+      monitor     349.50
+      keyboard    129.99
+      dtype: float64
+
+      349.5
+  - type: callout
+    variant: tip
+    title: Every DataFrame column is a Series
+    body: >
+      You haven't met the DataFrame yet (that's next), but here's the preview: when you pull a single
+      column out of a DataFrame with `df['unit_price']`, what you get back **is** a Series — same index
+      concept, same `.values`, same everything. Learning the Series well means the DataFrame barely
+      needs a separate mental model.
+  - type: heading
+    text: ".values — the raw array underneath"
+  - type: text
+    body: >
+      A Series is really a thin, labeled wrapper around a NumPy array. `.values` strips the labels off
+      and hands you back that array directly — useful when you need to pass the data into a function
+      that expects a plain NumPy array rather than a pandas object.
+  - type: code
+    language: python
+    code: |
+      print(order_totals.values)
+      print(type(order_totals.values))
+    caption: Unwrapping a Series down to its NumPy array
+  - type: output
+    body: |
+      [ 42.5  108.    19.99 250.  ]
+      <class 'numpy.ndarray'>
+  - type: table
+    headers: ["Attribute", "What it gives you"]
+    rows:
+      - [".values", "The underlying NumPy array — no labels, just the raw data"]
+      - [".index", "The labels — a pandas Index object"]
+      - [".dtype", "The single data type shared by every value in the Series"]
+  - type: example
+    title: Index alignment previews how pandas thinks
+    body: >
+      This is a glimpse of something you'll rely on constantly: pandas operations line values up by
+      index label, not by position. Two Series with the same labels, even in a different order, still
+      add up correctly value-to-value.
+    language: python
+    code: |
+      a = pd.Series([10, 20, 30], index=["x", "y", "z"])
+      b = pd.Series([1, 2, 3], index=["z", "x", "y"])
+      print(a + b)
+      # x    12   (10 + 2, matched by label 'x', not by position)
+      # y    23
+      # z    31
+  - type: question
+    prompt: What does prices.values return, given prices = pd.Series([899.00, 349.50], index=['laptop', 'monitor'])?
+    choices:
+      - "A NumPy array: array([899. , 349.5])"
+      - "A dictionary: {'laptop': 899.00, 'monitor': 349.50}"
+      - "A list of tuples: [('laptop', 899.00), ('monitor', 349.50)]"
+    correct_index: 0
+    explanation: >
+      .values always returns the plain NumPy array of values, with the index labels stripped away. To
+      get the labels themselves, you'd use .index instead.

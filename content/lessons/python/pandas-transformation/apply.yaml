@@ -1,0 +1,147 @@
+slug: apply
+module_slug: pandas-transformation
+title: apply()
+description: ".apply() on a Series (element-wise) and on a DataFrame (row-wise with axis=1) — and why it's a last resort, not a first instinct, once you know what it costs."
+difficulty: INTERMEDIATE
+estimated_minutes: 12
+display_order: 2
+objectives:
+  - "Use .apply() on a Series to run a custom function on every value"
+  - "Use .apply(axis=1) on a DataFrame to run a custom function on every row"
+  - Explain why apply is slower than a vectorized operation, and when the trade-off is worth it
+prerequisites: [assign]
+skills: [pandas]
+datasets: [ecommerce]
+tags: [python, intermediate, real-world]
+key_takeaways:
+  - "Series.apply(function) runs your function on every value, one at a time — it's the tool for custom logic that a built-in vectorized operation doesn't already cover."
+  - "DataFrame.apply(function, axis=1) runs your function once per ROW, handing it the whole row (as a Series) so the function can reference multiple columns at once — axis=1 is easy to forget and the default (axis=0, once per column) is rarely what you want for row-wise logic."
+  - "apply() is a Python-level loop under the hood, dressed up to look vectorized — it does not get pandas' C-level speed. When a vectorized alternative exists (arithmetic operators, .str methods, np.where), it will be faster, sometimes dramatically so at scale."
+  - "Reach for apply() when the logic is genuinely custom — multiple conditions, a lookup that isn't a simple dict, business rules that don't map to any built-in — not as a default first move for every new column."
+common_mistakes:
+  - "Using .apply() for something that already has a vectorized equivalent — a price-tier cutoff done with .apply() when np.select() or nested np.where() calls would do the identical job faster and more idiomatically."
+  - "Forgetting axis=1 on a DataFrame .apply() call and getting a function applied to each COLUMN instead of each row, which silently runs the function on entirely the wrong shape of data."
+  - "Assuming apply() is 'the pandas way' to do anything, when really it's the fallback for when nothing more specific fits — most pandas code you'll read from experienced analysts uses .apply() sparingly."
+blocks:
+  - type: text
+    body: >
+      `.apply()` runs a function against every value (on a Series) or every row (on a DataFrame). It's
+      flexible enough to express almost any transformation — which is exactly why it's tempting to reach
+      for by default, and exactly why this lesson spends as much time on when *not* to use it as on how it
+      works.
+  - type: heading
+    text: ".apply() on a Series — element-wise"
+  - type: code
+    language: python
+    code: |
+      import pandas as pd
+
+      products = pd.read_csv("data/sample/ecommerce/products.csv")
+
+      def price_tier(price):
+          if price < 100:
+              return "budget"
+          elif price < 300:
+              return "mid"
+          else:
+              return "premium"
+
+      products["price_tier"] = products["unit_price"].apply(price_tier)
+      print(products[["product_name", "unit_price", "price_tier"]].head(5))
+      print()
+      print(products["price_tier"].value_counts())
+    caption: "price_tier() runs once per value in unit_price, and the return values become the new column"
+  - type: output
+    body: |
+                  product_name  unit_price price_tier
+                  0         Pro Desk Lamp      321.10    premium
+                  1       Compact Blender      332.83    premium
+                  2    Essential Backpack      341.27    premium
+                  3    Compact Board Game      273.69        mid
+                  4  Compact Water Bottle      415.34    premium
+
+                  price_tier
+                  mid        69
+                  premium    53
+                  budget     28
+                  Name: count, dtype: int64
+  - type: heading
+    text: ".apply(axis=1) on a DataFrame — row-wise"
+  - type: code
+    language: python
+    code: |
+      def margin_flag(row):
+          margin = row["unit_price"] - row["cost"]
+          return "healthy" if margin > 100 else "thin"
+
+      products["margin_health"] = products.apply(margin_flag, axis=1)
+      print(products[["product_name", "unit_price", "cost", "margin_health"]].head(5))
+    caption: "margin_flag receives an entire row as a Series, so it can reference multiple columns at once"
+  - type: output
+    body: |
+                  product_name  unit_price    cost margin_health
+                  0         Pro Desk Lamp      321.10  180.08       healthy
+                  1       Compact Blender      332.83  141.07       healthy
+                  2    Essential Backpack      341.27  182.53       healthy
+                  3    Compact Board Game      273.69  178.00          thin
+                  4  Compact Water Bottle      415.34  192.04       healthy
+  - type: callout
+    variant: common_mistake
+    title: "axis=1 is easy to forget — and the default silently does something else"
+    body: >
+      Without axis=1, DataFrame.apply() runs your function once per COLUMN (the whole column as a Series
+      argument), not once per row. That's a completely different computation, and it won't raise an
+      error just because it's not what you meant — it'll just produce the wrong result. If your function
+      is meant to look at more than one column together (like margin_flag above), axis=1 is required.
+  - type: heading
+    text: Why apply() is a Python-level loop
+  - type: text
+    body: >
+      Underneath the pandas API, `.apply()` calls your Python function once per value or row, in a
+      regular Python loop — it doesn't get compiled down to C the way `+`, `-`, `.str.lower()`, or
+      `np.where()` do. Those operations run entirely in optimized, vectorized code; `.apply()` pays
+      Python's per-call overhead every single time, which adds up fast on large data.
+  - type: code
+    language: python
+    code: |
+      import numpy as np
+
+      # The identical price_tier logic, written as a vectorized alternative
+      products["price_tier_vec"] = np.select(
+          [products["unit_price"] < 100, products["unit_price"] < 300],
+          ["budget", "mid"],
+          default="premium",
+      )
+      print((products["price_tier"] == products["price_tier_vec"]).all())
+    caption: "Same result as the .apply() version above, computed without a single Python-level loop"
+  - type: output
+    body: |
+      True
+  - type: callout
+    variant: tip
+    title: "The rule of thumb: reach for apply() last, not first"
+    body: >
+      Before writing .apply(), ask whether the logic can be expressed with arithmetic operators, .str
+      methods, .isin(), or np.where()/np.select() (the last of which you'll cover properly in a later
+      lesson). Save .apply() for logic that's genuinely custom — calling an external function, branching
+      on business rules too irregular for a clean vectorized expression, or anything that would be
+      awkward to write any other way.
+  - type: table
+    headers: ["Situation", "Prefer"]
+    rows:
+      - ["Simple arithmetic between columns", "Direct operators: df['a'] - df['b']"]
+      - ["String cleaning/transformation", ".str accessor methods"]
+      - ["A handful of value-based conditions", "np.where() / np.select()"]
+      - ["Genuinely custom, irregular logic", ".apply() — this is what it's for"]
+  - type: question
+    prompt: "Why is np.select() generally faster than an equivalent .apply() call for the same price-tiering logic?"
+    choices:
+      - "np.select() is a vectorized operation that runs in optimized compiled code, while .apply() runs your function in a Python-level loop, once per value"
+      - ".apply() only works on numeric columns, so it has to convert the data first, which is what's slow"
+      - "np.select() runs on a sample of the data rather than every row"
+    correct_index: 0
+    explanation: >
+      Both produce the identical result here, but .apply() calls a Python function value-by-value in a
+      loop, while np.select() evaluates the whole condition/choice arrays at once in vectorized, compiled
+      code — that difference in execution model is exactly why vectorized alternatives outperform apply()
+      at scale.

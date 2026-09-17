@@ -1,0 +1,58 @@
+slug: pa-di-activation-gap-by-channel-next-step
+lesson_slug: pa-activation-segmentation
+skill: data-interpretation
+dataset: saas-product
+title: "Activation by Channel: What to Check Before Blaming the Channel"
+description: Given activation rate by channel plus a confound check, decide what to investigate next.
+exercise_type: DATA_INTERPRETATION
+difficulty: INTERMEDIATE
+points: 15
+tags: [product, saas, root-cause, intermediate, real-world]
+business_context: >
+  Growth already ran the segmentation and the obvious confound check. They want you to read both
+  results and tell them what to do next, not just repeat the numbers back.
+prompt: >
+  Activation rate by acquisition channel, from real data (913-624 users per channel):
+
+  | Channel | Signups | Activation rate |
+  |---|---|---|
+  | organic | 913 | 78.9% |
+  | referral | 435 | 78.2% |
+  | content | 300 | 72.0% |
+  | paid_search | 728 | 61.7% |
+  | paid_social | 624 | 55.9% |
+
+  A follow-up check found that paid_social's country mix (35.7% US) is nearly identical to organic's
+  (36.5% US) and the overall base (35.2% US) — geography does not explain the gap.
+
+  Given both facts, what would you investigate next, and what specific evidence would change your
+  mind about the cause? Name at least one alternative explanation for the gap besides "the channel
+  brings in worse users," and say how you'd check it.
+hints:
+  - "The confound check ruled out geography specifically — it didn't rule out every possible confound. What other dimension could differ between paid_social's users and organic's users besides country?"
+  - "Consider explanations tied to the acquisition moment itself (what the ad promised, what the landing page shows, what device or context the user is in) rather than assuming it must be about 'user quality' in the abstract."
+solution: >
+  With geography ruled out, the next things worth checking are other confounds available in this
+  data before reaching for a channel-specific product explanation: device/platform mix (if
+  trackable), the specific ad creative or landing page paid_social traffic lands on versus organic's
+  landing experience, and time-to-first-activation-attempt (does paid_social traffic bounce faster,
+  suggesting an expectation mismatch between the ad and the product). A specific, testable
+  alternative explanation: "paid_social's ad creative sets an expectation (e.g. a specific use case
+  or audience) that doesn't match what the actual onboarding flow delivers, causing users to bail
+  before attempting the core action" — checked by comparing bounce rate or time-on-page for
+  paid_social-referred sessions against organic sessions on the same landing/onboarding pages, and by
+  reviewing the actual ad creative and landing page paid_social traffic sees. Evidence that would
+  change the read: if paid_social users who *do* start onboarding complete it at a similar rate to
+  organic users, the problem is concentrated in attracting the wrong-fit users or setting the wrong
+  expectation, not in the onboarding flow itself — pointing at marketing/targeting rather than
+  product. If paid_social users abandon mid-onboarding at a higher rate even after starting, that
+  points at the flow itself, possibly tuned for a different kind of user.
+explanation: >
+  A strong answer treats "geography checked out" as one confound ruled out, not as proof the channel
+  itself is the root cause — it proposes at least one other specific, checkable explanation (ad/landing
+  page mismatch, a device skew, a different bounce pattern) and names the exact comparison that would
+  confirm or rule it out. It also states what evidence would change the conclusion, which is what
+  separates a testable hypothesis from a guess. A weaker answer treats the confound check as closing
+  the investigation ("it's not geography, so it must be the channel's fault") without proposing
+  anything further to check, or proposes a vague explanation ("paid_social users are lower quality")
+  that doesn't suggest any next step.

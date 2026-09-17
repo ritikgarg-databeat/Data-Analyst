@@ -1,0 +1,129 @@
+slug: dm-modeler-walkthrough-tables
+module_slug: building-your-first-dimensional-model
+title: "From Business Question to Tables"
+description: A hands-on walkthrough in the Data Modeler — turning "revenue by segment and category" into dim_customers, dim_products, and a correctly-shaped fct_orders.
+difficulty: INTERMEDIATE
+estimated_minutes: 28
+display_order: 1
+objectives:
+  - Create a new DIMENSIONAL model in the Data Modeler and add tables with the correct table_type, grain, and columns, working from a stated business question against the ecommerce dataset.
+  - Recognize, from the real 1-to-5 line items per order in this dataset, why an order-grain fact table can't safely carry a single product_id column — and make the same design call this project's real fct_orders mart makes.
+skills: [dimensional-modeling, data-modeling]
+datasets: [ecommerce]
+tags: [star-schema, fact-table, dimension-table, data-modeling, intermediate]
+prerequisites: [dm-facts-and-dimensions, dm-measures-vs-attributes]
+key_takeaways:
+  - "Starting from one specific, written-down business question makes every modeling decision concrete: it tells you what grain the fact table needs and which attributes belong on which dimension, instead of guessing."
+  - "A column's is_foreign_key / references_table / references_column metadata is set at the column level and is independent of whether you've drawn a relationship edge on the canvas — the two feed different validator checks, which the next lesson makes concrete."
+  - "The real ecommerce data settles a design question directly instead of leaving it to opinion: orders carry between 1 and 5 product lines each, so a single product_id column can't represent an order — a fact table at order grain has to aggregate product-level detail into order-level measures instead, exactly what this project's real fct_orders mart does."
+common_mistakes:
+  - "Adding a product_id column directly to an order-grain fact table without first checking whether an order can have more than one product — on this dataset, most of them do."
+  - "Leaving a table's grain field blank \"to fill in later\" — cheap to fix while you're building, easy to forget once the model has several tables in it."
+blocks:
+  - type: heading
+    text: The business question
+  - type: text
+    body: >
+      Every table in this walkthrough exists to answer one specific, written-down question: **"How is gross
+      revenue trending by customer segment and product category?"** Naming the question first is what tells
+      you the fact table needs to carry gross_revenue at a grain fine enough to slice by segment and category,
+      and that you need two dimensions — customers and products — to slice by.
+  - type: heading
+    text: "Step 1: create dim_customers"
+  - type: text
+    body: >
+      In the Data Modeler, create a new table named `dim_customers`. Set table_type to **DIMENSION** and grain
+      to **"1 row = 1 customer"**. Add its columns, marking customer_id as the primary key.
+  - type: table
+    caption: "dim_customers columns"
+    headers: ["Column", "Data type", "PK?"]
+    rows:
+      - ["customer_id", "integer", "yes"]
+      - ["first_name", "text", ""]
+      - ["last_name", "text", ""]
+      - ["country", "text", ""]
+      - ["customer_segment", "text", ""]
+      - ["signup_date", "date", ""]
+  - type: heading
+    text: "Step 2: create dim_products"
+  - type: text
+    body: >
+      Create a second table, `dim_products`. Set table_type to **DIMENSION** and grain to
+      **"1 row = 1 product"**. Mark product_id as the primary key.
+  - type: table
+    caption: "dim_products columns"
+    headers: ["Column", "Data type", "PK?"]
+    rows:
+      - ["product_id", "integer", "yes"]
+      - ["product_name", "text", ""]
+      - ["category_name", "text", ""]
+      - ["unit_price", "numeric", ""]
+      - ["cost", "numeric", ""]
+  - type: heading
+    text: "Step 3: the naive fct_orders — and why it breaks"
+  - type: text
+    body: >
+      Create a third table, `fct_orders`, set table_type to **FACT**, and add a product_id column marked as a
+      foreign key referencing dim_products.product_id — the "obvious" way to connect an order to the product it
+      contains. Before adding anything else, check that assumption against the real data: how many distinct
+      products does a single order actually have?
+  - type: code
+    language: sql
+    code: |
+      SELECT order_id, COUNT(DISTINCT product_id) AS n_products
+      FROM order_items
+      GROUP BY order_id
+      ORDER BY n_products DESC
+      LIMIT 5;
+      -- Every order in this dataset has between 1 and 5 distinct product lines.
+      -- A single product_id column on an order-grain fact table cannot represent that.
+    caption: "Verified against the real ecommerce data — orders routinely contain more than one product, so a lone product_id column on fct_orders would silently drop every line beyond the first."
+  - type: callout
+    variant: common_mistake
+    title: "One column can't hold a one-to-many relationship"
+    body: >
+      A single product_id column can only ever point at one row of dim_products. The instant an order can
+      legitimately contain more than one product — which this data confirms is the normal case, not the
+      exception — that column is structurally incapable of representing the order correctly. Delete it rather
+      than build on top of a column that can't do its job.
+  - type: heading
+    text: "Step 4: the corrected fct_orders"
+  - type: text
+    body: >
+      Remove the product_id column. Set grain to **"1 row = 1 order"** and rebuild fct_orders the way this
+      project's real dbt mart does it: keep customer_id (a genuine many-to-one relationship — many orders, one
+      customer, so a single foreign key column is exactly the right shape) and replace per-product detail with
+      order-level measures aggregated *across* an order's product lines.
+  - type: table
+    caption: "fct_orders columns (corrected)"
+    headers: ["Column", "Data type", "PK / FK?"]
+    rows:
+      - ["order_id", "integer", "PK"]
+      - ["customer_id", "integer", "FK -> dim_customers.customer_id"]
+      - ["order_date", "date", ""]
+      - ["status", "text", ""]
+      - ["channel", "text", ""]
+      - ["item_count", "integer", "measure"]
+      - ["total_quantity", "integer", "measure"]
+      - ["gross_revenue", "numeric", "measure"]
+      - ["gross_margin", "numeric", "measure"]
+  - type: text
+    body: >
+      At this point the model has three tables. dim_products doesn't connect to anything yet — its role in
+      this specific fact table was ruled out in Step 3, and it's kept in the model for the product-level
+      question this same business would eventually ask next. That's a perfectly normal, unfinished-looking
+      intermediate state; the next lesson covers exactly what does and doesn't get flagged when you draw
+      relationships and click Validate.
+  - type: question
+    prompt: >
+      Why does customer_id belong directly on fct_orders as a foreign key, while product_id does not?
+    choices:
+      - "Because customers are more important to the business than products"
+      - "Because the orders-to-customers relationship is genuinely many-to-one (many orders, one customer each), which a single foreign key column can represent correctly, while orders-to-products is many-to-many, which it cannot"
+      - "Because dim_customers was created before dim_products in this walkthrough"
+    correct_index: 1
+    explanation: >
+      A single foreign key column can only correctly represent a many-to-one (or one-to-one) relationship from
+      its own table's perspective. Each order has exactly one customer, so customer_id works. Each order can
+      have several products, so a single product_id column cannot — that's a many-to-many relationship at the
+      business level, needing a bridge table (order_items) rather than a direct foreign key.

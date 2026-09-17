@@ -1,0 +1,201 @@
+slug: histograms-and-distributions-viz
+module_slug: visualization-with-python
+title: "Histograms: Seeing the Shape of a Distribution"
+description: Building histograms with plt.hist, why the bin count you choose changes what story the data appears to tell, and when a box plot beats overlapping histograms for comparing groups.
+difficulty: BEGINNER
+estimated_minutes: 12
+display_order: 5
+objectives:
+  - Build a histogram of a single numeric variable and read its shape (skew, spread, where values cluster)
+  - Explain why bin count is a real analytical choice, not a cosmetic one, using the same data plotted three ways
+  - Recognize when overlapping histograms stop working for comparing groups and a box plot communicates the comparison better
+prerequisites: [scatter-plots]
+skills: [data-visualization]
+datasets: [ecommerce]
+tags: [python, beginner, foundations]
+key_takeaways:
+  - "A histogram answers 'what does the distribution of one variable look like' — where values cluster, how spread out they are, and whether the shape is symmetric or skewed. That's a different question from a scatter plot's 'do two variables relate' or a bar chart's 'how do categories compare.'"
+  - "Bin count is not a cosmetic setting. On this dataset's real order-value distribution, 3 bins produces three big blocks that hide the shape entirely, 100 bins produces a jagged chart where 26 of the 100 bins hold fewer than 5 orders, and 20 bins shows a clean, smooth right-skewed shape — same data, three genuinely different-looking stories."
+  - "Overlapping histograms for more than two groups usually become unreadable — bars from different groups occlude each other and colors blend. A box plot compresses each group's distribution into five numbers (min, Q1, median, Q3, max, plus outliers) placed side by side, which scales to many more groups than overlapping histograms ever will."
+  - "There's no single 'correct' bin count — the right one is the smallest number of bins that reveals real structure in the data without also showing so much sampling noise that random gaps look like meaningful features."
+common_mistakes:
+  - "Accepting a plotting library's default bin count without checking whether it's too coarse (hiding real structure) or too fine (showing noise that isn't real) for this particular dataset."
+  - "Reading random gaps or spikes in an over-binned histogram as meaningful features of the underlying data, when they're actually just small-sample noise in individual bins."
+  - "Overlaying histograms for four or five groups on one chart and expecting it to stay readable — past two, maybe three groups, overlapping bars and blended colors usually make the comparison harder to read, not easier."
+practical_applications:
+  - "Checking the shape of order value or another key metric before deciding whether the mean is even a meaningful summary of it — a right-skewed distribution makes the mean misleading in a way a histogram reveals instantly."
+  - "Deliberately trying a few different bin counts on a new numeric variable during exploratory analysis, rather than accepting the first default rendering as 'the distribution.'"
+  - "Switching from an overlapping-histogram comparison to a box plot once a stakeholder wants to compare a distribution across more than two or three groups."
+interview_questions:
+  - question: "Why isn't there a single 'correct' number of bins for a histogram?"
+    answer: "Too few bins compress the data into blocks so wide that real structure — skew, clusters, gaps — gets averaged away and hidden. Too many bins split the data so finely that individual bins hold only a handful of points each, and the resulting jagged shape is mostly sampling noise rather than real structure. The right choice is dataset-specific: I look for the smallest bin count that reveals a stable shape, and I'll usually try two or three bin counts side by side rather than trusting a single default."
+  - question: "You want to compare the distribution of order value across five customer segments. Would you use overlapping histograms or a box plot, and why?"
+    answer: "A box plot. Overlapping histograms work reasonably well for two, maybe three groups, but past that the bars start occluding each other and the colors blend into something hard to parse. A box plot represents each group as a compact five-number summary (plus outlier points) placed side by side on one axis, so five groups are just five boxes in a row — it scales to more groups far more gracefully than overlapping histograms do, at the cost of showing less fine-grained shape detail for any single group."
+resources:
+  - title: "Matplotlib documentation — hist()"
+    url: "https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.hist.html"
+  - title: "Seaborn documentation — histplot()"
+    url: "https://seaborn.pydata.org/generated/seaborn.histplot.html"
+blocks:
+  - type: text
+    body: >
+      A histogram answers a question none of the previous four lessons could: **what does the
+      distribution of one variable look like?** Not how it compares to another variable (scatter plot),
+      not how it trends over time (line chart), not how categories compare (bar chart) — just: across all
+      the orders, or products, or customers, where do the values cluster, how spread out are they, and is
+      the shape symmetric or lopsided?
+  - type: heading
+    text: "A first histogram: order value"
+  - type: code
+    language: python
+    code: |
+      import matplotlib.pyplot as plt
+      import pandas as pd
+
+      order_items = pd.read_csv("data/sample/ecommerce/order_items.csv")
+      order_items["line_revenue"] = (
+          (order_items["unit_price"] - order_items["discount"]) * order_items["quantity"]
+      )
+      order_value = order_items.groupby("order_id")["line_revenue"].sum()
+
+      print(order_value.describe().round(2))
+    caption: One row per order, total revenue on that order — 4,205 orders
+  - type: output
+    body: |
+      count    4205.00
+      mean     1687.70
+      std      1079.68
+      min         9.45
+      25%       835.58
+      50%      1563.10
+      75%      2363.54
+      max      6370.39
+    caption: "Real output — mean ($1,687.70) sits above the median ($1,563.10), a hint of right skew before a single chart has been drawn"
+  - type: heading
+    text: "The same data, three bin counts — actually run, actually different"
+  - type: text
+    body: >
+      This is the core idea of the lesson: bin count is not a cosmetic slider. Below is the exact same
+      `order_value` series, binned three ways with `numpy.histogram`, with the real resulting counts in
+      each bin.
+  - type: code
+    language: python
+    code: |
+      import numpy as np
+
+      for bins in [3, 20, 100]:
+          counts, edges = np.histogram(order_value, bins=bins)
+          print(f"bins={bins}, bin width=${edges[1] - edges[0]:.2f}")
+          print(counts.tolist())
+          print(f"  bins with fewer than 5 orders: {(counts < 5).sum()} of {len(counts)}")
+          print()
+    caption: Same underlying data, three different bin counts
+  - type: output
+    body: |
+      bins=3, bin width=$2120.31
+      [2882, 1238, 85]
+        bins with fewer than 5 orders: 0 of 3
+
+      bins=20, bin width=$318.05
+      [370, 410, 452, 481, 440, 465, 375, 329, 273, 193, 157, 98, 64, 40, 27, 17, 4, 6, 2, 2]
+        bins with fewer than 5 orders: 3 of 20
+
+      bins=100, bin width=$63.61
+      [57, 73, 70, 86, 84, 82, 93, 71, 93, 71, 82, 88, 104, 100, 78, 100, 107, 97, 87, 90, 86, 96, 80,
+       91, 87, 102, 100, 83, 89, 91, 79, 75, 82, 72, 67, 80, 79, 59, 62, 49, 56, 64, 51, 47, 55, 42, 46,
+       37, 37, 31, 35, 31, 27, 30, 34, 20, 30, 20, 11, 17, 18, 11, 6, 16, 13, 8, 10, 8, 6, 8, 2, 6, 6, 9,
+       4, 3, 5, 3, 3, 3, 0, 1, 0, 1, 2, 1, 0, 2, 3, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1]
+        bins with fewer than 5 orders: 26 of 100
+    caption: Real, actually-computed counts — not illustrative numbers
+  - type: text
+    body: >
+      Three very different pictures come out of this one series. **bins=3** collapses everything into
+      three enormous \$2,120-wide buckets — you can tell most orders are on the smaller side, but nothing
+      about *where* within that range values cluster, or how smoothly the count tapers off. **bins=100**
+      swings the other way: bin width drops to about \$64, and a full 26 of the 100 bins hold fewer than 5
+      orders each — the chart would look jagged and spiky, and most of those spikes are just small-sample
+      noise, not real structure in customer spending. **bins=20** (bin width ≈\$318) is the sweet spot
+      here: it's fine enough to show a smooth, clearly right-skewed shape — a peak somewhere in the
+      \$650-\$1,300 range, tapering steadily out toward the \$6,370 maximum — without the tail bins
+      dissolving into noise.
+  - type: callout
+    variant: important
+    title: "How to actually choose a bin count"
+    body: >
+      There's no formula that's right for every dataset, but the practical process is simple: try a small
+      number of bins, a large number, and something in between (as above), and pick the smallest count
+      where the shape looks stable — where adding more bins reveals genuinely new structure rather than
+      just more noise. If two different reasonable bin counts (say, 15 and 25) tell basically the same
+      story, either is fine. If a specific bin count is the only one showing a "pattern," be suspicious of
+      that pattern.
+  - type: heading
+    text: "Comparing a distribution across groups: histograms start to strain"
+  - type: code
+    language: python
+    code: |
+      orders = pd.read_csv("data/sample/ecommerce/orders.csv")
+      orders = orders.merge(order_value.rename("order_value"), on="order_id", how="left")
+      completed = orders[orders["status"] == "completed"]
+
+      fig, ax = plt.subplots()
+      for channel, group in completed.groupby("channel")["order_value"]:
+          ax.hist(group, bins=20, alpha=0.5, label=channel)
+      ax.legend(title="Channel")
+      ax.set_xlabel("Order value ($)")
+    caption: Three overlapping histograms, one per channel — already at the edge of readable
+  - type: text
+    body: >
+      With exactly three groups and alpha transparency, this is still just barely readable — three
+      overlapping, semi-transparent shapes. It's already less clear than a single histogram: is that hump
+      around \$1,500 coming from mobile, web, or both? At three groups the overlap is annoying; at five
+      or six it typically stops being usable at all — bars from different groups occlude each other and
+      the colors blend into a muddle no legend fixes.
+  - type: heading
+    text: "Where a box plot wins: the same comparison, compressed"
+  - type: code
+    language: python
+    code: |
+      import seaborn as sns
+
+      fig, ax = plt.subplots()
+      sns.boxplot(data=completed, x="channel", y="order_value", ax=ax)
+      ax.set_ylabel("Order value ($)")
+    caption: "The same three-group comparison as a box plot — and it would scale cleanly to 10+ groups"
+  - type: output
+    body: |
+      channel        Q1        median     Q3
+      marketplace    824.49    1453.12    2262.02
+      mobile         828.16    1617.89    2335.97
+      web            839.72    1558.10    2408.85
+    caption: "Real quartiles — the box plot renders exactly these numbers as a shape, per channel, side by side"
+  - type: text
+    body: >
+      A box plot trades away the fine-grained shape detail a histogram shows (exactly where the peak is,
+      whether there's a second bump) for a compact five-number summary per group that scales to far more
+      groups on one chart without becoming unreadable. Here it also delivers a real finding: the three
+      channels' order-value quartiles are strikingly close to each other (medians within about \$165 of
+      one another) — despite very different total order *counts* by channel (covered in the Bar Charts
+      lesson), the typical order looks similar in size regardless of channel. The next lesson goes deep
+      on reading a box plot's quartiles, whiskers, and outlier points precisely.
+  - type: callout
+    variant: tip
+    title: "Rule of thumb: histograms for one or two groups, box plots beyond that"
+    body: >
+      For a single distribution, a histogram (chosen bin count, per above) shows the most detail. For
+      comparing two distributions, overlapping histograms with alpha transparency can still work. Past two
+      or three groups, default to a box plot (or a small multiple of separate histograms, one per group,
+      if the exact shape of each group genuinely matters) rather than stacking more colors onto one
+      overlapping-histogram chart.
+  - type: question
+    prompt: "You histogram a variable with 100 bins and the chart looks jagged, with lots of bins at or near zero. What does that suggest, and what would you try?"
+    choices:
+      - "The bin count is likely too fine for the amount of data — many bins are getting too few data points each to show a stable count, producing noise; try fewer bins and compare"
+      - "The variable itself is fundamentally too noisy to visualize with a histogram at any bin count"
+      - "This is expected and means the histogram is now maximally accurate — more bins is always more informative"
+    correct_index: 0
+    explanation: >
+      A jagged shape with many near-empty bins is the signature of over-binning relative to the sample
+      size — each bin has too few observations for its count to be a stable estimate of the true density
+      there. Reducing the bin count (and comparing the result to a couple of other bin counts) usually
+      reveals a smoother, more trustworthy shape, exactly as it did going from 100 bins to 20 on the
+      order-value data above.

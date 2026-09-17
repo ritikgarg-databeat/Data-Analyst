@@ -1,0 +1,30 @@
+slug: bi-analyst
+title: BI Analyst
+category: BI_ANALYST
+description: >
+  Owns dashboards and the modeled data behind them — emphasizes dimensional
+  modeling, warehouse structures, and consistent metric definitions across
+  reporting. A generic shape based on common postings, not any single
+  employer's exact requirements.
+core_skills:
+  - sql-fundamentals
+  - advanced-sql
+  - data-visualization
+  - data-modeling
+  - data-warehousing
+  - business-metrics
+preferred_skills:
+  - dimensional-modeling
+  - etl-elt
+  - metric-definition
+nice_to_have_skills:
+  - dbt
+  - cloud-data-warehouses
+  - excel-fundamentals
+typical_responsibilities:
+  - Build and maintain BI dashboards
+  - Model data for reporting (star schemas, semantic layers)
+  - Own metric definitions across dashboards
+  - Optimize queries for dashboard performance
+  - Document data sources and definitions
+version: 1

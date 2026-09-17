@@ -1,0 +1,107 @@
+slug: dw-ex-sql-daily-revenue-snapshot
+lesson_slug: dw-four-types-of-fact-tables
+skill: dimensional-modeling
+dataset: ecommerce
+title: Build a Periodic Snapshot Fact From Scratch
+description: Recreate fct_daily_revenue's periodic-snapshot shape directly from orders and order_items, one row per calendar day.
+exercise_type: SQL
+difficulty: ADVANCED
+points: 20
+tags: [fact-table, aggregation, grain, star-schema]
+business_context: >
+  fct_daily_revenue is a periodic snapshot fact: one row per calendar day, summarizing that day's
+  completed-order activity, built by aggregating fct_orders (itself already aggregated from
+  order_items). Building the same shape directly from the two source-level tables confirms you
+  understand what a periodic snapshot fact actually collapses down to.
+prompt: >
+  Using `orders` and `order_items`, write a query that returns one row per calendar `order_date`, for
+  completed orders only (`status = 'completed'`), with `completed_order_count` (the number of
+  distinct completed orders that day) and `total_gross_revenue` (the SUM of
+  `quantity * unit_price - discount` across all of that day's completed orders' lines, rounded to 2
+  decimals). Order the result chronologically.
+sql_tables: [orders, order_items]
+sql_starter_query: |
+  -- Explore both tables first
+  SELECT * FROM orders LIMIT 20;
+  SELECT * FROM order_items LIMIT 20;
+sql_solution_query: |
+  WITH line AS (
+    SELECT
+      order_id,
+      (quantity * unit_price) - discount AS line_revenue
+    FROM order_items
+  ),
+  order_rev AS (
+    SELECT order_id, SUM(line_revenue) AS gross_revenue
+    FROM line
+    GROUP BY order_id
+  )
+  SELECT
+    o.order_date,
+    COUNT(DISTINCT o.order_id) AS completed_order_count,
+    ROUND(SUM(r.gross_revenue), 2) AS total_gross_revenue
+  FROM orders o
+  JOIN order_rev r ON o.order_id = r.order_id
+  WHERE o.status = 'completed'
+  GROUP BY o.order_date
+  ORDER BY o.order_date;
+sql_row_order_matters: true
+sql_numeric_tolerance: 0.01
+sql_hidden_tests:
+  - name: "The earliest day's total_gross_revenue is correct"
+    query: |
+      WITH line AS (
+        SELECT
+          order_id,
+          (quantity * unit_price) - discount AS line_revenue
+        FROM order_items
+      ),
+      order_rev AS (
+        SELECT order_id, SUM(line_revenue) AS gross_revenue
+        FROM line
+        GROUP BY order_id
+      )
+      SELECT
+        o.order_date,
+        ROUND(SUM(r.gross_revenue), 2) AS total_gross_revenue
+      FROM orders o
+      JOIN order_rev r ON o.order_id = r.order_id
+      WHERE o.status = 'completed'
+      GROUP BY o.order_date
+      ORDER BY o.order_date ASC
+      LIMIT 1
+    key_columns: 1
+hints:
+  - "Compute each order's gross_revenue first (order grain, summing its lines), then join that back to orders filtered to status = 'completed', and do a second GROUP BY, this time on order_date, to collapse down to the day grain."
+  - "COUNT(DISTINCT o.order_id) — not COUNT(*) — for completed_order_count, since after joining orders to its per-order revenue there's exactly one row per order already, but being explicit about DISTINCT keeps the intent clear if the join shape ever changes."
+solution: >
+  ```sql
+  WITH line AS (
+    SELECT order_id, (quantity * unit_price) - discount AS line_revenue
+    FROM order_items
+  ),
+  order_rev AS (
+    SELECT order_id, SUM(line_revenue) AS gross_revenue
+    FROM line
+    GROUP BY order_id
+  )
+  SELECT
+    o.order_date,
+    COUNT(DISTINCT o.order_id) AS completed_order_count,
+    ROUND(SUM(r.gross_revenue), 2) AS total_gross_revenue
+  FROM orders o
+  JOIN order_rev r ON o.order_id = r.order_id
+  WHERE o.status = 'completed'
+  GROUP BY o.order_date
+  ORDER BY o.order_date;
+  ```
+  The earliest date in the result is 2024-01-12, with completed_order_count=1 and
+  total_gross_revenue=3737.84.
+explanation: >
+  A strong answer aggregates in two clean stages: order-grain revenue first, then a second
+  aggregation collapsing that down to the day grain — exactly mirroring how fct_daily_revenue.sql
+  aggregates fct_orders (itself already at the order grain) by order_date. A common mistake is trying
+  to do both aggregations in a single GROUP BY order_date directly against order_items joined to
+  orders, which silently double-counts orders with multiple line items unless the join and grouping
+  are ordered carefully — building the order-grain revenue as its own step first avoids that risk
+  entirely.

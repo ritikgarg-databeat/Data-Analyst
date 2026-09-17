@@ -1,0 +1,140 @@
+slug: dw-scd-type-2-dbt-snapshots
+module_slug: slowly-changing-dimensions
+title: "A Real SCD Type 2: Inside customer_segment_snapshot"
+description: A worked, mechanical walkthrough of this project's real, running SCD Type 2 example — dbt's snapshot feature, the check strategy, and the dbt_valid_from/dbt_valid_to columns that make point-in-time queries possible.
+difficulty: ADVANCED
+estimated_minutes: 20
+display_order: 2
+objectives:
+  - Explain what a dbt snapshot does mechanically, and how it differs from an ordinary model.
+  - Explain why the check strategy (compare specific columns) was chosen here instead of the timestamp strategy, and what real-world condition makes that choice necessary.
+  - Read dbt_valid_from/dbt_valid_to columns to answer a "what was true as of date X" question correctly.
+skills: [dbt, dimensional-modeling, data-warehousing]
+datasets: [ecommerce]
+tags: [scd, snapshots, dbt, incremental, advanced]
+prerequisites: [dw-scd-types-0-1-2]
+key_takeaways:
+  - "dbt's snapshot feature implements SCD Type 2 mechanically: each run, it compares the current source data to what the snapshot table already has, and where a tracked column has changed, it closes out the old row (setting dbt_valid_to to now) and inserts a new row (with dbt_valid_from set to now) — rather than overwriting anything in place."
+  - "customer_segment_snapshot uses strategy='check' with check_cols=['customer_segment'] instead of a timestamp strategy, specifically because the source data has no reliable \"last updated\" column to compare against — this is the common real-world case, not the textbook-ideal one where a trustworthy updated_at always exists."
+  - "dbt_valid_from and dbt_valid_to define a validity range for each historical row: a null dbt_valid_to means \"this is the current, still-valid version.\" Answering \"what was this customer's segment on 2025-06-01\" means filtering to the row where dbt_valid_from <= '2025-06-01' and (dbt_valid_to > '2025-06-01' or dbt_valid_to is null)."
+common_mistakes:
+  - "Assuming a snapshot needs a reliable updated_at timestamp on the source table to work. The check strategy is built for exactly the opposite situation — no trustworthy timestamp exists, so dbt instead diffs the declared check_cols directly against what's already stored, and treats any difference as a change worth recording, regardless of whether a timestamp says so."
+  - "Querying customer_segment_snapshot for \"today's segment\" the same way you'd query dim_customers (just SELECT * ), without filtering to dbt_valid_to IS NULL. Doing that returns every historical version of every customer's segment, not just the current one — for a table meant to answer point-in-time questions, that's usually not what you want unless the point in time is deliberately unfiltered."
+interview_questions:
+  - question: "Why does customer_segment_snapshot use the check strategy instead of the timestamp strategy, and what would go wrong if the source data had no reliable updated_at column but you used the timestamp strategy anyway?"
+    answer: >
+      The timestamp strategy decides whether a row changed by comparing a source updated_at column
+      to what the snapshot already recorded — it needs that column to be both present and
+      trustworthy. This project's underlying customer data has no such reliable column, which is a
+      very common real-world situation (source systems often don't track column-level update times).
+      Using the timestamp strategy anyway would mean dbt either can't detect real changes (if the
+      column doesn't exist, the snapshot would fail to configure at all) or, worse, would trust a
+      stale or incorrect updated_at value and miss a real segment change, or record a false one. The
+      check strategy sidesteps this entirely by directly diffing the actual check_cols values
+      (customer_segment) between what's stored and what the source currently has — a real change is
+      detected because the value itself differs, with no dependency on a timestamp being accurate.
+blocks:
+  - type: heading
+    text: "A snapshot is a model with memory"
+  - type: text
+    body: >
+      An ordinary dbt model recomputes its entire result from its inputs every run — it has no memory
+      of what it looked like last time. A **snapshot** is different: it's specifically built to track
+      how a table's rows change over time, by comparing what the source looks like *now* against what
+      the snapshot table already recorded, and appending new rows only where something changed —
+      never overwriting or deleting the old version. This is dbt's mechanical implementation of SCD
+      Type 2.
+  - type: code
+    language: sql
+    code: |
+      -- dbt/snapshots/customer_segment_snapshot.sql
+      {% snapshot customer_segment_snapshot %}
+
+      {{
+          config(
+              target_schema='snapshots',
+              unique_key='customer_id',
+              strategy='check',
+              check_cols=['customer_segment'],
+          )
+      }}
+
+      select
+          customer_id,
+          customer_segment
+      from {{ ref('stg_customers') }}
+
+      {% endsnapshot %}
+    caption: "The entire real, working SCD Type 2 example in this project — every mechanic below comes from these ~15 lines."
+  - type: heading
+    text: "Why check, not timestamp"
+  - type: text
+    body: >
+      dbt's snapshot feature supports two change-detection strategies. The `timestamp` strategy
+      trusts a source column (like `updated_at`) to say whether a row is newer than what's already
+      stored. The `check` strategy instead directly compares the *values* of specific columns
+      (`check_cols`) between the source and the snapshot table, and treats any difference as a
+      change — no timestamp required. `customer_segment_snapshot` uses `check` with
+      `check_cols=['customer_segment']` specifically because, as the model's own comment states,
+      "the source data has no reliable 'last updated' column to compare against — this is the common
+      real-world case, not the textbook-ideal one." Every time this snapshot runs, dbt asks a direct
+      question per customer: "does `customer_segment` right now differ from what I last recorded for
+      this `customer_id`?" — and only acts when the answer is yes.
+  - type: heading
+    text: "dbt_valid_from / dbt_valid_to: how a point-in-time query works"
+  - type: text
+    body: >
+      Every row dbt's snapshot produces gets two bookkeeping columns automatically. `dbt_valid_from`
+      is the timestamp this version became current. `dbt_valid_to` is the timestamp it stopped being
+      current — **null** for whichever row is the customer's current version. When customer 88's
+      segment changes from `consumer` to `business`, the snapshot doesn't overwrite the old row: it
+      sets that old row's `dbt_valid_to` to the run time the change was detected, and inserts a brand
+      new row for `business` with `dbt_valid_from` set to that same moment and `dbt_valid_to` left
+      null. Both rows now coexist, each accurate for the time range it covers.
+  - type: table
+    headers: ["customer_id", "customer_segment", "dbt_valid_from", "dbt_valid_to"]
+    rows:
+      - ["88", "consumer", "2025-01-10", "2025-06-02"]
+      - ["88", "business", "2025-06-02", "null (current)"]
+  - type: example
+    title: "Answering \"what was customer 88's segment on 2025-04-01?\""
+    body: >
+      Using the two rows above: filter to
+      `dbt_valid_from <= '2025-04-01' AND (dbt_valid_to > '2025-04-01' OR dbt_valid_to IS NULL)`. Only
+      the first row (`consumer`, valid `2025-01-10` through `2025-06-02`) satisfies that condition —
+      April 1st falls inside its validity window, before the change to `business` took effect. This is
+      the entire value of Type 2 history: a query about *any past date*, not just "today," gets a
+      correct answer, because the old value was never destroyed, only marked as no longer current.
+  - type: code
+    language: sql
+    code: |
+      SELECT customer_id, customer_segment
+      FROM customer_segment_snapshot
+      WHERE customer_id = 88
+        AND dbt_valid_from <= '2025-04-01'
+        AND (dbt_valid_to > '2025-04-01' OR dbt_valid_to IS NULL);
+    caption: "A point-in-time query against real SCD Type 2 history — impossible to answer correctly against dim_customers alone, since that table only ever shows the current segment."
+  - type: callout
+    variant: warning
+    title: "Filter to dbt_valid_to IS NULL for \"current state\" questions"
+    body: >
+      Querying `customer_segment_snapshot` without any `dbt_valid_to` filter returns every historical
+      version of every customer's segment — correct for historical analysis, but wrong if what you
+      actually wanted was "each customer's segment right now." For that specific question,
+      `dim_customers.customer_segment` is already the simpler, correct source — the snapshot exists
+      specifically for the historical question dim_customers can't answer.
+  - type: question
+    prompt: >
+      Why does customer_segment_snapshot use strategy='check' with check_cols=['customer_segment']
+      instead of the timestamp strategy?
+    choices:
+      - "Because the check strategy runs faster in every case, regardless of the source data"
+      - "Because the underlying customer source data has no reliable \"last updated\" timestamp to compare against, so dbt instead directly diffs the customer_segment value itself between runs to detect a real change"
+      - "Because check and timestamp strategies produce identical results, and check was simply chosen at random"
+    correct_index: 1
+    explanation: >
+      The timestamp strategy depends on a trustworthy source timestamp column to decide whether a row
+      changed. This project's real source data doesn't have one for customer_segment, which is a very
+      common real-world situation — the check strategy solves this by comparing the actual
+      check_cols values directly, so a genuine change in customer_segment is detected by the value
+      differing, with no dependency on any timestamp being present or accurate.

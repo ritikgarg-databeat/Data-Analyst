@@ -1,0 +1,142 @@
+slug: query-execution-order
+module_slug: sql-performance
+title: Query Execution Order
+description: The logical order SQL actually evaluates a query in — FROM, WHERE, GROUP BY, HAVING, SELECT, ORDER BY, LIMIT — and why that order explains rules that otherwise seem arbitrary.
+difficulty: ADVANCED
+estimated_minutes: 12
+display_order: 1
+objectives:
+  - State the logical order of execution for a SELECT query, independent of the order it's typed in
+  - Explain why a column alias defined in SELECT can't be referenced in WHERE, but can in ORDER BY
+  - Use the execution order to reason about where a filter or computation should be placed
+prerequisites: [marketing-attribution-basics]
+skills: [advanced-sql]
+datasets: [ecommerce]
+tags: [sql, advanced]
+key_takeaways:
+  - "SQL is typed as FROM/WHERE/GROUP BY/HAVING/SELECT/ORDER BY/LIMIT, but that's also very close to its *logical* evaluation order — SELECT's aliases don't exist yet when WHERE runs, because WHERE is evaluated first."
+  - "WHERE filters individual rows before any grouping happens; HAVING filters whole groups after GROUP BY has collapsed rows — that's the entire reason both clauses exist as separate steps."
+  - "This is the *logical* order a database reasons about, not necessarily the literal sequence of operations the engine performs internally — a real query planner (the next lesson's topic) can reorder, combine, or skip steps as long as the final result matches this logical model."
+common_mistakes:
+  - "Writing WHERE total_spend > 100 when total_spend is a SELECT alias for SUM(...) — WHERE runs before SELECT computes anything, so that alias doesn't exist yet; the fix is either repeating the full expression in WHERE (if filtering pre-aggregation makes sense) or moving the condition to HAVING (if it's meant to filter on the aggregate)."
+  - "Assuming LIMIT happens before ORDER BY — without an ORDER BY, LIMIT keeps an arbitrary subset of rows, not a meaningful 'first N', because there is no defined first row until sorting happens."
+practical_applications:
+  - "Debugging a confusing 'column does not exist' or 'aggregate not allowed here' error by checking whether the clause it appeared in runs before or after the clause that defines it."
+  - "Deciding whether a condition belongs in WHERE or HAVING based on whether it needs to see pre-aggregation or post-aggregation values."
+blocks:
+  - type: heading
+    text: Two different orders — written vs. evaluated
+  - type: text
+    body: >
+      A SELECT query is *typed* in this order — SELECT, FROM, WHERE, GROUP BY, HAVING, ORDER BY, LIMIT
+      — but that is not the order the database actually reasons about it in. The **logical execution
+      order** is different, and every SQL engine (DuckDB included) evaluates a query as if these steps
+      ran in this sequence, regardless of how it's typed:
+  - type: table
+    headers: ["Step", "Clause", "What happens"]
+    rows:
+      - ["1", "FROM", "Identify the source table(s) and apply any JOINs"]
+      - ["2", "WHERE", "Filter individual rows, before any grouping"]
+      - ["3", "GROUP BY", "Collapse the remaining rows into groups"]
+      - ["4", "HAVING", "Filter whole groups, after they've been formed"]
+      - ["5", "SELECT", "Compute the output columns and aliases"]
+      - ["6", "ORDER BY", "Sort the result rows"]
+      - ["7", "LIMIT", "Keep only the first N rows of the sorted result"]
+  - type: text
+    body: >
+      Notice SELECT is step 5 — second to last, not first, despite being typed first. That single fact
+      explains a whole category of "why doesn't this work" SQL errors.
+  - type: heading
+    text: Why a SELECT alias can't be used in WHERE
+  - type: text
+    body: >
+      WHERE is step 2. SELECT — where aliases are actually assigned — is step 5. When WHERE runs, the
+      alias from SELECT simply doesn't exist yet.
+  - type: code
+    language: sql
+    caption: This fails — total_spend isn't defined until SELECT runs, which is after WHERE
+    code: |
+      SELECT
+        o.customer_id,
+        SUM(oi.quantity * (oi.unit_price - oi.discount)) AS total_spend
+      FROM orders o
+      JOIN order_items oi ON oi.order_id = o.order_id
+      WHERE total_spend > 500
+      GROUP BY o.customer_id;
+  - type: output
+    caption: DuckDB's error for this exact query
+    body: |
+      Binder Error: WHERE clause cannot contain aggregates!
+  - type: text
+    body: >
+      The fix depends on *when* the filter should apply. Filtering on the aggregate value (only
+      customers whose total exceeds $500) needs to happen after grouping — that's HAVING, step 4,
+      which runs after GROUP BY has produced group-level values.
+  - type: code
+    language: sql
+    caption: HAVING filters after grouping, so the aggregate expression is already available
+    code: |
+      SELECT
+        o.customer_id,
+        SUM(oi.quantity * (oi.unit_price - oi.discount)) AS total_spend
+      FROM orders o
+      JOIN order_items oi ON oi.order_id = o.order_id
+      GROUP BY o.customer_id
+      HAVING SUM(oi.quantity * (oi.unit_price - oi.discount)) > 500
+      ORDER BY total_spend DESC;
+  - type: callout
+    variant: tip
+    title: ORDER BY is the exception — it can use SELECT aliases
+    body: >
+      ORDER BY (step 6) runs *after* SELECT (step 5), so by the time ORDER BY is evaluated, every
+      SELECT alias already exists. That's why `ORDER BY total_spend DESC` works even though `WHERE
+      total_spend > 500` doesn't — same alias, different clause, different position in the logical
+      order.
+  - type: heading
+    text: WHERE vs. HAVING is really a "before or after grouping" question
+  - type: text
+    body: >
+      WHERE and HAVING look similar (both filter rows with a boolean condition) but operate at
+      different steps: WHERE removes individual rows before GROUP BY ever sees them; HAVING removes
+      entire groups after GROUP BY has already collapsed the surviving rows. That's also why WHERE
+      can't reference an aggregate function directly (aggregates don't exist until grouping happens)
+      while HAVING can.
+  - type: example
+    title: The same condition, two different meanings depending on clause
+    body: >
+      "Only completed orders" belongs in WHERE — it's a row-level condition that should apply before
+      grouping, so cancelled/refunded orders never get summed in the first place. "Only customers with
+      more than 3 completed orders" belongs in HAVING — it depends on a COUNT that doesn't exist until
+      after grouping.
+    code: |
+      SELECT o.customer_id, COUNT(*) AS completed_orders
+      FROM orders o
+      WHERE o.status = 'completed'
+      GROUP BY o.customer_id
+      HAVING COUNT(*) > 3
+      ORDER BY completed_orders DESC;
+    language: sql
+  - type: callout
+    variant: warning
+    title: "Logical order, not necessarily physical order"
+    body: >
+      This is the order a database *reasons about* a query — the order that determines what's legal to
+      reference where, and what the correct result must be. It is not a promise about the literal
+      sequence of internal operations a query engine performs. A real optimizer is free to push a
+      WHERE filter down before a join, evaluate things out of order, or skip steps entirely — as long
+      as the final answer matches what this logical model would produce. The next lesson, reading
+      EXPLAIN plans, is exactly about seeing what a query planner actually chose to do.
+  - type: question
+    prompt: >
+      Why does `SELECT customer_id, order_date AS d FROM orders ORDER BY d` work, while
+      `SELECT customer_id, order_date AS d FROM orders WHERE d > '2025-01-01'` fails?
+    choices:
+      - "ORDER BY is more lenient about syntax errors than WHERE"
+      - "ORDER BY (step 6) runs after SELECT (step 5) has defined alias d, but WHERE (step 2) runs before SELECT does, so d doesn't exist yet when WHERE is evaluated"
+      - "Both should fail — the first query has a bug in the platform's SQL engine"
+    correct_index: 1
+    explanation: >
+      In the logical execution order, SELECT (which defines the alias d) is step 5, ORDER BY is step 6,
+      and WHERE is step 2. Since ORDER BY runs after SELECT, it can see the alias; WHERE runs before
+      SELECT, so referencing d there fails because that alias hasn't been created yet at that point in
+      the logical sequence.

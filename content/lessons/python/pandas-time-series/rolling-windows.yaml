@@ -1,0 +1,139 @@
+slug: rolling-windows
+module_slug: pandas-time-series
+title: Rolling Windows
+description: .rolling(window=N).mean()/.sum() for moving averages and trailing totals, the min_periods parameter, and why the first N-1 rows come back as NaN.
+content_type: READING
+difficulty: INTERMEDIATE
+estimated_minutes: 11
+display_order: 3
+objectives:
+  - Compute a moving average or trailing total with .rolling(window=N)
+  - Explain why the first N-1 rows of a rolling calculation are NaN by default
+  - Use min_periods to get a result on partial windows instead of NaN
+prerequisites: [resampling]
+skills: [pandas]
+datasets: [ecommerce]
+tags: [python, intermediate, real-world]
+key_takeaways:
+  - ".rolling(window=N) creates a moving window of N consecutive rows; chaining .mean(), .sum(), or another aggregation computes that statistic freshly for every position as the window slides down the data."
+  - "By default, the first N-1 rows don't have N full rows of history behind them yet, so pandas returns NaN for those positions rather than computing a statistic on a partial window."
+  - "min_periods=k lets the calculation run as soon as at least k rows are available, instead of waiting for a full window — trading off some smoothing at the start for having a value on every row."
+common_mistakes:
+  - "Being surprised by NaN at the start of a rolling calculation and assuming something is broken — it's expected: there simply isn't enough history yet for those early rows to have a full window."
+  - "Confusing a rolling window with resample or groupby — rolling operates on a fixed number of consecutive rows (or a time span with a datetime index), sliding one step at a time, not on discrete non-overlapping buckets."
+  - "Forgetting that rolling needs the data sorted in the order you want the window to slide across — an unsorted datetime index produces a rolling calculation over the wrong neighbors."
+practical_applications:
+  - "Smoothing a noisy monthly revenue series into a 3-month trailing average for a cleaner trend line."
+  - "Computing a trailing 7-day total of orders to monitor recent volume without day-to-day noise."
+interview_questions:
+  - question: "Why are the first two rows of a 3-row rolling mean NaN?"
+    answer: "A window of 3 needs 3 consecutive rows of data to compute a mean. At row 0, only 1 row of history exists; at row 1, only 2 rows exist — neither has a full window yet, so by default pandas returns NaN for those positions rather than averaging over an incomplete window. Row 2 onward has 3 full rows available (rows 0, 1, 2), so the calculation starts there."
+  - question: "What does min_periods do in a rolling calculation, and when would you use it?"
+    answer: "min_periods sets the minimum number of non-NaN observations required within the window for a result to be computed at all — with min_periods=1, even a window that only has 1 row of history so far will produce a value (computed over just that 1 row), instead of waiting for the full window size. You'd use it when you'd rather have an early, less-smoothed estimate than a run of NaNs at the start of the series — e.g. a KPI chart that shouldn't have blank leading data points."
+blocks:
+  - type: text
+    body: >
+      A **rolling window** slides a fixed-size lens of N consecutive rows down your data, recomputing
+      a statistic — mean, sum, min, max — fresh at every position. It's the standard way to smooth a
+      noisy time series into a moving average, or turn daily/monthly totals into a trailing sum.
+  - type: heading
+    text: "A real 3-month moving average"
+  - type: code
+    language: python
+    code: |2
+      import pandas as pd
+
+      payments = pd.read_csv("data/sample/ecommerce/payments.csv")
+      payments["payment_date"] = pd.to_datetime(payments["payment_date"])
+      payments = payments[payments["status"] == "success"]
+
+      monthly = payments.set_index("payment_date")["amount"].resample("ME").sum().round(2)
+
+      rolling_3mo = monthly.rolling(window=3).mean().round(2)
+      pd.DataFrame({"monthly_revenue": monthly, "rolling_3mo_avg": rolling_3mo}).head(6)
+    caption: A 3-month trailing average of monthly revenue
+  - type: output
+    body: |2
+                    monthly_revenue  rolling_3mo_avg
+      payment_date
+      2024-01-31            7016.67              NaN
+      2024-02-29           14378.93              NaN
+      2024-03-31           33317.44         18237.68
+      2024-04-30           20703.96         22800.11
+      2024-05-31           72699.56         42240.32
+      2024-06-30           72299.06         55234.19
+  - type: text
+    body: >
+      Read row three (2024-03-31): its rolling_3mo_avg of 18,237.68 is the mean of Jan (7,016.67),
+      Feb (14,378.93), and Mar (33,317.44) — the window slides forward one month at a time, always
+      averaging the current month plus the two before it.
+  - type: heading
+    text: "Why the first N-1 rows are NaN"
+  - type: callout
+    variant: important
+    title: There's no such thing as a partial window, by default
+    body: >
+      A window of 3 needs 3 real rows of history. At January (row 0), there's only 1 row available;
+      at February (row 1), only 2. Neither has a full 3-row window yet, so pandas returns NaN rather
+      than quietly averaging over fewer rows than you asked for — the first real value only appears
+      once a full window exists, at March.
+  - type: heading
+    text: "min_periods — trading completeness for coverage"
+  - type: text
+    body: >
+      If you'd rather see an (less-smoothed) value from the very first row instead of leading NaNs,
+      pass `min_periods` — the minimum number of observations required before a result is computed at
+      all.
+  - type: code
+    language: python
+    code: |2
+      rolling_3mo_minp1 = monthly.rolling(window=3, min_periods=1).mean().round(2)
+      pd.DataFrame({"monthly_revenue": monthly, "rolling_3mo_avg_minp1": rolling_3mo_minp1}).head(3)
+    caption: "min_periods=1 — no more leading NaNs, but the first two values are averaged over fewer than 3 months"
+  - type: output
+    body: |2
+                    monthly_revenue  rolling_3mo_avg_minp1
+      payment_date
+      2024-01-31            7016.67                 7016.67
+      2024-02-29           14378.93                10697.80
+      2024-03-31           33317.44                18237.68
+  - type: text
+    body: >
+      Notice January's rolling_3mo_avg_minp1 is just January's own value (a "window" of 1 row), and
+      February's is the average of just January and February (a window of 2) — from March onward,
+      both versions agree exactly, since a full 3-row window is available either way.
+  - type: heading
+    text: ".sum() and other aggregations work the same way"
+  - type: code
+    language: python
+    code: |2
+      monthly.rolling(window=3).sum().round(2).head(4)
+    caption: A trailing 3-month sum instead of a mean — same window mechanics, different aggregation
+  - type: output
+    body: |2
+      payment_date
+      2024-01-31            NaN
+      2024-02-29            NaN
+      2024-03-31       54713.04
+      2024-04-30       68400.33
+      Freq: ME, Name: amount, dtype: float64
+  - type: callout
+    variant: tip
+    title: Rolling window vs. resample — different jobs
+    body: >
+      resample() buckets data into fixed, non-overlapping calendar periods (each month appears once).
+      rolling() slides a fixed-size window across already-regular data, and each window overlaps with
+      its neighbors — that overlap is exactly what makes it a smoothing operation rather than a
+      bucketing one. They're often used together: resample first to get a regular monthly series,
+      then roll a window over the result, as in the examples above.
+  - type: question
+    prompt: "df['value'].rolling(window=7).mean() is computed on a 30-row DataFrame. How many NaN values appear at the start of the result, assuming default settings?"
+    choices:
+      - "0 — rolling always fills in a value using whatever data is available"
+      - "6 — the first 6 rows don't have a full 7-row window of history yet"
+      - "7 — one NaN per row in the window size"
+    correct_index: 1
+    explanation: >
+      With the default settings (no min_periods override), a window of 7 needs 7 full rows of history
+      before it can compute a result. Rows 0 through 5 (6 rows total) each have fewer than 7 rows of
+      history behind them, so they come back as NaN — row 6 is the first with a complete window.

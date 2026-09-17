@@ -1,0 +1,123 @@
+slug: interview-campaign-underperformance-investigation
+title: Why Did the Spring Campaign Underperform?
+category: MARKETING_ANALYTICS
+difficulty: INTERMEDIATE
+estimated_minutes: 30
+company_context: An online retailer running paid campaigns tracked in marketing_campaigns and sessions.
+stakeholder_name: Sam Rivera
+stakeholder_role: VP Marketing
+problem_statement: '"Our spring campaign hit its impression targets but revenue from it came in way under forecast.
+  What happened?"'
+business_context: Sam needs to know whether the issue was reach, targeting, or conversion, before planning the next
+  campaign.
+objective: Diagnose whether the underperformance came from reach, targeting/audience quality, or on-site conversion.
+initial_information: You have access to marketing_campaigns, sessions, orders, and customers.
+constraints:
+- Sam wants one clear driver identified, not a list of everything that could be wrong.
+available_datasets:
+- ecommerce
+expected_deliverables:
+- 'A breakdown of the campaign''s funnel: impressions/clicks -> sessions -> orders'
+- Identification of which stage underperformed relative to forecast
+- A recommendation for the next campaign
+learning_objectives:
+- Separate reach, targeting, and conversion as distinct causes of campaign underperformance
+- Compare actual funnel performance against forecast assumptions
+- Recommend a specific, testable change for next time
+stages:
+- CLARIFY
+- ANALYZE
+- INSIGHTS
+- RECOMMEND
+- SUBMIT
+tags:
+- interview
+- marketing
+- campaign
+- root-cause
+- case-study
+skills:
+- business-metrics
+- root-cause-analysis
+- communication
+clarification_guidance:
+- A good clarifying question asks what the original forecast assumed for click-through rate and on-site conversion
+  rate.
+- A good clarifying question asks whether the campaign's audience targeting changed from prior campaigns.
+rubric:
+- category: Problem Framing & Clarification
+  weight: 20
+  criteria:
+  - criterion: Asks what the forecast assumed at each funnel stage before analyzing actuals
+    points: 20
+- category: Technical Analysis
+  weight: 35
+  is_technical: true
+  criteria:
+  - criterion: Breaks the campaign into impressions/clicks -> sessions -> orders
+    points: 20
+  - criterion: Compares actual vs. forecast at each stage to isolate where the shortfall occurred
+    points: 15
+- category: Insight Quality
+  weight: 20
+  criteria:
+  - criterion: Correctly distinguishes a reach problem from a targeting/audience-quality problem from a conversion
+      problem
+    points: 20
+- category: Recommendation & Business Judgment
+  weight: 15
+  criteria:
+  - criterion: Gives a specific, testable recommendation for the next campaign
+    points: 15
+- category: Communication
+  weight: 10
+  criteria:
+  - criterion: Explains the finding in terms Sam could use to brief the marketing team
+    points: 10
+hints:
+- Compare actual vs. forecast at EACH stage (reach, click-through, on-site conversion) rather than only looking
+  at the final revenue shortfall.
+- A campaign that hit its impression target but missed revenue could still have failed at click-through OR at on-site
+  conversion -- these need different fixes.
+reference_solution:
+  summary: This schema cannot actually support the impressions-to-clicks-to-sessions-to-orders funnel the case
+    describes -- marketing_campaigns has only campaign_id, campaign_name, channel, start_date, end_date, and budget
+    -- no impressions or click-through counts exist anywhere in the data -- and no field on orders or sessions
+    links a purchase back to a specific campaign (sessions.converted is a boolean with no order_id or dollar amount
+    attached). So only a reduced proxy funnel (budget -> attributed sessions -> converted flag) can actually be
+    computed. Even using that reduced funnel and treating each of the 15 real campaigns individually, no single
+    campaign stands out as a genuine reach-hit/conversion-miss story -- attributed session counts land in a narrow
+    296-352 band per campaign regardless of budget size or duration (consistent with essentially even, not
+    real-exposure-driven, attribution), and conversion rates range from 11.42% (Email Campaign 14) to 17.05%
+    (Social Campaign 11) across the 15 campaigns -- a spread fully explained by sampling noise at this sample size
+    (with roughly 300-350 sessions per campaign and an overall 14.28% average conversion rate, the expected range
+    at plus-or-minus 2 standard errors is about 10.4%-18.2%, which comfortably contains every campaign's actual
+    rate).
+  key_insights:
+  - marketing_campaigns contains no impressions or click-through data at all -- only campaign_id, channel, dates,
+    and budget -- so the impressions/clicks stages of the funnel this case describes cannot be computed from this
+    schema, only assumed.
+  - There is no order-to-campaign link either -- sessions.converted is a boolean with no order_id or dollar amount,
+    so 'revenue from the campaign' cannot be computed directly -- at best, converted-session count is a rough proxy
+    for orders.
+  - Across all 15 real campaigns, attributed session counts fall in a narrow 296-352 range regardless of budget or
+    duration, and conversion rates range 11.42%-17.05% -- a spread fully consistent with ordinary sampling noise at
+    roughly 300-350 sessions per campaign (expected range at plus-or-minus 2 standard errors around the 14.28%
+    overall average is about 10.4%-18.2%), so no individual campaign shows a statistically real reach or conversion
+    shortfall.
+  recommendation: Recommend against presenting Sam a single-driver story, since the data cannot support one -- no
+    campaign's session volume or conversion rate falls outside the range explained by chance. Instead, recommend
+    instrumenting the two missing links before the next campaign -- impressions/click tracking per campaign, and an
+    order-to-campaign or order-to-session reference -- so a real reach-vs-conversion diagnosis becomes possible
+    next time. In the interim, tell Sam that none of the 15 tracked campaigns shows a session count or conversion
+    rate outside the range expected from chance alone, so if revenue genuinely missed forecast, the forecast
+    assumptions themselves (or a factor outside this schema) are the more likely place to look, not a specific
+    funnel stage.
+  acceptable_alternatives:
+  - A learner who flags the single lowest-converting real campaign (Email Campaign 14, 11.42%) as a tentative
+    candidate for follow-up, while explicitly noting it falls within the range explainable by chance, should
+    receive credit for appropriately caveating rather than overclaiming.
+  - A learner who leads with the missing impressions/click and order-link data as the primary blocking issue,
+    before attempting any statistical read of the 15 campaigns, should receive full credit -- that is the more
+    fundamental limitation.
+version: 1

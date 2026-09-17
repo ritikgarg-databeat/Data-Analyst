@@ -1,0 +1,76 @@
+slug: sum
+module_slug: sql-aggregation
+title: SUM
+description: Adding up a column with SUM, using it alongside GROUP BY, and how it silently ignores NULLs.
+difficulty: BEGINNER
+estimated_minutes: 8
+display_order: 4
+objectives:
+  - Compute a total with SUM, both across a whole table and per group
+  - Explain how SUM treats NULL values in the column it's summing
+  - Recognize when a SUM that "looks wrong" is actually correctly excluding NULLs
+prerequisites: [count]
+skills: [sql-fundamentals]
+datasets: [orders-sample]
+tags: [sql, beginner]
+key_takeaways:
+  - SUM adds up every non-NULL value in a column; it never errors on a NULL, it just leaves it out of the addition.
+  - "SUM(order_total) over zero non-NULL rows returns NULL, not 0 — a subtlety that matters when the result feeds into further math."
+  - Paired with GROUP BY, SUM computes an independent total per group, not a single grand total.
+common_mistakes:
+  - "Expecting SUM(order_total) to equal COUNT(*) multiplied by an average when some rows have a NULL order_total — SUM quietly skips those rows rather than treating them as 0."
+  - Forgetting to add WHERE status = 'completed' (or similar) before summing, so refunded or cancelled orders inflate a revenue total that should only reflect completed sales.
+blocks:
+  - type: heading
+    text: Adding up a column
+  - type: text
+    body: >
+      SUM is an aggregate function: it takes every value in a column across the rows it's given and
+      adds them together into a single number. On its own (no GROUP BY), it produces one grand total
+      across the whole table or whatever WHERE has already filtered down to.
+  - type: code
+    language: sql
+    caption: Total revenue from completed orders
+    code: |
+      SELECT SUM(order_total) AS total_revenue
+      FROM orders
+      WHERE status = 'completed';
+  - type: text
+    body: >
+      SUM simply skips NULL values — it does not treat them as 0, and it does not error. A row with a
+      NULL order_total contributes nothing to the total, as if that row weren't part of the sum at
+      all. This is usually exactly what you want (a cancelled order with no total shouldn't drag the
+      sum toward zero), but the edge case is worth knowing explicitly: if every row being summed has a
+      NULL value — or there are no rows at all — SUM returns NULL, not 0.
+  - type: table
+    headers: ["Rows being summed", "SUM(order_total) result"]
+    rows:
+      - ["All rows have a value", "The sum of every value"]
+      - ["Some rows are NULL", "The sum of just the non-NULL values — NULL rows contribute nothing"]
+      - ["Every row is NULL, or there are no rows", "NULL, not 0 — wrap in COALESCE(SUM(order_total), 0) if a numeric 0 is needed downstream"]
+  - type: text
+    body: >
+      Paired with GROUP BY, SUM computes an independent total for each group rather than one number
+      for the whole table — this is the pattern behind almost every "total X per Y" report.
+  - type: example
+    title: Total spend per customer, completed orders only
+    body: >
+      Filtering with WHERE first means cancelled and refunded orders never enter the sum at all;
+      GROUP BY then computes a separate SUM(order_total) for each customer_id.
+    code: |
+      SELECT customer_id, SUM(order_total) AS completed_spend
+      FROM orders
+      WHERE status = 'completed'
+      GROUP BY customer_id;
+    language: sql
+  - type: question
+    prompt: A customer has 3 orders — two completed with totals of $50 and $75, and one cancelled order with a NULL order_total. What does SUM(order_total) return for that customer (no WHERE filter applied)?
+    choices:
+      - NULL, because one of the rows has a NULL value
+      - "$125 — SUM adds the two non-NULL values and simply skips the NULL row"
+      - "$41.67 — SUM treats the NULL as 0 and averages across all 3 rows"
+    correct_index: 1
+    explanation: >
+      SUM ignores NULL values entirely rather than treating them as 0 or letting them poison the
+      whole result. It adds only the non-NULL values it finds — $50 + $75 = $125 — and the cancelled
+      order's NULL simply doesn't participate in the addition.

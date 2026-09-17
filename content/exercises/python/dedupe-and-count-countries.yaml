@@ -1,0 +1,54 @@
+slug: dedupe-and-count-countries
+lesson_slug: sets
+skill: python-fundamentals
+dataset: ecommerce
+title: Count Unique Countries in a Raw Signup List
+description: Turn a raw list of country values from signups into a count of how many times each unique country appears.
+exercise_type: PYTHON
+difficulty: BEGINNER
+points: 15
+tags: [python, beginner, foundations]
+business_context: >
+  A growth analyst pulled a raw list of country values straight off the signup form submissions for
+  the day and wants a fast breakdown of how many signups came from each country before diving into
+  any deeper analysis.
+prompt: >
+  Given `raw_countries = ["Mexico", "France", "Mexico", "Germany", "France", "Mexico"]`, compute how
+  many times each unique country appears. Store your answer in a variable named `result`: a dict
+  mapping each unique country name to its count (e.g. `{"Mexico": 3, "France": 2, "Germany": 1}`).
+python_datasets: []
+python_starter_code: |
+  raw_countries = ["Mexico", "France", "Mexico", "Germany", "France", "Mexico"]
+
+  # Count how many times each unique country appears in raw_countries.
+  # Store the counts in `result` as a dict mapping country -> count.
+python_solution_code: |
+  raw_countries = ["Mexico", "France", "Mexico", "Germany", "France", "Mexico"]
+  result = {}
+  for c in raw_countries:
+      result[c] = result.get(c, 0) + 1
+python_result_variable: result
+python_row_order_matters: false
+python_numeric_tolerance: 0.000001
+python_hidden_tests:
+  - name: "Counts are correct and cover every signup"
+    code: |
+      assert sum(result.values()) == 6, f"Counts should sum to 6 (the total number of signups), got {sum(result.values())}"
+      assert result["Mexico"] == 3, f"Expected 3 signups from Mexico, got {result.get('Mexico')}"
+hints:
+  - "You need to know which countries are unique (a job for a set) and how many times each one shows up (a job for a dict that accumulates counts as you loop). collections.Counter also does this in one line if you know it."
+  - "Loop over raw_countries and, for each country, increment result[country] — dict.get(country, 0) + 1 lets you do that increment even the first time a country is seen, without a KeyError."
+solution: |
+  ```python
+  raw_countries = ["Mexico", "France", "Mexico", "Germany", "France", "Mexico"]
+  result = {}
+  for c in raw_countries:
+      result[c] = result.get(c, 0) + 1
+  ```
+explanation: >
+  A strong answer builds the count dict in a single pass over the list, using dict.get(key, 0) (or
+  collections.Counter, or dict.setdefault) so the first occurrence of a country doesn't need
+  special-case handling. A common mistake is first converting the list to a set to "dedupe" it and
+  then trying to count occurrences against the original list awkwardly, or using result[c] += 1
+  directly, which raises a KeyError on a country's first occurrence because the key doesn't exist
+  yet.

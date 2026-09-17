@@ -1,0 +1,99 @@
+slug: pa-cohort-fundamentals
+module_slug: cohorts
+title: "Cohort Fundamentals: Reading the Retention Triangle"
+description: >
+  What a cohort retention matrix is, why it has a triangular shape, and how to read across (a single
+  cohort's curve) versus down (whether newer cohorts are improving) without confusing the two.
+difficulty: ADVANCED
+estimated_minutes: 20
+display_order: 1
+objectives:
+  - Explain why a cohort retention matrix is triangular rather than a full rectangle
+  - Read a real cohort retention matrix both across a single row (one cohort's curve) and down a column (are newer cohorts retaining better?)
+  - Identify when a matrix has too little data in its corner cells to support a conclusion
+prerequisites: [pa-retention-classic-vs-rolling]
+skills: [product-analytics, product-metrics]
+datasets: [saas-product]
+tags: [product, saas, cohort, advanced]
+key_takeaways:
+  - A cohort retention matrix is triangular because a cohort can only be observed for as many periods as have actually elapsed since it signed up — a cohort that joined last month simply cannot have a "month 6" number yet, no matter how good the product is.
+  - Reading across a row answers "how does this one cohort's engagement decay over time?"; reading down a column (same period number, different cohorts) answers "are newer cohorts retaining better or worse than older ones?" — these are different questions and need different eyes.
+  - A single small, high-variance cohort's number (e.g. a 20-user cohort) shouldn't be read with the same confidence as a 200-user cohort's number in the same matrix — the shape of the triangle should come with a sense of which cells are noisy.
+common_mistakes:
+  - Comparing a recent cohort's partial row directly against an older cohort's complete row and concluding the recent one is "worse," when the recent cohort simply hasn't had time to accumulate the later-period data yet.
+  - Reading only the matrix's diagonal or only its first column, missing the two genuinely different questions ("how does one cohort decay" vs. "are newer cohorts doing better") that the full matrix is built to answer together.
+blocks:
+  - type: text
+    body: >
+      A cohort retention matrix groups users by signup period (rows) and shows what fraction of each
+      group is still active N periods later (columns). It's the standard tool for answering "is
+      retention actually changing over time" without the trap of pooling every user together, which
+      the `product-retention` module already warned hides exactly this kind of trend.
+  - type: heading
+    text: "A real matrix, and why it's a triangle"
+  - type: table
+    headers: ["Cohort (signup month)", "Cohort size", "Month 0", "Month 1", "Month 2", "Month 3", "Month 4"]
+    rows:
+      - ["2025-01", "126", "100%", "26.98%", "19.84%", "12.70%", "7.14%"]
+      - ["2025-02", "134", "100%", "26.87%", "13.43%", "6.72%", "5.22%"]
+      - ["2025-03", "160", "100%", "21.88%", "13.13%", "8.13%", "5.00%"]
+      - ["2025-04", "140", "100%", "34.29%", "17.86%", "11.43%", "7.14%"]
+      - ["2025-11", "243", "100%", "25.93%", "13.17%", "—", "—"]
+      - ["2025-12", "248", "100%", "22.58%", "—", "—", "—"]
+  - type: callout
+    variant: important
+    title: The blank cells are not zeros — they're "not yet observable"
+    body: >
+      The 2025-12 cohort has no month-2 number in this table because, given this dataset's data
+      cutoff, month 2 for that cohort hasn't fully happened yet — not because retention dropped to
+      nothing. This is why a cohort matrix is a triangle rather than a full rectangle: the most
+      recently acquired cohorts simply haven't had time to generate the later-period columns, and
+      leaving those cells blank (rather than filling them with 0%) is the correct way to represent
+      that.
+  - type: heading
+    text: "Reading across a row: one cohort's decay curve"
+  - type: text
+    body: >
+      Look at the 2025-01 row alone: 100% → 26.98% → 19.84% → 12.70% → 7.14%. That's the shape
+      described in the `product-metrics` retention lesson — a steep initial drop, followed by a
+      slowing decline. Reading across answers: "for people who joined in this specific month, how
+      does their engagement fade?"
+  - type: heading
+    text: "Reading down a column: are newer cohorts doing better?"
+  - type: text
+    body: >
+      Now compare the month-1 column across the four complete rows: 26.98%, 26.87%, 21.88%, 34.29%.
+      This is a completely different question — "holding the time-since-signup constant at 1 month,
+      has the product gotten better or worse at retaining new users over time?" Reading down answers
+      that; reading across never can, because it only ever describes one cohort.
+  - type: callout
+    variant: warning
+    title: Four points is not a trend — resist the urge to draw one
+    body: >
+      21.88%, 26.87%, 26.98%, 34.29% across four consecutive cohorts bounces around without an
+      obvious direction. It would be easy to eyeball "March dipped, then April recovered" and invent a
+      story, but four data points on cohorts of 126-160 users each is not enough to distinguish a real
+      trend from ordinary month-to-month variation. The `cohorts` module's SQL lesson builds the full
+      matrix so this can be checked across many more cohorts before concluding anything.
+  - type: heading
+    text: Small cohorts deserve less confidence, not equal weight
+  - type: text
+    body: >
+      The earliest cohort in this dataset (July 2024) has only 20 users. A single user's difference
+      changes that cohort's month-1 rate by 5 percentage points — far more volatile than a 240-user
+      cohort, where one user only moves the rate by about 0.4 points. When scanning a matrix for
+      patterns, cohort size should shape how much weight a cell's number gets, not just its raw value.
+  - type: question
+    prompt: >
+      A cohort retention matrix has blank cells in its bottom-right corner, for the most recently
+      acquired cohorts. What do those blanks most likely mean?
+    choices:
+      - "Those cohorts had 0% retention at that period"
+      - "Those cohorts haven't existed long enough yet for that many periods to have elapsed, so the data genuinely isn't observable yet"
+      - "There was a tracking outage during those cohorts' signups"
+      - "Those cells should be filled in by copying the previous period's value"
+    correct_index: 1
+    explanation: >
+      A cohort matrix is naturally triangular — a cohort can only be observed for as many periods as
+      have actually elapsed since its members signed up. Blank cells in the newest cohorts' later
+      columns mean that time hasn't passed yet, not that retention was zero.

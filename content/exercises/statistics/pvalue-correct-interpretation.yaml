@@ -1,0 +1,39 @@
+slug: pvalue-correct-interpretation
+lesson_slug: hyp-p-values
+skill: statistical-reasoning
+dataset: saas-product
+title: "Rewrite This P-Value Claim So It's Actually Correct"
+description: Correct a plausible-sounding but wrong summary of a real p-value result from the checkout_redesign experiment.
+exercise_type: DATA_INTERPRETATION
+difficulty: INTERMEDIATE
+points: 15
+tags: [statistics, experimentation, ab-testing, intermediate]
+prompt: >
+  A product manager summarizes the checkout_redesign test result (p = 0.407) in a team update as:
+  "there's a 40.7% chance our redesign doesn't actually help conversion, so it's basically a coin
+  flip whether it works." Rewrite this into a statistically correct one- or two-sentence summary of
+  what p = 0.407 actually means here, and explain specifically what the PM's version gets backwards.
+hints:
+  - "A p-value is calculated *assuming* a specific hypothesis is true, and then describes how likely the observed data (or more extreme) would be under that assumption — the PM's version treats the hypothesis itself as the thing with a stated probability."
+  - "Think about what 'no real difference' means as an assumption here, and what 40.7% is actually a probability of, given that assumption."
+solution: >
+  Correct summary: "If the redesign truly had no effect on conversion, we'd see a gap this large or
+  larger between control and treatment about 40.7% of the time just from random sampling
+  variability. That's common enough under 'no effect' that this data doesn't give us strong evidence
+  the redesign actually changes conversion."
+  What the PM's version gets backwards: p = 0.407 is P(data this extreme or more extreme | no real
+  effect) — it conditions on the null hypothesis being true and describes how surprising the data
+  would be. The PM's phrasing ("40.7% chance our redesign doesn't help") reverses this into
+  P(no real effect | this data) — a completely different quantity that a p-value alone cannot
+  supply (that kind of probability-of-the-hypothesis statement requires a prior belief and a
+  Bayesian calculation, not a p-value). Additionally, "basically a coin flip whether it works" wrongly
+  implies precise 50/50 odds on the redesign's effectiveness, when the honest statement is simply
+  "this specific sample doesn't provide strong evidence either way" — which, combined with a power
+  calculation, points toward the sample being underpowered rather than toward the effect being a
+  genuine coin flip.
+explanation: >
+  A strong answer names precisely which conditional probability is being reversed (data-given-
+  hypothesis versus hypothesis-given-data), not just "that's not what a p-value means" in the
+  abstract. It also avoids introducing a new, equally unsupported claim (e.g., overcorrecting to "the
+  redesign definitely works") — the correct fix is to describe the evidence honestly as inconclusive,
+  not to swap one overconfident claim for another.

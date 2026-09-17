@@ -1,0 +1,76 @@
+slug: pa-case-retention-floor-lifecycle-investment
+lesson_slug: pa-product-case-walkthrough
+skill: product-analytics
+dataset: saas-product
+title: "Case: Should We Fund a Lifecycle Win-Back Program?"
+description: Given the real pooled retention curve and organic resurrection rate, decide whether a dedicated win-back program is justified.
+exercise_type: BUSINESS_REASONING
+difficulty: ADVANCED
+points: 25
+tags: [case-study, product-analytics, real-world, retention, cohort]
+business_context: >
+  The Head of Product is considering a dedicated lifecycle marketing program — automated win-back
+  emails targeting users who've gone quiet — for next quarter. Before committing budget and
+  engineering time to build it, she wants to know how big the underlying opportunity actually is, and
+  whether users already come back on their own without any intervention.
+stakeholder: "Head of Product"
+constraints:
+  - "You only have the events table (user_id, signup_date, event_name, event_timestamp) — no data yet on whether any similar campaign has run before."
+  - "The recommendation needs to say whether to build the program now, hold off pending more data, or scope it differently — not just 'yes' or 'no' with no reasoning."
+expected_deliverables:
+  - "The pooled retention curve across signup cohorts (month 0 through at least month 4), built from real data"
+  - "The organic resurrection rate — how often users who go quiet come back on their own with no intervention"
+  - "A recommendation on the win-back program, reasoned from both numbers together"
+  - "A specific measurement plan for testing the program if it's built"
+prompt: >
+  Using the `events` table, build a pooled month-by-month retention curve (cohort_month truncated to
+  month, period_number as months elapsed) across cohorts with complete data through at least month 4.
+  Separately, measure how often users who are active in their signup month, go quiet for a month, and
+  then return — organic resurrection with no intervention. Using both numbers, recommend whether the
+  Head of Product should fund the win-back program, and how she should measure whether it's actually
+  working if she does.
+hints:
+  - "The retention curve tells you how much of the base is 'gone' at each point — the resurrection rate tells you how many of those 'gone' users would have come back anyway, with no program at all."
+  - "Any program's measured impact needs to be compared against a baseline of what happens without it — think about what that baseline should be, given what you find."
+rubric:
+  - criterion: "Builds the pooled month-by-month retention curve from real data (100% at month 0, declining through month 4)"
+    points: 25
+  - criterion: "Computes the organic resurrection rate from real data (users active in period 0, absent in period 1, active again in period 2+)"
+    points: 25
+  - criterion: "Makes a specific recommendation (build, hold, or scope differently) reasoned from both numbers together, not either one alone"
+    points: 25
+  - criterion: "Proposes a specific measurement plan for the program (e.g. a held-out control group) that accounts for the organic resurrection baseline"
+    points: 25
+solution: >
+  Pooled retention curve (13 cohorts with complete month 0-4 data, 1,615 total users): month 0 100%,
+  month 1 26.4%, month 2 15.5%, month 3 10.3%, month 4 6.6% — still declining at a decreasing rate
+  through month 4, not yet flattened into a stable floor.
+
+  Organic resurrection: of the 750 users active beyond their signup month, 35 (4.7%) show the
+  specific pattern of being active in their signup month, absent the following month, and active
+  again two months out or later — a real but modest baseline of "coming back with no program at all."
+
+  Recommendation: this doesn't clearly justify an immediate, full-scale investment, but it does
+  justify a small, measured test rather than either a full build or dropping the idea. The retention
+  curve shows a large pool of users going quiet (73.6% gone by month 1 alone), so the *addressable*
+  population for a win-back program is large — but the 4.7% organic resurrection rate means any
+  program's *incremental* impact has to be measured above that baseline, not against zero, or the
+  program will get credit for users who would have returned anyway. Given the curve hasn't flattened
+  by month 4, it's also not yet clear what fraction of quiet users are gone for good versus simply
+  slow to return, which affects how the program should be timed (an email sent too early might target
+  users who were about to come back regardless).
+
+  Measurement plan: run the program as a randomized test — hold out a control group of similarly
+  quiet users who receive no win-back email — and measure the *incremental* resurrection rate in the
+  treatment group above the 4.7% organic baseline, not the raw resurrection rate alone. Without a
+  held-out control, any measured "success" is confounded with the organic resurrection that would
+  have happened anyway.
+explanation: >
+  A strong answer uses the resurrection rate as a baseline the program must beat, not as an isolated
+  fact — and proposes a control-group design specifically because the baseline is nonzero, which is
+  exactly what a rigorous measurement plan requires. It also reads the retention curve's shape
+  (still declining, not flattened) as relevant to *when* a program should intervene, not just whether
+  one is worth building. A weaker answer recommends the program based on the retention curve alone
+  (treating any drop-off as an opportunity, without checking whether it fixes itself naturally), or
+  proposes measuring the program's "success" by the raw number of users who return afterward, without
+  a control group to separate the program's effect from organic resurrection.

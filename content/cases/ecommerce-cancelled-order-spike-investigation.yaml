@@ -1,0 +1,133 @@
+slug: ecommerce-cancelled-order-spike-investigation
+title: "Why Does It Feel Like Cancellations Are Up?"
+category: OPERATIONS
+difficulty: INTERMEDIATE
+estimated_minutes: 60
+
+company_context: >
+  Brightcart is a mid-sized direct-to-consumer online retailer selling across ten product
+  categories through its website, mobile app, and a third-party marketplace listing. Orders carry a
+  status of completed, cancelled, refunded, or pending, and a channel field of web, mobile, or
+  marketplace. Order volume has grown substantially over the roughly two years covered by the data.
+stakeholder_name: "Priya Nair"
+stakeholder_role: "Operations Manager"
+problem_statement: >
+  "Cancellations feel higher than they used to be. Every week when I look at the order list, it
+  feels like we're cancelling more than we were a year ago. I don't know if that's a real trend or
+  just because we're processing so many more orders now. Can you dig into it and tell me what's
+  actually going on with cancellations?"
+business_context: >
+  Cancelled orders tie up inventory holds and picking/packing labor before they're cancelled, and
+  repeated cancellations can signal a checkout, inventory, or fraud problem. Operations wants to
+  know whether there is a genuine, worsening cancellation problem that needs a process fix — for
+  example, in a specific channel — or whether the pattern is stable and the perception is being
+  driven by Brightcart simply processing far more orders than before.
+objective: >
+  Determine whether the cancellation rate (not just the raw cancelled-order count) has actually
+  increased, whether it is concentrated in a specific channel, category, or time period, and
+  recommend whether operational action is warranted.
+initial_information: >
+  You have access to the full e-commerce schema: orders (status of completed, cancelled, refunded,
+  or pending; channel of web, mobile, or marketplace), order_items, products, categories,
+  customers, payments, sessions, and marketing_campaigns.
+constraints:
+  - "Compare the cancellation rate (a percentage of orders placed), not just the raw count of cancelled orders, since total order volume has grown substantially over the data's history."
+  - "When comparing channels or categories, note how many orders back each slice — smaller slices produce noisier rates."
+available_datasets: ["ecommerce"]
+expected_deliverables:
+  - "The overall cancellation rate and how it has trended year-over-year and quarter-over-quarter"
+  - "A breakdown of cancellation rate by channel and by product category"
+  - "An explicit answer to whether the 'feels higher lately' perception reflects a rate change, a volume effect, or both"
+  - "A specific recommendation on whether operational action is warranted, and where"
+learning_objectives:
+  - "Distinguish absolute count growth from rate change when a stakeholder's intuition is based on raw volume"
+  - "Test a 'this channel is disproportionately at fault' hypothesis against real cross-tabulated data instead of assuming it"
+  - "Practice communicating a counter-intuitive finding (a rate that hasn't actually worsened) to a stakeholder whose gut says otherwise"
+  - "Build multi-cut evidence (time, channel, category) before recommending operational action"
+stages: [CLARIFY, FRAME, EXPLORE, ANALYZE, INSIGHTS, RECOMMEND, SUBMIT]
+required_exercise_slugs: []
+tags: [e-commerce, operations, business-analytics, root-cause, case-study, real-world, intermediate]
+skills: [business-metrics, exploratory-data-analysis, data-interpretation, root-cause-analysis, decision-making]
+
+clarification_guidance:
+  - "A good clarifying question asks what 'higher than they used to be' is being compared against — last quarter, last year, or some other baseline — and whether Priya means the count or the rate of cancellations."
+  - "A good clarifying question asks whether a particular channel (for example, the marketplace listing, being newer) is already suspected, or whether this should be a fully open-ended look."
+  - "A good clarifying question asks what would count as 'a real trend' worth acting on, versus normal quarter-to-quarter noise."
+  - "A good clarifying question asks whether cancellations before versus after a payment was captured matter for this investigation, given the data only records a final order status."
+rubric:
+  - category: "Problem Framing & Clarification"
+    weight: 15
+    criteria:
+      - criterion: "Separates 'cancelled order count' from 'cancellation rate' explicitly before analyzing either"
+        points: 8
+      - criterion: "Establishes a specific baseline/time comparison for 'used to be' rather than treating it as self-evident"
+        points: 7
+  - category: "Technical Analysis"
+    weight: 35
+    is_technical: true
+    criteria:
+      - criterion: "Correctly computes overall cancellation rate and its year-over-year and quarter-over-quarter trend"
+        points: 12
+      - criterion: "Correctly breaks cancellation rate down by channel and by category, using rate rather than raw count"
+        points: 13
+      - criterion: "Correctly relates absolute order volume growth to the absolute cancelled-order count growth, to separate a rate story from a volume story"
+        points: 10
+  - category: "Insight Quality"
+    weight: 20
+    criteria:
+      - criterion: "Correctly states whether the cancellation rate has actually risen, fallen, or stayed flat, with supporting numbers"
+        points: 10
+      - criterion: "Correctly identifies whether any channel or category is a meaningfully disproportionate driver, or whether the pattern is broad and modest"
+        points: 10
+  - category: "Recommendation & Business Judgment"
+    weight: 20
+    criteria:
+      - criterion: "Gives a recommendation proportionate to the actual strength of the evidence, rather than assuming a worsening trend exists because it 'feels' that way"
+        points: 12
+      - criterion: "If recommending a targeted channel/category review, explicitly justifies it against the real computed gap rather than assumption"
+        points: 8
+  - category: "Communication"
+    weight: 10
+    criteria:
+      - criterion: "Clearly communicates the count-vs-rate distinction in a way a non-technical stakeholder could act on"
+        points: 10
+hints:
+  - "First separate 'count of cancelled orders' from 'cancelled orders as a percentage of all orders' — these can tell opposite stories once order volume is growing."
+  - "Compute the cancellation rate by year or quarter before jumping into channel or category cuts, to check whether there's a real overall trend to explain in the first place."
+  - "When you do compare channels, check the actual order count backing each channel's rate — a channel with far fewer orders (like a newer marketplace listing) will have a noisier rate."
+  - "If the honest answer is 'the rate hasn't really moved much,' that's still a valid and useful finding — it changes what you recommend, from 'fix a broken process' to 'correct the metric being tracked.'"
+reference_solution:
+  summary: >
+    The cancellation rate has not actually worsened — if anything, it has improved slightly, even
+    though the raw number of cancelled orders has grown a lot. Overall, 379 of 4,205 orders are
+    cancelled (9.01%). By year, the rate was 10.97% in 2024 (70 of 638 orders) and 8.66% in 2025
+    (309 of 3,567 orders) — the RATE declined by about 2.3 points even as the absolute cancelled-
+    order count rose roughly 4.4x (70 to 309), because total order volume rose roughly 5.6x (638 to
+    3,567) over the same span. By channel (all-time), mobile is the mildest high point at 9.77%
+    (146/1,494), versus 9.11% for marketplace (38/417) and 8.50% for web (195/2,294) — about a
+    1.3-point spread, which does not support a "the marketplace channel is the problem" hypothesis.
+    By category, cancellation rate ranges from 7.31% (Pet Supplies) to 10.00% (Electronics), a
+    modest spread with no dramatic outlier. Quarterly cancellation rate fluctuated in a wider band
+    early in the dataset's history (2024, when order counts were small) and settled into a
+    narrower, roughly 6.3%-10.9% band through 2025, without a clear sustained upward trend in the
+    most recent quarters. The "feels higher lately" perception is best explained by the large
+    absolute-count increase driven by overall order-volume growth, not by a worsening cancellation
+    rate.
+  key_insights:
+    - "Overall cancellation rate is 9.01% (379/4,205 orders)."
+    - "The rate actually declined year-over-year, from 10.97% in 2024 to 8.66% in 2025, even though the absolute cancelled-order count rose about 4.4x (70 to 309) — because total order volume rose about 5.6x (638 to 3,567) over the same period."
+    - "By channel, mobile is mildly the highest (9.77%) and web the lowest (8.50%), with marketplace in between (9.11%) — roughly a 1.3-point spread, not a dramatic concentration."
+    - "By category, cancellation rate ranges from 7.31% (Pet Supplies) to 10.00% (Electronics) — a modest spread with no standout outlier."
+  recommendation: >
+    Recommend correcting the internal narrative: cancellations are not rising as a share of orders —
+    the rate is stable to mildly improving, and the growth stakeholders are noticing is in absolute
+    volume, which is actually a sign of business growth rather than a worsening process. Reallocate
+    any planned "fix cancellations" initiative toward managing the operational load of handling more
+    total cancellations at a flat rate (e.g., staffing for cancellation processing), rather than
+    assuming a broken checkout or fulfillment process. If Priya still wants a specific target for a
+    lighter-touch review, mobile is the mildest candidate given its modestly higher rate, but
+    expectations should be tempered given the roughly 1.3-point gap versus web.
+  acceptable_alternatives:
+    - "Recommending a closer look at the mobile checkout flow specifically, given it is the highest of the three channels, as long as the recommendation frames the gap as modest rather than dramatic."
+    - "Recommending no operational action at all beyond updating how cancellations are reported (rate instead of raw count) in Priya's regular ops review."
+version: 1

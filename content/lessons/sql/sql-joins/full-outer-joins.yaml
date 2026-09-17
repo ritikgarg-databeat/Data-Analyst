@@ -1,0 +1,98 @@
+slug: full-outer-joins
+module_slug: sql-joins
+title: FULL OUTER JOIN
+description: Keeping unmatched rows from both sides at once, and using that for data reconciliation.
+difficulty: INTERMEDIATE
+estimated_minutes: 11
+display_order: 3
+objectives:
+  - Explain how FULL OUTER JOIN combines the behavior of LEFT JOIN and RIGHT JOIN into one join
+  - Use a FULL OUTER JOIN to find rows that exist on only one side of a relationship between two tables
+  - Recognize reconciliation ("what's missing from either side") as the situation FULL OUTER JOIN is built for
+prerequisites: [left-and-right-joins]
+skills: [sql-fundamentals]
+datasets: [ecommerce]
+tags: [sql, intermediate]
+key_takeaways:
+  - "FULL OUTER JOIN keeps every row from both tables. A row with no match on the other side still appears, with NULLs filling in for whichever side didn't match — combining what LEFT JOIN and RIGHT JOIN each do for one side."
+  - "Filtering WHERE left_key IS NULL OR right_key IS NULL after a FULL OUTER JOIN isolates every row that's missing its counterpart on either side — the classic reconciliation question."
+  - Reconciliation between two datasets that are supposed to correspond (orders and their payments, a source system and a downstream copy) is the situation FULL OUTER JOIN exists for — anywhere the interesting rows are specifically the ones that don't line up.
+common_mistakes:
+  - "Reaching for FULL OUTER JOIN by default \"to be safe\" when only one side's unmatched rows actually matter for the question — that's just a LEFT JOIN, and the extra unmatched-right rows FULL OUTER JOIN adds are noise that has to be filtered back out."
+  - "Forgetting that after a FULL OUTER JOIN, neither side's key column is safe to reference alone — a row that's unmatched on the left has a NULL left-hand key, so code that assumes left_table.id is always populated will break on exactly the rows the join was meant to surface."
+blocks:
+  - type: heading
+    text: Keeping unmatched rows from both sides
+  - type: text
+    body: >
+      LEFT JOIN protects the left table's rows from being dropped; RIGHT JOIN protects the right
+      table's rows. FULL OUTER JOIN protects both at once — every row from either table appears in
+      the result at least once, matched or not, with NULLs filling in whichever side has no
+      counterpart for that row.
+  - type: code
+    language: sql
+    caption: Every order and every payment, matched where possible
+    code: |
+      SELECT
+        o.order_id,
+        o.status AS order_status,
+        p.payment_id,
+        p.status AS payment_status
+      FROM orders o
+      FULL OUTER JOIN payments p ON p.order_id = o.order_id;
+  - type: text
+    body: >
+      orders and payments should mostly correspond — a completed or refunded order gets a payment
+      record, a cancelled or still-pending order doesn't. A row where both sides matched shows an
+      order alongside its payment normally. A row where only the left side matched (order_id present,
+      payment_id NULL) is an order with no payment. A row where only the right side matched would be a
+      payment record with no corresponding order — which is exactly the kind of orphaned data FULL
+      OUTER JOIN is built to surface.
+  - type: heading
+    text: Isolating exactly the mismatches
+  - type: example
+    title: Orders missing a payment (and, symmetrically, payments missing an order)
+    body: >
+      Filtering for either key being NULL keeps only the rows that failed to match on one side —
+      throwing away the (usually much larger) set of rows that matched cleanly and aren't
+      interesting for a reconciliation check.
+    code: |
+      SELECT
+        o.order_id,
+        o.status AS order_status,
+        p.payment_id
+      FROM orders o
+      FULL OUTER JOIN payments p ON p.order_id = o.order_id
+      WHERE o.order_id IS NULL OR p.payment_id IS NULL;
+      -- 506 orders have no payment (pending/cancelled orders never get one) —
+      -- and in this dataset, zero payments reference a nonexistent order
+    language: sql
+  - type: callout
+    variant: important
+    title: A clean result on one side is still useful information
+    body: >
+      Here, every payment does reference a real order — the orphaned-payment side of the check comes
+      back empty. That's not a wasted query: confirming there are zero orphaned payments is exactly
+      the kind of guarantee a reconciliation check exists to establish, and it would have caught it
+      immediately if that assumption had turned out to be false.
+  - type: comparison
+    title: "Which rows survive: INNER vs. LEFT vs. RIGHT vs. FULL OUTER"
+    columns: ["Join type", "Left-only rows (no right match)", "Right-only rows (no left match)"]
+    rows:
+      - ["INNER JOIN", "Dropped", "Dropped"]
+      - ["LEFT JOIN", "Kept (right columns NULL)", "Dropped"]
+      - ["RIGHT JOIN", "Dropped", "Kept (left columns NULL)"]
+      - ["FULL OUTER JOIN", "Kept (right columns NULL)", "Kept (left columns NULL)"]
+  - type: question
+    prompt: "A FULL OUTER JOIN between orders and payments, filtered to rows where either key is NULL, returns some rows where order_id is NULL and payment_id is populated. What does a row like that represent?"
+    choices:
+      - "An order that hasn't been paid yet"
+      - "A payment record that doesn't correspond to any row in the orders table"
+      - "A data entry error in the order_id column of the orders table"
+    correct_index: 1
+    explanation: >
+      order_id coming back NULL means the row didn't originate from (or match) anything in the orders
+      table — it exists only because payments contributed it. Since the ON condition is p.order_id =
+      o.order_id, a payment landing in the result with no matching order means its order_id points to
+      an order that isn't in the orders table at all, exactly the kind of orphaned record a
+      reconciliation join is meant to catch.

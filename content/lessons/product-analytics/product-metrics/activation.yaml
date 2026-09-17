@@ -1,0 +1,76 @@
+slug: activation
+module_slug: product-metrics
+title: Activation
+description: How to define a meaningful "aha moment" that predicts whether a new user will stick around, instead of guessing at one.
+difficulty: BEGINNER
+estimated_minutes: 14
+display_order: 4
+objectives:
+  - Explain what an activation event is and why it differs from signup completion
+  - Describe the data-driven process for finding a candidate "aha moment" — correlating early actions with later retention
+  - Identify the two ways a chosen activation event usually fails — too shallow or too rare
+prerequisites: [mau]
+skills: [product-metrics, experimentation]
+tags: [product-analytics, beginner, foundations]
+key_takeaways:
+  - Activation is not signup or account creation — it's the first point a new user experiences the product's core value, and it should be chosen because it predicts retention, not because it's convenient to log.
+  - A real activation event is found by correlating early-lifecycle actions against actual long-term retention, not by guessing which action "feels" important.
+  - Correlation between an early action and retention is not proof of causation — a strong activation metric is a hypothesis to validate, ideally with an experiment, not a settled fact.
+common_mistakes:
+  - Picking an activation event that's really just a proxy for signup completion (e.g., "created an account"), which nearly all new users hit and therefore predicts nothing about who sticks around.
+  - Picking an event so rare that almost no one reaches it, making the activation rate technically accurate but useless for spotting onboarding problems early.
+  - Assuming the activation event that worked for a famous case study (Facebook's "7 friends in 10 days") transfers directly to a different product without re-deriving it from that product's own data.
+blocks:
+  - type: text
+    body: >
+      Activation is the moment a brand-new user first experiences the product's real value — the "aha
+      moment" that makes the difference between someone who tries the product once and someone who
+      comes back. It is deliberately *not* the same as signing up: creating an account proves someone
+      filled out a form, not that they got value.
+  - type: heading
+    text: Finding the real activation event
+  - type: text
+    body: >
+      A famous example: Facebook's growth team found that new users who added **7 friends within 10
+      days** were dramatically more likely to remain active long-term. That number didn't come from
+      intuition — it came from correlating dozens of early-lifecycle actions against actual retention
+      outcomes and finding which one had the strongest relationship. Slack ran the same process and
+      landed on a team sending **2,000 messages**. The method generalizes; the specific number never
+      does — it has to be re-derived from each product's own data.
+  - type: example
+    title: The process, applied to a hypothetical note-taking app
+    body: >
+      An analyst pulls every new user's actions from their first 7 days, then checks which early action
+      best separates users who are still active on day 30 from users who churned. Suppose "created 3+
+      notes and reopened one on a different day" separates the two groups far more sharply than
+      "created 1 note" or "invited a collaborator" do. That becomes the candidate activation event — not
+      because it sounds meaningful, but because the data shows it predicts what the team actually cares
+      about: durable retention.
+  - type: comparison
+    title: Weak vs. strong activation-event candidates
+    columns: ["Candidate event", "Why it usually fails", "Better alternative"]
+    rows:
+      - ["Account created", "Nearly universal — everyone who signs up hits this, so it predicts nothing", "First action that required real intent, e.g. first meaningful save or send"]
+      - ["Viewed the homepage after login", "Passive; doesn't require the user to do anything with the product's core loop", "Completed one full cycle of the core loop (e.g. created and saved a note)"]
+      - ["Referred a friend on day 1", "Too rare this early — filters the candidate pool down to almost nobody", "A lower-friction action reached by a meaningful share of users, still correlated with retention"]
+  - type: callout
+    variant: important
+    title: Activation events can differ by segment
+    body: >
+      A single company-wide activation event can obscure real differences: a solo user's "aha moment"
+      might be completing one task, while a team account's might require getting two teammates to
+      collaborate. Segmenting the activation analysis by user type (individual vs. team, mobile vs.
+      desktop) often reveals that one-size-fits-all activation definitions understate real activation
+      for some segments and overstate it for others.
+  - type: question
+    prompt: Why is "created an account" almost always a poor choice for a product's activation event?
+    choices:
+      - It's technically difficult to measure account creation reliably
+      - It's true of nearly every new user by definition, so it can't distinguish future retained users from future churned users
+      - Account creation events are usually not logged by analytics tools
+    correct_index: 1
+    explanation: >
+      A useful activation event has to separate users who will stick around from users who won't.
+      Because almost every new user creates an account, that event is true of both groups equally — it
+      carries no predictive signal. A real activation event is discovered by finding an early action
+      that *does* differ sharply between the two groups.

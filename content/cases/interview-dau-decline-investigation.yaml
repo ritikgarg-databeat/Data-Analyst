@@ -1,0 +1,117 @@
+slug: interview-dau-decline-investigation
+title: "Why Did Daily Active Users Drop 18% This Week?"
+category: PRODUCT_ANALYTICS
+difficulty: INTERMEDIATE
+estimated_minutes: 30
+
+company_context: >
+  Fintrail is a personal-finance app where users check balances, categorize spending, and set
+  budgets. The product team tracks Daily Active Users (DAU) as its primary health metric.
+stakeholder_name: "Marcus Webb"
+stakeholder_role: "Head of Product"
+problem_statement: >
+  "Our DAU dropped about 18% compared to last week and nobody on the team can tell me why. I need
+  you to figure out what's actually going on before our Monday leadership sync — is this a real
+  problem, a data issue, or something seasonal? And if it's real, what should we do about it?"
+business_context: >
+  Marcus is under pressure to explain the drop before leadership asks about it. He doesn't yet know
+  whether this is a genuine engagement problem, a tracking/logging issue, or expected seasonality.
+objective: >
+  Determine whether the DAU decline is real, quantify it precisely, identify which user segment(s)
+  or product surface it's concentrated in, and recommend what (if anything) the team should do.
+initial_information: >
+  You have access to the product analytics event log (sessions, feature usage, user signup dates)
+  for the app. DAU is currently reported as a single daily aggregate number with no segmentation.
+constraints:
+  - "You have one analysis pass before Monday — prioritize the highest-value checks first."
+  - "Marcus needs a clear real-vs-not-real verdict, not just more charts."
+available_datasets: ["saas-product"]
+expected_deliverables:
+  - "A quantified, verified DAU decline figure (not just the headline 18%)"
+  - "A check for data/tracking issues before concluding the drop is behavioral"
+  - "Identification of which segment(s) or feature(s) the decline concentrates in"
+  - "A clear recommendation: investigate further, take action, or stand down (seasonal/noise)"
+learning_objectives:
+  - "Verify a reported metric change before investigating causes"
+  - "Rule out tracking/data issues before behavioral explanations"
+  - "Segment an aggregate metric to localize where a change is concentrated"
+  - "Give a stakeholder a clear, decisive read under time pressure"
+stages: [CLARIFY, ANALYZE, INSIGHTS, RECOMMEND, SUBMIT]
+required_exercise_slugs: []
+tags: [interview, product-analytics, dau, root-cause, case-study]
+skills: [product-metrics, exploratory-data-analysis, root-cause-analysis, communication]
+
+clarification_guidance:
+  - "A good clarifying question asks over what exact window the 18% drop was measured (day-over-day, week-over-week, vs. a longer baseline) and whether it's confirmed across multiple days or a single-day anomaly."
+  - "A good clarifying question asks whether any app release, outage, or tracking/logging change happened in the affected window."
+  - "A good clarifying question asks whether the drop is uniform across platforms (iOS/Android/web) or user tenure (new vs. returning), since that would point toward a tracking bug vs. a genuine engagement problem."
+rubric:
+  - category: "Problem Framing & Clarification"
+    weight: 20
+    criteria:
+      - criterion: "Establishes the precise comparison window and confirms the drop is consistent across days, not a single-day blip"
+        points: 12
+      - criterion: "Asks whether a release/outage/tracking change coincides with the decline window"
+        points: 8
+  - category: "Technical Analysis"
+    weight: 35
+    is_technical: true
+    criteria:
+      - criterion: "Recomputes DAU directly from raw events and confirms (or corrects) the reported 18% figure"
+        points: 15
+      - criterion: "Segments the decline by platform, user tenure, or feature surface to localize where it concentrates"
+        points: 20
+  - category: "Insight Quality"
+    weight: 20
+    criteria:
+      - criterion: "Distinguishes a genuine engagement decline from a tracking/logging artifact using evidence, not assumption"
+        points: 20
+  - category: "Recommendation & Business Judgment"
+    weight: 15
+    criteria:
+      - criterion: "Gives a clear, decisive recommendation (investigate further / act now / stand down) tied to the evidence found"
+        points: 15
+  - category: "Communication"
+    weight: 10
+    criteria:
+      - criterion: "Explains the finding in plain terms Marcus could repeat in the Monday leadership sync"
+        points: 10
+hints:
+  - "Start by recomputing DAU from raw events yourself rather than trusting the reported dashboard number — dashboards can silently break."
+  - "Check whether the drop is spread evenly across platforms and user tenure, or concentrated in one — a uniform drop across everything often points to tracking, while a concentrated drop points to a real product/segment issue."
+reference_solution:
+  summary: >
+    Recomputing weekly active users from raw events confirms the decline is real and close to the
+    reported figure: the most recent complete week (Jan 26 - Feb 1, 2026) had 92 unique active users
+    versus 110 the week before (Jan 19-25), a -16.4% week-over-week drop, in line with the ~18%
+    Marcus cited. But a swing that size is not unusual for this metric — over the full 81-week
+    history, weekly active users have moved by 18 percentage points or more, in either direction, in
+    21 of 81 weeks (roughly one week in four), with a week-over-week standard deviation of about 20
+    points. Segmenting the same week-over-week comparison by acquisition channel, country, and user
+    tenure shows no single segment driving it — most channels and countries are flat to down only
+    slightly, a couple (Australia, Canada) are actually up, and new-tenure vs. returning users both
+    dipped by similar small amounts — which rules out both a tracking bug (which would hit
+    everything uniformly and far more sharply) and a single bad cohort or platform. Separately, the
+    days immediately after this window (Feb 2 onward) show event volume collapsing to near zero (2,
+    5, and 2 events on Feb 1-3 versus a stable 20+ per day beforehand), which is almost certainly the
+    dataset hitting its snapshot cutoff rather than a further real decline, and should be confirmed
+    with data/eng before reading anything into it.
+  key_insights:
+    - "Recomputing DAU (as unique active users per week, since this event log has no true per-day active-user signal beyond the 'engaged' event) confirms a real decline: 92 unique active users in the week of Jan 26 - Feb 1, 2026, versus 110 the week before (Jan 19-25), a -16.4% week-over-week drop, close to the reported ~18%."
+    - "That size of swing is not abnormal for this metric: across the full 81-week history, week-over-week weekly active users have moved by 18 points or more (either direction) in 21 of 81 weeks, with a historical standard deviation of about 20 points, so a single week moving -16.4% is within the metric's normal noise band, not a statistical outlier."
+    - "The decline is not concentrated in one segment: comparing the same two weeks by acquisition channel, country, and user tenure shows small, mixed-direction movement across nearly all of them (e.g. paid_search and paid_social roughly flat, organic and content down slightly, Australia and Canada up), which is inconsistent with either a single bad cohort/platform or a uniform tracking failure."
+    - "The days right after this window (Feb 1-3, 2026) show event volume falling to just 2, 5, and 2 events versus a stable 20+ per day in every prior week, almost certainly reflecting the dataset's snapshot cutoff rather than a real behavioral collapse, and this trailing data should not be read as a continuation of the decline."
+  recommendation: >
+    Tell Marcus this is a real, moderate week-over-week dip (about 16%, close to the reported 18%),
+    not a tracking failure and not concentrated in any one platform, channel, or user segment —
+    which itself rules out the two scariest explanations. It also falls well within the range of
+    normal week-to-week noise this metric has shown repeatedly over the past year, so it does not
+    warrant a dramatic response at Monday's sync. Recommend standing down from any broad reactive
+    changes, watching one more complete week to see if the dip persists or reverts (as most past dips
+    of similar size have), and separately asking data/eng to confirm whether the near-zero event
+    counts in the last few days of the current data reflect a real usage drop or a logging/pipeline
+    lag at the snapshot boundary.
+  acceptable_alternatives:
+    - "A recommendation to treat this as 'investigate further, not yet a real problem' rather than 'stand down entirely,' given a -16.4% week-over-week move, even if historically not unusual, is still on the larger side of the normal range and worth one more week of confirmation before fully dismissing it."
+    - "A recommendation that focuses primarily on getting the Feb 1-3 near-zero event volume explained by data/eng before saying anything definitive to leadership, since an actual tracking gap at the snapshot boundary would need to be ruled out first."
+version: 1

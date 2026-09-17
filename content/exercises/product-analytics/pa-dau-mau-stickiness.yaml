@@ -1,0 +1,20 @@
+slug: pa-dau-mau-stickiness
+skill: product-metrics
+title: The DAU/MAU Stickiness Ratio
+description: A product has DAU of 20,000 and MAU of 100,000. What does the DAU/MAU ratio of 20% typically indicate?
+exercise_type: MULTIPLE_CHOICE
+difficulty: BEGINNER
+points: 5
+tags:
+- dau
+- product-analytics
+prompt: A product has DAU of 20,000 and MAU of 100,000. What does the DAU/MAU ratio of 20% typically indicate?
+correct_answer: 'Stickiness: on average, users are active about 6 days out of the month'
+explanation: DAU/MAU (often called 'stickiness') roughly approximates the fraction of a typical month a monthly
+  user is active -- 20% corresponds to roughly 6 of 30 days, a common engagement benchmark used to compare product
+  habitualness over time or against similar products.
+choices:
+- 'Stickiness: on average, users are active about 6 days out of the month'
+- Exactly 20,000 unique people used the product all month
+- The product lost 80% of its users
+- DAU/MAU has no standard interpretation

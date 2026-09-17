@@ -1,0 +1,47 @@
+version: 2
+
+models:
+  - name: dim_customers
+    description: >
+      Dimension table. Grain: 1 row = 1 customer. Slowly-changing attributes
+      (customer_segment) are tracked historically via the
+      `customer_segment_snapshot` snapshot, not in this table — this table
+      always reflects the customer's *current* segment.
+    columns:
+      - name: customer_id
+        tests: [unique, not_null]
+
+  - name: dim_products
+    description: "Dimension table. Grain: 1 row = 1 product, enriched with its category."
+    columns:
+      - name: product_id
+        tests: [unique, not_null]
+
+  - name: fct_orders
+    description: >
+      Transaction fact. Grain: 1 row = 1 order. Rows are created once, when
+      the order is placed, and are not re-derived per time period (contrast
+      with fct_daily_revenue, a periodic snapshot fact).
+    columns:
+      - name: order_id
+        tests: [unique, not_null]
+      - name: customer_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_customers')
+                field: customer_id
+      - name: status
+        tests:
+          - accepted_values:
+              arguments:
+                values: ["refunded", "pending", "completed", "cancelled"]
+
+  - name: fct_daily_revenue
+    description: >
+      Periodic snapshot fact. Grain: 1 row = 1 calendar day. Built
+      incrementally — see the model's own header comment.
+    columns:
+      - name: order_date
+        tests: [unique, not_null]

@@ -1,0 +1,55 @@
+slug: parse-messy-dates
+lesson_slug: date-parsing
+skill: data-cleaning
+dataset: ecommerce
+title: Parse Dates Written in Multiple Formats
+description: Parse a list of dates written in several different formats into a consistent, comparable date representation.
+exercise_type: PYTHON
+difficulty: INTERMEDIATE
+points: 20
+tags: [python, intermediate, real-world]
+business_context: >
+  An ops analyst merged an order log that was assembled from three different source systems, and
+  each system wrote its date column in a different format — ISO, US slash-format, and a
+  spelled-out long form — for what turn out to be only two actual calendar dates.
+prompt: >
+  Given `raw_dates = ["2024-01-15", "01/15/2024", "January 15, 2024", "2024-01-16", "01/16/2024"]`,
+  parse every entry into a real date, even though the formats differ. Store your answer in a
+  variable named `result`: a list of 5 strings, each formatted `"YYYY-MM-DD"`, in the same order as
+  `raw_dates` (there are really only 2 distinct calendar dates among the 5 entries).
+python_datasets: []
+python_starter_code: |
+  raw_dates = ["2024-01-15", "01/15/2024", "January 15, 2024", "2024-01-16", "01/16/2024"]
+
+  # Each entry is a different format for one of just two real dates.
+  # Parse every entry and store the result as a list of "YYYY-MM-DD" strings in `result`.
+python_solution_code: |
+  raw_dates = ["2024-01-15", "01/15/2024", "January 15, 2024", "2024-01-16", "01/16/2024"]
+  parsed = pd.to_datetime(raw_dates, format="mixed")
+  result = [d.strftime("%Y-%m-%d") for d in parsed]
+python_result_variable: result
+python_row_order_matters: true
+python_numeric_tolerance: 0.000001
+python_hidden_tests:
+  - name: "Only 2 distinct calendar dates among the 5 parsed entries"
+    code: |
+      assert len(set(result)) == 2, f"The 5 raw entries represent only 2 real calendar dates, got {len(set(result))} distinct value(s)"
+      assert len(result) == 5, f"Expected 5 parsed values (one per raw_dates entry), got {len(result)}"
+hints:
+  - "A plain pd.to_datetime(raw_dates) call fails here — the list mixes ISO (\"2024-01-15\"), US slash (\"01/15/2024\"), and spelled-out (\"January 15, 2024\") formats, and pandas won't guess a single consistent format across all of them by default."
+  - "pd.to_datetime(raw_dates, format=\"mixed\") tells pandas to infer the format of each entry individually instead of assuming they all share one format. Then format each parsed value with .strftime(\"%Y-%m-%d\") to get a consistent string."
+solution: |
+  ```python
+  raw_dates = ["2024-01-15", "01/15/2024", "January 15, 2024", "2024-01-16", "01/16/2024"]
+  parsed = pd.to_datetime(raw_dates, format="mixed")
+  result = [d.strftime("%Y-%m-%d") for d in parsed]
+  ```
+explanation: >
+  A strong answer recognizes that `pd.to_datetime`'s default behavior assumes every string in the
+  input shares one consistent format, and reaches for `format="mixed"` (pandas' built-in
+  per-element format inference) once that default fails, rather than manually writing a chain of
+  if/else format guesses. Converting each parsed timestamp to a plain `"YYYY-MM-DD"` string at the
+  end also makes the two matching dates trivially comparable. A common mistake is calling plain
+  `pd.to_datetime(raw_dates)` and either letting it raise (halting the whole pipeline over 5 rows)
+  or, worse, wrapping it in a broad try/except that silently drops the rows it can't parse instead
+  of fixing the actual format mismatch.

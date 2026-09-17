@@ -1,0 +1,112 @@
+slug: biz-churn-and-ltv
+module_slug: customer-analytics
+title: "Churn and Customer Lifetime Value: The Two Sides of Customer Worth"
+description: How churn rate and customer lifetime value fit together, why churn should be checked by segment before it's reported as one number, and how LTV underpins acquisition decisions.
+difficulty: INTERMEDIATE
+estimated_minutes: 15
+display_order: 3
+objectives:
+  - Compute churn rate for a subscription cohort and segment it by plan
+  - Explain why a single blended churn rate can hide very different risk levels across segments
+  - Connect churn rate conceptually to customer lifetime value (LTV) and why both matter for acquisition decisions
+prerequisites: [biz-retention-and-repeat-purchase]
+skills: [business-analytics, business-metrics]
+datasets: [saas-product]
+tags: [business-analytics, customer-analytics, churn, intermediate, saas]
+key_takeaways:
+  - "Churn Rate = subscriptions cancelled in a cohort / total subscriptions in that cohort × 100 — always worth segmenting, since a blended rate hides which segment is actually driving the number."
+  - In this platform's real saas-product data, churn rate rises with plan tier — 32.2% for starter, 35.2% for pro, 38.5% for enterprise — the opposite of what many teams assume ("bigger customers are stickier").
+  - Customer Lifetime Value should reflect a customer's realized economics, not just the plan price — a segment with a slightly lower headcount churn rate but a much higher per-customer value still deserves outsized retention attention.
+common_mistakes:
+  - Reporting a single company-wide churn rate and treating every customer segment as equally at risk, when the underlying risk (and dollar impact) can vary sharply by segment.
+  - Comparing churn rates across segments without weighting by revenue — a segment with a slightly higher churn rate but a much higher price point can represent far more revenue at risk in dollar terms.
+interview_questions:
+  - question: "Enterprise churn rate (38.5%) is higher than starter churn rate (32.2%) in this dataset. Does that mean enterprise is the bigger business risk?"
+    answer: >
+      Likely yes, but headcount churn rate alone doesn't prove it — the answer depends on dollar impact.
+      Enterprise plans in this dataset carry $299/month MRR versus $29/month for starter, roughly 10x the
+      revenue per lost customer. Even a smaller absolute number of enterprise cancellations can represent
+      a disproportionate share of total revenue at risk, which is the number that should actually drive
+      where a retention team focuses limited attention — not the headcount rate in isolation.
+blocks:
+  - type: heading
+    text: Churn rate, defined at the segment level from the start
+  - type: formula
+    expression: "Churn Rate (%) = (Subscriptions cancelled in period) / (Total subscriptions in period) × 100"
+    description: >
+      A perfectly ordinary formula that hides an important choice: cancelled and total *of what group*?
+      Computed only at the company level, churn rate blends together segments that can have very different
+      underlying risk — always worth checking a segmented breakdown before trusting the blended number.
+  - type: example
+    title: Churn rate by plan — a real, counter-intuitive pattern
+    body: >
+      A common assumption is that higher-tier customers, paying more and presumably more invested, churn
+      less. This platform's real saas-product data shows the opposite: churn rate actually *rises* with
+      plan tier — 32.2% of starter subscriptions have churned (37 of 115), versus 35.2% of pro (25 of 71),
+      versus 38.5% of enterprise (10 of 26). The highest-value segment is also the least sticky one.
+    code: |
+      SELECT
+        plan,
+        COUNT(*) AS total_subscriptions,
+        SUM(CASE WHEN status = 'churned' THEN 1 ELSE 0 END) AS churned_subscriptions,
+        ROUND(100.0 * SUM(CASE WHEN status = 'churned' THEN 1 ELSE 0 END) / COUNT(*), 1) AS churn_rate_pct
+      FROM subscriptions
+      GROUP BY plan
+      ORDER BY churn_rate_pct DESC;
+    language: sql
+  - type: output
+    body: |
+      plan        total_subscriptions  churned_subscriptions  churn_rate_pct
+      enterprise  26                   10                      38.5
+      pro         71                   25                      35.2
+      starter     115                  37                      32.2
+    caption: Real churn rate by plan tier, saas-product dataset.
+  - type: callout
+    variant: important
+    title: Headcount churn and dollar churn are different questions
+    body: >
+      Enterprise's 38.5% churn rate applies to a $299/month plan; starter's 32.2% applies to a $29/month
+      plan. In pure headcount terms, enterprise churns modestly more often — but in dollar terms, every
+      enterprise cancellation removes roughly 10x the recurring revenue of a starter cancellation. A
+      retention team with limited capacity to intervene should weight *which* customers are at risk by
+      dollars, not just by how many.
+  - type: heading
+    text: Where LTV comes in
+    level: 3
+  - type: text
+    body: >
+      Customer Lifetime Value (LTV) — the total revenue a customer is expected to generate over their
+      entire relationship with the business — is the natural partner metric to churn, because churn rate
+      is one of LTV's main ingredients. A simplified LTV for a subscription business is roughly ARPU ÷
+      churn rate: the higher the churn rate, the shorter a typical customer's expected lifetime, and the
+      lower their expected total value — even if their monthly spend is high while they last. This is
+      exactly why the enterprise segment's elevated churn rate matters for more than just retention
+      reporting: it directly discounts the very LTV number that acquisition spend on new enterprise
+      customers should be justified against.
+  - type: formula
+    expression: "Simplified LTV ≈ ARPU / Churn Rate"
+    description: >
+      A common first-pass estimate (assumes constant monthly spend and constant churn rate, which real
+      businesses rarely have exactly — still a useful order-of-magnitude starting point before building a
+      more precise cohort-based LTV model.
+  - type: checklist
+    title: Before reporting churn or LTV, confirm
+    items:
+      - Whether the churn rate is segmented (by plan, by acquisition channel, by cohort) or reported as one blended figure
+      - Whether headcount churn and dollar (revenue) churn have both been considered, since they can tell different stories
+      - Whether LTV reflects a segment's actual observed churn rate, not a single company-wide average that under- or overstates any one segment's real risk
+  - type: question
+    prompt: >
+      A company reports a single blended churn rate of 34% across all customer segments. What's the
+      strongest reason to be skeptical of using that one number to guide retention priorities?
+    choices:
+      - "Blended churn rates are always calculated incorrectly and should never be trusted."
+      - "The blended number could be masking meaningfully different churn rates and dollar impact across segments, which is exactly what a retention team needs to know to prioritize its limited capacity."
+      - "There's no reason for skepticism — a single number is always sufficient for any retention decision."
+    correct_index: 1
+    explanation: >
+      A blended churn rate is a real, valid average — the issue isn't that it's wrong, it's that it's
+      incomplete for decision-making. This lesson's own data shows plan-level churn ranging from 32.2% to
+      38.5%, and those segments carry very different dollar values per customer. Without the segmented
+      breakdown, a retention team has no way to know whether to focus effort on the highest-churn segment,
+      the highest-dollar-impact segment, or both — information the blended number simply can't provide.

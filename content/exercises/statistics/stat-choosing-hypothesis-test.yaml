@@ -1,0 +1,22 @@
+slug: stat-choosing-hypothesis-test
+skill: statistics
+title: Choosing the Right Hypothesis Test
+description: You want to compare average order value between exactly two groups (control vs. treatment), where each
+  group's order values are roughly continuous and approximately normal. Which test is the standard choice?
+exercise_type: MULTIPLE_CHOICE
+difficulty: ADVANCED
+points: 5
+tags:
+- statistics
+- hypothesis-testing
+prompt: You want to compare average order value between exactly two groups (control vs. treatment), where each group's
+  order values are roughly continuous and approximately normal. Which test is the standard choice?
+correct_answer: A two-sample t-test
+explanation: A two-sample (independent) t-test compares means between exactly two independent groups of continuous
+  data. Chi-square is for categorical/count data, ANOVA is for 3+ groups, and a paired t-test is for the SAME subjects
+  measured twice (e.g. before/after), not two independent groups.
+choices:
+- A two-sample t-test
+- A chi-square test of independence
+- One-way ANOVA
+- A paired t-test

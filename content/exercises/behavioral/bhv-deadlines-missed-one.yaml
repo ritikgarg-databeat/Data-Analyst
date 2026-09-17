@@ -1,0 +1,36 @@
+slug: bhv-deadlines-missed-one
+skill: behavioral-interviewing
+title: Missing a Deadline
+description: Describe a time you missed a deadline. What happened and how did you handle it?
+exercise_type: INTERVIEW_RESPONSE
+difficulty: INTERMEDIATE
+points: 10
+tags:
+- behavioral
+- star-method
+- deadlines
+prompt: Describe a time you missed a deadline. What happened and how did you handle it?
+hints:
+- The STAR framework (Situation, Task, Action, Result) is a useful structure, not a script -- use it to
+  make sure you cover what actually happened, in what context, what you personally did, and what came
+  of it.
+- Interviewers are listening for a specific, real example -- a vague 'sometimes this happens on my team'
+  answer is much weaker than one concrete story with real details.
+rubric:
+- criterion: Describes one specific, real situation rather than a hypothetical or a generic pattern
+  points: 25
+- criterion: Clearly states the task or goal and the person's own specific role in it
+  points: 20
+- criterion: Explains concrete actions the person personally took, not just what the team did
+  points: 30
+- criterion: States a clear, ideally measurable outcome and what was learned from it
+  points: 25
+solution: I underestimated how long it would take to reconcile two conflicting data sources for a report,
+  and realized two days before the deadline that I wouldn't make it with a fully validated number. I flagged
+  it to the stakeholder as soon as I realized it, rather than waiting until the deadline itself, and offered
+  a preliminary estimate with clearly stated caveats as an interim option. We agreed to push the final
+  deadline by three days for the fully validated version, which the stakeholder appreciated more than
+  being surprised on the due date.
+explanation: Flagging the risk early, as soon as it became clear, rather than at the deadline itself,
+  is the behavior interviewers are really testing for here -- it turns a missed deadline into a managed
+  risk instead of a surprise failure.

@@ -1,0 +1,108 @@
+slug: exp-sequential-testing-multivariate-network-effects
+module_slug: advanced-experimentation
+title: "Beyond the Basic A/B Test: Sequential Testing, A/B/n, and Network Effects"
+description: >
+  A gentle introduction to three ideas that extend the standard two-group, fixed-sample test — testing
+  while continuously monitoring without inflating false positives, comparing more than two variants at
+  once, and handling products where users can influence each other.
+difficulty: ADVANCED
+estimated_minutes: 20
+display_order: 1
+objectives:
+  - Explain, at an introductory level, how sequential testing methods allow continuous monitoring without the false-positive inflation of naive peeking
+  - Explain why testing three or more variants at once (A/B/n) reintroduces a multiple-testing correction
+  - Describe cluster (or "switchback") randomization as a design response to network effects
+prerequisites: [exp-novelty-seasonality-network-contaminated-control]
+skills: [experimentation, statistical-reasoning]
+datasets: [saas-product]
+tags: [experimentation, ab-testing, saas, advanced]
+key_takeaways:
+  - "Sequential testing methods (e.g. always-valid p-values, group sequential designs) are built specifically to let you monitor a test continuously and stop early when warranted, without inflating the false-positive rate the way naive peeking does — they trade some statistical power for that flexibility."
+  - "Testing more than two variants at once (A/B/n) reopens the multiple-testing problem from the Pitfalls module: comparing several treatments to one control (or to each other) needs a correction (like Bonferroni) to keep the overall false-positive rate at the stated level."
+  - "When users can influence each other (a marketplace, a social feed, a chat product), randomizing individual users isn't enough — cluster randomization (grouping interacting units together and randomizing the group) or switchback designs (alternating the whole system between variants over time) are common responses."
+common_mistakes:
+  - Assuming "sequential testing" is just a fancy name for checking a dashboard whenever you feel like it — it specifically refers to methods with a statistical correction built in for continuous monitoring, not the absence of one.
+  - Running an A/B/C/D test and reporting "variant C beat control, p = 0.04" without any adjustment for having made four comparisons instead of one.
+blocks:
+  - type: heading
+    text: Sequential testing — monitoring without inflating false positives
+  - type: text
+    body: >
+      The Pitfalls module covered why naive peeking (checking p-values repeatedly, stopping at the first
+      p < 0.05) inflates the true false-positive rate. **Sequential testing** methods exist precisely to
+      make continuous monitoring statistically safe: instead of a single fixed-sample p-value, they use
+      statistics (like "always-valid p-values" or pre-planned group sequential boundaries) that remain
+      valid no matter how many times you look, at the cost of needing somewhat more data than a single
+      fixed-sample look would, to reach the same confidence. The core idea worth remembering at an
+      introductory level: the flexibility to peek safely isn't free — it's a deliberate statistical
+      design choice, not the absence of discipline.
+  - type: heading
+    text: A/B/n — comparing more than two variants
+    level: 3
+  - type: text
+    body: >
+      Testing several variants against control at once (an "A/B/n" test) is a natural way to compare
+      multiple ideas in parallel, but it reopens the multiple-testing problem from a different angle:
+      with four treatment variants each compared to control at a 5% significance level, the chance that
+      *at least one* looks significant purely by chance is well above 5%, even if none of them do
+      anything. The standard response is a correction like Bonferroni (dividing the significance
+      threshold by the number of comparisons) or designating one variant as the primary comparison
+      ahead of time and treating the rest as exploratory.
+  - type: table
+    caption: "Testing 4 variants vs. control at alpha=0.05 each — chance of at least one false positive, if none do anything"
+    headers: ["Number of independent comparisons", "Chance of ≥1 false positive at alpha=0.05 each"]
+    rows:
+      - ["1", "5.0%"]
+      - ["2", "9.75%"]
+      - ["4", "18.5%"]
+      - ["10", "40.1%"]
+  - type: heading
+    text: Network effects — when users influence each other
+    level: 3
+  - type: text
+    body: >
+      The Pitfalls module introduced network effects as a risk: in a marketplace, feed, or messaging
+      product, one user's treatment can change another user's experience, even across variants. A common
+      design response is **cluster randomization** — instead of randomizing individual users, group
+      interacting units (e.g. all users in a geographic market, or all members of the same chat) into
+      clusters, and randomize whole clusters to a variant. A related alternative for a single shared
+      system (e.g. one marketplace's pricing algorithm) is a **switchback design**: alternate the entire
+      system between variants over short time windows (e.g. every few hours), and compare outcomes across
+      windows instead of across simultaneously-split user groups.
+  - type: callout
+    variant: tip
+    title: All three of these trade something for their added flexibility
+    body: >
+      Sequential testing trades some statistical efficiency (needing more total data) for the ability to
+      monitor safely. A/B/n testing trades some per-comparison power (via the correction) for the ability
+      to compare several ideas at once. Cluster and switchback designs trade some statistical precision
+      (fewer independent clusters than individual users) for a valid way to handle interference. None of
+      these are free upgrades over the basic two-group, fixed-sample design — they're deliberate choices
+      for specific situations that the basic design can't handle well.
+  - type: question
+    prompt: >
+      A team wants to compare five different homepage layouts (four variants plus control) simultaneously,
+      each at a 5% significance threshold, and plans to ship whichever variant "wins." What should they
+      account for that a simple two-variant A/B test wouldn't need to?
+    choices:
+      - "Nothing — running more variants at once is statistically equivalent to running several separate two-variant tests"
+      - "The chance that at least one of the four treatment variants looks significant purely by chance is meaningfully higher than 5%, so they should apply a multiple-comparisons correction (or pre-designate one primary comparison) before deciding a variant 'won'"
+      - "They only need to worry about this if the sample size is small"
+    correct_index: 1
+    explanation: >
+      With four independent comparisons each at alpha=0.05, the chance that at least one comes back
+      "significant" purely by chance (with no real effects anywhere) is closer to 18-19%, not 5% — this
+      holds regardless of sample size, since it's about the number of comparisons being made, not the
+      precision of any one of them. A correction like Bonferroni, or pre-declaring one comparison as
+      primary, keeps the overall false-positive rate at the intended level.
+interview_questions:
+  - question: "Why can't you just run continuous significance testing (checking every day, stopping whenever you like) using the same fixed-sample z-test you'd use for a planned analysis?"
+    answer: >
+      A fixed-sample z-test's p-value is only valid under the assumption that you look at the data
+      exactly once, at a pre-planned sample size — its false-positive guarantee (5%, say) is calculated
+      under that assumption. Checking it repeatedly and stopping at the first significant-looking result
+      gives chance many opportunities to cross the threshold, which inflates the real false-positive rate
+      well above the nominal 5%, even though each individual check used a technically correct formula.
+      Sequential testing methods use different statistics specifically designed to stay valid under
+      repeated looks, at the cost of typically needing more total data than a single well-timed fixed
+      look would.

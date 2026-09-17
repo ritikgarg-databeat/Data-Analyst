@@ -1,0 +1,98 @@
+slug: customer-spend-rank-within-country
+lesson_slug: ranking-functions
+skill: advanced-sql
+dataset: ecommerce
+title: Rank Customers by Spend Within Each Country
+description: Write a query that ranks customers by completed-order spend within their own country and keeps only the top 3 per country.
+exercise_type: SQL
+difficulty: ADVANCED
+points: 25
+tags: [sql, advanced, ranking]
+business_context: >
+  The regional sales team runs country-level outreach campaigns and wants a leaderboard of the top 3
+  spenders in each country — not a single global top-N list — so every region gets its own set of
+  VIP customers to court, and customers who are tied in spend are recognized as tied rather than being
+  arbitrarily split apart.
+prompt: >
+  Using the `customers`, `orders`, and `payments` tables, write a query that computes each customer's
+  total spend across their completed orders (join `orders` to `payments` on `order_id`, filtering
+  `orders.status = 'completed'`, and join to `customers` for `country`), then ranks customers within
+  each country from highest total spend to lowest using `RANK()` (not `ROW_NUMBER()`, so customers tied
+  on spend share the same rank). Keep only customers whose rank within their country is 3 or better.
+  Return columns `country`, `customer_id`, `total_spend` (`ROUND(..., 2)`), and `rank_in_country`,
+  ordered by `country`, then by `rank_in_country` ascending.
+sql_tables: [customers, orders, payments]
+sql_starter_query: |
+  -- payments doesn't have customer_id or country directly — join through orders and customers
+  SELECT * FROM customers LIMIT 20;
+sql_solution_query: |
+  WITH customer_spend AS (
+    SELECT c.country, c.customer_id, ROUND(SUM(p.amount), 2) AS total_spend
+    FROM customers c
+    JOIN orders o ON o.customer_id = c.customer_id
+    JOIN payments p ON p.order_id = o.order_id
+    WHERE o.status = 'completed'
+    GROUP BY c.country, c.customer_id
+  ),
+  ranked AS (
+    SELECT
+      country,
+      customer_id,
+      total_spend,
+      RANK() OVER (PARTITION BY country ORDER BY total_spend DESC) AS rank_in_country
+    FROM customer_spend
+  )
+  SELECT country, customer_id, total_spend, rank_in_country
+  FROM ranked
+  WHERE rank_in_country <= 3
+  ORDER BY country, rank_in_country;
+sql_row_order_matters: true
+sql_numeric_tolerance: 0.01
+sql_hidden_tests:
+  - name: "Top spender in United States is correct"
+    query: |
+      SELECT c.customer_id, ROUND(SUM(p.amount), 2) AS total_spend
+      FROM customers c
+      JOIN orders o ON o.customer_id = c.customer_id
+      JOIN payments p ON p.order_id = o.order_id
+      WHERE o.status = 'completed' AND c.country = 'United States'
+      GROUP BY c.customer_id
+      ORDER BY total_spend DESC
+      LIMIT 1
+    key_columns: 1
+hints:
+  - "You need a ranking that resets for every country separately — that's what PARTITION BY gives a window function. Compute total spend per customer first, then rank within each country's partition rather than across the whole table."
+  - "Build a CTE with country, customer_id, and total_spend (joining customers to orders to payments, filtered to completed orders). Then apply RANK() OVER (PARTITION BY country ORDER BY total_spend DESC) in a second CTE, and filter the outer query to rank_in_country <= 3 — you can't filter on the window function's result in the same SELECT that defines it."
+solution: >
+  ```sql
+  WITH customer_spend AS (
+    SELECT c.country, c.customer_id, ROUND(SUM(p.amount), 2) AS total_spend
+    FROM customers c
+    JOIN orders o ON o.customer_id = c.customer_id
+    JOIN payments p ON p.order_id = o.order_id
+    WHERE o.status = 'completed'
+    GROUP BY c.country, c.customer_id
+  ),
+  ranked AS (
+    SELECT
+      country,
+      customer_id,
+      total_spend,
+      RANK() OVER (PARTITION BY country ORDER BY total_spend DESC) AS rank_in_country
+    FROM customer_spend
+  )
+  SELECT country, customer_id, total_spend, rank_in_country
+  FROM ranked
+  WHERE rank_in_country <= 3
+  ORDER BY country, rank_in_country;
+  ```
+explanation: >
+  A strong answer recognizes that "top 3 per country" is a partitioned ranking problem: PARTITION BY
+  country resets the rank counter for each country independently, so a customer with modest spend in a
+  small country can still rank #1 there. Choosing RANK() over ROW_NUMBER() matters because two customers
+  tied on total_spend should genuinely share a rank (and the next distinct rank should skip accordingly)
+  rather than being split apart by an arbitrary tiebreaker. Wrapping the window function in a CTE before
+  filtering is required, since a WHERE clause cannot reference a window function computed in the same
+  SELECT. A common mistake is using ROW_NUMBER() instead, which silently manufactures a strict order
+  even among customers who spent the exact same amount, or filtering with `LIMIT 3` per country, which
+  DuckDB and SQL in general have no direct syntax for without the window function approach.

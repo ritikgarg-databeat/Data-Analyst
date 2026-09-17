@@ -1,0 +1,95 @@
+slug: customer-retention
+module_slug: business-metrics
+title: Customer Retention
+description: How retention rate is defined, why it must be anchored to a cohort, and how cohort framing reveals problems a blended number hides.
+difficulty: BEGINNER
+estimated_minutes: 14
+display_order: 5
+objectives:
+  - Define customer retention rate and calculate it for a simple cohort
+  - Explain what a cohort is and why cohort framing is necessary to measure retention accurately
+  - Distinguish retention rate from related metrics like repeat purchase rate
+prerequisites: [aov]
+skills: [business-metrics]
+datasets: [orders-sample]
+tags: [business-analytics, beginner]
+key_takeaways:
+  - Retention rate must be anchored to a defined cohort — a group with a shared start point — or a single company-wide ratio can hide which cohorts are actually churning.
+  - A retention curve, tracked cohort by cohort and period by period, reveals whether losses concentrate early (an onboarding problem) or late (a habit or value problem).
+  - Retention and repeat purchase rate sound similar but answer different questions — retention asks "did they stay," repeat purchase asks "did they buy again."
+common_mistakes:
+  - Reporting a single blended retention number across all cohorts, which can look stable even while newer cohorts retain far worse than older ones.
+  - Treating "active this period" as equivalent to "retained" when the definition of active isn't held constant across every period being compared.
+blocks:
+  - type: heading
+    text: "Retention: are the customers you already have still with you?"
+  - type: text
+    body: >
+      Retention rate measures whether the customers a business already won are still around. It's a
+      different question from acquisition or revenue growth — a company can be adding new customers
+      quickly while quietly losing existing ones just as fast, and revenue growth alone won't show it.
+  - type: formula
+    expression: "Retention Rate = (Customers active at end of period who were also active at start) / (Customers active at start) × 100"
+    description: "A SaaS variant subtracts new customers from the end count first: Retention = (Customers at end − New customers added) / Customers at start × 100."
+  - type: heading
+    text: "Cohorts: why \"this month's retention\" isn't one number"
+    level: 3
+  - type: text
+    body: >
+      A cohort is a group of customers who share a start point — most often, the month they first
+      purchased or signed up. Retention is tracked for that specific group over time, rather than
+      lumping every customer together, because blending brand-new and long-tenured customers into one
+      ratio hides the real shape of the retention curve.
+  - type: table
+    headers: ["Cohort (signup month)", "Month 0", "Month 1", "Month 2", "Month 3"]
+    rows:
+      - ["January", "100%", "62%", "51%", "45%"]
+      - ["February", "100%", "58%", "47%", "—"]
+    caption: Each row tracks the same group of customers forward in time, rather than mixing cohorts together.
+  - type: example
+    title: Building a cohort retention view from order data
+    body: >
+      To measure retention from raw order data, first find each customer's first completed order
+      month (their cohort), then check whether that same customer placed another completed order in
+      each subsequent month.
+    code: |
+      WITH first_order AS (
+        SELECT customer_id, MIN(DATE_TRUNC('month', order_date)) AS cohort_month
+        FROM orders
+        WHERE status = 'completed'
+        GROUP BY customer_id
+      )
+      SELECT
+        fo.cohort_month,
+        COUNT(DISTINCT fo.customer_id) AS cohort_size,
+        COUNT(DISTINCT CASE
+          WHEN DATE_TRUNC('month', o.order_date) = fo.cohort_month + INTERVAL '1 month'
+          THEN o.customer_id
+        END) AS retained_month_1
+      FROM first_order fo
+      LEFT JOIN orders o
+        ON o.customer_id = fo.customer_id AND o.status = 'completed'
+      GROUP BY fo.cohort_month
+      ORDER BY fo.cohort_month;
+    language: sql
+  - type: callout
+    variant: warning
+    title: A blended number hides which cohort is broken
+    body: >
+      "65% of active users from last month are still active this month" sounds like a single healthy
+      metric — but if it blends a strong two-year-old cohort with a weak brand-new cohort, the
+      blended number can look fine for months while the newest customers are quietly leaving fast.
+  - type: question
+    prompt: >
+      A company's overall month-over-month retention has held steady at 68% for the last six months.
+      Is this enough evidence that retention is healthy?
+    choices:
+      - "Yes — a stable blended retention rate means every cohort is behaving the same way"
+      - "No — a stable blended number can hide a newer cohort retaining much worse than older cohorts, offset by the older cohorts still being large"
+      - "No — retention rate should always be exactly 100% for a healthy company"
+    correct_index: 1
+    explanation: >
+      A blended retention rate averages across every active cohort. If older, larger cohorts continue
+      retaining well, they can mathematically offset a newer cohort that's retaining much worse,
+      keeping the blended number flat even as a real problem develops. Only a cohort-by-cohort view
+      would surface that.

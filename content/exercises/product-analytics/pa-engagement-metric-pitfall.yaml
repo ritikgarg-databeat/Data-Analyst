@@ -1,0 +1,23 @@
+slug: pa-engagement-metric-pitfall
+skill: product-metrics
+title: A Pitfall in Engagement Metrics
+description: Average time-on-page for a checkout flow increased sharply after a redesign. Why might this NOT be
+  good news?
+exercise_type: MULTIPLE_CHOICE
+difficulty: ADVANCED
+points: 5
+tags:
+- product-analytics
+prompt: Average time-on-page for a checkout flow increased sharply after a redesign. Why might this NOT be good
+  news?
+correct_answer: Longer time-on-page in a checkout flow specifically often signals confusion or friction, not deeper
+  engagement
+explanation: 'Whether more time-on-page is good or bad depends entirely on the page''s job: for a content/reading
+  page, more time can mean more engagement, but for a task-completion flow like checkout, more time usually means
+  the user is struggling, which is why this metric always needs to be read alongside the actual completion/conversion
+  rate.'
+choices:
+- Longer time-on-page in a checkout flow specifically often signals confusion or friction, not deeper engagement
+- Longer time-on-page is always a positive engagement signal regardless of context
+- It proves the redesign definitely improved the user experience
+- Time-on-page is not a real metric

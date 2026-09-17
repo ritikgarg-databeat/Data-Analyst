@@ -1,0 +1,18 @@
+slug: excel-conditional-formatting-color-scale
+skill: excel-fundamentals
+title: Showing Relative Magnitude Across a Range
+description: You want a single glance at a wide range of monthly sales figures to reveal which months were relatively
+  strong versus weak, using color intensity rather than reading every number. Name the Conditional Formatting feature
+  built for this.
+exercise_type: SHORT_ANSWER
+difficulty: INTERMEDIATE
+points: 5
+tags:
+- excel
+prompt: You want a single glance at a wide range of monthly sales figures to reveal which months were relatively
+  strong versus weak, using color intensity rather than reading every number. Name the Conditional Formatting feature
+  built for this.
+correct_answer: color scale
+explanation: A color scale (2-color or 3-color scale) shades each cell along a gradient based on its value relative
+  to the rest of the range, giving an at-a-glance heatmap of magnitude -- the standard Conditional Formatting tool
+  for this exact use case, as distinct from a single-condition highlight rule.

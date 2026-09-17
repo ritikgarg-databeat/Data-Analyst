@@ -1,0 +1,94 @@
+slug: hyp-p-values
+module_slug: hypothesis-testing
+title: "P-Values: What They Actually Tell You"
+description: The precise meaning of a p-value, the wrong interpretation nearly everyone reaches for first, and how to read a real, verified test result correctly.
+difficulty: INTERMEDIATE
+estimated_minutes: 14
+display_order: 2
+objectives:
+  - State the precise definition of a p-value and distinguish it from the common (incorrect) "probability the null hypothesis is true" interpretation.
+  - Correctly interpret a real p-value from an A/B test result and translate it into a defensible business statement.
+skills: [statistics, statistical-reasoning, data-interpretation]
+datasets: [saas-product]
+tags: [statistics, intermediate, interview, experimentation, ab-testing]
+prerequisites: [hyp-null-and-alternative]
+key_takeaways:
+  - "A p-value is the probability of seeing data at least as extreme as what you observed, *if the null hypothesis were actually true*. It is not the probability that the null hypothesis is true."
+  - "A small p-value means the observed data would be unusual under the null hypothesis — that's evidence against H0, not proof either way, and it says nothing about the size or business importance of the effect."
+  - "A p-value above the significance threshold (commonly 0.05) means the data doesn't give strong evidence against H0 — it does not mean H0 has been proven true, or that there's definitely no effect."
+common_mistakes:
+  - "Saying \"p = 0.407 means there's a 40.7% chance there's no real difference\" — this reverses what a p-value conditions on. It's the chance of this data (or more extreme) *given* no difference, not the chance of no difference given this data."
+  - Treating statistical significance (a small p-value) as automatically meaning the effect is large or commercially important — the two are entirely separate questions, covered in the next module.
+interview_questions:
+  - question: "You get p = 0.03 comparing two conversion rates. A colleague says \"great, there's a 97% chance our new design is better.\" What's wrong with that statement?"
+    answer: >
+      A p-value of 0.03 means: if there truly were no difference between the two designs, data this
+      extreme (or more extreme) would occur about 3% of the time by chance alone. It is not a 97%
+      probability that the new design is better — that would require a different kind of
+      calculation (a Bayesian posterior probability, which needs a prior belief as an input, not
+      just a p-value). The correct statement is "this result would be unusual if there were truly no
+      difference, so we have some evidence against 'no difference' " — evidence, not a probability
+      about which hypothesis is true.
+blocks:
+  - type: heading
+    text: The precise definition
+  - type: text
+    body: >
+      A **p-value** is the probability of observing data at least as extreme as what you actually
+      got, *assuming the null hypothesis is true*. It's a statement about how surprising your data
+      would be in a world where nothing interesting is happening — it is emphatically **not** the
+      probability that the null hypothesis itself is true, and it says nothing about the probability
+      that the alternative is true either.
+  - type: formula
+    expression: "p-value = P(data this extreme or more extreme | H0 is true)"
+    description: The condition comes first — a p-value always assumes H0, then asks how surprising your data would be under that assumption.
+  - type: example
+    title: "Reading the real checkout_redesign result correctly"
+    body: >
+      Control converted at 11.3% (113/1,000), treatment at 12.5% (125/1,000). A two-proportion
+      z-test gives p = 0.407. Correct reading: "if there were truly no difference between control
+      and treatment, we'd see a gap this large or larger about 41% of the time purely by chance."
+      That's a common enough outcome under "no real difference" that this result doesn't provide
+      strong evidence against H0. Incorrect reading: "there's a 40.7% chance there's no real
+      difference" — that statement has the condition backwards.
+  - type: code
+    language: python
+    code: |
+      from statsmodels.stats.proportion import proportions_ztest
+
+      z_stat, p_value = proportions_ztest([125, 113], [1000, 1000])
+      print(round(z_stat, 3), round(p_value, 4))  # 0.829, 0.4073
+    caption: "p = 0.4073 — a gap this large would arise about 41% of the time even if the two designs truly performed identically."
+  - type: heading
+    text: A significance threshold is a decision rule, not a law of nature
+  - type: text
+    body: >
+      The common 0.05 threshold means: "we'll treat results this surprising-or-more-under-H0 (5% or
+      rarer) as strong enough evidence to act on." It's a convention chosen for the tradeoff it
+      implies between false alarms and missed effects (formalized as Type I/II error in the next
+      lesson) — not a magic line between "true" and "false." A p-value of 0.06 and one of 0.04 are
+      barely distinguishable pieces of evidence, even though only one crosses the conventional line.
+  - type: callout
+    variant: common_mistake
+    title: "p > 0.05 does not mean \"there is no effect\""
+    body: >
+      This checkout_redesign result (p = 0.41) does not prove the redesign has no effect — it means
+      this specific sample of 1,000 users per arm didn't provide strong enough evidence to
+      distinguish a real effect from chance. As the sample-size lesson showed, a true 10%→12.5%
+      effect needs roughly 2,500 users per arm to be reliably detected at this sample size's noise
+      level — this result is exactly consistent with "there may be a real, smaller-than-hoped effect
+      that this particular sample was underpowered to detect," which the next lesson covers directly.
+  - type: question
+    prompt: >
+      A test comparing two email subject lines returns p = 0.62. Which is the most accurate summary
+      to give a stakeholder?
+    choices:
+      - "There is a 62% probability the two subject lines perform identically"
+      - "If the two subject lines truly performed identically, we'd see a gap this large or larger 62% of the time by chance — this data doesn't give us strong evidence they differ"
+      - "The test proves the two subject lines perform exactly the same"
+    correct_index: 1
+    explanation: >
+      p = 0.62 describes how likely data like this would be under "no real difference" — it's
+      weak evidence at best, and the correct phrasing keeps the conditioning direction (assuming H0,
+      then describing the data) intact rather than reversing it into a probability about the
+      hypothesis itself.

@@ -1,0 +1,22 @@
+slug: dw-ex-lake-warehouse-lakehouse
+lesson_slug: dw-the-lakehouse
+skill: cloud-data-warehouses
+title: What Actually Makes a Lakehouse a Lakehouse
+description: Distinguish a real lakehouse from a plain data lake by what technical capability it actually adds.
+exercise_type: MULTIPLE_CHOICE
+difficulty: INTERMEDIATE
+points: 10
+tags: [lakehouse, data-lake, data-warehouse, intermediate]
+prompt: "Which statement most correctly distinguishes a lakehouse from a plain data lake?"
+choices:
+  - "A lakehouse is simply a data lake running on more expensive storage hardware"
+  - "A lakehouse layers a transactional table format (such as Apache Iceberg, Delta Lake, or Apache Hudi) on top of lake-style file storage, adding ACID transactions, schema enforcement, and time-travel queries that a plain lake doesn't provide"
+  - "A lakehouse requires abandoning open file formats like Parquet in favor of one vendor's proprietary binary format"
+correct_answer: "A lakehouse layers a transactional table format (such as Apache Iceberg, Delta Lake, or Apache Hudi) on top of lake-style file storage, adding ACID transactions, schema enforcement, and time-travel queries that a plain lake doesn't provide"
+explanation: >
+  The lakehouse pattern's real technical substance is the transactional metadata/table-format layer
+  sitting on top of ordinary lake files — that's what provides ACID guarantees, enforced schemas, and
+  versioned time-travel reads, none of which a plain lake (raw files, schema-on-read, no transaction
+  log) provides on its own. It's specifically not about storage cost (both are built on cheap object
+  storage) and not about abandoning open formats — open table formats are a deliberate part of the
+  pattern, precisely so multiple engines can reliably read and write the same data.

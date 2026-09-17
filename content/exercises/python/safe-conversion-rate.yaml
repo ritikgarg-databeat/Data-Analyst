@@ -1,0 +1,67 @@
+slug: safe-conversion-rate
+lesson_slug: exceptions
+skill: python-fundamentals
+dataset: ecommerce
+title: Compute Conversion Rate Without Dividing by Zero
+description: Write a divide-safe conversion rate function and apply it across a list of session/conversion pairs, including a zero-session edge case.
+exercise_type: PYTHON
+difficulty: BEGINNER
+points: 15
+tags: [python, beginner, foundations]
+business_context: >
+  A marketing analyst is computing conversion rate (conversions / sessions) across several
+  campaigns, but a couple of very new campaigns haven't had any sessions logged yet — dividing by
+  zero for those would crash the whole report instead of just showing 0%.
+prompt: >
+  Write a function `conversion_rate(conversions, sessions)` that returns `conversions / sessions` as
+  a float, but returns `0.0` (never raises `ZeroDivisionError`) when `sessions` is `0`. Apply it, in
+  order, to `[(50, 1000), (0, 500), (10, 0), (200, 800)]` (each tuple is `(conversions, sessions)`).
+  Store your answer in a variable named `result`: a list of 4 rates, one per pair, in the same order
+  as the input pairs.
+python_datasets: []
+python_starter_code: |
+  def conversion_rate(conversions, sessions):
+      # Return conversions / sessions as a float, but return 0.0 instead of
+      # raising when sessions is 0.
+      pass
+
+  pairs = [(50, 1000), (0, 500), (10, 0), (200, 800)]
+
+  # Apply conversion_rate to every pair, in order, and store the list of rates in `result`.
+python_solution_code: |
+  def conversion_rate(conversions, sessions):
+      if sessions == 0:
+          return 0.0
+      return conversions / sessions
+
+  pairs = [(50, 1000), (0, 500), (10, 0), (200, 800)]
+  result = [conversion_rate(c, s) for c, s in pairs]
+python_result_variable: result
+python_row_order_matters: true
+python_numeric_tolerance: 0.000001
+python_hidden_tests:
+  - name: "Zero-session pair doesn't raise and returns 0.0"
+    code: |
+      assert result[2] == 0.0, f"The (10, 0) pair has 0 sessions, so its rate should be 0.0, got {result[2]}"
+      assert len(result) == 4, f"Expected 4 rates (one per input pair), got {len(result)}"
+hints:
+  - "Guard the division before it happens: check whether sessions == 0 and return early with 0.0, rather than letting Python raise a ZeroDivisionError and trying to catch it after the fact (though a try/except would also work)."
+  - "conversion_rate(10, 0) is the one pair that would normally crash — make sure your function returns 0.0 for it instead of raising. Build the result list with a comprehension: [conversion_rate(c, s) for c, s in pairs]."
+solution: |
+  ```python
+  def conversion_rate(conversions, sessions):
+      if sessions == 0:
+          return 0.0
+      return conversions / sessions
+
+  pairs = [(50, 1000), (0, 500), (10, 0), (200, 800)]
+  result = [conversion_rate(c, s) for c, s in pairs]
+  ```
+explanation: >
+  A strong answer guards the zero-sessions case explicitly (either with an `if sessions == 0: return
+  0.0` early return, or a `try/except ZeroDivisionError` wrapping the division) so the function never
+  raises for a legitimate business scenario — a brand-new campaign with zero sessions logged so far.
+  A common mistake is writing the function correctly but then looping over `pairs` in a way that
+  drops or reorders results (e.g. building a dict instead of a list, or filtering out the
+  zero-session pair instead of returning 0.0 for it), which changes the shape or order of `result`
+  even though the division logic itself was safe.

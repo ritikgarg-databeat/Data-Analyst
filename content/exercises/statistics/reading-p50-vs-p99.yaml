@@ -1,0 +1,22 @@
+slug: reading-p50-vs-p99
+lesson_slug: percentiles
+skill: statistics
+title: Reading p50 vs. p99
+description: Interpret what a large gap between p50 and p99 latency reveals about the user experience.
+exercise_type: MULTIPLE_CHOICE
+difficulty: BEGINNER
+points: 10
+tags: [statistics, real-world]
+prompt: >
+  A checkout API has a p50 latency of 120ms and a p99 latency of 4,200ms. Which statement best
+  describes what this gap tells you?
+choices:
+  - "The average latency must also be close to 4,200ms, since p99 is so much higher than p50"
+  - "Half of requests are reasonably fast, but a meaningful tail of requests (roughly 1 in 100) is dramatically slower, which the p50 number alone hides"
+  - "The data must contain an error, since p50 and p99 should always be close together"
+correct_answer: "Half of requests are reasonably fast, but a meaningful tail of requests (roughly 1 in 100) is dramatically slower, which the p50 number alone hides"
+explanation: >
+  A large gap between p50 and p99 is normal and expected for latency-style data — it is exactly what a
+  "long tail" looks like. The mean would sit somewhere between the two, pulled up by the slow tail, but
+  nowhere near 4,200ms, since only about 1% of requests are that slow. Reporting p50 alone (or even the
+  mean) would hide that a real subset of users are having a much worse experience worth investigating.

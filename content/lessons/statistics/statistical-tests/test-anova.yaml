@@ -1,0 +1,89 @@
+slug: test-anova
+module_slug: statistical-tests
+title: "ANOVA: Comparing Three or More Group Means"
+description: Extending the t-test's idea to three-plus groups in a single, honest test — and reading a real result that tells a team not to over-index on channel-specific pricing.
+difficulty: ADVANCED
+estimated_minutes: 13
+display_order: 4
+objectives:
+  - Run a one-way ANOVA comparing a numeric outcome's mean across three or more groups.
+  - Interpret the F-statistic and p-value from an ANOVA result, and explain what a significant ANOVA result does (and doesn't) tell you about which specific groups differ.
+skills: [statistics, statistical-reasoning]
+datasets: [ecommerce]
+tags: [statistics, advanced, e-commerce]
+prerequisites: [test-t-tests]
+key_takeaways:
+  - "One-way ANOVA (Analysis of Variance) tests whether at least one of three or more groups' means differs from the others, in a single test that controls the overall false-positive rate."
+  - "The F-statistic compares how much the group means vary relative to how much individual values vary within each group — a large F means the groups differ more than within-group noise alone would explain."
+  - "A significant ANOVA result tells you at least one group differs from the rest, but not which one(s) — that requires a follow-up (post-hoc) pairwise comparison, adjusted for testing multiple pairs."
+common_mistakes:
+  - Running ANOVA, finding it significant, and then comparing groups pairwise without any adjustment for multiple comparisons — the same false-positive inflation problem that motivated using ANOVA over separate t-tests in the first place.
+  - Interpreting a non-significant ANOVA result as proof all groups are identical, rather than "this data doesn't provide strong evidence any of them differ."
+interview_questions:
+  - question: An ANOVA comparing average order value across three order channels (web, mobile, marketplace) returns F = 1.09, p = 0.34. What would you tell a stakeholder who wants to set different pricing strategies per channel based on order value?
+    answer: >
+      This result gives no evidence that order value differs meaningfully across the three
+      channels — the observed differences (web and mobile both around $1,695, marketplace around
+      $1,606) are well within what ordinary sampling variability across these sample sizes would
+      produce. Setting a channel-specific pricing strategy on the premise that "marketplace orders
+      are smaller" wouldn't be supported by this data; if there's a business reason to treat channels
+      differently, it should rest on evidence other than this order-value comparison.
+blocks:
+  - type: heading
+    text: Comparing more than two groups without inflating false positives
+  - type: text
+    body: >
+      **One-way ANOVA** extends the t-test's logic to three or more groups: it tests whether at
+      least one group's mean differs from the others, using a single test with a single controlled
+      false-positive rate — avoiding the inflated risk of running many separate pairwise t-tests
+      (covered in the "choosing the right test" lesson).
+  - type: formula
+    expression: "F = (variance between group means) / (variance within groups)"
+    description: A large F means the groups' means are spread out relative to how much individual values vary within each group.
+  - type: example
+    title: Does order value differ across order channel?
+    body: >
+      Successful ecommerce orders average $1,695.49 on web (n = 1,890), $1,695.49 on mobile
+      (n = 1,199), and $1,605.86 on marketplace (n = 352). A one-way ANOVA across the three groups
+      gives F = 1.091, p = 0.336 — not significant.
+  - type: code
+    language: python
+    code: |
+      from scipy import stats
+
+      success = payments[payments.status == "success"]
+      merged = orders.merge(success, on="order_id")
+      groups = [g["amount"].values for _, g in merged.groupby("channel")]
+
+      f_stat, p_value = stats.f_oneway(*groups)
+      print(round(f_stat, 3), round(p_value, 4))  # 1.091, 0.3359
+    caption: "p = 0.336 — the visible ~$90 gap between marketplace and the other two channels isn't distinguishable from ordinary sampling noise here."
+  - type: callout
+    variant: important
+    title: A non-significant ANOVA is still a useful answer
+    body: >
+      This result tells a fulfillment or pricing team something genuinely useful: order value does
+      not appear to meaningfully differ by channel in this data, so a channel-specific pricing
+      strategy shouldn't be justified on the basis of "marketplace orders are smaller." If
+      marketplace should be treated differently, the reason needs to come from somewhere other than
+      average order value (e.g., different marketplace fees, which is a separate, real business
+      concern this test says nothing about).
+  - type: text
+    body: >
+      If this ANOVA *had* come back significant, the next step would be a post-hoc pairwise
+      comparison (e.g., Tukey's HSD) — adjusted for testing three pairs at once — to identify which
+      specific channel(s) differ, rather than assuming "significant ANOVA" automatically means every
+      pair differs from every other.
+  - type: question
+    prompt: >
+      An ANOVA comparing average time-to-resolution across four support channels (chat, email,
+      phone, in-app) comes back significant (p = 0.002). What is the most accurate next step?
+    choices:
+      - "Conclude every channel differs from every other channel and stop there"
+      - "Run an appropriately adjusted post-hoc pairwise comparison to identify which specific channel(s) actually differ from the rest"
+      - "Ignore the result since ANOVA can only tell you that groups exist, not whether they differ"
+    correct_index: 1
+    explanation: >
+      A significant ANOVA establishes that at least one group differs from the others, but not
+      which one(s) — a proper post-hoc test (adjusted for the multiple pairwise comparisons being
+      made) is the correct way to pin down which specific channels actually differ.

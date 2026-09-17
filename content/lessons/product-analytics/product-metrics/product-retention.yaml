@@ -1,0 +1,87 @@
+slug: product-retention
+module_slug: product-metrics
+title: Retention
+description: Cohort retention curves and how to read Day-1, Day-7, and Day-30 retention without over-interpreting a single number.
+difficulty: BEGINNER
+estimated_minutes: 15
+display_order: 6
+objectives:
+  - Explain cohort retention analysis and why users must be grouped by signup date before measuring it
+  - Interpret Day-1, Day-7, and Day-30 retention as different points on the same retention curve
+  - Distinguish "classic" (exact-day) retention from "range" (bracketed) retention and know which is which in a table
+prerequisites: [engagement]
+skills: [product-metrics]
+tags: [product-analytics, beginner, foundations]
+key_takeaways:
+  - Retention must be measured per cohort (grouped by signup date) — pooling all users together hides whether a recent product change actually improved retention for new users.
+  - A retention curve typically drops sharply in the first few days, then flattens into a "floor" of users who found lasting value — that floor, not the day-1 number, is usually the best long-term health signal.
+  - Day-1/Day-7/Day-30 retention are single points sampled off one underlying curve, not three unrelated metrics — reporting only one of them without the shape around it can hide the real story.
+common_mistakes:
+  - Reporting a single retention number for the whole user base without splitting by signup cohort, which blends improving and declining trends into a meaningless average.
+  - Confusing "classic" retention (active on exactly day N) with "range" or "bracket" retention (active any time in days N to N+x) — these produce different numbers from the same data and are not interchangeable.
+  - Reacting to a single day's retention dip as a crisis without looking at whether the whole curve, and the same cohort a week earlier, moved the same way.
+blocks:
+  - type: text
+    body: >
+      Retention answers the question DAU/WAU/MAU can't: of the people who joined on a given day, how
+      many are still around later? Answering that requires **cohort analysis** — grouping users by the
+      date they joined (or first activated) and tracking what fraction of that specific cohort is still
+      active N days later, rather than pooling everyone together.
+  - type: heading
+    text: The retention curve
+  - type: text
+    body: >
+      Plotted for a single cohort, retention almost always follows the same shape: a steep drop in the
+      first few days as users who tried the product once and found no value leave, followed by a
+      flattening curve — the users who remain by day 20-30 tend to stay much longer. That flattened
+      **floor** is usually the more meaningful long-term signal than the early drop, because it
+      represents the users who found durable value.
+  - type: table
+    headers: ["Day", "% of cohort still active"]
+    rows:
+      - ["Day 0 (signup)", "100%"]
+      - ["Day 1", "42%"]
+      - ["Day 7", "24%"]
+      - ["Day 14", "19%"]
+      - ["Day 30", "16%"]
+      - ["Day 60", "15%"]
+  - type: callout
+    variant: important
+    title: Classic vs. range retention — same data, different numbers
+    body: >
+      **Classic (N-day) retention** asks "was the user active on exactly day N?" — a single, noisy day.
+      **Range (bracket) retention** asks "was the user active any time between day N and day N+x?" —
+      smoother, and the more common choice for weekly product reporting (e.g. "Week 1 retention"). A
+      team quoting "Day 7 retention" without saying which definition they mean can end up comparing two
+      numbers that aren't actually measuring the same thing.
+  - type: code
+    language: sql
+    caption: Day-7 classic retention for a single signup cohort
+    code: |
+      WITH cohort AS (
+        SELECT user_id, signup_date
+        FROM users
+        WHERE signup_date = '2026-08-01'
+      )
+      SELECT
+        COUNT(DISTINCT c.user_id)                              AS cohort_size,
+        COUNT(DISTINCT e.user_id)                              AS retained_day7,
+        ROUND(COUNT(DISTINCT e.user_id)::numeric
+              / COUNT(DISTINCT c.user_id), 3)                  AS day7_retention
+      FROM cohort c
+      LEFT JOIN events e
+        ON e.user_id = c.user_id
+       AND DATE(e.event_at) = c.signup_date + INTERVAL '7 days'
+      ;
+  - type: question
+    prompt: Why is it misleading to report "our Day-30 retention is 16%" for the whole user base without breaking it out by signup cohort?
+    choices:
+      - Because Day-30 retention is never a meaningful metric under any circumstances
+      - Because pooling cohorts together can hide whether retention is actually improving or worsening for users who signed up recently, versus users who signed up long ago
+      - Because Day-30 retention can only be measured for paying users
+    correct_index: 1
+    explanation: >
+      A blended, all-time retention number mixes cohorts that experienced very different products (an
+      older onboarding flow vs. a newly improved one) into a single average. A recent improvement to
+      onboarding could be genuinely lifting retention for new cohorts while the blended number still
+      looks flat, because it's being dragged down by older, lower-retention cohorts in the mix.

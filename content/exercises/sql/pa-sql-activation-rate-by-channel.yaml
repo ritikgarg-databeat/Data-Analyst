@@ -1,0 +1,91 @@
+slug: pa-sql-activation-rate-by-channel
+lesson_slug: pa-activation-segmentation
+skill: product-analytics
+dataset: saas-product
+title: Activation Rate by Acquisition Channel
+description: Segment activation rate by acquisition channel and rank channels from best to worst.
+exercise_type: SQL
+difficulty: INTERMEDIATE
+points: 20
+tags: [sql, product, saas, intermediate]
+business_context: >
+  Growth wants to know whether the blended 69% activation rate is hiding meaningful differences
+  between acquisition channels before deciding where to invest onboarding improvements.
+prompt: >
+  Using the `events` and `users` tables, write a query that returns one row per
+  `acquisition_channel` with columns `acquisition_channel`, `signups` (total distinct users from that
+  channel), `activated_users` (users from that channel who also have an `activated` event), and
+  `activation_rate` (activated_users / signups, rounded to 4 decimal places). Order the result by
+  `activation_rate` descending.
+sql_tables: [events, users]
+sql_starter_query: |
+  -- Explore the tables first
+  SELECT acquisition_channel, COUNT(*) FROM users GROUP BY 1;
+sql_solution_query: |
+  WITH reached AS (
+    SELECT
+      e.user_id,
+      u.acquisition_channel,
+      MAX(CASE WHEN event_name = 'signup'    THEN 1 ELSE 0 END) AS signup,
+      MAX(CASE WHEN event_name = 'activated'  THEN 1 ELSE 0 END) AS activated
+    FROM events e
+    JOIN users u ON u.user_id = e.user_id
+    GROUP BY e.user_id, u.acquisition_channel
+  )
+  SELECT
+    acquisition_channel,
+    SUM(signup) AS signups,
+    SUM(CASE WHEN signup=1 AND activated=1 THEN 1 END) AS activated_users,
+    ROUND(SUM(CASE WHEN signup=1 AND activated=1 THEN 1 END)::DOUBLE / SUM(signup), 4) AS activation_rate
+  FROM reached
+  GROUP BY acquisition_channel
+  ORDER BY activation_rate DESC;
+sql_row_order_matters: true
+sql_numeric_tolerance: 0.001
+sql_hidden_tests:
+  - name: paid_social activation rate matches an independent recomputation
+    query: |
+      WITH per_user AS (
+        SELECT e.user_id, MAX(CASE WHEN event_name='activated' THEN 1 ELSE 0 END) AS activated
+        FROM events e JOIN users u ON u.user_id = e.user_id
+        WHERE u.acquisition_channel = 'paid_social'
+        GROUP BY e.user_id
+      )
+      SELECT 'paid_social' AS channel, ROUND(SUM(activated)*1.0/COUNT(*), 4) AS expected_rate
+      FROM per_user
+    key_columns: 1
+hints:
+  - "Join events to users on user_id first so each event row carries its user's acquisition_channel, then build the same per-user flag pattern from the funnel lesson, but group by (user_id, acquisition_channel) instead of just user_id."
+  - "In the outer query, GROUP BY acquisition_channel and divide the cumulative activated count by the cumulative signup count for each group, rounding to 4 decimal places, then ORDER BY the resulting rate descending."
+solution: >
+  ```sql
+  WITH reached AS (
+    SELECT
+      e.user_id,
+      u.acquisition_channel,
+      MAX(CASE WHEN event_name = 'signup'    THEN 1 ELSE 0 END) AS signup,
+      MAX(CASE WHEN event_name = 'activated'  THEN 1 ELSE 0 END) AS activated
+    FROM events e
+    JOIN users u ON u.user_id = e.user_id
+    GROUP BY e.user_id, u.acquisition_channel
+  )
+  SELECT
+    acquisition_channel,
+    SUM(signup) AS signups,
+    SUM(CASE WHEN signup=1 AND activated=1 THEN 1 END) AS activated_users,
+    ROUND(SUM(CASE WHEN signup=1 AND activated=1 THEN 1 END)::DOUBLE / SUM(signup), 4) AS activation_rate
+  FROM reached
+  GROUP BY acquisition_channel
+  ORDER BY activation_rate DESC;
+  ```
+  Run against the real data: organic 78.86%, referral 78.16%, content 72.00%, paid_search 61.68%,
+  paid_social 55.93% — a 23-point spread between the best and worst channel.
+explanation: >
+  The key step most people miss is joining `users` in *before* the aggregation, at the per-event-row
+  level, so that `acquisition_channel` travels alongside each user's events into the GROUP BY. A
+  common mistake is computing the funnel first and only joining `users` afterward at the aggregate
+  level — that join has no shared grain to attach the channel to individual users correctly. Once the
+  channel is attached per-user, the rest is the same cumulative-flag pattern as the unsegmented
+  funnel query, just with `acquisition_channel` added to the GROUP BY. A quick sanity check worth
+  running afterward: summing the `signups` column across all five rows should equal 3,000, the
+  dataset's total user count.

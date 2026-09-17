@@ -1,0 +1,21 @@
+slug: excel-chart-choice-trend-over-time
+skill: excel-fundamentals
+title: Choosing a Chart for a Trend Over Time
+description: You want to show how monthly revenue has changed over the past 2 years, so the audience can see the
+  overall trend and any recent inflection points. Which chart type is the standard choice?
+exercise_type: MULTIPLE_CHOICE
+difficulty: BEGINNER
+points: 5
+tags:
+- excel
+prompt: You want to show how monthly revenue has changed over the past 2 years, so the audience can see the overall
+  trend and any recent inflection points. Which chart type is the standard choice?
+correct_answer: Line chart
+explanation: A line chart is the standard choice for a single continuous metric over a time axis, since the connecting
+  line makes the trend's direction and any inflection points immediately visible -- a pie chart has no time axis
+  at all and is the wrong tool here.
+choices:
+- Line chart
+- Pie chart
+- Pivot table with no chart
+- Scatter plot with no line connecting points

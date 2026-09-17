@@ -1,0 +1,113 @@
+slug: customer-ltv-quick-estimate
+lesson_slug: null
+skill: pandas
+dataset: ecommerce
+title: Customer LTV Quick Estimate by Segment
+description: Estimate a rough lifetime-value proxy per customer segment from completed orders and successful payments.
+exercise_type: PYTHON
+difficulty: ADVANCED
+points: 25
+tags: [python, advanced, business-analytics]
+business_context: >
+  The VP of Marketing is setting acquisition budgets for next quarter and wants a rough
+  lifetime-value estimate for each customer segment (business vs. consumer), to decide how much
+  the company can afford to spend acquiring each type of customer.
+prompt: >
+  Using `orders`, `payments`, and `customers`, consider only completed orders
+  (`orders.status == "completed"`) paired with successful payments (`payments.status ==
+  "success"`). For each `customer_segment`, compute: (a) the number of distinct customers with at
+  least one qualifying completed-and-paid order, (b) their total successful-payment revenue, and
+  (c) revenue-per-customer (an LTV proxy) = total revenue divided by customer count, rounded to 2
+  decimal places. Store your answer in a variable named `result`: a DataFrame with columns
+  `customer_segment`, `customer_count`, `total_revenue` (rounded to 2 decimal places), and
+  `revenue_per_customer`, sorted in descending order by `revenue_per_customer`.
+python_datasets: [orders, payments, customers]
+python_starter_code: |
+  # orders, payments, and customers are already loaded as DataFrames.
+  # Explore them first:
+  orders.head()
+python_solution_code: |
+  completed_orders = orders[orders["status"] == "completed"][["order_id", "customer_id"]]
+  success_payments = payments[payments["status"] == "success"][["order_id", "amount"]]
+  merged = completed_orders.merge(success_payments, on="order_id").merge(
+      customers[["customer_id", "customer_segment"]], on="customer_id"
+  )
+  per_customer = (
+      merged.groupby(["customer_segment", "customer_id"])["amount"].sum().reset_index()
+  )
+  grouped = per_customer.groupby("customer_segment").agg(
+      customer_count=("customer_id", "nunique"),
+      total_revenue=("amount", "sum"),
+  ).reset_index()
+  grouped["total_revenue"] = grouped["total_revenue"].round(2)
+  grouped["revenue_per_customer"] = (grouped["total_revenue"] / grouped["customer_count"]).round(2)
+  result = grouped.sort_values("revenue_per_customer", ascending=False).reset_index(drop=True)
+python_result_variable: result
+python_row_order_matters: true
+python_numeric_tolerance: 0.01
+python_hidden_tests:
+  - name: "Customer counts stay within the total customer base"
+    code: |
+      assert result["customer_count"].sum() <= 1500, (
+          f"Total customer_count across segments ({result['customer_count'].sum()}) shouldn't "
+          "exceed the total number of customers in the dataset (1500)."
+      )
+  - name: "Top segment's revenue_per_customer matches a live recomputation"
+    code: |
+      completed_orders2 = orders[orders["status"] == "completed"][["order_id", "customer_id"]]
+      success_payments2 = payments[payments["status"] == "success"][["order_id", "amount"]]
+      merged2 = completed_orders2.merge(success_payments2, on="order_id").merge(
+          customers[["customer_id", "customer_segment"]], on="customer_id"
+      )
+      per_customer2 = (
+          merged2.groupby(["customer_segment", "customer_id"])["amount"].sum().reset_index()
+      )
+      grouped2 = per_customer2.groupby("customer_segment").agg(
+          customer_count=("customer_id", "nunique"),
+          total_revenue=("amount", "sum"),
+      ).reset_index()
+      grouped2["revenue_per_customer"] = (
+          grouped2["total_revenue"] / grouped2["customer_count"]
+      ).round(2)
+      recompute_top = grouped2.sort_values("revenue_per_customer", ascending=False).iloc[0]
+      top_row = result.iloc[0]
+      assert top_row["customer_segment"] == recompute_top["customer_segment"], (
+          f"Expected '{recompute_top['customer_segment']}' to lead revenue_per_customer, "
+          f"got '{top_row['customer_segment']}'"
+      )
+      assert abs(top_row["revenue_per_customer"] - recompute_top["revenue_per_customer"]) < 0.01, (
+          "The top segment's revenue_per_customer doesn't match a fresh recomputation."
+      )
+hints:
+  - "Build the qualifying-revenue table first: merge completed orders to successful payments on order_id (this drops orders that never got paid or weren't completed), then merge in customer_segment from customers via customer_id."
+  - "Sum revenue per individual customer first (groupby ['customer_segment', 'customer_id']), THEN aggregate that per-customer table up to segment level with nunique customer_count and sum of total_revenue — this two-step aggregation avoids double counting a customer's multiple orders when computing customer_count."
+solution: |
+  ```python
+  completed_orders = orders[orders["status"] == "completed"][["order_id", "customer_id"]]
+  success_payments = payments[payments["status"] == "success"][["order_id", "amount"]]
+  merged = completed_orders.merge(success_payments, on="order_id").merge(
+      customers[["customer_id", "customer_segment"]], on="customer_id"
+  )
+  per_customer = (
+      merged.groupby(["customer_segment", "customer_id"])["amount"].sum().reset_index()
+  )
+  grouped = per_customer.groupby("customer_segment").agg(
+      customer_count=("customer_id", "nunique"),
+      total_revenue=("amount", "sum"),
+  ).reset_index()
+  grouped["total_revenue"] = grouped["total_revenue"].round(2)
+  grouped["revenue_per_customer"] = (grouped["total_revenue"] / grouped["customer_count"]).round(2)
+  result = grouped.sort_values("revenue_per_customer", ascending=False).reset_index(drop=True)
+  ```
+explanation: >
+  The two merges restrict the analysis to revenue that actually landed — an order only counts if
+  it's `completed` AND has a matching `success` payment, so cancelled, pending, or unpaid orders
+  never inflate the total. The two-step aggregation (first summing each individual customer's
+  revenue, then rolling that up to segment-level `nunique` and `sum`) is the key technique: a
+  naive single `groupby("customer_segment")` on the merged, order-level table would still get
+  `total_revenue` right, but `customer_count` needs `nunique` on `customer_id` at the segment
+  level specifically to avoid counting a repeat customer's several orders as several customers.
+  Dividing segment revenue by segment customer count gives a simple LTV proxy — here, the
+  business segment turns out to have fewer customers than consumer but a higher revenue-per-
+  customer, exactly the kind of tradeoff a VP of Marketing needs to see before setting
+  segment-specific acquisition budgets.

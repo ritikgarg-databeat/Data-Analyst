@@ -1,0 +1,21 @@
+slug: stat-p-value-interpretation
+skill: statistics
+title: Correctly Interpreting a P-Value
+description: A test returns p = 0.03. Which is the correct interpretation?
+exercise_type: MULTIPLE_CHOICE
+difficulty: ADVANCED
+points: 5
+tags:
+- statistics
+- hypothesis-testing
+prompt: A test returns p = 0.03. Which is the correct interpretation?
+correct_answer: Assuming the null hypothesis is true, there's a 3% chance of observing a result this extreme or
+  more extreme
+explanation: A p-value is a conditional probability about the DATA given the null hypothesis, not a probability
+  about the hypothesis itself -- 'there's a 3% chance the null is true' is the single most common p-value misinterpretation
+  and worth being able to correct precisely in an interview.
+choices:
+- Assuming the null hypothesis is true, there's a 3% chance of observing a result this extreme or more extreme
+- There is a 3% chance the null hypothesis is true
+- There is a 97% chance the alternative hypothesis is true
+- The effect size is 0.03

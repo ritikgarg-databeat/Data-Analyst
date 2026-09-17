@@ -1,0 +1,29 @@
+slug: mds-dq-check-not-null-vs-duplicates
+lesson_slug: dbt-generic-tests
+skill: data-quality-engineering
+dataset: ecommerce
+title: "True or False: Does a NOT_NULL Check Catch a Duplicate Row?"
+description: A true/false check on whether a NOT_NULL validation would catch a specific duplication failure mode in the orders table.
+exercise_type: TRUE_FALSE
+difficulty: BEGINNER
+points: 5
+tags: [data-quality, validation, tests, beginner]
+prompt: >
+  The orders table's order_id column has a NOT_NULL check that has passed on every run for months.
+  Yesterday, a bug in an upstream retry mechanism caused a single order to be inserted twice into the
+  orders table, with the exact same order_id and identical values in every other column.
+
+  True or False: the NOT_NULL check on order_id staying green (passing) tells you this duplication did
+  NOT happen.
+choices: ["True", "False"]
+correct_answer: "False"
+explanation: >
+  A NOT_NULL check only verifies that a column's values are present (not missing) — it has nothing to say
+  about whether a value appears more than once. Two rows with the exact same, non-null order_id would
+  pass a NOT_NULL check without any problem at all, since neither row is missing a value. Catching this
+  specific failure mode — the same order_id appearing twice — requires a UNIQUE check on order_id, a
+  completely different validation than NOT_NULL. A green NOT_NULL result says "every row has a value
+  here," not "every value here is distinct."
+hints:
+  - "Ask exactly what condition a NOT_NULL check evaluates, then ask whether that condition has anything to do with duplication."
+  - "Which check name — NOT_NULL, UNIQUE, ACCEPTED_VALUES, or RELATIONSHIP — is specifically designed to catch a repeated value?"

@@ -1,0 +1,96 @@
+slug: prob-bayes-theorem
+module_slug: probability
+title: "Bayes' Theorem & the Base Rate Trap"
+description: How to update a probability once you see new evidence, and why ignoring how rare something is in the first place leads even a very accurate test to be mostly wrong.
+difficulty: INTERMEDIATE
+estimated_minutes: 15
+display_order: 3
+objectives:
+  - State and apply Bayes' theorem to compute the probability of a hidden condition given an observed signal.
+  - Explain the base rate fallacy and recognize when a "95% accurate" flag or test is far less trustworthy in practice than it sounds.
+skills: [statistics, statistical-reasoning]
+tags: [statistics, intermediate, interview]
+prerequisites: [prob-conditional-independence]
+key_takeaways:
+  - "Bayes' theorem flips a conditional probability around: it converts P(evidence | condition), which is usually what you can measure, into P(condition | evidence), which is usually what you actually want to know."
+  - The base rate (how common the condition is *before* you see any evidence) matters enormously. The rarer the condition, the more even a highly accurate test's false positives will outnumber its true positives.
+  - "A flagging system's headline accuracy number (e.g., '95% of fraud gets caught') says nothing on its own about what a flag actually means — that depends on the base rate too."
+common_mistakes:
+  - Reading "the test is 95% accurate" as "95% of positive results are correct" — those are two very different numbers, and confusing them is the single most common statistics interview mistake.
+  - Forgetting to weight by the base rate entirely and treating sensitivity (catch rate) as if it were the answer to "how much should I trust a flag."
+interview_questions:
+  - question: A fraud model flags 1% of orders. It catches 95% of actual fraud, and its false-positive rate on legitimate orders is 5%. If only 0.5% of all orders are truly fraudulent, what fraction of flagged orders are actually fraudulent?
+    answer: >
+      About 8.7%. Using Bayes' theorem: P(fraud | flagged) = P(flagged | fraud) x P(fraud) /
+      P(flagged) = (0.95 x 0.005) / (0.95 x 0.005 + 0.05 x 0.995) = 0.00475 / 0.0545 ≈ 0.087. Despite
+      the model sounding highly accurate, roughly 9 in 10 flagged orders are false alarms, because
+      fraud is rare to begin with (a low base rate) and legitimate orders vastly outnumber fraudulent
+      ones — so even a 5% false-positive rate produces many more false alarms in absolute terms than
+      true catches.
+  - question: Why can a "95% accurate" medical test still mean most positive results are wrong?
+    answer: >
+      Because "95% accurate" typically describes sensitivity/specificity (how the test behaves
+      given the true condition), not P(condition | positive result). When the condition being
+      tested for is rare, the sheer volume of healthy people being tested means even a small
+      false-positive rate generates more false positives in absolute count than true positives from
+      the small pool of people who actually have the condition. This is the base rate fallacy.
+blocks:
+  - type: heading
+    text: Bayes' theorem — flipping the condition around
+  - type: text
+    body: >
+      Often you can measure P(evidence | condition) — e.g., "if an order is truly fraudulent, what's
+      the chance our model flags it?" — but the number you actually want is the reverse: "given that
+      an order was flagged, what's the chance it's truly fraudulent?" **Bayes' theorem** is the
+      formula that lets you flip a conditional probability around correctly.
+  - type: formula
+    expression: "P(A | B) = [ P(B | A) * P(A) ] / P(B)"
+    description: "P(A) is the base rate of A before seeing evidence B; P(A | B) is the updated probability after seeing it."
+  - type: example
+    title: "A fraud-detection model, worked through"
+    body: >
+      Suppose a fraud model has 95% sensitivity (P(flagged | fraud) = 0.95) and a 5% false-positive
+      rate on legitimate orders (P(flagged | not fraud) = 0.05). Only 0.5% of all orders are
+      genuinely fraudulent (the base rate, P(fraud) = 0.005). First find the overall flag rate:
+      P(flagged) = P(flagged|fraud) x P(fraud) + P(flagged|not fraud) x P(not fraud)
+      = 0.95 x 0.005 + 0.05 x 0.995 = 0.00475 + 0.04975 = 0.0545. Then P(fraud | flagged)
+      = 0.00475 / 0.0545 ≈ 0.087 — about 8.7%.
+  - type: table
+    caption: Why the base rate flips the story (per 100,000 orders)
+    headers: ["Group", "Count", "Flagged by model", "Outcome"]
+    rows:
+      - ["Actually fraudulent (0.5%)", "500", "475 (95% caught)", "True positives"]
+      - ["Actually legitimate (99.5%)", "99,500", "4,975 (5% false-positive rate)", "False positives"]
+      - ["Total flagged", "—", "5,450", "Only 475 / 5,450 = 8.7% are real fraud"]
+  - type: callout
+    variant: important
+    title: A highly accurate model can still produce mostly false alarms
+    body: >
+      Both the 95% catch rate and the 5% false-positive rate sound reassuring in isolation. But
+      because legitimate orders vastly outnumber fraudulent ones, that small 5% false-positive rate
+      applied to a huge pool of legitimate orders (4,975 false alarms) swamps the 475 true catches
+      from the tiny pool of actual fraud. This is exactly why a flagged order should trigger a
+      *human review step*, not an automatic rejection — most flags, in this scenario, are wrong.
+  - type: text
+    body: >
+      Notice the business decision this changes: if you assumed "95% accurate" meant "95% of flags
+      are real fraud," you'd auto-block flagged orders and infuriate a large number of legitimate
+      customers. Once you compute P(fraud | flagged) properly, the right move is obviously a
+      lightweight manual review queue instead — the model is still useful for *narrowing down*
+      which 5.45% of orders deserve a second look, just not for making the final call alone.
+  - type: question
+    prompt: >
+      A subscription platform's churn-risk model correctly flags 90% of users who go on to churn,
+      and has a 10% false-positive rate among users who don't churn. Only 4% of all users churn in a
+      given month. A retention team wants to call every flagged user personally. What's the most
+      important thing to compute before committing that many hours?
+    choices:
+      - Nothing further — a 90% catch rate means the calls will almost always reach a genuinely at-risk user
+      - P(will churn | flagged) using Bayes' theorem, since the 4% base rate means false positives from the much larger non-churning group could dominate the flagged list
+      - The average call length, since that's the only unknown left
+    correct_index: 1
+    explanation: >
+      With a churn base rate this low, the flagged list is very likely to contain a large share of
+      users who were never going to churn — exactly the base-rate-fallacy pattern from the fraud
+      example. Computing P(churn | flagged) tells the team what fraction of their call time will
+      actually reach at-risk users before they commit to calling everyone on the list.

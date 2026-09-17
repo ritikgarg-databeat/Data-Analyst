@@ -1,0 +1,111 @@
+slug: the-quality-score-explained
+module_slug: data-profiling-quality
+title: "The Quality Score, Explained"
+description: How this platform's Dataset Hub quality score is actually computed — its four weighted components — and the explicit framing that it's an analytical aid for deciding where to look first, not a claim of objective correctness.
+difficulty: BEGINNER
+estimated_minutes: 11
+display_order: 5
+objectives:
+  - Name the four components of the Dataset Hub's quality score and what each one measures
+  - State the exact weighting used to combine them into one overall score
+  - Explain why the score is framed as an analytical aid, not a claim of objective correctness
+prerequisites: [reading-a-schema, missing-values-what-to-do, duplicate-rows-and-candidate-keys, outliers-a-judgment-call]
+skills: [exploratory-data-analysis]
+datasets: [ecommerce]
+tags: [foundations, beginner]
+key_takeaways:
+  - "The quality score is a weighted average of four components: completeness (35%), uniqueness (25%), validity (20%), and consistency (20%) — every one of those four numbers, and the overall score, is computed directly from things you've already learned to check by hand in this module."
+  - "Completeness measures null rates, uniqueness measures the duplicate-row rate, validity measures the statistical-outlier rate on numeric columns, and consistency measures how often categorical values differ only by case or whitespace (like 'USA' vs. 'usa') — four different lessons in this module, turned into four numbers."
+  - "The score is explicitly framed, in its own methodology text, as 'an analytical aid to help you decide where to look first, not a claim that the dataset is objectively X% correct' — a 92 doesn't mean '92% true,' it means 'a small number of specific, listed issues, most of them the kind this module already taught you to investigate rather than blindly trust or blindly fix.'"
+  - "Because validity is built from the same outlier detection this module already covered, a lower validity score doesn't automatically mean 'bad data' — it might mean a whale customer or a real large order, exactly the judgment call the outliers lesson walked through. The score flags it; you still make the call."
+common_mistakes:
+  - "Treating the overall score as a single pass/fail signal instead of looking at the four component scores and the specific listed issues behind them — an 85 driven entirely by one moderately messy column is a very different situation than an 85 spread evenly and mildly across everything."
+  - "Reading a lower validity score as proof the data is wrong — validity is built from outlier detection, and this module has already covered why a flagged outlier can be a completely real, valuable case rather than an error."
+  - "Assuming a high overall score means no further investigation is needed — a 95 can still be hiding one specific, serious issue in a column that happens to be small relative to the whole dataset's weighted average."
+practical_applications:
+  - "Using the quality score's component breakdown, not just the headline number, to decide which of the four dimensions (completeness, uniqueness, validity, consistency) deserves your attention first on a newly imported dataset."
+  - "Explaining a quality score to a stakeholder accurately — as a triage tool pointing at where to look, not a certification that the data is a certain percent correct."
+interview_questions:
+  - question: "How would you explain a dataset's quality score to a stakeholder who wants to know if the data is 'good'?"
+    answer: "I'd explain it's a triage tool, not a certification. It's a weighted average of four specific, checkable things — how complete the data is (few missing values), how unique it is (few duplicate rows), how valid it looks (few statistical outliers), and how consistent it is (categorical values written the same way each time) — each with a known formula behind it. A high score means those four checks came back clean, which is a good sign, but it doesn't mean every number in the dataset is guaranteed correct, and a lower score doesn't mean the data is unusable — it means specific, named issues exist that are worth looking at, some of which (like a flagged outlier that turns out to be a real big customer) might not even need fixing."
+  - question: "Why might a dataset with a lower validity component score still be perfectly usable for an analysis?"
+    answer: "Validity here is built from statistical outlier detection on numeric columns — it flags values that are far from typical, not values that are proven wrong. A dataset with a few genuinely large, real orders or a handful of high-value customers will score lower on validity for exactly that reason, even though those values are completely legitimate. The score is telling you where to look, and the right response after looking might well be 'these are real, keep them' rather than 'these are errors, fix them.'"
+resources:
+  - title: "Great Expectations — Data quality documentation"
+    url: "https://docs.greatexpectations.io/"
+blocks:
+  - type: heading
+    text: "Four components, one weighted average"
+  - type: text
+    body: >
+      Every READY dataset in the Dataset Hub gets a quality score built from exactly four components, each
+      one a direct, formula-based extension of a check this module has already taught you to think about by
+      hand:
+  - type: table
+    headers: ["Component", "Weight", "What it measures", "Built from"]
+    rows:
+      - ["Completeness", "35%", "100% minus the average null rate across all columns", "The missing-values lesson"]
+      - ["Uniqueness", "25%", "100% minus the fully-duplicate-row rate", "The duplicate-rows lesson"]
+      - ["Validity", "20%", "100% minus the average statistical-outlier rate across numeric columns (IQR/z-score)", "The outliers lesson"]
+      - ["Consistency", "20%", "100% minus the rate of categorical values that only differ by case/whitespace (e.g. 'USA' vs. 'usa')", "A specific, common categorical data quality issue"]
+  - type: text
+    body: >
+      Completeness is weighted highest (35%) because missing data affects the most kinds of downstream
+      analysis most directly. The overall score is simply those four component scores multiplied by their
+      weights and summed — nothing hidden, nothing subjective baked into the arithmetic itself.
+  - type: heading
+    text: "A worked example score"
+  - type: text
+    body: >
+      Suppose a table scores 96 on completeness, 100 on uniqueness, 88 on validity, and 94 on consistency.
+      The overall score is:
+  - type: formula
+    expression: "0.35 × 96 + 0.25 × 100 + 0.20 × 88 + 0.20 × 94 = 95.0"
+    description: "The same weighting — 35% / 25% / 20% / 20% — applies to every dataset's overall score"
+  - type: text
+    body: >
+      A 95 here isn't a claim that "95% of this dataset's values are true." It's a specific, decomposable
+      statement: nulls are rare, there are no fully duplicate rows, a modest number of numeric values look
+      statistically extreme, and categorical values are written consistently almost all the time. Every
+      one of those four sub-claims is independently checkable — and independently actionable.
+  - type: heading
+    text: "The explicit framing: an aid, not a verdict"
+  - type: callout
+    variant: important
+    title: "Straight from this platform's own scoring methodology"
+    body: >
+      The Dataset Hub states this outright, and it's worth internalizing rather than skimming past: "This
+      is an analytical aid to help you decide where to look first, not a claim that the dataset is
+      objectively X% correct — always use judgment about your specific dataset and use case." A quality
+      score is a fast, consistent starting point for triage. It is not a substitute for the judgment calls
+      this whole module has been building — especially the outliers lesson's central point, that a
+      statistically flagged value can be completely legitimate.
+  - type: heading
+    text: "Why a lower score isn't automatically 'bad data'"
+  - type: comparison
+    title: "Two different reasons a score might be lower than expected"
+    columns: ["Scenario", "What's really going on", "What to do"]
+    rows:
+      - ["Validity score is low because of a handful of large, real orders from known bulk-buying accounts", "The data is accurate — validity is just flagging genuine statistical extremes, per the outliers lesson", "Investigate, confirm they're real, and keep them — don't chase the score upward by deleting real cases"]
+      - ["Completeness score is low because a required field is failing to populate for a whole segment", "A real, likely upstream, defect", "Investigate the pipeline — this is exactly the kind of issue the score exists to surface early"]
+  - type: heading
+    text: "How to actually use the score"
+  - type: checklist
+    title: "Reading a quality score usefully"
+    items:
+      - "Look at the four component scores individually, not just the overall number — they point at different kinds of issues"
+      - "Read the specific listed issues behind a lower component score before assuming anything is broken"
+      - "Remember validity is built from outlier detection — apply the same error-vs-real-case judgment call from the outliers lesson before 'fixing' anything it flags"
+      - "Use the score to decide where to look first on a new dataset, not as a final verdict on whether it's safe to use"
+  - type: question
+    prompt: "A dataset scores 60 on validity but 98 on the other three components, and every value the validity check flagged turns out to be a legitimate large order from a known enterprise account. What's the most accurate interpretation?"
+    choices:
+      - "The validity score is doing its job — flagging statistical extremes for review — but a low score here doesn't mean the data is wrong; these values were investigated and confirmed real, per the outliers lesson's judgment call"
+      - "The dataset should be considered untrustworthy overall because one component scored low"
+      - "The validity formula must be broken, since real data shouldn't produce a low score"
+    correct_index: 0
+    explanation: >
+      Validity measures the statistical-outlier rate, not correctness. A low validity score with every
+      flagged value confirmed as a real, legitimate case is exactly the scenario the platform's own
+      methodology text warns about — the score points you where to look, and looking here confirmed the
+      data is fine, not broken.

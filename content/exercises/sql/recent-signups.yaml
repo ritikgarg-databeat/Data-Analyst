@@ -1,0 +1,57 @@
+slug: recent-signups
+lesson_slug: date-time-functions
+skill: sql-fundamentals
+dataset: ecommerce
+title: List December 2025 Signups
+description: Write a query that lists every customer who signed up within a specific date range, in chronological order.
+exercise_type: SQL
+difficulty: BEGINNER
+points: 15
+tags: [sql, beginner]
+business_context: >
+  Growth is putting together a welcome-email push for everyone who joined most recently and needs the
+  exact list of customers who signed up in December 2025, in the order they signed up, so outreach can
+  be sequenced correctly.
+prompt: >
+  Using the `customers` table, write a query that returns every customer whose `signup_date` falls
+  between 2025-12-01 and 2025-12-31 inclusive, showing `customer_id`, `first_name`, `last_name`, and
+  `signup_date`. Sort the result by `signup_date` ascending, and break ties on the same date by
+  `customer_id` ascending.
+sql_tables: [customers]
+sql_starter_query: |
+  -- Explore the customers table first
+  SELECT * FROM customers LIMIT 20;
+sql_solution_query: |
+  SELECT customer_id, first_name, last_name, signup_date
+  FROM customers
+  WHERE signup_date BETWEEN DATE '2025-12-01' AND DATE '2025-12-31'
+  ORDER BY signup_date ASC, customer_id ASC;
+sql_row_order_matters: true
+sql_numeric_tolerance: 0.01
+sql_hidden_tests:
+  - name: "Earliest December signup is correct"
+    query: |
+      SELECT customer_id, signup_date
+      FROM customers
+      WHERE signup_date BETWEEN DATE '2025-12-01' AND DATE '2025-12-31'
+      ORDER BY signup_date ASC, customer_id ASC
+      LIMIT 1
+    key_columns: 1
+hints:
+  - "BETWEEN works cleanly on dates, and it's inclusive on both ends, so it's a natural fit for 'between these two dates, inclusive.'"
+  - "WHERE signup_date BETWEEN DATE '2025-12-01' AND DATE '2025-12-31' filters to the month; ORDER BY signup_date puts them in chronological order, and adding customer_id as a second sort key keeps same-day signups in a consistent order."
+solution: |
+  ```sql
+  SELECT customer_id, first_name, last_name, signup_date
+  FROM customers
+  WHERE signup_date BETWEEN DATE '2025-12-01' AND DATE '2025-12-31'
+  ORDER BY signup_date ASC, customer_id ASC;
+  ```
+explanation: >
+  A strong answer filters with BETWEEN (or the equivalent pair of >= and <= comparisons) directly on the
+  signup_date column, and sorts chronologically rather than leaving row order to chance. Several
+  customers in this dataset signed up on the very same day, so a plan that only sorts by signup_date
+  leaves those same-day rows in an undefined relative order — adding customer_id as a tiebreaker makes
+  the sequence fully deterministic. A common mistake is writing signup_date > '2025-12-01' AND
+  signup_date < '2025-12-31', which silently excludes customers who signed up on the first or last day
+  of the month.

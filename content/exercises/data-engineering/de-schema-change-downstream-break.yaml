@@ -1,0 +1,27 @@
+slug: de-schema-change-downstream-break
+skill: modern-data-stack
+title: A Schema Change Breaking Downstream Reports
+description: An upstream engineering team silently renames a column from `order_status` to `status` in the production
+  database, and several analytics dashboards break overnight. What is the best process fix to prevent this class
+  of problem going forward?
+exercise_type: MULTIPLE_CHOICE
+difficulty: INTERMEDIATE
+points: 5
+tags:
+- data-quality
+- data-engineering
+prompt: An upstream engineering team silently renames a column from `order_status` to `status` in the production
+  database, and several analytics dashboards break overnight. What is the best process fix to prevent this class
+  of problem going forward?
+choices:
+- Establish a contract/notification process between engineering and analytics for any schema change to tables analytics
+  depends on, plus automated schema-drift monitoring on critical tables
+- Analysts should just check the schema manually every single morning before doing any work
+- Nothing can be done -- upstream teams should be free to change schemas without any coordination
+- Rewrite all dashboards to never reference specific column names
+correct_answer: Establish a contract/notification process between engineering and analytics for any schema change
+  to tables analytics depends on, plus automated schema-drift monitoring on critical tables
+explanation: 'The durable fix is process + automation, not vigilance: a schema-change notification agreement (or
+  better, automated schema-drift/contract testing on tables analytics depends on) catches this class of break systematically,
+  rather than relying on someone remembering to manually inspect a schema every day, which doesn''t scale and will
+  eventually be missed.'

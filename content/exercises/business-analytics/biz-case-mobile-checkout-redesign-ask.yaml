@@ -1,0 +1,74 @@
+slug: biz-case-mobile-checkout-redesign-ask
+lesson_slug: dm-analytical-decision-framework
+skill: decision-making
+dataset: ecommerce
+title: "Case: Should We Fund a Mobile Checkout Redesign?"
+description: Use the analytical decision framework to evaluate a funding request for a mobile checkout redesign, testing whether the underlying assumption actually holds in the data.
+exercise_type: BUSINESS_REASONING
+difficulty: INTERMEDIATE
+points: 20
+tags: [case-study, real-world, e-commerce, product]
+business_context: >
+  The Head of Product wants to fund a significant mobile checkout redesign next quarter,
+  believing "mobile conversion is clearly worse than desktop, and a redesign would close the
+  gap." Before approving the budget and roadmap slot, the Head of Product's manager wants a
+  quick, honest data check on whether that premise actually holds.
+stakeholder: "VP of Product"
+constraints:
+  - "You only have access to the sessions table (session_id, customer_id, session_start, session_end, device, landing_page, marketing_campaign_id, converted) for this check — no qualitative usability research and no funnel-step-level data."
+  - "A decision is needed this week; a full redesign proposal review is scheduled for next week and needs this input first."
+expected_deliverables:
+  - "Conversion rate computed by device, with sample sizes, from the actual sessions data"
+  - "An honest assessment of whether the premise (\"mobile converts clearly worse\") is actually supported by the data"
+  - "A specific recommendation: approve as scoped, hold pending more evidence, or redirect the ask"
+  - "If holding or redirecting, a suggestion for what evidence (if any) would change the recommendation"
+prompt: >
+  Using `sessions`, compute conversion rate (`converted = true`) by `device`. Assess whether the
+  premise behind the mobile checkout redesign request — that mobile converts meaningfully worse
+  than desktop — actually holds up, and give a specific recommendation for how to respond to the
+  funding request this week. State your answer in prose, citing the actual rates and sample sizes
+  you compute.
+hints:
+  - "Compute conversion rate for all three device types, not just mobile vs. desktop — and look at the actual size of the gap in percentage points, not just which device ranks lowest."
+  - "A ranking (e.g. \"mobile is the lowest\") and a meaningful gap are different things — consider what size of gap, given these sample sizes, would actually be worth a significant redesign investment versus falling within ordinary variation."
+rubric:
+  - criterion: "Computes conversion rate by device correctly, with sample sizes for each device"
+    points: 20
+  - criterion: "Correctly and honestly assesses that the gap between devices is small (roughly 0.7 percentage points between the highest and lowest), not the \"clearly worse\" pattern the request assumes"
+    points: 30
+  - criterion: "Recommends holding or redirecting the funding ask rather than approving it as scoped, with clear reasoning tied to the data"
+    points: 25
+  - criterion: "Suggests a specific, reasonable alternative or additional evidence that would change the recommendation (rather than simply rejecting the request outright)"
+    points: 25
+solution: >
+  Conversion rate by device: tablet 15.57% (609 of 3,912 sessions), desktop 15.28% (617 of 4,039), and
+  mobile 14.84% (601 of 4,049). Mobile is technically the lowest of the three, but the entire spread from
+  highest (tablet) to lowest (mobile) is 0.73 percentage points, on comparably large sample sizes (roughly
+  3,900-4,050 sessions each). This is not the pattern the redesign request describes — "mobile conversion
+  is clearly worse than desktop" implies a meaningful, actionable gap, and a 0.44-point difference between
+  mobile (14.84%) and desktop (15.28%) specifically is far more consistent with ordinary variation than
+  with a real, structural mobile checkout problem.
+
+  Recommendation: hold the funding request as currently scoped. Approving a "close the mobile gap"
+  redesign on this data risks committing meaningful engineering and design resources to fix a problem
+  that may not actually exist at the scale assumed — the premise doesn't survive a basic conversion-rate
+  check. This doesn't mean mobile checkout is necessarily fine, only that *this specific justification*
+  for the redesign isn't supported.
+
+  What would change the recommendation: session-level conversion rate is a coarse, aggregate signal that
+  can hide a real problem concentrated in one specific part of the mobile flow (e.g. a payment-step
+  drop-off) even while the overall rate looks similar to desktop. Before rejecting the underlying concern
+  entirely, request step-level mobile funnel data (cart -> shipping info -> payment -> confirmation) if
+  available, or a qualitative usability review of the mobile checkout flow specifically — either could
+  reveal a real, narrower problem that a topline conversion-rate comparison is too blunt to detect. The
+  redesign ask may still be worth funding, but on a more specific, better-evidenced justification than
+  "mobile converts worse than desktop."
+explanation: >
+  A strong answer resists the pull to confirm a leadership assumption just because a plausible-sounding
+  ranking exists in the data ("mobile is lowest" is technically true) — it checks the actual *size* of the
+  gap against the sample size available and correctly judges 0.7 points as within-noise rather than a
+  meaningful signal. Just as importantly, it doesn't stop at "the premise is wrong, reject the request" —
+  it proposes what finer-grained evidence could still justify the underlying concern, which is what turns
+  healthy skepticism into a useful recommendation rather than an obstruction. A weaker answer either
+  accepts the stated premise without checking it, or rejects the whole redesign idea without acknowledging
+  that a topline conversion-rate check can miss a real, narrower problem.

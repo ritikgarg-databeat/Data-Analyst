@@ -1,0 +1,32 @@
+slug: print-vs-return
+lesson_slug: functions
+skill: python-fundamentals
+title: Does print() Count as a Return Value?
+description: True/false check on whether a function that only prints its result gives the caller a usable value.
+exercise_type: TRUE_FALSE
+difficulty: BEGINNER
+points: 5
+tags: [python, beginner]
+prompt: >
+  Consider this function:
+
+
+  def get_average(values):
+      avg = sum(values) / len(values)
+      print(avg)
+
+
+  result = get_average([10, 20, 30])
+
+
+  True or False: after this code runs, result holds the numeric average of the list, 20.0.
+choices:
+  - "True"
+  - "False"
+correct_answer: "False"
+explanation: >
+  get_average only calls print(avg) — it never uses a return statement. print() displays a value on
+  screen but does not send anything back to the code that called the function. Because there's no
+  return statement, Python implicitly returns None, so result is bound to None, not 20.0, even though
+  20.0 was printed to the console. To make result hold the average, the function needs `return avg`
+  instead of (or in addition to) `print(avg)`.

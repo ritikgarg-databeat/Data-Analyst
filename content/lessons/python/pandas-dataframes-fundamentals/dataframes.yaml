@@ -1,0 +1,111 @@
+slug: dataframes
+module_slug: pandas-dataframes-fundamentals
+title: DataFrames
+description: The DataFrame as a 2D labeled table — creating one from a dictionary of columns, and reading its shape, columns, index, and dtypes.
+difficulty: BEGINNER
+estimated_minutes: 11
+display_order: 2
+objectives:
+  - Explain a DataFrame as a dict of aligned Series (a 2D labeled table)
+  - Create a DataFrame from a dictionary of lists
+  - Read a DataFrame's .shape, .columns, .index, and .dtypes to understand its structure at a glance
+prerequisites: [series]
+skills: [pandas]
+datasets: [ecommerce]
+tags: [python, beginner, foundations]
+key_takeaways:
+  - "A DataFrame is a 2D table: a dict of same-length Series that all share one index — every column is a Series, and every row is one entry from each of those Series, lined up by that shared index."
+  - ".shape gives (rows, columns) as a tuple, .columns gives the column labels, .index gives the row labels, and .dtypes gives the data type of every column at once — four quick attributes that describe the whole structure."
+  - "Every column in a DataFrame can have its own dtype (unlike a NumPy 2D array, which is one dtype for the whole grid) — that's what makes a DataFrame the right structure for real tabular data with a mix of text, numbers, and booleans."
+common_mistakes:
+  - "Calling .shape, .columns, or .dtypes with parentheses, like .shape() — these are attributes, not methods, so no parentheses."
+  - "Assuming a DataFrame column can be any length you like — every column in a dict passed to pd.DataFrame() must be the same length, or pandas raises an error."
+blocks:
+  - type: text
+    body: >
+      A **DataFrame** is pandas' 2D table — rows and columns, like a spreadsheet or a SQL result set.
+      Under the hood, it's best understood as a **dictionary of Series that all share the same index**:
+      each column is its own Series, and the DataFrame is what holds a collection of them together,
+      aligned row by row.
+  - type: heading
+    text: Creating a DataFrame from a dict
+  - type: code
+    language: python
+    code: |
+      import pandas as pd
+
+      data = {
+          "product_name": ["Pro Desk Lamp", "Compact Blender", "Essential Backpack"],
+          "unit_price": [321.10, 332.83, 341.27],
+          "is_active": [True, True, False],
+      }
+      products = pd.DataFrame(data)
+      print(products)
+    caption: Each dict key becomes a column name; each list becomes that column's values
+  - type: output
+    body: |
+              product_name  unit_price  is_active
+              0       Pro Desk Lamp      321.10       True
+              1     Compact Blender      332.83       True
+              2  Essential Backpack      341.27      False
+  - type: text
+    body: >
+      Notice the row labels on the left (0, 1, 2) — that's the DataFrame's index, exactly the same
+      concept as a Series' index, because a DataFrame *is* built from Series that all share it. Pull one
+      column back out with `products['unit_price']` and you get a plain Series, index and all.
+  - type: heading
+    text: "Four attributes to read a DataFrame's shape"
+  - type: code
+    language: python
+    code: |
+      print(products.shape)
+      print(products.columns)
+      print(products.index)
+      print(products.dtypes)
+    caption: No parentheses — these are attributes, not methods
+  - type: output
+    body: |
+      (3, 3)
+      Index(['product_name', 'unit_price', 'is_active'], dtype='str')
+      RangeIndex(start=0, stop=3, step=1)
+      product_name        str
+      unit_price      float64
+      is_active          bool
+      dtype: object
+  - type: table
+    headers: ["Attribute", "Returns", "Example value above"]
+    rows:
+      - [".shape", "A (rows, columns) tuple", "(3, 3)"]
+      - [".columns", "The column labels, as an Index", "Index(['product_name', 'unit_price', 'is_active'])"]
+      - [".index", "The row labels, as an Index", "RangeIndex(start=0, stop=3, step=1)"]
+      - [".dtypes", "One dtype per column, as a Series", "product_name: str, unit_price: float64, is_active: bool"]
+  - type: callout
+    variant: important
+    title: Unlike a NumPy array, every column can have its own type
+    body: >
+      A 2D NumPy array is one uniform dtype for the entire grid. A DataFrame is the opposite by design —
+      `unit_price` is float64, `is_active` is bool, and `product_name` is text, all living side by side
+      in the same table. That's exactly what makes a DataFrame the right fit for real-world tabular data,
+      which is almost never a single type.
+  - type: example
+    title: "Pulling a column back out returns a Series"
+    body: >
+      This is the DataFrame-as-dict-of-Series idea made concrete — indexing a DataFrame with a single
+      column name hands you back exactly the Series that was stored under that name.
+    language: python
+    code: |
+      col = products["unit_price"]
+      print(type(col))
+      # <class 'pandas.Series'>
+      print(col.index)
+      # RangeIndex(start=0, stop=3, step=1)  — same index as the DataFrame itself
+  - type: question
+    prompt: "A DataFrame has 4,205 rows and 5 columns. What does .shape return?"
+    choices:
+      - "(4205, 5)"
+      - "(5, 4205)"
+      - "4205"
+    correct_index: 0
+    explanation: >
+      .shape always returns (rows, columns), matching the convention used across NumPy and pandas alike
+      — rows first, columns second.

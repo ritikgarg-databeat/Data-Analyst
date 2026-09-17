@@ -1,0 +1,124 @@
+slug: dbt-snapshots-and-scd2
+module_slug: dbt-incremental-models-and-snapshots
+title: "Snapshots: Capturing History with customer_segment_snapshot"
+description: >-
+  This repo's real SCD Type 2 snapshot — the check strategy, check_cols,
+  and the dbt_valid_from/dbt_valid_to columns it produces — and why it's
+  the right tool when a source table only ever shows "right now."
+difficulty: ADVANCED
+estimated_minutes: 25
+display_order: 2
+prerequisites: [dbt-incremental-models]
+objectives:
+  - Explain the problem a snapshot solves — a source table that's overwritten in place has no memory of what a value used to be.
+  - Read this repo's real customer_segment_snapshot.sql and explain the check strategy, check_cols, and the dbt_valid_from/dbt_valid_to columns it produces.
+  - State why the check strategy (not timestamp) was the right choice here, given what the source data actually provides.
+skills: [dbt, data-lineage, modern-data-stack]
+datasets: [ecommerce]
+tags: [dbt, snapshots, scd, modern-data-stack, real-execution, advanced]
+key_takeaways:
+  - "A source table that's updated in place (like raw customers, where customer_segment just holds whatever value is current) has no memory — the moment a value changes, the old one is gone unless something captures it first. A dbt snapshot is that something: a persistent table that appends a new row and closes out the old one whenever tracked columns change."
+  - "This project's snapshot uses strategy='check' with check_cols=['customer_segment'] — it compares that column's current value against the last-captured value on every snapshot run, rather than trusting a timestamp column, because the source data has no reliable 'last updated' column to trust. That's the common real-world situation, not a textbook edge case."
+  - "dbt_valid_from and dbt_valid_to are what actually make this SCD Type 2: they let you ask 'what was this customer's segment as of a specific past date' instead of only ever seeing today's value — but only for changes that happened between two runs of dbt snapshot, since a skipped stretch of time simply isn't captured."
+common_mistakes:
+  - "Assuming a snapshot captures every single change the moment it happens — it only captures whatever the tracked columns' values are at the moment dbt snapshot actually runs; a value that changes and changes back between two runs would show up as no change at all."
+  - "Choosing strategy='timestamp' by default without checking whether the source actually has a trustworthy 'last updated' column — this project's real snapshot deliberately uses strategy='check' instead, because trusting a timestamp that isn't reliably maintained by the source system would silently miss changes."
+interview_questions:
+  - question: "Why does this project's snapshot use strategy='check' instead of strategy='timestamp'?"
+    answer: >
+      strategy='timestamp' trusts a column like updated_at on the source to always reflect exactly when a
+      row last changed — if that column exists and is reliably maintained, dbt can just compare timestamps
+      to know something changed. This project's raw customers source has no such column at all, which is
+      extremely common in practice — plenty of real source systems don't reliably stamp every update.
+      strategy='check' works without one: on every snapshot run, dbt directly compares the current value of
+      each column listed in check_cols (here, just customer_segment) against the value it captured last
+      time, and if it differs, closes out the old row and opens a new one. It costs a bit more computation
+      (an actual column comparison instead of a timestamp lookup) but doesn't depend on the source doing
+      anything the raw data here doesn't actually offer.
+blocks:
+  - type: heading
+    text: "The problem: an overwritten source has no memory"
+  - type: text
+    body: >
+      Look at how raw customers is loaded: `stg_customers.sql` selects `customer_segment` straight from
+      the source, and the source only ever holds one current value per customer — if a customer moves from
+      "consumer" to "business," the old value is simply gone the moment the source updates. Any query
+      against `stg_customers` at any point in time only ever sees "now." A dbt snapshot exists specifically
+      to fix that: it's a persistent table, owned entirely by dbt, that captures the tracked columns' values
+      every time it runs and preserves every value that ever existed, instead of only the current one.
+  - type: heading
+    text: "The real snapshot, in full"
+  - type: code
+    language: sql
+    code: |
+      {#
+          SCD Type 2 snapshot of each customer's segment over time.
+
+          Uses the `check` strategy (compare customer_segment column-by-column)
+          rather than `timestamp`, since the source data has no reliable
+          "last updated" column — this is the common real-world case, not the
+          textbook-ideal one. Each row this produces carries dbt's own
+          dbt_valid_from / dbt_valid_to bookkeeping columns, so a later
+          `customer_segment` change (consumer -> business, say) appends a new row
+          and closes out the old one instead of overwriting it in place.
+      #}
+      {% snapshot customer_segment_snapshot %}
+
+      {{
+          config(
+              target_schema='snapshots',
+              unique_key='customer_id',
+              strategy='check',
+              check_cols=['customer_segment'],
+          )
+      }}
+
+      select
+          customer_id,
+          customer_segment
+      from {{ ref('stg_customers') }}
+
+      {% endsnapshot %}
+    caption: "dbt/snapshots/customer_segment_snapshot.sql — the real, unedited snapshot."
+  - type: table
+    headers: ["Config", "What it means"]
+    rows:
+      - ["unique_key='customer_id'", "One customer's history is tracked as a chain of rows sharing this key"]
+      - ["strategy='check'", "Compare check_cols' current values against what was last captured, rather than trusting a timestamp column"]
+      - ["check_cols=['customer_segment']", "Only a change in this specific column triggers a new row — unrelated changes elsewhere in stg_customers wouldn't"]
+  - type: text
+    body: >
+      Every row this snapshot produces carries two columns dbt adds automatically: `dbt_valid_from` (when
+      this row's value became current) and `dbt_valid_to` (when it stopped being current — null for the
+      row that's current right now). If a customer's segment ever changes from "consumer" to "business,"
+      the next `dbt snapshot` run closes out the old row (fills in its `dbt_valid_to`) and inserts a new one
+      with `dbt_valid_from` set to that run's time — the old value is never overwritten or lost, only
+      superseded.
+  - type: table
+    headers: ["SCD type", "What happens to history when an attribute changes"]
+    rows:
+      - ["Type 0", "Never updated — the original value is kept forever, even if it becomes wrong"]
+      - ["Type 1", "Overwritten in place — history is destroyed, exactly what raw customers itself does"]
+      - ["Type 2", "A new row is added and the old one is closed out — full history is preserved, which is exactly what this snapshot builds"]
+  - type: callout
+    variant: warning
+    title: "A snapshot only sees what happens between the runs it's actually given"
+    body: >
+      This mechanism depends entirely on `dbt snapshot` actually being run regularly. If a customer's
+      segment changes from consumer to business and back to consumer again entirely between two snapshot
+      runs, the snapshot never sees the intermediate "business" state at all — it only ever compares
+      "what's the value right now" against "what did I capture last time I ran." A snapshot's history is
+      only as complete as its run schedule.
+  - type: question
+    prompt: "This project's snapshot uses strategy='check' rather than strategy='timestamp'. What does that tell you about the source data?"
+    choices:
+      - "The source data changes too frequently for a timestamp strategy to keep up"
+      - "The source has no reliable column recording when a row was last updated"
+      - "check is required whenever more than one column needs to be tracked"
+      - "check strategy is simply faster to compute than timestamp strategy"
+    correct_index: 1
+    explanation: >
+      strategy='timestamp' depends on the source reliably maintaining an updated-at-style column dbt can
+      trust to know when something changed. Choosing strategy='check' instead means the source doesn't
+      offer that — dbt has to directly compare the tracked columns' current values against what it
+      captured last time, which works without any assumption about the source's own bookkeeping.

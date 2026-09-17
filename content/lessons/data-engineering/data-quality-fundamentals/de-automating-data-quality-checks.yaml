@@ -1,0 +1,103 @@
+slug: de-automating-data-quality-checks
+module_slug: data-quality-fundamentals
+title: Automating Data Quality Checks
+description: Turning the five data quality dimensions into rules that run automatically — what a rule engine actually checks, and where in a pipeline each check earns its keep.
+difficulty: INTERMEDIATE
+estimated_minutes: 22
+display_order: 2
+objectives:
+  - Map each of the five data quality dimensions to a concrete, automatable rule type
+  - Explain why data quality checks need to run on a schedule, not just once when a pipeline is built
+  - Decide where in a pipeline (post-ingestion vs. post-transformation) a given check belongs
+prerequisites: [de-data-quality-dimensions]
+skills: [data-quality-engineering, data-pipelines]
+datasets: [ecommerce]
+tags: [data-quality, validation, data-engineering, intermediate]
+key_takeaways:
+  - "Each data quality dimension maps to a concrete, automatable rule: NOT_NULL for completeness, UNIQUE for uniqueness, ACCEPTED_VALUES/MIN_MAX for validity, RELATIONSHIP for consistency (referential integrity), and FRESHNESS/ROW_COUNT for freshness and volume anomalies."
+  - "A check that only runs once, when a pipeline is first built, only proves the data was fine on that one day — checks need to run on every pipeline execution to catch drift and failures that show up later."
+  - "Deciding where a check runs matters: checking raw, just-landed data catches source problems early and cheaply, while checking transformed output catches errors introduced by the transformation logic itself — most mature pipelines need both."
+common_mistakes:
+  - "Writing a data quality check once during initial development and never running it again — a check that isn't scheduled to run on every pipeline execution provides almost no ongoing protection."
+  - "Only checking data quality after transformation, which can mask the fact that a source system started sending bad data days before anyone can see the actual root cause in the raw layer."
+interview_questions:
+  - question: "You're told a dashboard's numbers 'don't look right' but the underlying pipeline reports success every day. How would you use automated data quality rules to figure out what's actually wrong?"
+    answer: >
+      Start by mapping the symptom to a dimension: is a value missing (completeness), duplicated
+      (uniqueness), out of an expected range or set (validity), disagreeing with another source
+      (consistency), or just stale (freshness)? Then check whether an automated rule for that
+      dimension already exists and is passing — if row counts, null rates, and accepted values all
+      look fine but the number is still wrong, the issue is more likely in the transformation logic
+      itself (a join fan-out, a wrong aggregation) than in the raw data's quality, which narrows
+      where to look next considerably.
+blocks:
+  - type: heading
+    text: From "the data looks wrong" to a rule that runs every night
+  - type: text
+    body: >
+      Naming a data quality dimension (completeness, uniqueness, validity, consistency, freshness)
+      is the first step. Turning that into something that runs automatically, every time the
+      pipeline executes, and alerts someone the moment it fails, is what actually protects a team
+      from silently bad data. Each dimension maps naturally onto a small, reusable rule type.
+  - type: table
+    headers: ["Rule type", "Dimension it checks", "Example against the ecommerce dataset"]
+    rows:
+      - ["NOT_NULL", "Completeness", "`orders.customer_id` should never be NULL"]
+      - ["UNIQUE", "Uniqueness", "`orders.order_id` should never repeat"]
+      - ["ACCEPTED_VALUES", "Validity", "`orders.status` should only ever be one of `completed`, `cancelled`, `refunded`, `pending`"]
+      - ["MIN_MAX", "Validity", "`order_items.discount` should fall within an expected range, such as 0-100"]
+      - ["RELATIONSHIP", "Consistency (referential integrity)", "Every `order_items.order_id` should exist in `orders.order_id`"]
+      - ["ROW_COUNT", "Freshness / volume anomaly", "`orders` should gain roughly as many new rows today as a typical day, not zero and not 100x normal"]
+      - ["FRESHNESS", "Freshness", "`orders` should contain at least one row from within the last 24 hours"]
+  - type: text
+    body: >
+      This is the same shape of rule engine you'll work with hands-on in the Data Quality Lab
+      elsewhere on this platform — the dimensions and rule types above are exactly what it's built
+      around. Understanding the mapping conceptually here makes that lab far more legible when you
+      get there.
+  - type: example
+    title: "Choosing rules for `orders` and `order_items`"
+    body: >
+      A reasonable starting rule set for the `ecommerce` dataset's core tables: NOT_NULL on
+      `orders.order_id`, `orders.customer_id`, and `orders.order_date`; UNIQUE on `orders.order_id`;
+      ACCEPTED_VALUES on `orders.status` (the four known values) and `orders.channel` (`web`,
+      `mobile`, `marketplace`); RELATIONSHIP checks that every `order_items.order_id` exists in
+      `orders` and every `order_items.product_id` exists in `products`; and a FRESHNESS check that
+      `orders` has received at least one new row within whatever window matches how often the
+      business expects new orders to arrive.
+  - type: heading
+    text: A check only protects you if it keeps running
+  - type: callout
+    variant: common_mistake
+    title: "A one-time check is a snapshot, not protection"
+    body: >
+      Running a NOT_NULL check once, during development, only proves the data was complete on that
+      one day. Data quality problems are almost always introduced *later* — a source system
+      changes, a new edge case appears, an upstream schema drifts. A check has to be wired into the
+      pipeline itself and run on every single execution to actually catch that drift when it
+      happens, rather than months after the fact.
+  - type: heading
+    text: Where in the pipeline should a check run?
+  - type: text
+    body: >
+      Checks aren't only useful in one place. Running them against **raw, just-landed data** catches
+      problems introduced by the source system or the extraction step itself — cheaply, and before
+      any transformation has a chance to compound the issue. Running checks again against
+      **transformed output** catches a different category of problem: bugs introduced by the
+      transformation logic itself, such as a join that unexpectedly duplicates rows or an
+      aggregation that silently drops a segment. A mature pipeline typically has both layers of
+      checks, because they protect against genuinely different failure modes.
+  - type: question
+    prompt: >
+      A RELATIONSHIP check confirming every `order_items.product_id` exists in `products` has
+      passed every night for months, then starts failing. Which is the most likely explanation?
+    choices:
+      - "The `discount` column's values changed"
+      - "Either a new `order_items` row references a `product_id` that hasn't been ingested into `products` yet, or a product was removed from `products` while orders still reference it — a genuine referential integrity break, worth investigating rather than dismissing"
+      - "This check type doesn't apply to this pair of tables"
+    correct_index: 1
+    explanation: >
+      A RELATIONSHIP check failing after passing consistently points to a real change in how the
+      two tables relate — a timing issue (the child table's row landed before its parent), a hard
+      deletion upstream, or a genuine data integrity bug. It's a consistency-dimension failure and
+      deserves investigation, not a quick dismissal as noise.

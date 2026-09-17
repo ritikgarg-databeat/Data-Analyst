@@ -1,0 +1,25 @@
+slug: prob-independent-vs-mutually-exclusive
+lesson_slug: prob-conditional-independence
+skill: statistics
+title: Independent vs. Mutually Exclusive Events
+description: Distinguish two frequently confused probability concepts with a quick concrete scenario.
+exercise_type: MULTIPLE_CHOICE
+difficulty: BEGINNER
+points: 10
+tags: [statistics, beginner]
+prompt: >
+  A customer's order can either be "completed" or "cancelled" — never both at once. A separate
+  question: whether a customer is on mobile or desktop has no bearing on whether their order gets
+  cancelled. Which statement correctly describes these two relationships?
+choices:
+  - "\"Completed\" and \"cancelled\" are independent events, and device type and cancellation are mutually exclusive"
+  - "\"Completed\" and \"cancelled\" are mutually exclusive (they can't both happen for the same order), while device type and cancellation being unrelated describes independence — and mutually exclusive events are actually never independent of each other (if one happens, the other one specifically cannot)"
+  - "Mutually exclusive and independent are two names for the same idea, just used in different contexts"
+correct_answer: "\"Completed\" and \"cancelled\" are mutually exclusive (they can't both happen for the same order), while device type and cancellation being unrelated describes independence — and mutually exclusive events are actually never independent of each other (if one happens, the other one specifically cannot)"
+explanation: >
+  Mutually exclusive means two events can't both occur (an order can't be both completed and
+  cancelled). Independent means one event's occurrence doesn't change the probability of the other
+  (device type doesn't move the cancellation rate). These are different concepts, and in fact
+  opposite in a specific sense: if two events are mutually exclusive and one occurs, the probability
+  of the other becomes exactly zero — which is about as far from "unaffected" (independence) as two
+  events can get.

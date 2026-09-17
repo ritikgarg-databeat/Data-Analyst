@@ -1,0 +1,19 @@
+slug: biz-gross-margin-calculation
+skill: business-metrics
+title: Computing Gross Margin
+description: A product sells for $100 and costs $65 to produce and deliver (COGS). What is the gross margin percentage?
+exercise_type: MULTIPLE_CHOICE
+difficulty: BEGINNER
+points: 5
+tags:
+- margin
+- revenue
+prompt: A product sells for $100 and costs $65 to produce and deliver (COGS). What is the gross margin percentage?
+correct_answer: 35%
+explanation: Gross margin % = (Revenue - COGS) / Revenue = (100-65)/100 = 35%. It measures how much of each revenue
+  dollar remains after the direct cost of producing/delivering the good or service, before operating expenses.
+choices:
+- 35%
+- 65%
+- 150%
+- 35 dollars, not a percentage

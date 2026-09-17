@@ -1,0 +1,23 @@
+slug: where-vs-having
+lesson_slug: having
+skill: sql-fundamentals
+title: WHERE vs. HAVING
+description: Explain the difference between filtering with WHERE and filtering with HAVING.
+exercise_type: SHORT_ANSWER
+difficulty: BEGINNER
+points: 10
+tags: [sql, beginner]
+prompt: >
+  What is the difference between WHERE and HAVING, and why can't you use WHERE to filter on the
+  result of an aggregate function like SUM(order_total)?
+correct_answer: "WHERE filters individual rows before grouping; HAVING filters groups after aggregation"
+hints:
+  - "Think about the order SQL actually evaluates clauses in: FROM → WHERE → GROUP BY → HAVING → SELECT."
+  - "WHERE only has access to columns that exist on a single row — an aggregate like SUM() doesn't exist yet at that point."
+solution: >
+  WHERE filters individual rows before any grouping happens, so it can only reference columns that
+  exist on a single row. HAVING filters *groups* after GROUP BY has aggregated rows, so it can
+  reference aggregate expressions like SUM(order_total) or COUNT(*).
+explanation: >
+  A common mistake is writing `WHERE SUM(order_total) > 100` — this fails because SUM() doesn't exist
+  yet when WHERE runs. The fix is `GROUP BY customer_id HAVING SUM(order_total) > 100`.

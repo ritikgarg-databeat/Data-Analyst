@@ -1,0 +1,42 @@
+slug: comparing-customer-segments-on-value-and-frequency
+lesson_slug: welcome-to-the-challenge-library
+skill: exploratory-data-analysis
+dataset: ecommerce
+title: "Business vs. Consumer: A Segmentation That Isn't There"
+description: Compare the business and consumer customer segments on order value and order frequency, and interpret a segmentation check that comes back nearly flat.
+exercise_type: DATA_INTERPRETATION
+difficulty: INTERMEDIATE
+points: 20
+tags: [eda, real-world, intermediate, case-study]
+prompt: >
+  Using `customers`, `orders`, and `payments`, you compare the `business` and `consumer` values of
+  `customers.customer_segment` on two measures: average order count per customer (business: 2.8, consumer:
+  2.7) and average order value on successful payments (business: $1,659.80, consumer: $1,697.53). The
+  marketing team expected business customers to order noticeably more often and spend noticeably more per
+  order. Given how close these numbers actually are, what would you tell the marketing team, and what
+  would you check next before concluding the segment doesn't matter for anything?
+hints:
+  - "A near-flat result on two specific measures doesn't mean the segment is meaningless everywhere — it means it isn't the driver of THESE two measures. Think about what other measures (total lifetime spend, product category mix, order channel, campaign responsiveness) the segment might still meaningfully predict."
+  - "Also consider: is customer_segment being applied consistently and meaningfully at signup, or could it be a loosely-assigned label that doesn't reliably track real behavioral differences? That's a data-quality question worth raising alongside the behavioral one."
+solution: >
+  I'd tell the marketing team directly that, on these two specific measures, the data doesn't support the
+  assumption — business and consumer customers order at nearly identical frequency (2.8 vs. 2.7 orders) and
+  spend nearly identical amounts per order ($1,659.80 vs. $1,697.53), a gap small enough to plausibly be
+  noise rather than a real behavioral difference. I would NOT conclude the segment is useless in general
+  from just these two checks. Before going that far, I'd check: (1) whether business and consumer customers
+  differ on other measures instead — total lifetime spend, which products/categories they buy, which
+  acquisition channel brought them in, or how they respond to specific campaigns; (2) whether
+  customer_segment is being assigned reliably and meaningfully at signup, or whether it's a loosely-defined
+  self-reported field that doesn't track any real underlying behavioral difference; (3) whether combining
+  segment with a second dimension (e.g. segment × tenure, or segment × acquisition channel) reveals a
+  difference that's invisible when segment is checked alone. The honest report to marketing: "this
+  particular assumption doesn't hold up in the data as measured — here's what we'd need to check next
+  before deciding whether the segment is useful for something else, or whether it needs to be redefined."
+explanation: >
+  A strong answer resists two opposite temptations: forcing a difference into the numbers that isn't
+  really there, and over-generalizing "no difference on these two measures" into "this segment is useless."
+  It treats a flat result as a real, reportable finding worth communicating honestly to the stakeholder who
+  expected otherwise, while proposing specific next checks (other measures, data-quality of the segment
+  field itself, interaction with a second variable) rather than simply concluding the investigation is over.
+  A weaker answer either invents a difference that isn't supported by the stated numbers, or reports "no
+  difference" as a final, complete answer with nothing left to investigate.

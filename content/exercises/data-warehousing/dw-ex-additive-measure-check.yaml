@@ -1,0 +1,21 @@
+slug: dw-ex-additive-measure-check
+lesson_slug: dw-facts-and-dimensions-basics
+skill: dimensional-modeling
+title: "Is AVG() a Valid Way to Roll Up Margin Percentage?"
+description: Evaluate whether averaging a non-additive ratio measure across orders produces a valid business number.
+exercise_type: TRUE_FALSE
+difficulty: INTERMEDIATE
+points: 10
+tags: [fact-table, aggregation, grain, intermediate]
+prompt: >
+  True or False: it is valid to compute "overall gross margin percentage across all completed orders
+  in a quarter" by taking AVG(gross_margin_pct) across those orders' fct_orders rows.
+choices: ["True", "False"]
+correct_answer: "False"
+explanation: >
+  gross_margin_pct is a non-additive, derived ratio — averaging it treats every order as equally
+  weighted regardless of size, so a handful of tiny orders with unusually high margin percentages can
+  distort the "overall" figure away from what the business actually earned. The correct approach sums
+  the additive components separately across the quarter's completed orders — SUM(gross_margin) and
+  SUM(gross_revenue) — and divides once at the end, which naturally revenue-weights the result instead
+  of order-count-weighting it.

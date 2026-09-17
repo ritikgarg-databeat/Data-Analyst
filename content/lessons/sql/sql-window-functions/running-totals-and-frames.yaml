@@ -1,0 +1,140 @@
+slug: running-totals-and-frames
+module_slug: sql-window-functions
+title: Running Totals and Frame Clauses
+description: Using SUM() and AVG() as window functions to build running totals and trailing averages, and controlling exactly which rows a window covers with a frame clause.
+difficulty: ADVANCED
+estimated_minutes: 14
+display_order: 3
+objectives:
+  - Compute a running total using SUM() OVER (ORDER BY ...)
+  - Explain the default frame that ORDER BY implies, and write an explicit ROWS BETWEEN frame
+  - Compute a trailing N-row average using a bounded frame
+  - Distinguish "trailing N rows" from "trailing N calendar days" when the underlying data has gaps
+prerequisites: [ranking-functions]
+skills: [advanced-sql]
+datasets: [ecommerce]
+tags: [sql, advanced]
+key_takeaways:
+  - "SUM() OVER (ORDER BY x) computes a running total by default — each row gets the sum of its own value plus every earlier row's value, because ORDER BY implies a frame of everything from the start of the partition up to the current row."
+  - "A frame clause like ROWS BETWEEN 6 PRECEDING AND CURRENT ROW makes the window explicit: it covers the current row plus the 6 rows before it in the ordering, giving a trailing 7-row window regardless of what's in between."
+  - "'Trailing 7 rows' is not the same as 'trailing 7 calendar days' — if the underlying data skips days with no activity, a ROWS-based frame silently spans a wider or narrower calendar window than the row count suggests."
+common_mistakes:
+  - "Assuming a bare SUM() OVER (ORDER BY x) with no explicit frame behaves the same as SUM() OVER () — leaving out ORDER BY makes it a grand total on every row; adding ORDER BY switches the default frame to a running total. The presence of ORDER BY alone changes the meaning."
+  - "Calling a ROWS BETWEEN 6 PRECEDING AND CURRENT ROW average a 'trailing 7-day average' when the source rows are one-per-date-with-any-activity — if some dates have zero activity and are simply missing from the table, the window actually spans more than 7 calendar days."
+blocks:
+  - type: heading
+    text: A running total is just SUM() with ORDER BY
+  - type: text
+    body: >
+      SUM() and AVG() work as window functions exactly like COUNT() did in the first lesson of this
+      module — the difference that turns them into a *running* total is adding ORDER BY inside
+      OVER(). Ordering the window changes its default extent from "every row in the partition" to
+      "every row from the start of the partition through the current one."
+  - type: code
+    language: sql
+    caption: Daily payment revenue with a running total, first eight days
+    code: |
+      WITH daily_revenue AS (
+        SELECT payment_date, ROUND(SUM(amount), 2) AS revenue
+        FROM payments
+        GROUP BY payment_date
+      )
+      SELECT
+        payment_date,
+        revenue,
+        ROUND(SUM(revenue) OVER (ORDER BY payment_date), 2) AS running_total
+      FROM daily_revenue
+      ORDER BY payment_date
+      LIMIT 8;
+  - type: output
+    body: |
+      payment_date | revenue | running_total
+      --------------+---------+---------------
+      2024-01-12    | 3530.06 |       3530.06
+      2024-01-20    |  334.93 |       3864.99
+      2024-01-27    | 3151.68 |       7016.67
+      2024-02-05    |  768.46 |       7785.13
+      2024-02-09    | 3019.37 |      10804.50
+      2024-02-11    | 2323.34 |      13127.84
+      2024-02-15    | 1384.80 |      14512.64
+      2024-02-16    | 1933.44 |      16446.08
+  - type: text
+    body: >
+      Each running_total is the sum of that row's own revenue plus every prior day's revenue. This
+      works because `ORDER BY payment_date` inside `OVER()` implicitly sets the window's frame to
+      "everything from the first row of the partition through the current row" — there's no explicit
+      frame clause here yet, but one is silently in effect.
+  - type: heading
+    text: Making the frame explicit with ROWS BETWEEN
+  - type: text
+    body: >
+      A **frame clause** spells out exactly which rows, relative to the current one, a window
+      function should consider. `ROWS BETWEEN <start> AND <end>` is the most common form, where each
+      bound is one of `UNBOUNDED PRECEDING`, `N PRECEDING`, `CURRENT ROW`, `N FOLLOWING`, or
+      `UNBOUNDED FOLLOWING`. Writing the running total's implicit frame out explicitly makes the
+      earlier query's behavior unambiguous:
+  - type: code
+    language: sql
+    caption: The exact same running total, with its frame spelled out explicitly
+    code: |
+      SELECT
+        payment_date,
+        revenue,
+        SUM(revenue) OVER (
+          ORDER BY payment_date
+          ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+        ) AS running_total
+      FROM daily_revenue
+      ORDER BY payment_date;
+  - type: text
+    body: >
+      Once the frame is something you control directly, you're not limited to "everything so far" —
+      a bounded frame like `6 PRECEDING AND CURRENT ROW` produces a trailing window of a fixed number
+      of rows instead of an ever-growing one.
+  - type: code
+    language: sql
+    caption: A trailing 7-row average alongside the cumulative running total
+    code: |
+      SELECT
+        payment_date,
+        revenue,
+        ROUND(SUM(revenue) OVER (
+          ORDER BY payment_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+        ), 2) AS running_total,
+        ROUND(AVG(revenue) OVER (
+          ORDER BY payment_date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW
+        ), 2) AS trailing_7row_avg
+      FROM daily_revenue
+      ORDER BY payment_date
+      LIMIT 8;
+  - type: callout
+    variant: warning
+    title: "'Trailing 7 rows' can be a very different window than 'trailing 7 days'"
+    body: >
+      `daily_revenue` has one row per *date that had at least one payment* — dates with zero payments
+      simply don't appear at all. Looking at the output above, the 8 rows shown span January 12
+      through February 16 — over a month — even though `trailing_7row_avg` only ever looks back 7
+      *rows*. If the goal were a true trailing-7-*calendar*-day average, `ROWS BETWEEN` is the wrong
+      tool on data with gaps like this; it would require either a RANGE frame over an actual date
+      interval, or (more robustly) joining against a complete calendar of dates first, similar to the
+      recursive CTE calendar from the previous module, so every date is represented even with zero
+      revenue.
+  - type: table
+    headers: ["Frame clause", "Meaning"]
+    rows:
+      - ["ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW", "From the start of the partition through the current row — a running total"]
+      - ["ROWS BETWEEN 6 PRECEDING AND CURRENT ROW", "The current row plus the 6 immediately before it — a trailing 7-row window"]
+      - ["ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING", "The current row through the end of the partition — a 'remaining total'"]
+      - ["ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING", "The entire partition, regardless of the current row's position"]
+  - type: question
+    prompt: "SUM(revenue) OVER (ORDER BY payment_date) is written with no explicit ROWS BETWEEN clause. What frame does it actually use?"
+    choices:
+      - "The entire partition, same as if ORDER BY weren't there at all"
+      - "ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW — a running total, because ORDER BY implies that default frame"
+      - Just the current row by itself
+    correct_index: 1
+    explanation: >
+      Adding ORDER BY inside OVER() changes the default frame from the whole partition to
+      "UNBOUNDED PRECEDING through CURRENT ROW" — exactly the running-total behavior. Without ORDER BY,
+      the default frame would cover the whole partition instead, which is why simply adding ORDER BY
+      is enough to turn a flat total into a running one, with no frame clause required.

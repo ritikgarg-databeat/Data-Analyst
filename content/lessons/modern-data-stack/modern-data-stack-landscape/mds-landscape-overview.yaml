@@ -1,0 +1,106 @@
+slug: mds-landscape-overview
+module_slug: modern-data-stack-landscape
+title: "The Modern Data Stack, End to End"
+description: >-
+  How raw data becomes a trustworthy dashboard number — the ingestion,
+  warehousing, transformation, orchestration, and BI stages every modern
+  stack has, mapped onto the real dbt project in this repo.
+difficulty: BEGINNER
+estimated_minutes: 35
+display_order: 1
+objectives:
+  - Name the standard stages data passes through between a source system and a stakeholder's dashboard, and give current real-world tool examples for each.
+  - Explain why cloud warehouses shifted the transform step to happen after loading (ELT) instead of before it (ETL), and where a tool like dbt sits in that shift.
+  - Locate every stage of the standard pipeline inside this repo's real dbt project, as a concrete anchor for the rest of this domain.
+skills: [modern-data-stack, data-engineering-fundamentals]
+datasets: [ecommerce]
+tags: [modern-data-stack, architecture, data-engineering, pipelines, etl, elt, beginner, foundations]
+key_takeaways:
+  - "A modern data stack is a chain of specialized tools, not one product: ingestion (get data in), a warehouse (store it), transformation (clean/model it), orchestration (schedule/sequence it), and BI (serve it) — most job postings and architecture diagrams are naming a stage, not describing something exotic."
+  - "ELT replaced ETL as the default order once cloud warehouses got cheap and powerful enough to do the transform step themselves, in SQL, on data that's already landed — that's exactly the role dbt plays in this platform's real project."
+  - "You do not need deep expertise in every stage to be an effective analyst — this module gives you the map; module 9 in this same domain draws a specific line around what to own, what to understand, and what to hand off."
+common_mistakes:
+  - "Treating 'the modern data stack' as a single product or vendor name — it's a category of architecture pattern assembled from several independently-chosen tools, and two companies' stacks can use completely different vendors at every stage and still both be 'a modern data stack.'"
+  - "Assuming ELT means transformation logic disappears — it doesn't disappear, it just moves: from a separate ETL server/script into SQL models that run inside the warehouse, which is precisely what a dbt project like the one in this repo is."
+interview_questions:
+  - question: "Someone asks you to explain the difference between ETL and ELT in one sentence. What do you say?"
+    answer: >
+      Both extract data from a source and load it somewhere, and both transform it — the difference is
+      order and location. ETL transforms the data in a separate processing step *before* loading it into
+      the warehouse, which made sense when warehouses were expensive and couldn't be trusted with heavy
+      compute. ELT loads the raw data into the warehouse first and transforms it there afterward, in SQL,
+      which became the default once cloud warehouses got cheap and powerful enough to do that work
+      themselves — that's the model this platform's dbt project follows: raw CSVs are the "load," and
+      every staging/intermediate/marts model is the "transform," running entirely as SQL inside the
+      warehouse.
+blocks:
+  - type: heading
+    text: Five stages, one job each
+  - type: text
+    body: >
+      Every modern data stack — regardless of which specific vendors a company picked — answers the same
+      question in five stages: how does a number in a source system become a number a stakeholder can
+      trust on a dashboard? Ingestion gets data *into* the warehouse. The warehouse stores it, structured
+      and queryable. Transformation turns raw rows into clean, tested, well-named models. Orchestration
+      schedules and sequences all of the above so it runs on a reliable cadence. BI/serving puts the final
+      result in front of a human. None of these stages is optional, and recognizing which stage a tool
+      name belongs to is most of what "knowing the modern data stack" actually means.
+  - type: table
+    headers: ["Stage", "What it does", "Real tool examples", "Where it lives in this platform"]
+    rows:
+      - ["Ingestion", "Extract data from a source system and land it in the warehouse", "Fivetran, Airbyte, Stitch, custom scripts", "Conceptual only — covered in the Data Engineering domain"]
+      - ["Warehouse / storage", "Store raw and transformed data, structured and queryable", "Snowflake, BigQuery, Databricks", "This domain's Cloud Data Warehouses module"]
+      - ["Transformation", "Turn raw data into clean, tested, documented models", "dbt", "The real dbt/ project in this repo — modules 2-5"]
+      - ["Orchestration", "Schedule and sequence ingestion, transformation, and everything downstream", "Airflow, Dagster, Prefect", "Orchestration, Streaming & Distributed Processing module"]
+      - ["BI / serving", "Put the final numbers in front of a person, self-serve or on a dashboard", "Looker, Tableau, Power BI, Metabase", "Covered across the Data Visualization domain"]
+  - type: heading
+    text: "Why ELT beat ETL as the default order"
+  - type: text
+    body: >
+      For a long time, transforming data before loading it (ETL) was the only realistic option —
+      warehouses were expensive, slow, and not built to run heavy transformation logic, so that work
+      happened on a separate server first. Cloud warehouses changed the economics: storage got cheap,
+      compute got elastic, and the warehouse itself became fast enough to do the transformation work.
+      That flipped the order — load the raw data first (Extract, Load), then transform it afterward using
+      the warehouse's own compute (Transform) — which is ELT. Nothing about the transformation logic
+      disappeared; it just moved from a separate ETL tool into SQL models that run inside the warehouse.
+  - type: callout
+    variant: important
+    title: "dbt is the 'T' in ELT — nothing more, nothing less"
+    body: >
+      dbt does not extract data from source systems and does not load it into a warehouse — it assumes
+      that already happened (by a tool like Fivetran, or in this platform's case, by CSV files already
+      sitting in `data/sample/ecommerce/`). What dbt owns is entirely the transform step: turning that
+      already-landed raw data into clean, tested, documented SQL models. That's a deliberately narrow
+      scope, and it's exactly why dbt shows up in nearly every modern stack regardless of which ingestion
+      or warehouse vendor a company chose.
+  - type: example
+    title: "This repo's real dbt project, mapped onto the five stages"
+    body: >
+      This platform ships a real, working dbt project at `dbt/` that you'll actually run in the dbt Lab.
+      Its `sources.yml` points at the ecommerce dataset's raw CSVs (orders, customers, order_items,
+      payments, products, categories) — standing in for "data that ingestion already landed." From there,
+      `dbt/models/staging/` cleans and standardizes each source one-to-one, `dbt/models/intermediate/`
+      joins and enriches across sources, and `dbt/models/marts/` produces the final, BI-ready tables like
+      `fct_orders` and `dim_customers`. There's no ingestion tool and no orchestrator in this platform by
+      design — the next four modules go deep on the transformation layer specifically, since that's the
+      part an analyst is most likely to actually build.
+  - type: question
+    prompt: "A job posting lists 'Airflow, Snowflake, dbt, Looker' as the company's stack. Which of these is doing the transformation work?"
+    choices:
+      - "Airflow"
+      - "Snowflake"
+      - "dbt"
+      - "Looker"
+    correct_index: 2
+    explanation: >
+      Airflow is orchestration (scheduling/sequencing), Snowflake is the warehouse (storage/compute), dbt
+      is transformation (the SQL models that turn raw data into clean, tested tables), and Looker is the
+      BI/serving layer. All four commonly appear together — each is doing a different, non-overlapping
+      job.
+  - type: checklist
+    title: "Before module 2: can you place these tools?"
+    items:
+      - "Given a tool name from a job posting, can you say which of the five stages it belongs to?"
+      - "Can you explain, in one sentence, why ELT overtook ETL as the default for cloud warehouses?"
+      - "Do you know which of these five stages this platform's dbt project actually covers, and why the other four stay conceptual in this lab?"

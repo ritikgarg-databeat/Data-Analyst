@@ -1,0 +1,71 @@
+slug: metrics
+module_slug: analytical-thinking
+title: Metrics
+description: What makes a good metric — actionable, comparable, resistant to gaming — and the difference between leading and lagging indicators.
+difficulty: BEGINNER
+estimated_minutes: 12
+display_order: 3
+objectives:
+  - List the properties of a well-designed metric
+  - Distinguish leading indicators from lagging indicators and explain when each is useful
+prerequisites: [hypothesis-thinking]
+skills: [business-metrics]
+tags: [foundations, beginner, business-analytics, product-analytics]
+key_takeaways:
+  - A good metric is actionable, comparable over time and across segments, and resistant to gaming.
+  - Lagging indicators confirm an outcome already happened; leading indicators give an early read while there's still time to act.
+  - Optimizing a gameable metric in isolation can make the number look better while the real outcome gets worse.
+common_mistakes:
+  - Picking a metric because it's easy to measure, not because it's actionable or hard to game.
+  - Reacting only to lagging indicators, which means finding out something went wrong only after it's too late to prevent it.
+blocks:
+  - type: heading
+    text: What makes a metric good, not just measurable
+  - type: text
+    body: >
+      Almost anything can be turned into a number. Not every number is worth tracking. A well-designed
+      metric earns its place on a dashboard by being actionable, comparable, and hard to game.
+  - type: checklist
+    title: A well-designed metric is...
+    items:
+      - Actionable — a team can take a specific action expected to move it
+      - Comparable — defined consistently enough to track over time and across segments without redefinition
+      - Resistant to gaming — hard to move the number without moving the underlying thing it represents
+  - type: example
+    title: When a metric games itself
+    body: >
+      A support team is measured on tickets closed per agent per day. Agents learn they can hit the
+      target by closing tickets after one reply, whether or not the issue was actually resolved. The
+      number goes up; the customer-reported repeat-contact rate goes up right behind it. The fix isn't
+      dropping the metric — it's pairing it with a gaming-resistant counterpart, like reopened-ticket
+      rate or CSAT on closed tickets.
+  - type: heading
+    text: Leading vs. lagging indicators
+  - type: text
+    body: >
+      A metric can be well-designed and still tell you too late to act. Leading and lagging indicators
+      differ in exactly that dimension — when you find out.
+  - type: comparison
+    title: Leading vs. lagging indicators
+    columns: ["Leading indicator", "Lagging indicator"]
+    rows:
+      - ["Predicts a future outcome; moves before the thing you ultimately care about.", "Confirms an outcome after it has already happened."]
+      - ["Example: trial-to-paid conversion rate this week, which predicts next month's revenue.", "Example: monthly recurring revenue, which confirms what already happened."]
+      - ["Useful when you still have time to act on what you see.", "Useful when you need to confirm whether a decision actually worked."]
+  - type: callout
+    variant: common_mistake
+    title: Vanity metrics
+    body: >
+      A metric like "total signups all-time" always trends upward and rarely drives a decision — it
+      feels good to report but isn't actionable. Prefer a metric a team could actually move this week.
+  - type: question
+    prompt: A company tracks monthly active users (a lagging indicator) but wants an earlier read on whether a product change is working. What should they add?
+    choices:
+      - A leading indicator, like day-7 retention among users who just tried the new feature
+      - A more granular version of the same metric, like daily active users, since it's measured more often
+      - Nothing — lagging indicators are always more reliable, so measuring more frequently isn't useful
+    correct_index: 0
+    explanation: >
+      Measuring monthly active users more often doesn't make it predictive — it still only confirms what
+      already happened. A true leading indicator, like early retention among users who touched the new
+      feature, gives a read while there's still time to course-correct.

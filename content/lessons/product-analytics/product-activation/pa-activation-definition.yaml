@@ -1,0 +1,106 @@
+slug: pa-activation-definition
+module_slug: product-activation
+title: "Defining Activation: Picking (and Testing) an Aha Moment"
+description: >
+  What makes an activation event a good proxy for long-term value, how to sanity-check a candidate
+  definition against real data, and where this dataset's "activated" event fits.
+difficulty: INTERMEDIATE
+estimated_minutes: 20
+display_order: 1
+objectives:
+  - State the criteria a good activation-event definition must satisfy (predictive, early, actionable)
+  - Sanity-check a candidate activation definition against real retention/monetization outcomes before trusting it
+  - Explain why "activation rate" is meaningless as a single number without segmentation
+prerequisites: [activation, pa-funnel-fundamentals]
+skills: [product-analytics, product-metrics, metric-definition]
+datasets: [saas-product]
+tags: [product, saas, foundations, intermediate]
+key_takeaways:
+  - A good activation definition is predictive (correlates with users who stick around and pay), early (happens close to signup, so you can act on it quickly), and actionable (a specific behavior a team can actually influence, not just a vague feeling).
+  - Never trust an activation definition someone handed you without checking it against an actual downstream outcome in the data — if "activated" users don't monetize or return at meaningfully higher rates than non-activated users, the definition is measuring the wrong thing.
+  - A single activation rate hides more than it reveals — this dataset's 69.1% blended rate spans a 23-point range across acquisition channels (55.9% to 78.9%), which is the real, actionable story.
+common_mistakes:
+  - Accepting an activation event definition because it's already instrumented and easy to query, without checking whether it actually predicts anything downstream — an easy-to-measure event is not the same as a meaningful one.
+  - Reporting activation rate as one blended number and calling it done, which erases exactly the kind of channel-level or cohort-level spread that tells you where to act.
+blocks:
+  - type: text
+    body: >
+      The `product-metrics` module's activation lesson introduced activation as "the moment a user
+      first experiences the product's core value." This lesson goes further: how do you know a
+      candidate activation event is actually a *good* one, and what does a real activation number
+      look like once you stop blending everyone together?
+  - type: heading
+    text: Three criteria for a good activation definition
+  - type: checklist
+    title: A candidate activation event should be...
+    items:
+      - "Predictive — activated users go on to retain, engage, or pay at meaningfully higher rates than non-activated users. This is the one criterion you can and should test directly against your own data."
+      - "Early — it happens within the first session or first few days, so a team can react to a drop in activation quickly, rather than discovering a problem months later"
+      - "Actionable — it's a specific behavior a product team can influence directly (a setup step, an integration, a first successful use), not an abstract feeling like 'engaged' or 'satisfied'"
+  - type: heading
+    text: "Testing a candidate: does 'activated' actually predict anything here?"
+  - type: text
+    body: >
+      In the saas-product dataset, `activated` is the proposed aha moment. To check whether it earns
+      that label, look at what happens downstream to activated users versus non-activated users.
+  - type: table
+    headers: ["Group", "Users", "% who also reach 'engaged'", "% who also reach 'upgraded'"]
+    rows:
+      - ["Activated (n=2,074)", "2,074", "1,125 / 2,074 = 54.2%", "212 / 2,074 = 10.2%"]
+      - ["Not activated (n=926)", "926", "0 / 926 = 0.0%", "0 / 926 = 0.0%"]
+  - type: callout
+    variant: important
+    title: The definition passes the test
+    body: >
+      By construction in this dataset, a user cannot reach `engaged` or `upgraded` in the cumulative
+      funnel sense without first reaching `activated` — so the contrast is stark: 0% of non-activated
+      users ever engage or upgrade, versus 54.2% and 10.2% of activated users respectively. That's
+      exactly the pattern a good activation definition should show — a real, large gap in downstream
+      outcomes between the two groups. If a candidate activation event showed, say, 40% of
+      "non-activated" users engaging anyway, that would be a sign the event isn't actually capturing
+      the moment that matters.
+  - type: heading
+    text: One activation rate is not the story — segment it
+  - type: text
+    body: >
+      69.1% activation, reported as a single company-wide number, is true but nearly useless for
+      deciding what to do next. Segmented by acquisition channel, the real spread appears:
+  - type: table
+    headers: ["Channel", "Activation rate"]
+    rows:
+      - ["organic", "78.9%"]
+      - ["referral", "78.2%"]
+      - ["content", "72.0%"]
+      - ["paid_search", "61.7%"]
+      - ["paid_social", "55.9%"]
+  - type: text
+    body: >
+      A 23-point spread between the best channel (organic, 78.9%) and the worst (paid_social, 55.9%)
+      is a real, actionable difference — big enough that it's very unlikely to be random noise given
+      hundreds of users in each channel. The blended 69.1% number, on its own, gives no hint that this
+      gap exists.
+  - type: callout
+    variant: warning
+    title: Don't stop at "paid_social is worse" — ask why before proposing a fix
+    body: >
+      A lower activation rate for paid_social could mean the channel brings in a different kind of
+      user (worse intent-to-value fit), a worse first-session experience specific to that traffic
+      (e.g. a landing page or onboarding flow tuned for organic users), or simply a smaller, noisier
+      sample. The next lesson works through exactly this kind of segmentation analysis in more depth,
+      including what to check before concluding the channel itself is the cause.
+  - type: question
+    prompt: >
+      A team proposes "clicked the help button" as their activation event. Checking the data, users
+      who clicked help go on to retain at almost the same rate as users who never clicked it. What
+      does this suggest?
+    choices:
+      - "The activation definition is fine, since it's an easy event to track"
+      - "The activation definition likely fails the 'predictive' criterion and isn't actually capturing the moment that matters for long-term value"
+      - "The retention metric itself must be broken"
+      - "Activation events should always be based on support interactions"
+    correct_index: 1
+    explanation: >
+      A good activation event should show a real, large gap in downstream outcomes (retention,
+      engagement, monetization) between users who reached it and users who didn't — exactly like the
+      54.2%-vs-0% engagement gap this dataset's real "activated" event shows. An event with almost no
+      predictive gap, however easy to track, isn't measuring the moment that actually matters.

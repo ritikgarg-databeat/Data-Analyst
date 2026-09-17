@@ -1,0 +1,54 @@
+slug: excel-and-or-eligibility-logic
+skill: excel-fundamentals
+title: Compound Eligibility Logic with AND/OR
+description: On `Data`, `Tenure` (months, column A) and `Spend` (column B) are given for 3 customers. On `Data`,
+  fill in `C2:C4` with `=IF(AND(A2>=12,B2>=500),"Eligible","Not Eligible")` (adjusted per row).
+exercise_type: EXCEL
+difficulty: INTERMEDIATE
+points: 10
+tags:
+- excel
+business_context: A loyalty program's eligibility rule requires BOTH a minimum tenure AND a minimum spend -- a single
+  simple IF can't express two independent conditions cleanly.
+prompt: On `Data`, `Tenure` (months, column A) and `Spend` (column B) are given for 3 customers. On `Data`, fill
+  in `C2:C4` with `=IF(AND(A2>=12,B2>=500),"Eligible","Not Eligible")` (adjusted per row).
+excel_starter_sheets:
+- name: Data
+  cells:
+    A1: Tenure
+    B1: Spend
+    C1: Status
+    A2: '18'
+    B2: '600'
+    A3: '6'
+    B3: '800'
+    A4: '24'
+    B4: '200'
+excel_solution_sheets:
+- name: Data
+  cells:
+    A1: Tenure
+    B1: Spend
+    C1: Status
+    A2: '18'
+    B2: '600'
+    A3: '6'
+    B3: '800'
+    A4: '24'
+    B4: '200'
+    C2: =IF(AND(A2>=12,B2>=500),"Eligible","Not Eligible")
+    C3: =IF(AND(A3>=12,B3>=500),"Eligible","Not Eligible")
+    C4: =IF(AND(A4>=12,B4>=500),"Eligible","Not Eligible")
+excel_check_cells:
+- Data!C2
+- Data!C3
+- Data!C4
+hints:
+- AND(cond1, cond2) is TRUE only if both conditions are true -- use it as IF's first argument when a rule requires
+  more than one thing to hold at once.
+- Row 3 has enough spend but not enough tenure; row 4 has enough tenure but not enough spend -- both should fail
+  even though each has one qualifying condition.
+solution: '`=IF(AND(A2>=12,B2>=500),"Eligible","Not Eligible")` -- Eligible, Not Eligible, Not Eligible.'
+explanation: Row 2 (tenure 18, spend 600) satisfies both conditions -> Eligible. Row 3 (tenure 6, spend 800) has
+  enough spend but not enough tenure, so AND is FALSE -> Not Eligible. Row 4 (tenure 24, spend 200) has enough tenure
+  but not enough spend, also FALSE -> Not Eligible -- AND requires every condition to hold, not just one.

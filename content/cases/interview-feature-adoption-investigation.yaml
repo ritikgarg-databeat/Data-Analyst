@@ -1,0 +1,108 @@
+slug: interview-feature-adoption-investigation
+title: Why Is Adoption of the New Reporting Feature So Low?
+category: PRODUCT_ANALYTICS
+difficulty: INTERMEDIATE
+estimated_minutes: 25
+company_context: A SaaS product tracked via the saas-product schema.
+stakeholder_name: Morgan Lee
+stakeholder_role: Product Lead
+problem_statement: '"We shipped the new reporting dashboard a month ago and adoption is way below what we expected.
+  Can you figure out why?"'
+business_context: Morgan needs to know whether the problem is discoverability, onboarding, or the feature itself
+  before deciding on a fix.
+objective: Diagnose why adoption of the new feature is low and recommend a specific fix.
+initial_information: You have access to users, events, and subscriptions.
+constraints:
+- Distinguish an awareness/discoverability problem from a genuine feature-quality problem.
+available_datasets:
+- saas-product
+expected_deliverables:
+- An adoption-rate calculation among the eligible user base
+- Segmentation showing whether non-adopters never discovered vs. tried-and-abandoned the feature
+- A specific recommendation
+learning_objectives:
+- Define adoption rate correctly against the eligible base, not all users
+- Distinguish a discovery problem from a retention-of-usage problem
+- Recommend a fix specific to the diagnosed cause
+stages:
+- CLARIFY
+- ANALYZE
+- INSIGHTS
+- RECOMMEND
+- SUBMIT
+tags:
+- interview
+- product-analytics
+- case-study
+skills:
+- product-metrics
+- root-cause-analysis
+- communication
+clarification_guidance:
+- A good clarifying question confirms who counts as 'eligible' for this feature (e.g. all users, or only certain
+  plan tiers).
+- A good clarifying question asks whether users who never used it never saw it, or saw it and chose not to engage.
+rubric:
+- category: Problem Framing & Clarification
+  weight: 20
+  criteria:
+  - criterion: Confirms the eligible user base for this feature before computing adoption rate
+    points: 20
+- category: Technical Analysis
+  weight: 35
+  is_technical: true
+  criteria:
+  - criterion: Correctly computes adoption rate against the eligible base
+    points: 15
+  - criterion: Segments non-adopters into never-discovered vs. discovered-but-not-repeated
+    points: 20
+- category: Insight Quality
+  weight: 20
+  criteria:
+  - criterion: Correctly distinguishes a discoverability problem from a feature-quality/retention-of-usage problem
+    points: 20
+- category: Recommendation & Business Judgment
+  weight: 15
+  criteria:
+  - criterion: Recommends a fix specific to whichever cause the segmentation supports
+    points: 15
+- category: Communication
+  weight: 10
+  criteria:
+  - criterion: Explains the finding in terms Morgan could act on
+    points: 10
+hints:
+- Adoption rate should be computed against the ELIGIBLE user base for the feature, not all users company-wide.
+- 'Split non-adopters into two groups: those who never saw/discovered the feature, and those who tried it once and
+  didn''t come back -- these need very different fixes.'
+reference_solution:
+  summary: Using activated users (2,074 of the 3,000 signups) as the eligible base, since only users who reached
+    that milestone are in a position to discover an in-product feature, and counting real adoption as repeat use
+    (2 or more 'engaged' events, not just one click), adoption is 29.9% (620 of 2,074), well above the naive
+    company-wide rate of 20.7% (620 of all 3,000 signups) but still low in absolute terms. Of the 1,454 activated
+    users who did not become repeat users, most, 949 (65%), never engaged with the product at all after activating,
+    while a smaller group, 505 (35%), engaged exactly once and never came back. The dominant bucket is clearly
+    'never discovered or tried,' not 'tried and abandoned,' pointing to a discoverability/awareness fix as the
+    higher-leverage first move.
+  key_insights:
+  - Against the correctly defined eligible base (activated users, 2,074 of 3,000 signups), and counting adoption
+    as repeat use (2+ engaged events), the real adoption rate is 29.9% (620 of 2,074), versus a naive,
+    wrongly-denominated company-wide rate of 20.7% (620 of all 3,000 signups).
+  - Of the 1,454 activated users who are not repeat adopters, 949 (65% of non-adopters, 46% of all activated users)
+    never had a single engaged event after activating, versus 505 (35% of non-adopters, 24% of all activated
+    users) who engaged exactly once and never returned.
+  - The never-discovered/never-tried group outnumbers the tried-once-and-abandoned group by nearly 2 to 1, so the
+    bigger, higher-leverage problem is awareness and discoverability, not first-use quality, though the 505-user
+    tried-once group is still a meaningful secondary opportunity.
+  recommendation: Tell Morgan the primary lever is discoverability, not a feature rebuild, roughly two-thirds of
+    non-adopters never engaged with the reporting dashboard at all, far outnumbering the users who tried it once
+    and didn't return. Recommend prioritizing in-app promotion of the feature (an announcement, navigation
+    placement, or contextual prompt for activated users who haven't tried it) as the first fix, with a
+    lighter-weight first-use nudge for the smaller tried-once group as a secondary improvement.
+  acceptable_alternatives:
+  - A recommendation to run a small in-app awareness test (e.g. a one-time announcement banner) before committing
+    to a larger discoverability redesign, given the finding is correlational.
+  - A recommendation that treats the 505 tried-once users as worth investigating first if Morgan's team has reason
+    to believe the in-app placement is already adequate, since that group's usage does show they found it but
+    chose not to return.
+version: 1

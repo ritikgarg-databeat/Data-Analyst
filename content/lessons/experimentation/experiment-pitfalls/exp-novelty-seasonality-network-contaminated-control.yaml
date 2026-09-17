@@ -1,0 +1,129 @@
+slug: exp-novelty-seasonality-network-contaminated-control
+module_slug: experiment-pitfalls
+title: "Pitfalls, Part 2: Novelty Effects, Seasonality, Network Effects, and Contaminated Control"
+description: >
+  Four ways an experiment's mechanics — not its math — quietly bias the result: a change that only
+  "works" because it's new, a test that runs during an unrepresentative window, treatment leaking into
+  control, and units in the same group influencing each other.
+difficulty: ADVANCED
+estimated_minutes: 30
+display_order: 2
+objectives:
+  - Recognize a novelty effect from a pattern of decaying lift over time, and explain the fix (holdout, longer test)
+  - Explain why an experiment's timing needs to be representative of the periods the decision will apply to
+  - Distinguish contaminated control (treatment leaking into the control group) from a network effect (units in the same group influencing each other)
+prerequisites: [exp-peeking-multiple-testing-underpowered-srm]
+skills: [experimentation, statistical-reasoning]
+datasets: [saas-product]
+tags: [experimentation, ab-testing, saas, advanced]
+key_takeaways:
+  - "A novelty effect shows up as a lift that's large early in the test and decays over time — it means some of the measured effect is 'this is new and different,' not 'this is durably better.'"
+  - Running a test entirely within an unrepresentative window (a holiday sale, a single day of the week, a period right after an unrelated outage) risks a result that doesn't generalize to the rest of the year.
+  - Contaminated control (treatment leaking into control, e.g. via shared devices, referrals, or a caching bug) and network effects (one unit's treatment changing another unit's behavior, e.g. in a marketplace or social product) both violate the same core assumption — that one unit's outcome depends only on its own assignment.
+common_mistakes:
+  - Running a test for exactly one week and generalizing the result to "this is how it'll perform," when that week happened to include a promotional event or an unrelated site issue.
+  - Launching a two-sided marketplace test (e.g. a change shown only to sellers) and analyzing it as if buyers' behavior in the treatment and control groups were independent, when in fact both groups share the same pool of buyers.
+blocks:
+  - type: heading
+    text: Novelty effects — is it better, or just new?
+  - type: text
+    body: >
+      Users often respond to *anything* new with extra attention — curiosity, exploration, or simply
+      noticing a UI change — independent of whether the change is actually an improvement. A **novelty
+      effect** is when a treatment's measured lift is largest right after launch and shrinks over the
+      following weeks as the new becomes routine. If a test is analyzed (or stopped) too early, a novelty
+      effect can be mistaken for a durable improvement.
+  - type: example
+    title: "A hypothetical (illustrative) novelty-effect pattern"
+    body: >
+      Suppose a redesigned dashboard is tested and daily engagement in the treatment group is +18% in
+      week 1, +11% in week 2, +6% in week 3, and +2% by week 5 — control stays flat throughout. The
+      shrinking gap over time, converging toward a small (or zero) durable effect, is the signature of a
+      novelty effect. The fix is to run the test long enough to see whether the lift stabilizes at a
+      non-trivial level, or to hold out a small slice of users from the launched treatment even after
+      shipping, so the "new" feature keeps having a genuine control group to compare against over time.
+  - type: heading
+    text: Seasonality — is the test's window representative?
+    level: 3
+  - type: text
+    body: >
+      An experiment's result only generalizes to the conditions it ran under. A checkout test run
+      entirely during a single high-discount promotional week may show a different effect than the same
+      test would during a normal week — the promotion itself changes who's buying and how price-sensitive
+      they are. The real saas-product experiments both happen to randomize continuously across the same
+      roughly 19-month window (mid-2024 through early 2026) rather than being confined to one narrow
+      slice of time, which is a reasonable design choice that helps average out week-to-week and
+      seasonal noise — the kind of thing worth checking for any real test before trusting its result
+      generalizes.
+  - type: code
+    language: sql
+    code: |
+      SELECT
+        experiment_id,
+        MIN(assigned_at) AS first_assignment,
+        MAX(assigned_at) AS last_assignment,
+        COUNT(*) AS total_users
+      FROM experiment_assignments
+      GROUP BY experiment_id;
+    caption: >
+      Real result: both experiments span from 2024-07-01 to 2026-02-01 — a broad, continuous window
+      rather than a narrow snapshot, which is exactly the kind of check worth running before trusting
+      that a test's result will hold up outside the period it happened to run in.
+  - type: heading
+    text: Contaminated control vs. network effects
+    level: 3
+  - type: text
+    body: >
+      **Contaminated control** is when the treatment leaks into the control group — a shared device
+      logs in as two accounts on different variants, a referral link shares a discount code meant only
+      for treatment, or a caching layer accidentally serves the new experience to some control users. It
+      makes control look more like treatment, shrinking the *measured* effect below the true one.
+      **Network effects** are a related but distinct issue: in a marketplace, social feed, or messaging
+      product, a treatment user's behavior can directly change what a *different* user (possibly in
+      control) experiences — a seller's new listing tool changes what buyers in both groups see, even
+      though buyers were "independently" randomized. Both break the assumption that one unit's outcome
+      depends only on its own assignment, just through different mechanisms (leakage vs. interference).
+  - type: table
+    caption: Telling the four pitfalls apart
+    headers: ["Pitfall", "Signature", "Typical fix"]
+    rows:
+      - ["Novelty effect", "Lift is large early, shrinks over the weeks that follow", "Run longer; keep a small holdout even post-launch"]
+      - ["Seasonality", "Result was measured in a narrow, unrepresentative window", "Run across a representative period; check for calendar effects before trusting the result generalizes"]
+      - ["Contaminated control", "Control's behavior looks unexpectedly close to treatment's", "Fix the leakage source (shared devices, cross-variant referrals, caching)"]
+      - ["Network effects", "Users in different variants share a market/feed/graph and influence each other", "Randomize by a larger, more isolated unit (e.g. market or cluster, not individual user)"]
+  - type: callout
+    variant: warning
+    title: These four are diagnosed from behavior over time and across groups, not from a single p-value
+    body: >
+      Unlike peeking or SRM (Part 1), these four pitfalls usually aren't visible from a single summary
+      statistic — they show up as a pattern (lift decaying over weeks), a scope check (was the test
+      window representative?), or a design review (could this product's treatment and control users ever
+      interact?). Building the habit of asking these questions is as important as running the right test.
+  - type: question
+    prompt: >
+      A two-sided marketplace tests a new feature that lets sellers offer instant discounts, randomizing
+      by seller. Buyers are not randomized — they simply see whichever listings exist, some from
+      treatment sellers and some from control sellers. What's the risk to a clean interpretation of
+      "buyer conversion rate, treatment sellers' listings vs. control sellers' listings"?
+    choices:
+      - "No risk — since sellers were randomized, any buyer-side comparison is automatically clean too"
+      - "A network effect risk: buyers browsing the marketplace are exposed to both treatment and control sellers' listings side by side, so a buyer's decision on a control listing can be influenced by having just seen a treatment seller's discount elsewhere in the same session — the two seller groups aren't cleanly isolated from each other"
+      - "The only risk is a sample ratio mismatch on the seller side"
+    correct_index: 1
+    explanation: >
+      Randomizing sellers doesn't isolate buyers from cross-exposure — a buyer can see both treatment and
+      control sellers' listings in the same browsing session, so control listings' apparent performance
+      can be affected by the presence of treatment listings nearby (e.g., a buyer who saw a competitor's
+      discount may behave differently even on a control listing). This is a network-effect / interference
+      risk, and a common fix is randomizing at a more isolated unit, like geographic market or product
+      category, rather than individual seller.
+interview_questions:
+  - question: "How would you distinguish a novelty effect from a genuinely durable improvement, using only the data from a single running test?"
+    answer: >
+      I'd look at the treatment effect broken out by time since launch (or by cohort/week), rather than
+      only the pooled average over the whole test. A novelty effect shows a lift that's largest right
+      after launch and shrinks over subsequent weeks, trending toward a smaller (or zero) steady-state
+      effect; a durable improvement holds roughly steady over time instead of decaying. If the test hasn't
+      run long enough to see whether the early lift has stabilized, I'd recommend extending it, or keeping
+      a small holdout group even after a broader rollout, specifically to keep measuring the effect over a
+      longer horizon rather than trusting an early, possibly novelty-inflated number.

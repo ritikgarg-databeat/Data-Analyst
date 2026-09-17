@@ -1,0 +1,124 @@
+slug: file-handling
+module_slug: python-for-analysts
+title: File Handling
+description: Reading and writing text files with open() and context managers, and reading a CSV manually with the stdlib csv module.
+difficulty: BEGINNER
+estimated_minutes: 12
+display_order: 14
+objectives:
+  - Read and write text files using open() inside a with block
+  - Explain why with matters — automatic closing, even if an error happens partway through
+  - Read a CSV file into a list of dictionaries using the standard library's csv module
+prerequisites: [modules]
+skills: [python-fundamentals]
+datasets: []
+tags: [python, beginner, foundations]
+key_takeaways:
+  - "open(path) as f, used inside a with block, is the standard way to work with a file — with guarantees the file gets closed automatically, even if an error happens while you're working with it."
+  - "A file opened without with has to be closed manually with f.close() — easy to forget, and a forgotten close can leave data unwritten or the file locked for other programs."
+  - "The stdlib csv module turns a CSV file's rows into Python dictionaries (with csv.DictReader) or lists — this is exactly the mechanical work that pandas' read_csv() automates for you at a much larger scale."
+common_mistakes:
+  - "Opening a file without with (f = open(path)) and forgetting to call f.close() afterward — the file may not be fully written to disk, or stays locked, until it's closed."
+  - "Reading every value out of a CSV as a string without converting it — csv.DictReader gives you '42.50' as text, not the number 42.50, so numeric columns need an explicit float() or int() conversion before doing math."
+  - "Opening a file in 'w' mode to add to it, which overwrites the entire existing file — appending requires mode 'a' instead."
+blocks:
+  - type: text
+    body: >
+      Every analysis eventually starts from a file on disk — a CSV export, a text log, a report someone
+      emailed you. `open()` is Python's entry point for reading and writing files, and `with` is the
+      standard way to use it safely.
+  - type: heading
+    text: "open() and with"
+  - type: code
+    language: python
+    code: |
+      with open("notes.txt", "w") as f:
+          f.write("Q3 review\n")
+          f.write("Revenue up 12 percent\n")
+
+      with open("notes.txt") as f:
+          contents = f.read()
+
+      print(contents)
+      # Q3 review
+      # Revenue up 12 percent
+    caption: "'w' mode writes (creating or overwriting the file); the default mode reads"
+  - type: callout
+    variant: important
+    title: Why with matters
+    body: >
+      A file opened with `open()` holds a real operating-system resource open until it's closed. The
+      `with` block automatically calls `f.close()` for you the moment the block ends — **even if an
+      error is raised partway through** the code inside it. Without `with`, you'd need a manual
+      `f.close()` at the end, which is easy to forget and never runs at all if an exception happens
+      before it — potentially leaving writes unflushed or the file locked for other programs to open.
+  - type: heading
+    text: Reading line by line
+  - type: code
+    language: python
+    code: |
+      with open("notes.txt") as f:
+          for line in f:
+              print(line.strip())   # .strip() drops the trailing newline each line ends with
+
+      # Q3 review
+      # Revenue up 12 percent
+    caption: "Looping over an open file yields one line at a time — memory-efficient for large files"
+  - type: heading
+    text: "Reading a CSV manually with the csv module"
+  - type: text
+    body: >
+      A CSV file is just a text file with a predictable structure — you *could* parse it yourself with
+      `.split(",")` on each line, but that breaks the moment a value contains a comma or a quoted field.
+      The standard library's `csv` module handles those edge cases correctly, and `csv.DictReader` reads
+      each row straight into a dictionary keyed by the header row.
+  - type: code
+    language: python
+    code: |
+      import csv
+
+      with open("orders_mini.csv") as f:
+          reader = csv.DictReader(f)
+          rows = list(reader)
+
+      print(rows)
+      # [{'order_id': '1001', 'total': '42.50'}, {'order_id': '1002', 'total': '108.00'}]
+    caption: "csv.DictReader turns each row into a dict, using the header row as keys — every value comes in as a string"
+  - type: callout
+    variant: warning
+    title: Values from csv.DictReader are always strings
+    body: >
+      Even a column that looks numeric, like "total", comes back as the string "42.50", not the number
+      42.50 — the csv module has no way to know a column's intended type. Convert explicitly (float(),
+      int()) before doing arithmetic, exactly like you would with any other raw text input.
+  - type: example
+    title: Summing a numeric column read from CSV
+    body: >
+      A generator expression inside sum() converts each row's total to a float on the fly — a compact,
+      common pattern once a CSV's rows are loaded as dictionaries.
+    code: |
+      total_revenue = sum(float(row["total"]) for row in rows)
+      print(total_revenue)
+      # 150.5
+    language: python
+  - type: heading
+    text: "This is exactly what pandas automates"
+  - type: text
+    body: >
+      Everything on this page — opening the file, splitting rows into fields, converting text to numbers
+      — is precisely what `pandas.read_csv()` does under the hood, at a much larger scale and with far
+      fewer lines of your own code. Understanding this manual version first means `read_csv()` (covered
+      in the next module) won't feel like unexplained magic — it's automating a process you now
+      understand from the inside.
+  - type: question
+    prompt: "Why is with open(path) as f: ... generally preferred over f = open(path); ...; f.close()?"
+    choices:
+      - "with is faster at reading file contents"
+      - "with guarantees the file is closed automatically when the block ends, even if an error is raised inside it"
+      - "with is required to read CSV files, but not plain text files"
+    correct_index: 1
+    explanation: >
+      The manual open()/close() pattern only closes the file if execution reaches the f.close() line —
+      if an exception is raised anywhere in between, that line never runs, and the file can be left open
+      or partially written. with wraps the whole thing so the file is closed automatically no matter how
+      the block exits, error or not.

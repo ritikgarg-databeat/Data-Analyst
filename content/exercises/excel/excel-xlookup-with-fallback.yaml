@@ -1,0 +1,62 @@
+slug: excel-xlookup-with-fallback
+skill: excel-fundamentals
+title: XLOOKUP With a Not-Found Fallback
+description: The `Codes` sheet lists valid promo `Code` (A) and `Discount` (B). On `Answer`, fill in `B1` and `B2`
+  with XLOOKUP formulas that look up the codes in `A1`/`A2` against `Codes!A2:A4`, returning `Codes!B2:B4`, defaulting
+  to 0 if the code isn't found.
+exercise_type: EXCEL
+difficulty: INTERMEDIATE
+points: 10
+tags:
+- excel
+business_context: 'A promo-code discount lookup needs to gracefully handle codes that don''t exist, without an ugly
+  #N/A reaching a customer-facing sheet.'
+prompt: The `Codes` sheet lists valid promo `Code` (A) and `Discount` (B). On `Answer`, fill in `B1` and `B2` with
+  XLOOKUP formulas that look up the codes in `A1`/`A2` against `Codes!A2:A4`, returning `Codes!B2:B4`, defaulting
+  to 0 if the code isn't found.
+excel_starter_sheets:
+- name: Codes
+  cells:
+    A1: Code
+    B1: Discount
+    A2: SUMMER
+    B2: '0.1'
+    A3: WINTER
+    B3: '0.15'
+    A4: SPRING
+    B4: '0.05'
+- name: Answer
+  cells:
+    A1: FALL
+    B1: ''
+    A2: WINTER
+    B2: ''
+excel_solution_sheets:
+- name: Codes
+  cells:
+    A1: Code
+    B1: Discount
+    A2: SUMMER
+    B2: '0.1'
+    A3: WINTER
+    B3: '0.15'
+    A4: SPRING
+    B4: '0.05'
+- name: Answer
+  cells:
+    A1: FALL
+    B1: =XLOOKUP(A1,Codes!A2:A4,Codes!B2:B4,0)
+    A2: WINTER
+    B2: =XLOOKUP(A2,Codes!A2:A4,Codes!B2:B4,0)
+excel_check_cells:
+- Answer!B1
+- Answer!B2
+hints:
+- XLOOKUP(lookup_value, lookup_range, return_range, if_not_found) -- the 4th argument is exactly the fallback value
+  returned when nothing matches, no IFERROR wrapper needed.
+- '"FALL" isn''t in the Codes list at all, so its formula should resolve to the fallback value, not an error.'
+solution: '`=XLOOKUP(A1,Codes!A2:A4,Codes!B2:B4,0)` evaluates to 0 (not found); `=XLOOKUP(A2,Codes!A2:A4,Codes!B2:B4,0)`
+  evaluates to 0.15 (WINTER found).'
+explanation: 'XLOOKUP''s 4th argument is a built-in not-found fallback, unlike VLOOKUP which raises #N/A and needs
+  a separate IFERROR wrapper. "FALL" isn''t in `Codes!A2:A4`, so B1 returns the fallback 0; "WINTER" is found in
+  row 3, so B2 returns `Codes!B3` = 0.15.'

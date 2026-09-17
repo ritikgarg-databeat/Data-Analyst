@@ -1,0 +1,73 @@
+slug: pa-py-engagement-depth-by-channel
+lesson_slug: pa-engagement-frequency-segments
+skill: pandas
+dataset: saas-product
+title: Average Engagement Depth by Channel in pandas
+description: Merge events with users to compute average events per user for each acquisition channel.
+exercise_type: PYTHON
+difficulty: INTERMEDIATE
+points: 15
+tags: [python, product, saas, intermediate]
+business_context: >
+  The team wants engagement intensity by channel available in the same Python notebook as the
+  activation-rate-by-channel analysis, to compare the size of both gaps side by side.
+prompt: >
+  Using the `events` and `users` DataFrames, merge them on `user_id` and store a DataFrame in a
+  variable named `result` with columns `acquisition_channel`, `n_events` (total event rows for users
+  in that channel), `n_users` (distinct users in that channel with at least one event), and
+  `avg_events_per_user` (n_events / n_users, rounded to 2 decimals), sorted descending by
+  `avg_events_per_user`.
+python_datasets: [events, users]
+python_starter_code: |
+  # events and users are already loaded as DataFrames.
+  users["acquisition_channel"].value_counts()
+python_solution_code: |
+  merged = events.merge(users[["user_id", "acquisition_channel"]], on="user_id")
+
+  grp = merged.groupby("acquisition_channel").agg(
+      n_events=("user_id", "count"),
+      n_users=("user_id", "nunique"),
+  ).reset_index()
+  grp["avg_events_per_user"] = (grp["n_events"] / grp["n_users"]).round(2)
+
+  result = grp.sort_values("avg_events_per_user", ascending=False).reset_index(drop=True)
+python_result_variable: result
+python_row_order_matters: true
+python_numeric_tolerance: 0.01
+python_hidden_tests:
+  - name: n_events sums to the total number of rows in events
+    code: |
+      assert result["n_events"].sum() == len(events), (
+          "The n_events column across all channels should sum to the total row count of events."
+      )
+  - name: referral's avg_events_per_user matches an independent recomputation
+    code: |
+      referral_events = events.merge(users[["user_id", "acquisition_channel"]], on="user_id")
+      referral_events = referral_events[referral_events["acquisition_channel"] == "referral"]
+      independent_avg = round(len(referral_events) / referral_events["user_id"].nunique(), 2)
+      row = result[result["acquisition_channel"] == "referral"].iloc[0]
+      assert abs(row["avg_events_per_user"] - independent_avg) < 0.01, (
+          f"Expected referral's avg_events_per_user to be close to {independent_avg}, "
+          f"got {row['avg_events_per_user']}."
+      )
+hints:
+  - "merge events to users[['user_id', 'acquisition_channel']] on 'user_id' first — this is a plain many-to-one merge (each event row gets exactly one acquisition_channel), so it won't duplicate any rows."
+  - "n_events within each channel group is a plain count of rows ('user_id', 'count'); n_users is a distinct count ('user_id', 'nunique') — using 'count' for both would make avg_events_per_user come out as 1.0 everywhere."
+solution: |
+  ```python
+  merged = events.merge(users[["user_id", "acquisition_channel"]], on="user_id")
+  grp = merged.groupby("acquisition_channel").agg(
+      n_events=("user_id", "count"), n_users=("user_id", "nunique")
+  ).reset_index()
+  grp["avg_events_per_user"] = (grp["n_events"] / grp["n_users"]).round(2)
+  result = grp.sort_values("avg_events_per_user", ascending=False).reset_index(drop=True)
+  ```
+  Run against the real data: referral 2.99, organic 2.78, content 2.61, paid_search 2.44, paid_social
+  2.34.
+explanation: >
+  The distinction that matters is `("user_id", "count")` (every row counts, giving `n_events`) versus
+  `("user_id", "nunique")` (only distinct users count, giving `n_users`) — using `count` for both
+  collapses `avg_events_per_user` to exactly 1.0 for every channel, since it would just be dividing a
+  number by itself. Once both are computed correctly, this metric is best read next to the
+  activation-rate-by-channel result: the ~0.65-event spread here is real but proportionally smaller
+  than the 23-point spread in activation rate across the same five channels.

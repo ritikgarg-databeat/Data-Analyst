@@ -1,0 +1,36 @@
+slug: mds-dq-check-new-unhandled-payment-method
+lesson_slug: dbt-generic-tests
+skill: data-quality-engineering
+dataset: ecommerce
+title: "Match the Check to the Failure: A New, Unhandled payment_method Value"
+description: Given a specific silent data quality failure in the payments table, identify which check type would have caught it before it reached a report.
+exercise_type: MULTIPLE_CHOICE
+difficulty: INTERMEDIATE
+points: 10
+tags: [data-quality, validation, tests, real-world, intermediate]
+prompt: >
+  A company's payments table has always recorded payment_method as one of gift_card, credit_card, or
+  paypal. Last week, the payment processor added a new option, and payments started arriving with
+  payment_method = 'crypto'. The revenue-by-payment-method report downstream only groups by the three
+  original methods, so every 'crypto' payment silently fails to match any group and disappears from the
+  report entirely — no error, no warning, just missing dollars.
+
+  Which of the following data quality check types, run on the payments table before the report is built,
+  would have caught this specific failure mode?
+choices:
+  - "NOT_NULL — checking that payment_method is never missing"
+  - "UNIQUE — checking that no payment_id appears more than once"
+  - "ACCEPTED_VALUES — checking that payment_method only ever contains a known, fixed set of values"
+  - "RELATIONSHIP — checking that every payment_method value exists in a separate customers table"
+correct_answer: "ACCEPTED_VALUES — checking that payment_method only ever contains a known, fixed set of values"
+explanation: >
+  The failure here isn't a missing value (NOT_NULL), a duplicated row (UNIQUE), or a broken foreign key to
+  another table (RELATIONSHIP) — payment_method is present, unique per payment, and isn't a key into
+  another table at all. The actual problem is that a *valid-looking* value showed up that falls outside
+  the fixed set the downstream report was built to handle. An ACCEPTED_VALUES check declaring
+  payment_method's known list (gift_card, credit_card, paypal) would have failed loudly the moment
+  'crypto' first appeared, surfacing the new value immediately instead of letting it silently vanish from
+  a report with no error at all.
+hints:
+  - "The payment rows themselves aren't missing, duplicated, or orphaned from another table — so which of the four checks is left?"
+  - "This is exactly the kind of failure this platform's real dbt project's accepted_values tests (on orders.status, orders.channel, payments.payment_method) are designed to catch."

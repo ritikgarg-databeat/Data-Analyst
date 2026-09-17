@@ -1,0 +1,79 @@
+slug: test-choosing-the-right-test
+module_slug: statistical-tests
+title: Choosing the Right Statistical Test
+description: A practical decision path for picking between a t-test, chi-square test, and ANOVA, based on the shape of your data and your question — before you touch any formula.
+difficulty: ADVANCED
+estimated_minutes: 14
+display_order: 1
+objectives:
+  - Choose the correct statistical test for a comparison based on the outcome variable's type (numeric vs. categorical) and the number of groups being compared.
+  - Identify the specific real-world question and data shape behind three different tests covered in this module.
+skills: [statistics, statistical-reasoning]
+tags: [statistics, advanced, foundations]
+prerequisites: [hyp-type-i-type-ii-errors-power]
+key_takeaways:
+  - "The two questions that determine which test to use: (1) is the outcome you're comparing numeric or categorical? and (2) how many groups are you comparing — one vs. a benchmark, two groups, or three or more?"
+  - "A t-test compares a numeric outcome's mean between one or two groups. A chi-square test compares proportions/counts between categorical groups. ANOVA extends the t-test's idea to three or more groups' means at once."
+  - Picking a test is a data-shape decision, not a difficulty decision — the goal is matching the test to the question, not reaching for the most sophisticated-sounding tool.
+common_mistakes:
+  - Running several separate two-group t-tests instead of one ANOVA when comparing three or more groups — each extra pairwise test compounds the false-positive rate (the multiple comparisons problem).
+  - Using a chi-square test on a numeric outcome (e.g., trying to "chi-square" order value) instead of a t-test or ANOVA, which are built for comparing numeric means.
+interview_questions:
+  - question: You want to compare average order value across three marketing channels. Which test do you reach for, and why not three separate t-tests?
+    answer: >
+      ANOVA (Analysis of Variance) — it tests whether at least one of the three groups' means
+      differs, in a single test with a single controlled false-positive rate. Running three separate
+      pairwise t-tests instead inflates the overall chance of a false positive across all three
+      comparisons (the multiple comparisons problem) — each individual test might use alpha = 0.05,
+      but the combined chance of at least one false alarm across three tests is higher than 5%.
+blocks:
+  - type: heading
+    text: Two questions decide which test you need
+  - type: text
+    body: >
+      Before opening a stats textbook's table of tests, answer two questions about your comparison:
+      (1) Is the **outcome** you're measuring numeric (order value, time-on-page) or categorical
+      (converted yes/no, plan tier)? (2) How many **groups** are you comparing — one sample against
+      a known benchmark, two groups against each other, or three or more groups at once?
+  - type: table
+    caption: A decision path for the tests covered in this module
+    headers: ["Outcome type", "Groups being compared", "Test", "Example question"]
+    rows:
+      - ["Numeric", "Two independent groups", "Independent two-sample t-test", "Do business and consumer customers have different average order values?"]
+      - ["Numeric", "Three or more groups", "ANOVA", "Does average order value differ across web, mobile, and marketplace channels?"]
+      - ["Categorical", "Two or more groups", "Chi-square test of independence", "Does acquisition channel affect whether a user activates?"]
+      - ["Numeric vs. numeric", "N/A — measuring association, not group difference", "Correlation / regression (next module)", "Does order size predict order revenue?"]
+  - type: heading
+    text: Matching real questions to the right row
+  - type: example
+    title: Three real questions from this dataset, matched to their test
+    body: >
+      "Do business customers spend differently than consumer customers?" — numeric outcome
+      (order amount), two groups (segments) → **t-test**. "Does order value differ across web,
+      mobile, and marketplace channels?" — numeric outcome, three groups → **ANOVA**. "Does
+      acquisition channel affect whether a user activates?" — both variables categorical → **chi-
+      square**. Each of the next three lessons works through one of these with real, verified
+      numbers.
+  - type: callout
+    variant: warning
+    title: Why not just run pairwise t-tests for three-plus groups?
+    body: >
+      If you compare three groups with three separate t-tests (A vs B, A vs C, B vs C), each at
+      alpha = 0.05, the chance that *at least one* of those three comparisons turns up a false
+      positive purely by chance is higher than 5% — closer to 14%. ANOVA tests all three groups at
+      once, holding the overall false-positive rate at your chosen alpha, which is why it's the
+      right tool for 3+ group numeric comparisons rather than a series of pairwise tests.
+  - type: question
+    prompt: >
+      You want to know whether device type (mobile/desktop/tablet) is related to whether a session
+      converts (yes/no). Both variables are categorical. Which test fits?
+    choices:
+      - "An independent two-sample t-test"
+      - "A chi-square test of independence"
+      - "ANOVA"
+    correct_index: 1
+    explanation: >
+      Both device type and conversion (yes/no) are categorical variables, and the question is
+      whether they're related — that's exactly what a chi-square test of independence is built for.
+      A t-test and ANOVA are for comparing a *numeric* outcome's mean across groups, not two
+      categorical variables against each other.

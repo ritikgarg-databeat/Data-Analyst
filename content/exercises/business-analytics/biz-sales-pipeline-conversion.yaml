@@ -1,0 +1,20 @@
+slug: biz-sales-pipeline-conversion
+skill: business-metrics
+title: Sales Pipeline Conversion Rate
+description: A sales team wants one metric to track whether their qualification process is improving. Which is most
+  appropriate?
+exercise_type: MULTIPLE_CHOICE
+difficulty: INTERMEDIATE
+points: 5
+tags:
+- sales
+prompt: A sales team wants one metric to track whether their qualification process is improving. Which is most appropriate?
+correct_answer: The conversion rate from qualified lead to closed-won deal
+explanation: Qualified-lead-to-close conversion rate directly measures whether the qualification and sales process
+  itself is improving -- raw lead volume says nothing about quality, and deal size measures something different
+  (average value, not conversion efficiency).
+choices:
+- The conversion rate from qualified lead to closed-won deal
+- Total number of leads generated, regardless of quality
+- Total company headcount in sales
+- Average deal size across all closed deals

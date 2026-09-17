@@ -1,0 +1,31 @@
+slug: exp-sa-define-statistical-power
+lesson_slug: exp-statistical-power-intuition
+skill: statistical-reasoning
+title: Define Statistical Power
+description: A short-answer concept check on the definition of statistical power and why an underpowered test is risky for a business decision.
+exercise_type: SHORT_ANSWER
+difficulty: INTERMEDIATE
+points: 10
+tags: [statistics, experimentation, ab-testing, intermediate]
+prompt: >
+  In one or two sentences, define statistical power, and explain why running an underpowered A/B test is
+  risky when the result is used to make a business decision.
+correct_answer: "probability of detecting a true effect"
+hints:
+  - "Power is formally defined as 1 minus the Type II error rate (beta) — the probability that a test correctly detects a true effect, given one actually exists."
+  - "Think about what a 'not significant' result actually tells you when the test only had, say, a 15% chance of detecting the real effect in the first place."
+solution: >
+  Statistical power is the probability that a test correctly detects a true effect, given one actually
+  exists — equivalently, 1 minus the Type II error rate (the false-negative rate). Running an
+  underpowered test is risky because a real, meaningful effect can easily fail to reach statistical
+  significance simply due to insufficient sample size relative to the effect size and the metric's
+  variance — which means a "not significant" result from a low-power test is closer to inconclusive than
+  to proof the effect doesn't exist, and treating it as proof can lead a team to wrongly kill a change
+  that actually works, or to under-invest in following up with a properly sized test.
+explanation: >
+  A complete answer states the definition precisely (the probability of detecting a true effect, i.e.
+  1 - beta) and connects it to the business risk: a low-power test's non-significant result doesn't mean
+  "no effect," it means "we couldn't reliably tell either way," so decisions built on it risk discarding
+  real wins. A weaker answer defines power only vaguely ("how strong the test is") without the
+  detecting-a-true-effect framing, or explains the statistics without connecting it to the business risk
+  of misreading a low-power null result as proof of no effect.

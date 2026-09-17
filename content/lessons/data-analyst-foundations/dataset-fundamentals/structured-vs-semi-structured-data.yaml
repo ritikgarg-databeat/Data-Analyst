@@ -1,0 +1,115 @@
+slug: structured-vs-semi-structured-data
+module_slug: dataset-fundamentals
+title: "Structured, Semi-Structured, and Unstructured Data"
+description: CSV/Parquet tables vs. nested JSON vs. free text — where each format actually shows up in real analyst work, and what has to happen before a semi-structured source becomes something you can query like a table.
+difficulty: BEGINNER
+estimated_minutes: 10
+display_order: 4
+objectives:
+  - Distinguish structured, semi-structured, and unstructured data with a concrete example of each
+  - Explain what "flattening" means and why a nested JSON field needs it before it behaves like a normal column
+  - Identify which format a real analyst request is likely to arrive in, and what has to happen before it's analysis-ready
+prerequisites: [data-types-for-analysts]
+skills: [exploratory-data-analysis]
+tags: [foundations, beginner]
+key_takeaways:
+  - "Structured data (CSV, Parquet, a relational table) is already organized into consistent rows and columns — this course's ecommerce tables are all structured, which is exactly why they can be profiled and queried immediately."
+  - "Semi-structured data (JSON, XML, a nested API response) has a shape, but not a fixed tabular one — the same 'record' can have different fields present, or fields nested inside other fields, and it needs a flattening step before it behaves like rows and columns."
+  - "Unstructured data (free-text reviews, support tickets, PDFs, images) has no reliable internal schema at all — extracting structure from it (sentiment, topic, entities) is a analysis task in itself, not a given."
+  - "In real analyst work, structured data is the default for anything already living in a warehouse or database table; semi-structured data shows up constantly from APIs (a marketing platform's campaign performance endpoint, a product analytics event stream); unstructured data shows up wherever there's a text box a human filled in."
+common_mistakes:
+  - "Assuming every data source arrives 'table-shaped' and being caught off guard when an API returns nested JSON with arrays inside objects inside arrays — semi-structured sources need a deliberate flattening step, not just a straight CSV read."
+  - "Trying to import a folder of files with meaningfully different schemas as if they were one consistent dataset — a 'collection' of related files still needs each file's structure to be genuinely comparable before joining or stacking them."
+  - "Treating unstructured text as if a simple keyword count is the same as real analysis — a customer note that says 'not bad, could be better' is not accurately captured by counting the word 'not'."
+practical_applications:
+  - "Recognizing, before starting a request, whether the requested data will need a flattening or extraction step first (a nested marketing API response, a support-ticket text field) versus being immediately query-ready (an existing warehouse table)."
+  - "Scoping a request accurately when a stakeholder asks for 'quick' analysis of unstructured data (like support ticket sentiment) — this is a meaningfully bigger task than pulling numbers from an already-structured table, and estimating it as equally quick sets the wrong expectation."
+interview_questions:
+  - question: "What's the difference between structured and semi-structured data, and why does it matter for how you'd approach a request?"
+    answer: "Structured data is already organized into a fixed set of rows and columns — every record has the same fields, in the same shape, so it's immediately queryable. Semi-structured data (typically JSON or XML) has some organization but not a fixed tabular shape — fields can be nested, optional, or repeated in arrays, so it needs a flattening or parsing step to turn it into rows and columns before you can treat it like a table. That step takes real time and judgment about how to unpack the nesting, so I'd scope a request involving semi-structured data differently than one against an existing clean table."
+resources:
+  - title: "JSON Schema — Understanding JSON Schema"
+    url: "https://json-schema.org/understanding-json-schema/"
+blocks:
+  - type: heading
+    text: "Three shapes data arrives in"
+  - type: table
+    headers: ["Shape", "What it looks like", "Analyst-ready as-is?"]
+    rows:
+      - ["Structured", "Rows and columns, one consistent schema — CSV, Parquet, a relational database table", "Yes — load it and go"]
+      - ["Semi-structured", "Has organization, but not fixed tabular shape — JSON, XML, nested API responses", "No — needs flattening/parsing first"]
+      - ["Unstructured", "No reliable internal schema — free text, PDFs, images, audio", "No — needs extraction (NLP, OCR, etc.) before it's tabular at all"]
+  - type: text
+    body: >
+      Every table in this course's ecommerce dataset — categories, products, customers,
+      marketing_campaigns, sessions, orders, order_items, payments — is structured data: consistent
+      columns, one row per record, ready to load into a schema viewer or a query engine with zero
+      transformation. That's precisely why it's the dataset this whole platform's SQL Lab and Python Lab
+      use for immediate, hands-on practice. Real analyst work is rarely this convenient from the start.
+  - type: heading
+    text: "What semi-structured data actually looks like, and why it needs flattening"
+  - type: text
+    body: >
+      Imagine a marketing platform's API returns campaign performance like this — a shape you'll encounter
+      constantly pulling data from ad platforms, product analytics tools, or any modern web API:
+  - type: code
+    language: json
+    code: |
+      {
+        "campaign_id": 4,
+        "campaign_name": "Search Campaign 4",
+        "channel": "search",
+        "daily_stats": [
+          {"date": "2025-06-01", "impressions": 14203, "clicks": 312},
+          {"date": "2025-06-02", "impressions": 15890, "clicks": 298}
+        ],
+        "targeting": {"countries": ["US", "CA"], "age_range": [25, 54]}
+      }
+    caption: "One campaign record — but daily_stats is a nested array, and targeting is a nested object"
+  - type: text
+    body: >
+      This isn't a row and columns — it's one record with a nested list (`daily_stats`, which itself needs
+      to become several rows, one per date) and a nested object (`targeting`, which needs its own fields
+      pulled out). Turning this into something you can query like a table — "flattening" — means deciding,
+      deliberately, what the target grain should be: one row per campaign? One row per campaign-day? That
+      decision is exactly the grain question from the previous lesson, applied to semi-structured data
+      before it even becomes a proper table.
+  - type: callout
+    variant: important
+    title: "Flattening is a design decision, not a mechanical step"
+    body: >
+      There's no single "correct" flat version of nested JSON — it depends on what grain your analysis
+      needs. If you're comparing daily performance, you want one row per campaign-day (exploding
+      daily_stats). If you only care about the campaign as a whole, you might aggregate daily_stats down to
+      one row per campaign instead. Get this decision wrong and you're right back to the grain mismatches
+      from the last lesson, just introduced one step earlier in the pipeline.
+  - type: heading
+    text: "Unstructured data: no schema to flatten at all"
+  - type: text
+    body: >
+      Free text — a customer support ticket, a product review, an open-ended survey response — has no
+      internal schema whatsoever. There's no `daily_stats` field to explode; there's just a string of
+      words. Getting structure out of it (is this review positive or negative? what topic is this ticket
+      about?) is itself an analysis task — natural language processing, not just a parsing step — and it's
+      meaningfully more effort than either structured or semi-structured data, which is worth flagging
+      clearly when scoping a request that touches it.
+  - type: heading
+    text: "Where each shape shows up in real analyst work"
+  - type: checklist
+    title: "A rough guide to what to expect from common sources"
+    items:
+      - "A warehouse table, a database export, most CSV/Excel files someone hands you → structured"
+      - "Most modern web APIs (marketing platforms, product analytics tools, payment processors) → semi-structured JSON, usually nested"
+      - "Support tickets, reviews, open survey responses, contract PDFs → unstructured"
+      - "A single request can span all three — e.g. 'how did the campaign perform, and what did customers say about it' pulls structured order data, semi-structured campaign API data, AND unstructured review text"
+  - type: question
+    prompt: "A marketing platform's API returns one JSON object per campaign, with a nested array of daily performance stats inside each one. What has to happen before you can compute 'average daily clicks per campaign' as a clean table?"
+    choices:
+      - "The nested daily_stats array needs to be flattened — deliberately deciding the target grain (one row per campaign-day is the natural choice here) — before it behaves like rows and columns you can group and average"
+      - "Nothing — JSON can be loaded directly into a SQL query engine and queried exactly like a CSV with no transformation"
+      - "The data needs to be converted to unstructured text first, then re-parsed"
+    correct_index: 0
+    explanation: >
+      Nested JSON isn't tabular until you decide how to unpack it. Exploding daily_stats into one row per
+      campaign-day is the natural grain for a "daily clicks" question — that flattening step, and the
+      deliberate grain decision behind it, has to happen before any groupby or average is meaningful.

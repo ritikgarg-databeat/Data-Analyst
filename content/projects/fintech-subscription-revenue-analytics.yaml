@@ -1,0 +1,111 @@
+slug: fintech-subscription-revenue-analytics
+title: FinTech Transaction Analytics
+category: BUSINESS_ANALYTICS
+business_context: >
+  Note on framing: this project reuses the platform's SaaS subscriptions dataset (subscriptions,
+  users, events) under a fintech recurring-revenue framing rather than a literal fintech transaction
+  dataset — treat each row in subscriptions as a customer's recurring plan/ledger entry with the same
+  plan, mrr, start_date/end_date, and status fields, the way a fintech app's finance team would track
+  recurring subscription revenue.
+
+  You're the analyst supporting the Finance team at a fintech app that monetizes through recurring
+  subscription plans (starter, pro, enterprise). Finance closes the books every month using a
+  spreadsheet someone rebuilds by hand, and has no reliable, repeatable view of MRR, ARR, how
+  concentrated revenue is across plan tiers, or how much revenue is at risk from churn. The CFO wants
+  a real, defensible finance-facing revenue model before the next board meeting.
+objective: >
+  Build a recurring-revenue analytics view for the finance team: MRR/ARR tracking over time, a
+  plan-tier revenue-concentration analysis, a churn-adjusted revenue-at-risk view, and a finance-ready
+  dashboard and recommendation for protecting and growing recurring revenue.
+requirements:
+  - "A data-discovery summary confirming how mrr, status, start_date, and end_date in subscriptions combine to determine active recurring revenue at any point in time"
+  - "An MRR and ARR tracking analysis showing how recurring revenue has trended month over month"
+  - "A plan-tier revenue-concentration analysis showing what share of total MRR comes from each plan tier and how concentrated/risky that is"
+  - "A churn-adjusted revenue-at-risk analysis quantifying how much MRR was lost to churn over time (a simple MRR-churn or logo-churn view)"
+  - "A finance-facing dashboard with at least 4 charts covering MRR/ARR trend, plan-tier concentration, and revenue at risk"
+  - "A written finance recommendation on protecting and growing recurring revenue, addressing both concentration risk and churn-driven revenue loss"
+suggested_datasets:
+  - saas-product
+milestones:
+  - title: Understand the Business
+    description: Understand the fintech app's recurring-revenue model and what the CFO needs to see in a defensible monthly revenue view.
+  - title: Data Discovery
+    description: Profile subscriptions, users, and events, and confirm exactly how active recurring revenue is derived from status and date fields.
+  - title: Build the MRR/ARR Tracking Model
+    description: Build a repeatable calculation of MRR and ARR over time from the subscriptions data.
+  - title: Revenue-Concentration Analysis
+    description: Analyze how concentrated recurring revenue is across the starter, pro, and enterprise plan tiers.
+  - title: Churn-Adjusted Revenue-at-Risk Analysis
+    description: Quantify how much recurring revenue has been lost to churn over time, distinguishing it from new and expansion revenue.
+  - title: Build the Finance Dashboard
+    description: Design and build a finance-facing dashboard summarizing MRR/ARR trend, concentration, and revenue at risk.
+  - title: Insights and Recommendation
+    description: Synthesize the findings into a recommendation for protecting recurring revenue and reducing concentration risk.
+  - title: Final Presentation
+    description: Present the recurring-revenue model and recommendation to the CFO in board-meeting-ready form.
+required_skills:
+  - sql-fundamentals
+  - advanced-sql
+  - business-metrics
+  - data-modeling
+  - exploratory-data-analysis
+  - data-visualization
+  - communication
+rubric:
+  - category: Business Understanding
+    weight: 10
+    criteria:
+      - criterion: Correctly frames MRR/ARR concepts as they apply to a fintech recurring-revenue business
+        points: 10
+      - criterion: Is transparent about the fintech framing being an analogy over SaaS subscription data, not a literal fintech dataset
+        points: 10
+  - category: Technical Execution
+    weight: 25
+    is_technical: true
+    criteria:
+      - criterion: MRR/ARR calculation correctly derives active recurring revenue from subscription status and dates at each point in time
+        points: 10
+      - criterion: Revenue-concentration and revenue-at-risk calculations are computed correctly
+        points: 10
+  - category: Analytical Reasoning
+    weight: 25
+    criteria:
+      - criterion: Correctly distinguishes MRR growth from new revenue vs. expansion vs. loss from churn
+        points: 10
+      - criterion: Concentration analysis correctly identifies genuine revenue risk (e.g. over-reliance on one tier)
+        points: 10
+      - criterion: Revenue-at-risk figures are grounded in the actual churn data, not assumptions
+        points: 5
+  - category: Visualization
+    weight: 15
+    criteria:
+      - criterion: Dashboard clearly presents MRR/ARR trend, concentration, and revenue at risk
+        points: 10
+      - criterion: Chart choices suit a finance audience (e.g. clear trend lines, waterfall-style breakdowns)
+        points: 10
+  - category: Communication
+    weight: 25
+    criteria:
+      - criterion: Recommendation directly addresses concentration risk and churn-driven revenue loss
+        points: 10
+      - criterion: Presentation is finance-appropriate — precise numbers, clear definitions, board-ready framing
+        points: 10
+      - criterion: Assumptions and limitations of the revenue model are clearly stated
+        points: 5
+learning_objectives:
+  - Build a repeatable MRR/ARR calculation from subscription-level data
+  - Analyze revenue concentration risk across product/plan tiers
+  - Quantify churn-adjusted revenue at risk
+  - Design a finance-facing recurring-revenue dashboard
+  - Communicate a recurring-revenue model and recommendation to a finance/executive audience
+estimated_hours: 7.5
+tags:
+  - sql
+  - finance
+  - saas
+  - business-analytics
+  - churn
+  - data-modeling
+  - real-world
+  - advanced
+version: 1

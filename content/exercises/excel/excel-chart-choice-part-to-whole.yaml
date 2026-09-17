@@ -1,0 +1,22 @@
+slug: excel-chart-choice-part-to-whole
+skill: excel-fundamentals
+title: Choosing a Chart for Part-to-Whole Composition
+description: You want to show, in a single snapshot, what share of this quarter's revenue came from each of 4 product
+  categories. Which chart type is most appropriate?
+exercise_type: MULTIPLE_CHOICE
+difficulty: INTERMEDIATE
+points: 5
+tags:
+- excel
+prompt: You want to show, in a single snapshot, what share of this quarter's revenue came from each of 4 product
+  categories. Which chart type is most appropriate?
+correct_answer: A pie chart (with only 4 categories)
+explanation: A pie chart is appropriate for a part-to-whole comparison, but only stays readable with a small number
+  of slices -- 4 categories is a reasonable case, whereas 15 thin, similarly-sized slices (the third option) is
+  the classic pie-chart misuse a data-viz interview question would flag as a redesign candidate (a sorted bar chart
+  instead).
+choices:
+- A pie chart (with only 4 categories)
+- A line chart
+- A pie chart with 15 categories
+- A scatter plot

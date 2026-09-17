@@ -1,0 +1,118 @@
+slug: biz-customer-acquisition-and-activation
+module_slug: customer-analytics
+title: "Acquisition and Activation: Getting Customers In, Then Getting Them to Value"
+description: Why "we acquired a customer" and "we activated a customer" are two different wins, and how activation rate can vary enormously by acquisition channel.
+difficulty: INTERMEDIATE
+estimated_minutes: 14
+display_order: 1
+objectives:
+  - Distinguish customer acquisition (signup) from activation (reaching real first value)
+  - Compute activation rate for a cohort of signups
+  - Explain why acquisition channel quality should be judged on activation, not just signup volume or cost
+skills: [business-analytics, business-metrics, metric-definition]
+datasets: [saas-product]
+tags: [business-analytics, customer-analytics, intermediate, saas]
+key_takeaways:
+  - "Acquisition is getting a customer to sign up; activation is getting them to reach a defined moment of real product value — the two can be tracked completely separately, and often should be."
+  - "Activation Rate = customers who reach the activation event / customers who signed up × 100, always measured over the same cohort."
+  - In this platform's real saas-product data, activation rate varies from 78.9% (organic signups) down to 55.9% (paid_social signups) — a 23-point gap that a channel's signup volume or CAC alone would never reveal.
+common_mistakes:
+  - Judging an acquisition channel purely on signup volume or cost-per-signup, without checking whether those signups ever convert into activated, value-realizing users.
+  - Defining "activation" so loosely (e.g. "opened the app once") that it stops distinguishing engaged users from ones who will churn immediately.
+interview_questions:
+  - question: "Paid social brings in the cheapest signups by cost-per-acquisition, but has the lowest activation rate of any channel. Should the company keep scaling it?"
+    answer: >
+      Not without more analysis — a cheap signup that never activates never generates value, so cost-per-
+      *activated-user* (not cost-per-signup) is the number that actually matters for a scaling decision.
+      If paid social's true cost-per-activation, once its low activation rate is accounted for, is higher
+      than a channel with a higher sticker price but much better activation, the "cheap" channel may
+      actually be the more expensive one in practice. The right next step is recomputing CAC against
+      activated users specifically, not raw signups, before deciding to scale or cut the channel.
+blocks:
+  - type: heading
+    text: Two different finish lines
+  - type: text
+    body: >
+      "We got a new customer" can mean very different things depending on which finish line you mean.
+      **Acquisition** is the moment someone signs up — the easiest bar to clear, and the one most
+      acquisition-channel reporting defaults to. **Activation** is a much higher bar: the moment a
+      customer actually reaches real value from the product, defined however this specific business
+      decides "real value" looks like (e.g. completing onboarding, sending a first message, uploading a
+      first dataset). A customer can be acquired and never activate — which usually means they were
+      acquired for nothing.
+  - type: formula
+    expression: "Activation Rate (%) = (Signups who reach the activation event) / (Total signups in the cohort) × 100"
+    description: >
+      Always measured over the same defined cohort (e.g. "everyone who signed up in a given month"), so
+      that the denominator is stable and the rate isn't distorted by mixing cohorts of very different ages.
+  - type: example
+    title: Activation rate by acquisition channel — a 23-point real gap
+    body: >
+      This platform's saas-product dataset tracks a `signup` and an `activated` event per user. Grouping
+      3,000 signups by acquisition channel and computing what share of each group ever reached
+      `activated` reveals a wide, real spread: organic signups activate at 78.9% (720 of 913), referral at
+      78.2% (340 of 435), content at 72.0% (216 of 300), paid_search at 61.7% (449 of 728), and
+      paid_social at just 55.9% (349 of 624) — the lowest of any channel, and the one furthest from the
+      organic baseline.
+    code: |
+      WITH activated AS (
+        SELECT DISTINCT user_id FROM events WHERE event_name = 'activated'
+      )
+      SELECT
+        u.acquisition_channel,
+        COUNT(*) AS signups,
+        COUNT(a.user_id) AS activated_users,
+        ROUND(100.0 * COUNT(a.user_id) / COUNT(*), 1) AS activation_rate_pct
+      FROM users u
+      LEFT JOIN activated a USING (user_id)
+      GROUP BY u.acquisition_channel
+      ORDER BY activation_rate_pct DESC;
+    language: sql
+  - type: output
+    body: |
+      acquisition_channel  signups  activated_users  activation_rate_pct
+      organic              913      720              78.9
+      referral              435      340              78.2
+      content               300      216              72.0
+      paid_search           728      449              61.7
+      paid_social           624      349              55.9
+    caption: Real activation rate by acquisition channel, saas-product dataset.
+  - type: callout
+    variant: important
+    title: A signup is a cost until it activates
+    body: >
+      Every signup carries some acquisition cost, whether it's paid media spend or organic content
+      investment. A channel that produces plentiful, cheap signups that mostly never activate can be a
+      worse investment than a channel with fewer, pricier signups that mostly do — but that's invisible
+      to anyone only looking at signup counts or cost-per-signup.
+  - type: heading
+    text: Why this gap probably isn't random
+    level: 3
+  - type: text
+    body: >
+      A gap this size and this consistent (organic and referral both comfortably above 78%, both paid
+      channels both below 62%) is a pattern worth taking seriously rather than dismissing as noise. Organic
+      and referral signups typically arrive already knowing what the product does and actively seeking it
+      out; paid channels can bring in people reacting to an ad's promise rather than an existing need — a
+      real, common driver of exactly this kind of activation gap.
+  - type: checklist
+    title: Before trusting an acquisition channel's reported performance, confirm
+    items:
+      - Whether "performance" was measured on signups, activated users, or paying customers — these are three different funnels
+      - Whether the activation event definition is strict enough to mean something (not just "logged in once")
+      - Whether the comparison controls for cohort age (a very recent cohort hasn't had time to activate yet)
+  - type: question
+    prompt: >
+      Two acquisition channels bring in the same number of signups per month at the same cost-per-signup.
+      Channel A has a 75% activation rate; Channel B has a 45% activation rate. What follows?
+    choices:
+      - "Both channels are equally good investments, since signup volume and cost are identical."
+      - "Channel A is very likely the better investment, since a much larger share of its signups reach real product value for the same acquisition spend."
+      - "Channel B is better, since a lower activation rate means less strain on onboarding resources."
+    correct_index: 1
+    explanation: >
+      Signups and cost-per-signup describe only the top of the funnel. If Channel A converts 75% of its
+      signups into activated users and Channel B converts only 45% for the identical spend, Channel A is
+      delivering substantially more activated (and likely more valuable) customers per dollar — the
+      activation rate is the deciding factor once acquisition cost is held equal, not an afterthought to
+      the acquisition numbers.

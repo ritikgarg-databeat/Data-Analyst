@@ -1,0 +1,20 @@
+slug: dm-ex-fact-grain-truefalse
+lesson_slug: dm-facts-and-dimensions
+skill: dimensional-modeling
+title: "Fact Tables Need an Explicit Grain"
+description: Confirming why stating a fact table's grain in one precise sentence matters for correct aggregation.
+exercise_type: TRUE_FALSE
+difficulty: BEGINNER
+points: 5
+tags: [fact-table, grain, star-schema]
+prompt: >
+  True or False: A fact table's grain should be stated in one precise sentence describing what a single row
+  represents (e.g. "1 row = 1 order"), because that sentence is what determines which aggregations are safe to
+  compute from it.
+choices: ["True", "False"]
+correct_answer: "True"
+explanation: >
+  This is exactly why the Data Modeler's validator has a dedicated fact_table_missing_grain check — an
+  unstated grain on a FACT table hides exactly the kind of ambiguity that leads to fan-out and other
+  aggregation mistakes, since nobody (including you, later) can tell what a row means or what's safe to sum
+  from it.

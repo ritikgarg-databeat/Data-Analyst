@@ -1,0 +1,40 @@
+slug: mds-dq-check-silent-zero-orders
+lesson_slug: dbt-generic-tests
+skill: pipeline-troubleshooting
+dataset: ecommerce
+title: "Match the Check to the Failure: Three Days of Silently 'Zero' Orders"
+description: Given a scenario where an API silently returns empty instead of erroring, identify which data quality check catches the resulting anomaly automatically, and why a freshness check would not.
+exercise_type: MULTIPLE_CHOICE
+difficulty: INTERMEDIATE
+points: 10
+tags: [data-quality, validation, pipelines, real-world, intermediate]
+prompt: >
+  A company's "orders today" dashboard has shown exactly 0 new orders for the past three days. The team
+  initially assumed this reflected a genuine slowdown in the business. Investigating further, they
+  discover the real cause: the third-party order source API silently started returning an empty response
+  instead of raising an error, and the ingestion job has no way to distinguish "there really were zero
+  orders" from "the API returned nothing at all." The ingestion job itself still completes "successfully"
+  every night, loading zero rows without complaint, and the data it does load is loaded promptly — there
+  is no delay in when the (empty) load happens.
+
+  Which single data quality check type, run automatically after each load, is best suited to catch this
+  specific failure mode before a human happens to notice the dashboard looks wrong?
+choices:
+  - "UNIQUE — checking that no order_id is loaded twice"
+  - "FRESHNESS — checking how recently the newest row arrived relative to now"
+  - "ROW_COUNT — checking that the number of rows loaded falls within an expected range compared to a typical day"
+  - "RELATIONSHIP — checking that every order's customer_id exists in the customers table"
+correct_answer: "ROW_COUNT — checking that the number of rows loaded falls within an expected range compared to a typical day"
+explanation: >
+  This scenario is a deliberate trap for confusing ROW_COUNT with FRESHNESS. A freshness check asks "how
+  recently did data arrive?" — and here, the (empty) load happens right on schedule every night, so a
+  freshness check would report the data as perfectly fresh and pass, right up until the pipeline is
+  clearly not doing its job. A ROW_COUNT check asks a different question — "does the volume of data
+  loaded look normal compared to history?" — and would immediately flag three consecutive days of 0 rows
+  against a typical baseline of, say, a few hundred orders a day, catching the silent failure the moment
+  it starts, regardless of whether the job technically "succeeded" and ran on time. UNIQUE and
+  RELATIONSHIP checks operate on the rows that did load and have nothing to say about rows that never
+  arrived in the first place.
+hints:
+  - "Ask separately: is the data arriving on time (freshness), versus is the amount of data arriving unusual (volume)? This scenario's problem is entirely about volume, not timing."
+  - "A check that only looks at 'when did the newest row show up' would be satisfied here, since the empty load itself happens exactly on schedule."

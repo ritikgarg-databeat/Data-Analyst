@@ -1,0 +1,138 @@
+slug: list-comprehensions
+module_slug: python-for-analysts
+title: List, Dict, and Set Comprehensions
+description: Beyond the basics — nested comprehensions for flattening, if/else inside the expression, and dict/set comprehensions.
+difficulty: BEGINNER
+estimated_minutes: 12
+display_order: 12
+objectives:
+  - Write a nested comprehension that flattens a list of lists into a single list
+  - Use an if/else expression inside a comprehension to choose between two output values, and distinguish that from a trailing filter
+  - Write dict and set comprehensions using the same mental model as a list comprehension
+prerequisites: [sets]
+skills: [python-fundamentals]
+datasets: []
+tags: [python, beginner, foundations]
+key_takeaways:
+  - "This lesson builds directly on the basic list comprehension from the Lists lesson (value for value in iterable if condition) — if that pattern isn't comfortable yet, revisit it first."
+  - "A trailing if filters which elements make it into the result; an if/else placed before the for clause instead chooses what value to produce for every element — the two look similar but do different jobs."
+  - "Dict comprehensions ({key: value for ...}) and set comprehensions ({value for ...}) apply the exact same mental model as list comprehensions, just with different container syntax."
+common_mistakes:
+  - "Writing [x if condition for x in items] and expecting it to filter — a standalone if before for is a syntax error; an if/else expression always needs both branches (x if condition else y for ...)."
+  - "Confusing a dict comprehension's {key: value for ...} with a set comprehension's {value for ...} — both use curly braces, and the colon is the only visual difference between building a dict and building a set."
+  - "Nesting comprehensions so deeply that they become harder to read than the equivalent for loop — a nested comprehension is best kept to two levels; beyond that, a plain for loop is usually clearer."
+blocks:
+  - type: text
+    body: >
+      The Lists lesson introduced the basic list comprehension — `[expr for item in iterable if
+      condition]` as a compact stand-in for a for loop with `.append()`. This lesson builds on that
+      foundation with three extensions you'll see constantly in real analysis code: comprehensions that
+      flatten nested data, comprehensions that choose between two output values, and comprehensions that
+      build dicts and sets instead of lists.
+  - type: heading
+    text: "Nested comprehensions: flattening a list of lists"
+  - type: text
+    body: >
+      Data often arrives nested — one list per group, all bundled into an outer list. A **nested
+      comprehension** flattens that structure in one line by chaining two `for` clauses: the first
+      walks the outer list, the second walks each inner list.
+  - type: code
+    language: python
+    code: |
+      orders_by_region = [[101, 102, 103], [201, 202], [301, 302, 303, 304]]
+
+      all_order_ids = [order_id for region in orders_by_region for order_id in region]
+      print(all_order_ids)
+      # [101, 102, 103, 201, 202, 301, 302, 303, 304]
+    caption: "Read the for clauses left to right, in the same order you'd nest the equivalent for loops"
+  - type: callout
+    variant: tip
+    title: Reading order matches nested for loops
+    body: >
+      `[x for outer in outers for x in outer]` is equivalent to writing `for outer in outers:` followed
+      by `for x in outer:` as nested for loops, in that same order — the comprehension just puts both
+      clauses on one line, expression first.
+  - type: heading
+    text: "if/else inside the expression — a different job from a filter"
+  - type: text
+    body: >
+      The basic comprehension's trailing `if` *filters* — it decides which elements are kept, and
+      dropped ones simply don't appear in the result. An `if/else` placed *before* the `for` clause
+      instead runs for every element and picks between two output values — nothing gets dropped, every
+      input produces some output.
+  - type: code
+    language: python
+    code: |
+      totals = [42.5, 108.0, 19.99, 250.0, 76.25]
+
+      # Filter: keeps only totals over 50 — shorter result list
+      large_only = [t for t in totals if t > 50]
+      # [108.0, 250.0, 76.25]
+
+      # if/else expression: labels every total — same length as the input
+      labels = ["large" if t > 50 else "small" for t in totals]
+      # ['small', 'large', 'small', 'large', 'large']
+    caption: "A trailing if filters (fewer results); an if/else before for labels (same count, transformed)"
+  - type: callout
+    variant: common_mistake
+    title: These two forms are not interchangeable
+    body: >
+      `[x if condition for x in items]` (no `else`) is a syntax error — an if/else expression always
+      needs both branches. If you want to drop elements, use a trailing filter `if`; if you want to keep
+      every element but transform it differently based on a condition, use `x if condition else y`
+      before the `for`.
+  - type: heading
+    text: Dict comprehensions
+  - type: text
+    body: >
+      A **dict comprehension** builds a dictionary the same way a list comprehension builds a list — the
+      only syntax difference is curly braces and a `key: value` pair instead of a single expression.
+  - type: code
+    language: python
+    code: |
+      products = ["apple", "kiwi", "banana"]
+
+      name_lengths = {name: len(name) for name in products}
+      print(name_lengths)
+      # {'apple': 5, 'kiwi': 4, 'banana': 6}
+    caption: "{key_expr: value_expr for item in iterable} builds a dict"
+  - type: heading
+    text: Set comprehensions
+  - type: code
+    language: python
+    code: |
+      products = ["apple", "kiwi", "banana"]
+
+      unique_lengths = {len(name) for name in products}
+      print(unique_lengths)
+      # {4, 5, 6}
+    caption: "{expr for item in iterable} with no colon builds a set — automatically deduplicated"
+  - type: example
+    title: "Combining all three: flatten, filter, and re-key"
+    body: >
+      Real analysis code often chains these ideas together — here, a nested list of per-customer order
+      totals gets flattened, filtered down to large orders, and turned into a rank-keyed dict all in a
+      few lines.
+    code: |
+      order_totals_by_customer = [[42.5, 108.0], [19.99, 250.0, 76.25]]
+
+      large_orders = [t for totals in order_totals_by_customer for t in totals if t > 50]
+      print(large_orders)
+      # [108.0, 250.0, 76.25]
+
+      ranked = {i: total for i, total in enumerate(large_orders, start=1)}
+      print(ranked)
+      # {1: 108.0, 2: 250.0, 3: 76.25}
+    language: python
+  - type: question
+    prompt: "What does [x for row in [[1, 2], [3, 4]] for x in row if x > 2] evaluate to?"
+    choices:
+      - "[1, 2, 3, 4]"
+      - "[3, 4]"
+      - "[[3, 4]]"
+    correct_index: 1
+    explanation: >
+      The two for clauses flatten [[1, 2], [3, 4]] into individual elements 1, 2, 3, 4 in order, and the
+      trailing if x > 2 filters that flattened stream down to just the elements greater than 2 — leaving
+      [3, 4]. The result is a flat list, not a nested one, since the comprehension's expression (x) is a
+      single number, not a sublist.

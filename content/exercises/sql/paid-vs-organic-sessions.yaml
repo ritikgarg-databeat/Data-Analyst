@@ -1,0 +1,51 @@
+slug: paid-vs-organic-sessions
+lesson_slug: advanced-case-expressions
+skill: sql-fundamentals
+dataset: ecommerce
+title: Paid vs. Organic/Direct Session Split
+description: Write a query that buckets sessions into "Paid" and "Organic/Direct" using a CASE expression and counts each bucket.
+exercise_type: SQL
+difficulty: BEGINNER
+points: 15
+tags: [sql, foundations, real-world, easy]
+business_context: >
+  Marketing wants a quick gut-check on how much of our traffic is actually driven by paid campaigns
+  versus arriving organically or direct, before making the case for a bigger campaign budget next
+  quarter.
+prompt: >
+  Using the `sessions` table, write a query that buckets every session into `'Paid'` (its
+  `marketing_campaign_id` is not null — it arrived via a tracked campaign) or `'Organic/Direct'`
+  (`marketing_campaign_id` is null), and returns each bucket (as `traffic_type`) together with its
+  session count (`session_count`), ordered alphabetically by `traffic_type`.
+sql_tables: [sessions]
+sql_starter_query: |
+  -- Explore the sessions table first
+  SELECT * FROM sessions LIMIT 20;
+sql_solution_query: |
+  SELECT
+    CASE WHEN marketing_campaign_id IS NOT NULL THEN 'Paid' ELSE 'Organic/Direct' END AS traffic_type,
+    COUNT(*) AS session_count
+  FROM sessions
+  GROUP BY traffic_type
+  ORDER BY traffic_type;
+sql_row_order_matters: true
+sql_numeric_tolerance: 0.01
+hints:
+  - "A CASE expression can produce a brand-new label based on a condition — here, whether marketing_campaign_id IS NULL or IS NOT NULL — and that label can itself be grouped on."
+  - "Write CASE WHEN marketing_campaign_id IS NOT NULL THEN 'Paid' ELSE 'Organic/Direct' END as a column, alias it, then GROUP BY that same alias and COUNT(*)."
+solution: |
+  ```sql
+  SELECT
+    CASE WHEN marketing_campaign_id IS NOT NULL THEN 'Paid' ELSE 'Organic/Direct' END AS traffic_type,
+    COUNT(*) AS session_count
+  FROM sessions
+  GROUP BY traffic_type
+  ORDER BY traffic_type;
+  ```
+explanation: >
+  A strong answer recognizes that "Paid" vs. "Organic/Direct" isn't a column that already exists — it's
+  a label derived from whether marketing_campaign_id is null, which a CASE expression can compute
+  inline. Most SQL engines (DuckDB included) let you GROUP BY the CASE expression's own alias rather
+  than repeating the full CASE logic in the GROUP BY clause, which keeps the query readable. A common
+  mistake is writing `WHERE marketing_campaign_id IS NOT NULL` first and losing the "Organic/Direct"
+  rows entirely, instead of bucketing all sessions into one of the two labels.

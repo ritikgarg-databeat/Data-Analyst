@@ -1,0 +1,37 @@
+slug: mock-interview-standard
+title: "Full Mock Interview — Data Analyst (45 min)"
+target_profile: "Data Analyst — ~2 Years Experience"
+description: >
+  The standard full mock interview: five back-to-back timed rounds totalling 45 minutes, mirroring
+  the shape of a typical mid-round analyst loop — a technical SQL screen, product-metrics reasoning,
+  a short statistics check, a business case, and a behavioural question. Run this end to end without
+  pausing to get an honest read on your readiness.
+sections:
+  - interview_type: SQL
+    title: "SQL"
+    duration_minutes: 15
+    question_count: 2
+  - interview_type: PRODUCT_ANALYTICS
+    title: "Product Analytics"
+    duration_minutes: 10
+    question_count: 2
+  - interview_type: STATISTICS
+    title: "Statistics"
+    duration_minutes: 5
+    question_count: 1
+  - interview_type: BUSINESS_ANALYTICS
+    title: "Business Case"
+    duration_minutes: 10
+    question_count: 1
+  - interview_type: BEHAVIORAL
+    title: "Behavioural"
+    duration_minutes: 5
+    question_count: 1
+rubric_weights:
+  Technical Correctness: 30
+  Analytical Reasoning: 20
+  Business Understanding: 20
+  Communication: 15
+  Problem Solving: 10
+  Efficiency: 5
+tags: [mock-interview, sql, product-analytics, statistics, business-analytics, behavioral]

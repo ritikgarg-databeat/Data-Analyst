@@ -1,0 +1,52 @@
+slug: pa-di-funnel-rate-vs-absolute-loss
+lesson_slug: pa-funnel-fundamentals
+skill: data-interpretation
+dataset: saas-product
+title: "Reading a Funnel: Rate vs. Absolute Loss"
+description: Given a real cumulative funnel table, decide which step to prioritize using both step-to-step rate and absolute user loss.
+exercise_type: DATA_INTERPRETATION
+difficulty: INTERMEDIATE
+points: 15
+tags: [product, saas, funnel, intermediate, real-world]
+business_context: >
+  A product manager asks you to look at the signup-to-upgrade funnel and tell them, in one sentence,
+  which step the team should fix first. They want a specific, defensible answer — not "it depends."
+prompt: >
+  Here is the real cumulative funnel for this dataset's 3,000 signups:
+
+  | Step | Users reaching step | Step-to-step conversion |
+  |---|---|---|
+  | 1. Signup | 3,000 | — |
+  | 2. Activated | 2,074 | 69.1% |
+  | 3. Engaged | 1,125 | 54.2% |
+  | 4. Upgraded | 212 | 18.8% |
+
+  Compute the absolute number of users lost at each step (not just the rate), then answer: which
+  step would you tell the PM to prioritize, and why? Would your answer change depending on whether
+  the team's goal is "recover the most total users" versus "fix the most inefficient step
+  proportionally"? Be specific about what the numbers show, not just which step "sounds" worst.
+hints:
+  - "Subtract each step's user count from the previous step's to get the absolute loss — compare all three losses to each other before deciding anything from the rate column alone."
+  - "A step can have the worst percentage rate while losing a similar (or even smaller) number of actual people than an earlier step with a much 'better-looking' rate — check whether that's true here before picking one answer."
+solution: >
+  Absolute loss per step: signup→activated loses 926 users (3,000−2,074); activated→engaged loses
+  949 users (2,074−1,125); engaged→upgraded loses 913 users (1,125−212). All three steps lose a
+  strikingly similar number of real people — roughly 910-950 each — despite the step-to-step rates
+  looking very different (69.1%, 54.2%, 18.8%).
+
+  This means the answer genuinely depends on the team's goal, and a good response says so explicitly
+  rather than picking one step and stopping. If the goal is "recover the most total users with one
+  fix," all three steps are roughly tied on absolute opportunity, and the choice should come down to
+  which fix is cheapest or fastest to ship, not which step's rate looks worst. If the goal is "find
+  the most inefficient step relative to who reached it," the engaged→upgraded step is the clear
+  answer — it converts only 18.8% of the users who reach it, well below the other two steps' rates,
+  meaning a much larger fraction of the population at that point is failing to convert even though
+  the raw headcount lost is comparable.
+explanation: >
+  A strong answer computes absolute loss (not just rate) before drawing any conclusion, and notices
+  the specific, real pattern in this data: three very different step-to-step rates converging on a
+  similar absolute headcount lost at each step. It answers the "which step" question by naming which
+  goal it's optimizing for (total users recovered vs. proportional inefficiency) rather than
+  asserting one universal answer. A weaker answer reads only the rate column, declares the lowest
+  rate (18.8%) "obviously the worst," and never checks what that means in terms of actual people —
+  missing that the other two steps are losing just as many real users.

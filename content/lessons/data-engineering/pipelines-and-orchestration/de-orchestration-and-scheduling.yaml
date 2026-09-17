@@ -1,0 +1,120 @@
+slug: de-orchestration-and-scheduling
+module_slug: pipelines-and-orchestration
+title: Orchestration, Scheduling, and Retries
+description: What an orchestrator actually does with a pipeline's dependency graph — scheduling, retrying failed steps, and the idempotency assumption that makes retries safe.
+difficulty: INTERMEDIATE
+estimated_minutes: 22
+display_order: 2
+objectives:
+  - Explain what an orchestration tool does, beyond just "running scripts on a schedule"
+  - Define idempotency and explain why a pipeline step needs it before it's safe to retry
+  - Recognize a backfill as re-running a pipeline for a past date range, and why that's a common, expected operation
+prerequisites: [de-what-is-a-pipeline]
+skills: [data-pipelines, pipeline-troubleshooting]
+datasets: [ecommerce]
+tags: [orchestration, pipelines, airflow, data-engineering, intermediate]
+key_takeaways:
+  - "An orchestrator's job is to read a pipeline's dependency graph (its DAG) and actually execute it — starting each step only once its dependencies have succeeded, on a schedule, with retries and alerting built in."
+  - "A step is idempotent if running it twice produces the same result as running it once — this property is what makes it safe for an orchestrator to automatically retry a failed step rather than leaving the pipeline stuck or corrupting data with duplicates."
+  - "A backfill is re-running a pipeline for a past date range — routine and expected (fixing a bug, adding a new column, recovering from an outage), not a sign that something is broken."
+common_mistakes:
+  - "Writing a transformation step that appends new rows every time it runs, without deduplicating or replacing — a routine automatic retry after a transient failure then quietly doubles that data."
+  - "Treating a scheduled retry succeeding as proof nothing went wrong — if a step's first attempt partially wrote data before failing, and the retry isn't idempotent, the retry's success can leave behind a subtly corrupted mix of both attempts."
+interview_questions:
+  - question: "What does it mean for a pipeline step to be idempotent, and why does an orchestrator care?"
+    answer: >
+      Idempotent means running the step multiple times with the same input produces the same
+      end result as running it once — typically by having each run fully replace (not append to)
+      the specific slice of data it's responsible for, keyed by something like a run date. An
+      orchestrator cares because retries are its main tool for handling transient failures (a
+      network blip, a momentarily unavailable source) automatically; without idempotency, an
+      automatic retry risks silently duplicating or corrupting data instead of safely redoing the
+      work.
+blocks:
+  - type: heading
+    text: What an orchestrator actually does
+  - type: text
+    body: >
+      A DAG describes *what depends on what*. An **orchestration tool** (Airflow is the best-known
+      example, though far from the only one) is the system that actually reads that dependency
+      graph and executes it for real: triggering each step on a schedule, holding a step until its
+      upstream dependencies have genuinely succeeded, retrying a step automatically if it fails
+      transiently, and alerting a human when retries are exhausted. Without an orchestrator, someone
+      would have to manually run each step in the right order, every single day, and notice failures
+      themselves.
+  - type: example
+    title: "A scheduled run of the revenue pipeline"
+    body: >
+      Picture the `extract_orders → extract_payments → stg_orders_payments → daily_revenue_by_channel
+      → refresh_dashboard` chain from the previous lesson, scheduled to run every night at 2am. The
+      orchestrator kicks off `extract_orders` and `extract_payments` at 2am. If `extract_payments`
+      fails because the source database was briefly unreachable, the orchestrator automatically
+      retries it a few minutes later rather than failing the whole run immediately. If it succeeds
+      on retry, the pipeline proceeds normally to `stg_orders_payments`. If it fails three retries in
+      a row, the orchestrator marks the run failed and alerts whoever's on call — instead of the
+      pipeline silently limping forward with half its inputs missing.
+  - type: heading
+    text: Why retries need idempotency to be safe
+  - type: text
+    body: >
+      Automatic retries are only safe if re-running a step doesn't create a different, worse
+      outcome than running it once. A step is **idempotent** if running it twice (or ten times)
+      with the same inputs leaves the data in exactly the same state as running it once. The
+      classic way to break this: a transformation step that *appends* new rows every run, rather
+      than replacing the specific slice of data (say, "today's rows") it's responsible for. If that
+      step fails halfway through writing today's rows and gets automatically retried, an
+      append-only design can leave today's data duplicated — a subtle, hard-to-notice error that's
+      arguably worse than the original failure.
+  - type: code
+    language: sql
+    code: |
+      -- NOT idempotent: re-running this after a partial failure appends more
+      -- rows for the same day, silently duplicating that day's revenue.
+      INSERT INTO daily_revenue_by_channel
+      SELECT channel, order_date, SUM(amount) AS revenue
+      FROM stg_orders_payments
+      WHERE order_date = CURRENT_DATE
+      GROUP BY channel, order_date;
+
+      -- Idempotent: this run's slice is fully replaced before being
+      -- rewritten, so re-running it (via retry or backfill) is always safe.
+      DELETE FROM daily_revenue_by_channel WHERE order_date = CURRENT_DATE;
+      INSERT INTO daily_revenue_by_channel
+      SELECT channel, order_date, SUM(amount) AS revenue
+      FROM stg_orders_payments
+      WHERE order_date = CURRENT_DATE
+      GROUP BY channel, order_date;
+    caption: "The delete-then-insert pattern (or an upsert/MERGE) is a common way to make a step safely re-runnable — this is illustrative, conceptual SQL, not tied to a specific engine's syntax."
+  - type: heading
+    text: Backfills are routine, not an emergency
+  - type: text
+    body: >
+      A **backfill** re-runs a pipeline for a past date range — often because a bug in the
+      transformation logic was just fixed and needs to be applied retroactively, a new column needs
+      to be populated for historical data too, or a real outage needs its missing days recovered.
+      Because idempotent steps are safe to re-run, a well-built pipeline can backfill any past date
+      range without fear of duplicating or corrupting data — this is a routine operational tool, not
+      a sign of crisis.
+  - type: callout
+    variant: tip
+    title: "What this means if you're the analyst asking for a fix"
+    body: >
+      If you spot a transformation bug and ask a data engineer to fix it, the natural follow-up
+      question is "can you backfill history with the corrected logic, or does this only apply going
+      forward?" Knowing that backfills are a normal, safe operation (assuming the pipeline was built
+      idempotently) means you can reasonably expect a fix to also correct the historical numbers,
+      not just future ones — worth asking for explicitly rather than assuming it happens
+      automatically.
+  - type: question
+    prompt: >
+      A transformation step fails partway through and an orchestrator automatically retries it.
+      What property does that step need to have for the retry to be safe?
+    choices:
+      - "It needs to run faster than the first attempt"
+      - "It needs to be idempotent — re-running it with the same input should leave the data in the same state as running it exactly once, typically by replacing its slice of data rather than appending to it"
+      - "It needs to be scheduled less frequently"
+    correct_index: 1
+    explanation: >
+      Idempotency is what makes an automatic retry safe rather than risky. Without it, a retry after
+      a partial failure can leave behind duplicated or inconsistent data instead of cleanly redoing
+      the failed work.

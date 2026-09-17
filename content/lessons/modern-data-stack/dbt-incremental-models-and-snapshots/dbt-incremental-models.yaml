@@ -1,0 +1,132 @@
+slug: dbt-incremental-models
+module_slug: dbt-incremental-models-and-snapshots
+title: "Incremental Models: fct_daily_revenue"
+description: >-
+  The real, working incremental model in this repo's dbt project —
+  materialized='incremental', unique_key, and the is_incremental() macro
+  that stops it from rescanning all history on every run.
+difficulty: ADVANCED
+estimated_minutes: 25
+display_order: 1
+prerequisites: [dbt-jinja-and-macros]
+objectives:
+  - Explain the problem incremental materialization solves — not rescanning and rebuilding full history on every single run.
+  - Read fct_daily_revenue.sql's real config and is_incremental() block and state exactly what SQL runs differently on a normal run versus a full refresh.
+  - Distinguish a transaction fact (fct_orders) from a periodic snapshot fact (fct_daily_revenue), and explain why the latter benefits from incremental materialization in a way the former doesn't need here.
+skills: [dbt, modern-data-stack]
+datasets: [ecommerce]
+tags: [dbt, incremental, aggregation, grain, modern-data-stack, real-execution, advanced]
+key_takeaways:
+  - "A table materialization rebuilds a model completely from scratch on every run; an incremental materialization keeps the existing table and only inserts or updates rows affected by new or changed source data — the exact same final data, built with far less repeated work as history grows."
+  - "is_incremental() is true only when the target table already exists and the run isn't a --full-refresh — that's what lets a model's SQL branch between 'compute everything' (first run, or full refresh) and 'compute only what's new' (every normal run after that)."
+  - "fct_orders is a transaction fact — one row is created per order, once, and never revisited, so a full table rebuild is cheap even as history grows. fct_daily_revenue is a periodic snapshot fact re-derived per calendar day, and it's specifically this shape that benefits from only recomputing recent days instead of the entire history every run."
+common_mistakes:
+  - "Assuming an incremental model always contains a full, correct history without ever needing a --full-refresh — if the model's own logic changes (a bug fix, a new column), the existing table doesn't retroactively pick that up until a --full-refresh rebuilds it from scratch."
+  - "Filtering an incremental run strictly to rows after the current max value already in the table, and assuming that's always safe — if a source system backdates or corrects historical data (a late-arriving row with an order_date earlier than the table's current max), a naive incremental filter can silently miss it, since it never looks at dates 'already past.'"
+interview_questions:
+  - question: "Why is fct_daily_revenue built as incremental while fct_orders, right next to it, is a plain table?"
+    answer: >
+      fct_orders creates exactly one row per order, and once an order exists, that row never changes or
+      gets recomputed — every run's full rebuild only has to redo work proportional to the current number
+      of orders, which stays manageable at this dataset's scale. fct_daily_revenue re-aggregates
+      completed orders into one row per calendar day; as more days accumulate, a full rebuild would mean
+      re-scanning and re-summing every historical day's orders on every single run, even though only the
+      most recent day or two actually changed. Incremental materialization lets it instead only
+      (re)compute days at or after the last day already captured, which is what actually matters once a
+      table's history gets long enough that full rebuilds stop being cheap.
+blocks:
+  - type: heading
+    text: "The problem: don't redo work that's already done"
+  - type: text
+    body: >
+      A `view` materialization stores nothing — every query against it recomputes the whole thing live. A
+      `table` materialization stores the result but rebuilds it completely from scratch on every `dbt run`
+      — correct, but increasingly wasteful as a model's underlying history grows, since yesterday's already
+      -correct rows get recomputed anyway. An `incremental` materialization keeps the existing table across
+      runs and, on a normal run, only processes the rows affected by new or changed source data — the
+      model's SQL runs against a much smaller slice of data than "everything, every time."
+  - type: heading
+    text: "Reading fct_daily_revenue.sql's real incremental logic"
+  - type: code
+    language: sql
+    code: |
+      -- dbt/models/marts/fct_daily_revenue.sql
+      -- Periodic snapshot fact: 1 row = 1 calendar day, summarizing that day's
+      -- completed-order activity. Unlike fct_orders (one row per order, forever),
+      -- this grain is re-derived per period — a new day's row appears once the day
+      -- happens, and never changes shape after that.
+      --
+      -- Built incremental: on a normal run it only (re)computes days at or after
+      -- the current max(order_date) already in the table, instead of rescanning
+      -- all history every time. `dbt run --full-refresh` rebuilds from scratch.
+      {{
+          config(
+              materialized='incremental',
+              unique_key='order_date',
+              on_schema_change='fail'
+          )
+      }}
+
+      select
+          o.order_date,
+          count(distinct o.order_id) as completed_order_count,
+          count(distinct o.customer_id) as distinct_customer_count,
+          sum(o.gross_revenue) as total_gross_revenue,
+          sum(o.gross_margin) as total_gross_margin,
+          sum(o.amount_paid) as total_amount_paid
+      from {{ ref('fct_orders') }} as o
+      where o.status = 'completed'
+
+      {% if is_incremental() %}
+          and o.order_date >= (select coalesce(max(order_date), '1900-01-01') from {{ this }})
+      {% endif %}
+
+      group by o.order_date
+  - type: table
+    headers: ["Config", "What it means"]
+    rows:
+      - ["materialized='incremental'", "Keep the existing table across runs instead of rebuilding it from scratch every time"]
+      - ["unique_key='order_date'", "When a row for a given order_date already exists, update it in place instead of inserting a duplicate — needed since a partially-completed 'today' can be revisited and updated by tomorrow's run"]
+      - ["on_schema_change='fail'", "If the model's column set changes unexpectedly, stop with an error rather than silently reshaping the existing table"]
+  - type: text
+    body: >
+      `{{ this }}` refers to the model's own existing target table — so `select ... from {{ this }}` inside
+      the `is_incremental()` block is fct_daily_revenue querying its own current contents to find the
+      latest `order_date` it has already captured. On the very first run (the table doesn't exist yet) or
+      after a `--full-refresh`, `is_incremental()` evaluates to false, the entire `{% if %}` block is
+      skipped, and the model computes every historical day from scratch. On every normal run after that,
+      the block is included, and the `WHERE` clause narrows the source data to only days at or after what's
+      already stored — turning a full-history re-aggregation into a small, cheap incremental one.
+  - type: heading
+    text: "Why fct_orders doesn't need this and fct_daily_revenue does"
+  - type: table
+    headers: ["", "fct_orders", "fct_daily_revenue"]
+    rows:
+      - ["Fact type", "Transaction fact", "Periodic snapshot fact"]
+      - ["Grain", "1 row per order", "1 row per calendar day"]
+      - ["Does a row ever change after creation?", "No — once an order exists, its fact row is never revisited", "The 'today' row can be updated as more of today's orders complete"]
+      - ["Materialization", "table (full rebuild each run)", "incremental (only recent days recomputed each run)"]
+  - type: callout
+    variant: warning
+    title: "The escape hatch, and the risk it exists for"
+    body: >
+      `dbt run --full-refresh` drops and rebuilds an incremental model completely from scratch — the fix
+      whenever the model's own logic changed, or whenever you suspect the incremental filter missed
+      something. That risk is real: if a source system ever corrects or backdates historical data (a late
+      arriving row with an order_date earlier than the table's current max), a plain "only rows after the
+      current max" filter would never look back far enough to pick it up on a normal run. Recognizing that
+      an incremental model can silently drift from a full rebuild is exactly the kind of subtlety worth
+      knowing conceptually, even before you'd need to fix it yourself.
+  - type: question
+    prompt: "On the very first run of fct_daily_revenue (before the table exists at all), what does is_incremental() evaluate to, and what happens as a result?"
+    choices:
+      - "True — only the most recent day is computed, since there's nothing to compare against yet"
+      - "False — the {% if %} block is skipped, and every historical completed order is aggregated from scratch"
+      - "It raises an error, since {{ this }} can't be resolved before the table exists"
+      - "True — dbt automatically substitutes 1900-01-01 as the starting point and proceeds incrementally"
+    correct_index: 1
+    explanation: >
+      is_incremental() is only true when the target table already exists *and* the run isn't a
+      full-refresh. On a genuinely first run, the table doesn't exist yet, so it evaluates to false, the
+      entire `{% if %}...{% endif %}` block is skipped at compile time, and the model's SELECT runs
+      unfiltered — building the full history in one pass, exactly like a full-refresh would.

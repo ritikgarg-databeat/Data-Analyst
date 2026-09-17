@@ -1,0 +1,78 @@
+slug: dau
+module_slug: product-metrics
+title: Daily Active Users (DAU)
+description: What DAU actually measures, and why the definition of "active" you choose determines whether the number means anything.
+difficulty: BEGINNER
+estimated_minutes: 12
+display_order: 1
+objectives:
+  - Define DAU as a distinct-user count tied to a qualifying action, not an event or session count
+  - Identify the definitional choices — activity threshold, time zone, bot exclusion — that change what DAU measures
+  - Write a basic SQL query that computes DAU for a given day
+skills: [product-metrics]
+tags: [product-analytics, beginner, foundations]
+key_takeaways:
+  - DAU counts distinct users, not events or sessions — a user who opens the app 20 times in a day still counts once.
+  - The word "active" is a definition your team chooses, not a fact the raw data hands you, and that choice determines whether DAU reflects real value delivery or just noise.
+  - Time zone boundaries and bot/test-account exclusion are easy to overlook and can shift a reported DAU number by a meaningful percentage without any real change in usage.
+common_mistakes:
+  - Defining "active" as any event at all — including passive ones like a push notification delivery or a background sync — which inflates DAU without reflecting real usage.
+  - Computing DAU as a row count or session count instead of COUNT(DISTINCT user_id), which silently counts some users multiple times.
+  - Using server UTC "calendar day" boundaries for a product with a global user base, which can split or merge a single user's actual day and create phantom day-over-day swings that have nothing to do with real behavior.
+blocks:
+  - type: text
+    body: >
+      Daily Active Users (DAU) is the most common "heartbeat" metric in product analytics: the count
+      of distinct users who did something meaningful in the product on a given day. It's simple to
+      compute and easy to put on a dashboard — which is exactly why it's also easy to get quietly
+      wrong. Two teams can both report "DAU" and be measuring genuinely different things.
+  - type: heading
+    text: What counts as "active"?
+  - type: text
+    body: >
+      DAU is only as good as the event you count as "activity." Pick something too shallow — an app
+      open, a page load, a notification tap — and DAU balloons with users who didn't actually get
+      value that day. Pick a **qualifying event** tied to the product's core value instead (sent a
+      message, completed a workout, viewed a listing, ran a query) and DAU starts to reflect something
+      real: how many people the product actually served that day.
+  - type: comparison
+    title: Shallow vs. meaningful "active" definitions
+    columns: ["Product", "Shallow definition (avoid)", "Meaningful definition (prefer)"]
+    rows:
+      - ["Messaging app", "App opened", "Sent or read at least one message"]
+      - ["Fitness app", "App opened / notification tapped", "Logged or completed a workout"]
+      - ["Marketplace app", "App opened", "Viewed a listing or sent an inquiry"]
+      - ["Analytics tool (like this one)", "Logged in", "Ran a query or completed a lesson"]
+  - type: code
+    language: sql
+    caption: A basic DAU query against an events table
+    code: |
+      SELECT
+        DATE(event_at)         AS activity_date,
+        COUNT(DISTINCT user_id) AS dau
+      FROM events
+      WHERE event_type IN ('message_sent', 'message_read')   -- the qualifying action(s)
+        AND is_bot = FALSE
+        AND event_at >= '2026-08-01' AND event_at < '2026-08-02'
+      GROUP BY DATE(event_at);
+  - type: callout
+    variant: warning
+    title: Two silent DAU distorters
+    body: >
+      **Bots and test/QA accounts** run automated actions every single day and will inflate DAU forever
+      if not filtered out. **Time zone boundaries** matter too: if "day" is computed in server UTC but
+      your users are spread across time zones, a user active at 11pm local time can get counted on the
+      wrong calendar day, or double-counted near midnight — producing swings in the DAU chart that have
+      nothing to do with real usage.
+  - type: question
+    prompt: A team defines "active" as "opened the app," including opens triggered automatically by a push notification tap that immediately closes the app. What is the main risk of this definition?
+    choices:
+      - It will undercount DAU because push notifications are rare
+      - It will overstate DAU relative to real engagement, since an instant close delivered no value
+      - It has no real downside as long as the count is consistent day to day
+    correct_index: 1
+    explanation: >
+      Counting a notification-triggered open that closes instantly still counts that user as "active"
+      even though they got no value from the product that day. Consistency day to day doesn't fix this
+      — it just means the metric is consistently measuring the wrong thing, which becomes dangerous the
+      moment someone uses DAU to judge whether the product is actually working.

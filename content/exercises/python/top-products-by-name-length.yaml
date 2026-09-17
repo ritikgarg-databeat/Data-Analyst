@@ -1,0 +1,52 @@
+slug: top-products-by-name-length
+lesson_slug: list-comprehensions
+skill: python-fundamentals
+dataset: ecommerce
+title: Find the Three Longest Product Names
+description: Use a list comprehension / sorted() to find the three longest product names, breaking ties alphabetically.
+exercise_type: PYTHON
+difficulty: BEGINNER
+points: 15
+tags: [python, beginner, foundations]
+business_context: >
+  The catalog team is auditing product titles for a redesign where long names get visually
+  truncated on mobile, and wants a quick list of the worst offenders — the products with the
+  longest names — to review first.
+prompt: >
+  Given `product_names = ["Pro Desk Lamp", "USB Cable", "Wireless Mechanical Keyboard", "Notebook",
+  "4K Monitor Stand"]`, find the 3 product names with the most characters. Store your answer in a
+  variable named `result`: a list of 3 product names, sorted longest first; if two names have the
+  same length, break the tie alphabetically.
+python_datasets: []
+python_starter_code: |
+  product_names = ["Pro Desk Lamp", "USB Cable", "Wireless Mechanical Keyboard", "Notebook", "4K Monitor Stand"]
+
+  # Find the 3 names with the most characters, sorted longest-first
+  # (alphabetical as a tiebreaker), and store them in `result`.
+python_solution_code: |
+  product_names = ["Pro Desk Lamp", "USB Cable", "Wireless Mechanical Keyboard", "Notebook", "4K Monitor Stand"]
+  result = sorted(product_names, key=lambda n: (-len(n), n))[:3]
+python_result_variable: result
+python_row_order_matters: true
+python_numeric_tolerance: 0.000001
+python_hidden_tests:
+  - name: "Longest name comes first, exactly 3 returned"
+    code: |
+      assert result[0] == "Wireless Mechanical Keyboard", f"Expected the longest name first, got {result[0]!r}"
+      assert len(result) == 3, f"Expected exactly 3 names, got {len(result)}"
+hints:
+  - "sorted() takes a key function — you can sort by len(name) to rank by length, and negate it (or pass reverse=True) to get longest-first instead of shortest-first."
+  - "Use a compound sort key like key=lambda n: (-len(n), n): sorting by -len(n) puts the longest names first, and n as the second key alphabetically breaks any ties in length. Then slice the first 3 with [:3]."
+solution: |
+  ```python
+  product_names = ["Pro Desk Lamp", "USB Cable", "Wireless Mechanical Keyboard", "Notebook", "4K Monitor Stand"]
+  result = sorted(product_names, key=lambda n: (-len(n), n))[:3]
+  ```
+explanation: >
+  A strong answer sorts by a compound key — length (descending) first, then the name itself
+  (ascending) as a tiebreaker — in one pass, rather than sorting by length alone and hoping ties
+  never come up. Using `-len(n)` (or `sorted(..., reverse=True)`) inside `key=` avoids a separate
+  reversal step that would also reverse the alphabetical tiebreak order. A common mistake is sorting
+  with `reverse=True` on a `(len(n), n)` key, which correctly reverses the length ordering but also
+  reverses the tiebreak to *descending* alphabetical — the opposite of a stable, predictable
+  tiebreak.

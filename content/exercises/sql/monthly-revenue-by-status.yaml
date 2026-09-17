@@ -1,0 +1,64 @@
+slug: monthly-revenue-by-status
+lesson_slug: date-aggregation
+skill: advanced-sql
+dataset: ecommerce
+title: Build a Monthly Completed-Revenue Trend
+description: Write a query that buckets successful-payment revenue by month using date truncation.
+exercise_type: SQL
+difficulty: INTERMEDIATE
+points: 15
+tags: [sql, intermediate, real-world]
+business_context: >
+  The CFO wants a monthly revenue trend line for the board deck — one row per calendar month, showing
+  how much money actually came in from successful payments, ordered from the earliest month to the
+  most recent.
+prompt: >
+  Using the `payments` table, write a query that returns one row per calendar month, showing the total
+  amount collected from successful payments (`status = 'success'`) placed in that month, ordered
+  chronologically from earliest month to latest.
+sql_tables: [payments]
+sql_starter_query: |
+  -- Explore the payments table first
+  SELECT * FROM payments LIMIT 20;
+sql_solution_query: |
+  SELECT
+    DATE_TRUNC('month', payment_date) AS payment_month,
+    ROUND(SUM(amount), 2) AS monthly_revenue
+  FROM payments
+  WHERE status = 'success'
+  GROUP BY DATE_TRUNC('month', payment_date)
+  ORDER BY payment_month;
+sql_row_order_matters: true
+sql_numeric_tolerance: 0.01
+sql_hidden_tests:
+  - name: "Earliest month's revenue is correct"
+    query: |
+      SELECT
+        DATE_TRUNC('month', payment_date) AS payment_month,
+        ROUND(SUM(amount), 2) AS monthly_revenue
+      FROM payments
+      WHERE status = 'success'
+      GROUP BY DATE_TRUNC('month', payment_date)
+      ORDER BY payment_month ASC
+      LIMIT 1
+    key_columns: 1
+hints:
+  - "You need to round payment_date down to the start of its month before you can group by month — grouping by the raw payment_date groups by exact date instead."
+  - "DATE_TRUNC('month', payment_date) does the rounding. Use the same expression in both GROUP BY and ORDER BY, and filter to status = 'success' with WHERE before aggregating."
+solution: >
+  ```sql
+  SELECT
+    DATE_TRUNC('month', payment_date) AS payment_month,
+    ROUND(SUM(amount), 2) AS monthly_revenue
+  FROM payments
+  WHERE status = 'success'
+  GROUP BY DATE_TRUNC('month', payment_date)
+  ORDER BY payment_month;
+  ```
+explanation: >
+  A strong answer filters to successful payments with WHERE (not HAVING, since status isn't an
+  aggregate), applies DATE_TRUNC('month', payment_date) consistently in both the SELECT and GROUP BY so
+  the grouping actually happens by month rather than by exact date, aggregates revenue with SUM, and
+  orders the result chronologically by the truncated month rather than leaving row order undefined. A
+  common mistake is grouping by the raw payment_date column directly, which produces one row per exact
+  date instead of one row per month.

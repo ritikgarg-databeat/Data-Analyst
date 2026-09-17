@@ -1,0 +1,96 @@
+slug: samp-sampling-error
+module_slug: sampling
+title: Sampling Error vs. Sampling Bias
+description: Two different reasons a sample statistic can be "wrong" — one that shrinks as you collect more data, and one that doesn't — and why mixing them up leads to the wrong fix.
+difficulty: INTERMEDIATE
+estimated_minutes: 12
+display_order: 3
+objectives:
+  - Distinguish sampling error (random, shrinks with n) from sampling bias (systematic, doesn't shrink with n) using a real experiment result.
+  - Diagnose, given a surprising result, whether "collect more data" or "fix the collection method" is the appropriate response.
+skills: [statistics, statistical-reasoning]
+datasets: [saas-product]
+tags: [statistics, intermediate, saas, experimentation]
+prerequisites: [samp-methods-and-bias, samp-sample-size]
+key_takeaways:
+  - "Sampling error is the random gap between a sample statistic and the true population value that exists purely because you observed a sample, not the whole population — it shrinks toward zero as sample size grows."
+  - "Sampling bias is a systematic gap caused by how the sample was collected — it does not shrink with more data, because the flaw is in *who or what got included*, not in how much got included."
+  - "The right diagnostic question when a result looks off: was the sample randomly drawn from the right population (then it's likely sampling error, fixed by more data or a formal test) or was it collected in a way that structurally favors one outcome (then it's bias, fixed only by changing collection)?"
+common_mistakes:
+  - Responding to any unexpected or noisy-looking result by reflexively "collecting more data," when the actual problem is a biased collection method that more data of the same kind won't fix.
+  - Assuming that because a test was properly randomized, its result can't be affected by sampling error — randomization prevents bias, not the random noise that comes from any finite sample.
+interview_questions:
+  - question: An A/B test's control group converts at 11.3% and treatment converts at 12.5%, but the difference isn't statistically significant. Is this sampling error or sampling bias, and how would you address it?
+    answer: >
+      If both groups were properly randomly assigned (which removes bias by design), an
+      inconclusive gap like this is a sampling error story: with only 1,000 users per arm, random
+      sample-to-sample noise is large enough that a real underlying difference this size can easily
+      fail to reach statistical significance. The fix for sampling error is more data (a longer test
+      or larger sample) or a formal power calculation — not a change to how users were assigned,
+      since randomization already addressed bias.
+blocks:
+  - type: heading
+    text: Two reasons a sample can mislead you
+  - type: text
+    body: >
+      Every sample statistic can differ from the true population value for two very different
+      reasons, and telling them apart determines what you should actually do about it.
+  - type: table
+    caption: Sampling error vs. sampling bias
+    headers: ["", "Sampling error", "Sampling bias"]
+    rows:
+      - ["What it is", "Random noise from observing a finite sample instead of the whole population", "A systematic skew from how the sample was collected"]
+      - ["Shrinks with more data?", "Yes — proportional to 1/sqrt(n)", "No — the same flawed process just produces more flawed data"]
+      - ["Fixed by", "Collecting more data, or a formal test that accounts for it", "Changing who/what gets included in the sample"]
+      - ["Example", "A truly 50/50 coin lands 6 heads out of 10 flips just by chance", "A coin-flipping study only recruits participants at a magic shop"]
+  - type: heading
+    text: A real example where sampling error is the whole story
+  - type: text
+    body: >
+      The saas-product dataset's `checkout_redesign` experiment randomly assigned 1,000 users to
+      control and 1,000 to treatment — proper randomization, so bias isn't the concern here. Control
+      converted at 11.3% (113/1,000) and treatment at 12.5% (125/1,000): a 1.2-point gap in the
+      hoped-for direction. But run through a two-proportion test, that gap produces p = 0.41 — nowhere
+      near conventional significance.
+  - type: code
+    language: python
+    code: |
+      from statsmodels.stats.proportion import proportions_ztest
+
+      # checkout_redesign: control 113/1000, treatment 125/1000
+      z_stat, p_value = proportions_ztest([125, 113], [1000, 1000])
+      print(round(z_stat, 3), round(p_value, 3))  # 0.829, 0.407
+    caption: A 1.2-point gap between two randomly assigned groups of 1,000 easily falls within the range of pure sampling error.
+  - type: callout
+    variant: important
+    title: The correct fix here is more data, not a different randomization
+    body: >
+      Because both groups were randomly assigned from the same user population, there's no reason
+      to suspect bias — the assignment mechanism was sound. A 1.2-point gap that doesn't reach
+      significance at n=1,000 per arm is consistent with ordinary sampling error: the true effect
+      (if any) may simply be too small to reliably separate from noise at this sample size. The
+      right next step is a sample-size/power calculation (covered in the Hypothesis Testing module)
+      to determine how much more data would be needed — not questioning how users were assigned to
+      each arm.
+  - type: text
+    body: >
+      Contrast this with the survey example from the sampling-bias lesson: sending more surveys to
+      *the same* recently-active-only population would never fix that problem, because the flaw is
+      in who could be reached at all, not in how much noise a small sample introduces. Recognizing
+      which failure mode you're looking at — noise from a sound process, or skew from a flawed one
+      — determines whether "collect more" is even the right instinct.
+  - type: question
+    prompt: >
+      A randomized experiment shows a promising but not-statistically-significant gap between
+      control and treatment at a modest sample size. A teammate says "this experiment is broken,
+      let's re-randomize the assignment." What's the better diagnosis?
+    choices:
+      - "Agree — a non-significant result always means the randomization itself was flawed"
+      - "If assignment was genuinely random, an inconclusive gap at a modest sample size is more likely ordinary sampling error, addressed by collecting more data or running a power calculation — not by re-randomizing"
+      - "Nothing can be concluded from any experiment that isn't significant, so the data should be discarded entirely"
+    correct_index: 1
+    explanation: >
+      Randomization addresses *bias* (systematic skew), not the random noise inherent in any
+      finite sample. A non-significant result from a properly randomized test is a sampling-error
+      story — the fix is more data or a sample-size calculation, not re-randomizing an already-sound
+      assignment process.

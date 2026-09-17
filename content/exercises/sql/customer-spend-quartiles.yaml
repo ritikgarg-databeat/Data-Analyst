@@ -1,0 +1,86 @@
+slug: customer-spend-quartiles
+lesson_slug: ntile-and-percentiles
+skill: advanced-sql
+dataset: ecommerce
+title: Bucket Customers Into Spend Quartiles
+description: Write a query that assigns every paying customer into one of four spend quartiles using NTILE().
+exercise_type: SQL
+difficulty: ADVANCED
+points: 25
+tags: [sql, advanced, window-functions]
+business_context: >
+  Marketing wants to launch a loyalty campaign aimed squarely at the highest-spending quarter of
+  customers, so they need every paying customer bucketed into a spend quartile — 1 for the lowest
+  spenders, 4 for the highest — to know exactly who to target.
+prompt: >
+  Using the `orders` and `payments` tables, write a query that computes each customer's total spend
+  across their completed orders (join `orders` to `payments` on `order_id`, filtering
+  `orders.status = 'completed'`), then divides customers into 4 roughly equal-sized groups by that
+  spend using `NTILE(4)`, ordered from lowest spend (quartile 1) to highest spend (quartile 4). Only
+  include customers with at least one completed order. Return columns `customer_id`, `total_spend`
+  (`ROUND(..., 2)`), and `quartile`. Row order does not matter.
+sql_tables: [orders, payments]
+sql_starter_query: |
+  -- payments doesn't have customer_id directly — join through orders
+  SELECT * FROM orders LIMIT 20;
+sql_solution_query: |
+  WITH customer_spend AS (
+    SELECT o.customer_id, ROUND(SUM(p.amount), 2) AS total_spend
+    FROM orders o
+    JOIN payments p ON p.order_id = o.order_id
+    WHERE o.status = 'completed'
+    GROUP BY o.customer_id
+  )
+  SELECT
+    customer_id,
+    total_spend,
+    NTILE(4) OVER (ORDER BY total_spend) AS quartile
+  FROM customer_spend;
+sql_row_order_matters: false
+sql_numeric_tolerance: 0.01
+sql_hidden_tests:
+  - name: "The single top spender lands in quartile 4"
+    query: |
+      WITH customer_spend AS (
+        SELECT o.customer_id, ROUND(SUM(p.amount), 2) AS total_spend
+        FROM orders o
+        JOIN payments p ON p.order_id = o.order_id
+        WHERE o.status = 'completed'
+        GROUP BY o.customer_id
+      ),
+      quartiled AS (
+        SELECT customer_id, total_spend, NTILE(4) OVER (ORDER BY total_spend) AS quartile
+        FROM customer_spend
+      )
+      SELECT customer_id, quartile
+      FROM quartiled
+      ORDER BY total_spend DESC
+      LIMIT 1
+    key_columns: 1
+hints:
+  - "Splitting an ordered set of customers into 4 equal-sized buckets by rank is exactly what NTILE(4) does — you don't need to compute percentile cutoffs by hand."
+  - "First aggregate each customer's total spend from completed orders in a CTE. Then apply NTILE(4) OVER (ORDER BY total_spend) on top of that — ordering ascending means quartile 1 holds the lowest spenders and quartile 4 holds the highest."
+solution: >
+  ```sql
+  WITH customer_spend AS (
+    SELECT o.customer_id, ROUND(SUM(p.amount), 2) AS total_spend
+    FROM orders o
+    JOIN payments p ON p.order_id = o.order_id
+    WHERE o.status = 'completed'
+    GROUP BY o.customer_id
+  )
+  SELECT
+    customer_id,
+    total_spend,
+    NTILE(4) OVER (ORDER BY total_spend) AS quartile
+  FROM customer_spend;
+  ```
+explanation: >
+  A strong answer aggregates spend per customer first, since NTILE needs to rank one row per customer,
+  not one row per payment. Ordering by total_spend ascending inside NTILE(4) is what makes quartile 1
+  the lowest spenders and quartile 4 the highest, matching how "top quartile" is normally understood in
+  a business context — reversing the ORDER BY would silently flip the labels. Filtering to
+  `orders.status = 'completed'` before aggregating (rather than after) ensures customers are bucketed on
+  the same completed-order spend the business actually cares about. A common mistake is ordering
+  NTILE(4) DESC intending to put "the biggest spenders first," which actually produces the opposite
+  labeling — the highest spenders end up in quartile 1 instead of quartile 4.

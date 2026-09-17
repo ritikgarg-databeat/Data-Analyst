@@ -1,0 +1,72 @@
+slug: top-category-by-revenue
+lesson_slug: recursive-ctes
+skill: advanced-sql
+dataset: ecommerce
+title: Find the Top Revenue-Generating Category
+description: Chain CTEs across order_items, products, and categories to find the single category with the highest total revenue.
+exercise_type: SQL
+difficulty: INTERMEDIATE
+points: 20
+tags: [sql, intermediate, business-analytics]
+business_context: >
+  Finance is deciding where to invest next quarter's inventory budget and wants one clear answer:
+  which single product category has generated the most total revenue to date, across all recorded
+  order line items.
+prompt: >
+  Using the `order_items`, `products`, and `categories` tables, write a query that returns the single
+  product category that generated the most total revenue. For each order item, revenue is
+  `(unit_price - discount) * quantity`; consider every row in `order_items` regardless of the status
+  of the order it belongs to. Return exactly one row with `category_name` and `total_revenue`
+  (the summed revenue, rounded to 2 decimal places).
+sql_tables: [order_items, products, categories]
+sql_starter_query: |
+  -- Explore order_items first — revenue isn't a column, it's computed per line
+  SELECT * FROM order_items LIMIT 20;
+sql_solution_query: |
+  WITH line_revenue AS (
+    SELECT product_id, (unit_price - discount) * quantity AS revenue
+    FROM order_items
+  ),
+  category_revenue AS (
+    SELECT p.category_id, SUM(lr.revenue) AS total_revenue
+    FROM line_revenue lr
+    JOIN products p ON p.product_id = lr.product_id
+    GROUP BY p.category_id
+  )
+  SELECT c.category_name, ROUND(cr.total_revenue, 2) AS total_revenue
+  FROM category_revenue cr
+  JOIN categories c ON c.category_id = cr.category_id
+  ORDER BY cr.total_revenue DESC
+  LIMIT 1;
+sql_row_order_matters: false
+sql_numeric_tolerance: 0.01
+hints:
+  - "Revenue isn't stored anywhere — it has to be computed per order_items row first: (unit_price - discount) * quantity. Once you have per-line revenue, you need to roll it up to product, then to category, since order_items only carries a product_id and category lives on a separate table."
+  - "Chain it: one CTE computes per-line revenue from order_items, a second joins to products and sums that revenue GROUP BY category_id, then a final SELECT joins to categories for the readable name and takes the single highest row with ORDER BY total_revenue DESC LIMIT 1."
+solution: >
+  ```sql
+  WITH line_revenue AS (
+    SELECT product_id, (unit_price - discount) * quantity AS revenue
+    FROM order_items
+  ),
+  category_revenue AS (
+    SELECT p.category_id, SUM(lr.revenue) AS total_revenue
+    FROM line_revenue lr
+    JOIN products p ON p.product_id = lr.product_id
+    GROUP BY p.category_id
+  )
+  SELECT c.category_name, ROUND(cr.total_revenue, 2) AS total_revenue
+  FROM category_revenue cr
+  JOIN categories c ON c.category_id = cr.category_id
+  ORDER BY cr.total_revenue DESC
+  LIMIT 1;
+  ```
+explanation: >
+  A strong answer correctly computes line-level revenue as `(unit_price - discount) * quantity` before
+  any aggregation — discount here is a per-unit dollar amount, not a percent, so it must be subtracted
+  from unit_price first and only then multiplied by quantity. It then bridges two joins in sequence
+  (order_items to products for category_id, then that rollup to categories for the display name) rather
+  than trying to join all three tables and aggregate in one pass, which keeps each step easy to verify.
+  Finally, it narrows to a single row with ORDER BY ... DESC LIMIT 1 rather than just eyeballing a full
+  ranked list. A common mistake is summing `unit_price * quantity` and ignoring discount entirely, which
+  overstates revenue for every product that was ever discounted.

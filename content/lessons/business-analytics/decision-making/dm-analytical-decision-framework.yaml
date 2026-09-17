@@ -1,0 +1,141 @@
+slug: dm-analytical-decision-framework
+module_slug: decision-making
+title: "The Analytical Decision Framework: From Ambiguous Ask to Recommendation"
+description: A nine-step framework for turning a vague business question into a specific, well-justified recommendation, applied to a real marketing budget decision.
+difficulty: ADVANCED
+estimated_minutes: 17
+display_order: 1
+objectives:
+  - Recite the nine-step analytical decision framework in order
+  - Apply the framework to convert an ambiguous business question into a specific recommendation
+  - Explain why "quantify impact" and "define next steps" are separate, necessary steps beyond just stating a recommendation
+skills: [decision-making, business-analytics, business-problem-solving, communication]
+datasets: [ecommerce]
+tags: [business-analytics, case-study, advanced]
+key_takeaways:
+  - "The nine steps — Clarify the problem, Define success, Identify metrics, Segment, Analyze, Validate, Quantify impact, Recommend, Define next steps — turn a vague request (\"should we change our marketing spend?\") into a specific, defensible answer."
+  - "Clarifying the problem and defining success up front prevents the single most common failure mode in business analysis: doing rigorous work that answers a question nobody actually asked."
+  - "A recommendation without a quantified impact and a next step is an observation, not a decision — the framework's final three steps exist specifically to close that gap."
+common_mistakes:
+  - Starting analysis immediately after hearing a question, without first clarifying what decision the answer needs to support and what "success" would concretely look like.
+  - Ending a data analysis at "here's what I found" instead of continuing through to a specific recommendation and a concrete next step.
+interview_questions:
+  - question: "Walk me through how you'd approach a stakeholder asking 'should we spend more on marketing?' — a question with no scope, no timeframe, and no defined success criteria."
+    answer: >
+      Start by clarifying the actual decision behind the question — more spend on which channel, over
+      what timeframe, funded from where, and what would count as this having worked. Define success
+      concretely (e.g. "an incremental customer acquired at a CAC below some threshold, without degrading
+      LTV:CAC ratio"). Identify the specific metrics needed (CAC and LTV by channel), segment by channel
+      rather than treating "marketing" as one lever, analyze which channel(s) have room to scale
+      profitably, validate the finding holds up under a sanity check, quantify the expected impact of a
+      specific reallocation, and end with a concrete recommendation and next step (e.g. "shift $10K/month
+      from Channel A to Channel B, re-evaluate after 60 days"). The framework converts an open-ended
+      question into a bounded, defensible decision.
+blocks:
+  - type: heading
+    text: A decision, not just an analysis
+  - type: text
+    body: >
+      Good analysis and a good decision aren't the same deliverable — an analysis can be technically
+      correct and still fail to produce a decision anyone can act on. The nine-step framework below is
+      built to close that specific gap: **Clarify the problem, Define success, Identify metrics, Segment,
+      Analyze, Validate, Quantify impact, Recommend, Define next steps.**
+  - type: table
+    headers: ["Step", "What it means", "What happens if it's skipped"]
+    rows:
+      - ["1. Clarify the problem", "Confirm what decision the answer actually needs to support, and its scope", "Rigorous analysis that answers a question nobody was actually asking"]
+      - ["2. Define success", "State concretely what a good outcome looks like, in measurable terms", "A recommendation with no way to later check if it worked"]
+      - ["3. Identify metrics", "Name the specific metric(s) that speak to success, and their definitions", "Vague conclusions not tied to any specific, checkable number"]
+      - ["4. Segment", "Break the question down by the dimensions likely to matter (channel, segment, cohort)", "A company-wide answer to a question that's actually concentrated in one slice"]
+      - ["5. Analyze", "Do the actual computation — the query, the comparison, the trend", "A recommendation not actually backed by a specific, checkable calculation"]
+      - ["6. Validate", "Sanity-check the finding — does it hold up, is it explainable, is it free of an obvious confound?", "Acting on a spurious or fragile pattern"]
+      - ["7. Quantify impact", "Put a number on how much the recommended action is expected to move the needle", "A recommendation with no way to judge if it's worth doing"]
+      - ["8. Recommend", "State the specific action clearly, not just the finding", "A well-documented finding that never becomes a decision"]
+      - ["9. Define next steps", "State what happens after the recommendation — who owns it, and how/when it gets checked", "A decision made once, with no way to learn if it actually worked"]
+  - type: heading
+    text: Applying the framework to a real decision
+    level: 3
+  - type: example
+    title: "\"Should we change our marketing channel mix?\" — worked with real data"
+    body: >
+      **1. Clarify the problem**: the actual decision is whether to reallocate budget across paid
+      channels next quarter, not whether to change the total marketing budget. **2. Define success**: an
+      improved blended LTV:CAC ratio without a material drop in total acquired customer volume. **3.
+      Identify metrics**: CAC and LTV:CAC ratio, computed per channel. **4. Segment**: by the four paid
+      channels this platform's ecommerce data tracks — email, social, search, display. **5. Analyze**: CAC
+      and LTV:CAC ratio computed per channel from real campaign and order data (below). **6. Validate**:
+      check that the pattern isn't driven by one unusual campaign or a small sample — display's result
+      holds across all six of its campaigns and 224 customers, not a fluke of one outlier.
+    code: |
+      -- Step 5: the actual analysis — CAC and value per channel
+      WITH channel_customers AS (
+        SELECT camp.channel, s.customer_id
+        FROM sessions s
+        JOIN marketing_campaigns camp ON s.marketing_campaign_id = camp.campaign_id
+        WHERE s.converted = true AND s.customer_id IS NOT NULL
+        GROUP BY 1, 2
+      ),
+      customer_revenue AS (
+        SELECT o.customer_id, SUM(i.quantity * (i.unit_price - i.discount)) AS lifetime_revenue
+        FROM orders o JOIN order_items i USING (order_id)
+        WHERE o.status = 'completed'
+        GROUP BY 1
+      )
+      SELECT
+        cc.channel,
+        COUNT(DISTINCT cc.customer_id) AS customers,
+        ROUND(AVG(COALESCE(cr.lifetime_revenue, 0)), 2) AS avg_ltv
+      FROM channel_customers cc
+      LEFT JOIN customer_revenue cr USING (customer_id)
+      GROUP BY 1;
+    language: sql
+  - type: table
+    headers: ["Channel", "Customers", "CAC", "Avg. LTV", "LTV:CAC ratio"]
+    rows:
+      - ["email", "112", "$194.44", "$3,425.93", "17.62x"]
+      - ["search", "46", "$265.80", "$3,717.20", "13.99x"]
+      - ["social", "215", "$252.56", "$3,525.83", "13.96x"]
+      - ["display", "224", "$342.03", "$3,306.58", "9.67x"]
+    caption: "Real per-channel CAC and LTV, ecommerce dataset. Display carries the highest CAC, the lowest average customer value, and the weakest LTV:CAC ratio of the four channels — while also receiving the largest share of total budget ($76,614.79 of $164,919.98, or 46%)."
+  - type: text
+    body: >
+      **7. Quantify impact**: display currently spends $76,614.79 for a 9.67x return; email spends
+      $21,776.99 for a 17.62x return. Shifting a representative $20,000 from display to email, at each
+      channel's current marginal efficiency, would trade roughly 58 display-acquired customers (at
+      $342.03 CAC) for roughly 103 email-acquired customers (at $194.44 CAC) — more customers acquired for
+      the same spend, each with a higher average LTV. **8. Recommend**: shift a meaningful share of
+      display budget (e.g. $20,000/month) toward email and search, the two strongest LTV:CAC channels,
+      while monitoring whether email's efficiency holds at higher volume. **9. Define next steps**: assign
+      the reallocation to the marketing lead, re-measure CAC and LTV:CAC per channel after 60 days, and
+      set an explicit checkpoint to confirm email's ratio hasn't degraded once it's carrying more spend
+      (a channel's efficiency at low volume doesn't always hold at higher volume).
+  - type: callout
+    variant: important
+    title: Step 9 exists because decisions need a feedback loop
+    body: >
+      A recommendation implemented without a defined next step (who owns it, when it gets re-checked) is a
+      one-time bet, not a managed decision. Naming an explicit re-measurement point — 60 days, a specific
+      metric, a specific owner — is what turns "we think this will work" into something the organization
+      can actually learn from, whether it works or not.
+  - type: checklist
+    title: Before presenting a recommendation, confirm
+    items:
+      - The original ambiguous question has been translated into a specific, scoped decision (step 1)
+      - Success has been defined in measurable terms before the analysis was done, not fit to the result afterward
+      - The recommended action's expected impact has been quantified in concrete terms (dollars, customers, percentage points)
+      - A specific next step and re-check point has been named, with an owner
+  - type: question
+    prompt: >
+      An analyst presents strong data showing Channel A outperforms Channel B on LTV:CAC ratio, and stops
+      there. What's missing before this becomes a usable business decision?
+    choices:
+      - "Nothing — a clear metric comparison is itself a complete, actionable business decision."
+      - "A quantified estimate of the impact of reallocating budget, a specific recommended action, and a defined next step for re-checking the result."
+      - "A more precise number of decimal places on the LTV:CAC ratio."
+    correct_index: 1
+    explanation: >
+      A metric comparison is analysis, not yet a decision. The framework's final three steps — quantify
+      impact, recommend, and define next steps — are what convert "Channel A has a better ratio" into
+      something an organization can actually act on: how much budget to move, what happens as a result, and
+      how and when to confirm the move actually worked. Stopping at the comparison leaves the actual
+      decision-making work undone.

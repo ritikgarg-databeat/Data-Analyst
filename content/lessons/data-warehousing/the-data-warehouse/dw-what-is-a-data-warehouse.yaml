@@ -1,0 +1,98 @@
+slug: dw-what-is-a-data-warehouse
+module_slug: the-data-warehouse
+title: "The Data Warehouse: Structured, Integrated, Historical"
+description: What a data warehouse actually is — a system built to be structured, integrated, and historical — and how the dbt project's marts schema is a small, real example of exactly that.
+difficulty: BEGINNER
+estimated_minutes: 35
+display_order: 1
+objectives:
+  - State the three defining properties of a data warehouse (structured, integrated, historical) and explain what each one buys an analyst.
+  - Explain why "integrated" means more than "in one database" — it means reconciled to one consistent definition per concept.
+  - Identify the marts schema built by the real dbt project (dim_customers, dim_products, fct_orders, fct_daily_revenue) as a working example of a small warehouse.
+skills: [data-warehousing, data-engineering-fundamentals]
+datasets: [ecommerce]
+tags: [data-warehouse, architecture, foundations, beginner]
+prerequisites: [dw-oltp-vs-olap]
+key_takeaways:
+  - "A data warehouse is usually defined by three properties: structured (organized around a schema built for querying, not just stored as raw files), integrated (data from different sources is reconciled into one consistent set of definitions), and historical (it retains data over time, not just the current state)."
+  - "\"Integrated\" is the property people underrate — it means that if `orders.channel` and `marketing_campaigns.channel` used different spellings for the same channel upstream, the warehouse is the place that reconciles them into one shared vocabulary, so a query never has to guess which definition it's getting."
+  - "The dbt project's `marts` schema (dim_customers, dim_products, fct_orders, fct_daily_revenue) is a small, real data warehouse: structured as a star schema, integrated from six separate source tables through staging and intermediate models, and historical in the sense that fct_orders and fct_daily_revenue accumulate rows over time rather than being overwritten."
+common_mistakes:
+  - "Treating \"data warehouse\" as a brand name for a specific product (Snowflake, BigQuery, Redshift) rather than an architectural pattern. Those are cloud platforms *capable* of hosting a data warehouse — the warehouse is the structured, integrated, historical layer you build on top of one, which is exactly what the local dbt project in this platform does on DuckDB."
+  - "Confusing \"integrated\" with \"copied into one place.\" Dumping five source systems' raw exports into one database isn't integration if `customer_id` means something different in two of them, or `status` uses inconsistent casing — integration is the reconciliation work, not just the storage location."
+blocks:
+  - type: heading
+    text: Three properties, one definition
+  - type: text
+    body: >
+      A data warehouse is commonly defined (going back to Bill Inmon's foundational definition) by
+      three properties working together. **Structured**: the data is organized into a schema
+      designed for how it will be queried — not stored as an arbitrary pile of files. **Integrated**:
+      data pulled from multiple, separately-designed source systems is reconciled into one consistent
+      set of definitions, names, and formats. **Historical**: the warehouse retains data over time,
+      so you can ask "how did this look last quarter?" and not just "what does this look like right
+      now?"
+  - type: example
+    title: "All three properties, in the real dbt project"
+    body: >
+      `dbt/models/marts/` is a small, working data warehouse built on top of the ecommerce dataset's
+      six raw CSVs. **Structured**: it's organized as a star schema — `dim_customers` and
+      `dim_products` as dimensions, `fct_orders` and `fct_daily_revenue` as facts — a shape built
+      specifically to answer business questions, not to mirror how the source data was originally
+      laid out. **Integrated**: `fct_orders` is built by joining `stg_orders`, an aggregation of
+      `int_order_items_priced`, and an aggregation of `int_order_payments` — three separately-shaped
+      sources reconciled into one row per order, with one shared `order_id`. **Historical**:
+      `fct_orders` accumulates one row per order forever (it isn't overwritten as orders age), and
+      `fct_daily_revenue` is built incrementally, adding a new day's row each run rather than
+      replacing history.
+  - type: heading
+    text: "Integrated is doing more work than it looks like"
+  - type: text
+    body: >
+      It's easy to read "integrated" as "all in one database" and move on. The harder, more valuable
+      part is reconciliation. Look at `dbt/models/staging/stg_orders.sql`, which does something small
+      but telling: `trim(lower(status)) as status`. That one line exists because a real source
+      system's `status` column can't be trusted to always be lowercase and un-padded — someone,
+      somewhere, might have written `"Completed "` instead of `"completed"`. Every downstream model
+      (`fct_orders`, `fct_daily_revenue`) can now assume `status` is clean, because the staging layer
+      already did the reconciliation work once, in one place.
+  - type: code
+    language: sql
+    code: |
+      -- dbt/models/staging/stg_orders.sql
+      select
+          order_id,
+          customer_id,
+          order_date,
+          trim(lower(status)) as status,
+          channel
+      from {{ source('raw', 'orders') }}
+    caption: "A tiny, real example of integration: standardizing status once, in staging, instead of trusting every downstream query to handle it consistently."
+  - type: callout
+    variant: important
+    title: "A warehouse is an architecture, not a product"
+    body: >
+      "Data warehouse" describes a pattern — structured, integrated, historical — not a specific tool.
+      Snowflake, BigQuery, Redshift, and (at a small, local scale) DuckDB are all platforms *capable*
+      of hosting a warehouse. The `marts` schema in this project's dbt build is a real data warehouse
+      running on DuckDB; the same three properties would apply just as well if it were rebuilt on a
+      cloud platform, which is why the concepts here transfer directly once you get there.
+  - type: table
+    headers: ["Property", "What it means", "Where it shows up in this project"]
+    rows:
+      - ["Structured", "Organized into a schema built for the questions you'll ask", "The star schema in marts.yml: dim_customers, dim_products, fct_orders, fct_daily_revenue"]
+      - ["Integrated", "Reconciled from multiple sources into one consistent definition", "stg_orders standardizing status; fct_orders joining orders, order_items, and payments into one row per order"]
+      - ["Historical", "Retains data over time, not just current state", "fct_orders keeps every order ever placed; fct_daily_revenue accumulates one row per day incrementally"]
+  - type: question
+    prompt: "Which statement best captures why 'integrated' is a meaningfully different property from just 'stored in one place'?"
+    choices:
+      - "Integration just means all the source tables were copied into the same database"
+      - "Integration means source data has been reconciled into one consistent set of definitions and formats, so downstream queries don't each have to re-solve the same inconsistencies independently"
+      - "Integration is a synonym for structured — they describe the same thing"
+    correct_index: 1
+    explanation: >
+      Storing data in one place doesn't resolve inconsistencies between sources — two systems can
+      still disagree on casing, spelling, or the meaning of a shared key even after their data lands
+      in the same database. Integration is specifically the reconciliation work (like stg_orders
+      standardizing `status`) that makes the combined data trustworthy to query without every
+      analyst re-discovering and re-fixing the same inconsistency.

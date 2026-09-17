@@ -1,0 +1,32 @@
+slug: de-ex-why-dag-order-matters-sa
+lesson_slug: de-what-is-a-pipeline
+skill: data-pipelines
+title: Why Pipeline Steps Can't Just Run in Any Order
+description: Explain why a pipeline's steps must respect their dependency structure, and what that structure is called.
+exercise_type: SHORT_ANSWER
+difficulty: BEGINNER
+points: 10
+tags: [pipelines, orchestration, data-engineering, beginner]
+prompt: >
+  Why can't a pipeline's transformation step simply run at the same time as, or before, the
+  extraction step it actually depends on — and what do we call the structure that encodes which
+  steps must finish before which other steps can start?
+correct_answer: >
+  A dependency graph — specifically a DAG (directed acyclic graph) — encodes which steps must
+  finish first; running a step before its dependency finishes means it processes incomplete or
+  stale data rather than failing loudly
+hints:
+  - "Think about what actually happens (not an error message, but a wrong result) if an aggregation step reads from a table before the step that populates it has finished."
+  - "The structure is directed (dependencies point one way) and acyclic (no step can depend on itself, even indirectly)."
+solution: >
+  A transformation step that runs before its upstream extraction step finishes doesn't usually
+  crash — it just reads whatever incomplete or stale data happens to exist in the source table at
+  that moment, silently producing a wrong result with no visible error. This is why pipelines
+  express their dependencies explicitly as a DAG (Directed Acyclic Graph): directed, because each
+  dependency points one way (a step depends on an earlier one, never the reverse), and acyclic,
+  because a cycle would leave no valid step to run first. An orchestrator uses this graph to hold
+  a step until every step it depends on has genuinely succeeded.
+explanation: >
+  The risk of running steps out of order isn't a crash — it's a quiet, wrong result, which is a much
+  harder failure to notice. Encoding dependencies as an explicit DAG, and having an orchestrator
+  enforce that order automatically, is what protects a pipeline from this class of silent error.

@@ -1,0 +1,141 @@
+slug: line-charts
+module_slug: visualization-with-python
+title: "Line Charts: Trends Over Time"
+description: Line charts for trends, plotting multiple series on one chart, and when a line chart is misleading because it implies continuity that isn't really there.
+difficulty: BEGINNER
+estimated_minutes: 10
+display_order: 3
+objectives:
+  - Build a line chart of a metric over time, including multiple series on one chart
+  - Explain what a line chart visually implies that a bar chart does not
+  - Recognize when connecting points with a line misleads, because the x-axis isn't truly continuous or ordered
+prerequisites: [bar-charts]
+skills: [data-visualization]
+datasets: [ecommerce]
+tags: [python, beginner, foundations]
+key_takeaways:
+  - "A line chart's defining visual claim is continuity — the line between two points implies that the value moved smoothly from one to the other, which is only meaningful when the x-axis represents a true, ordered, continuous quantity like time."
+  - "Real daily order counts in this dataset are noisy — a mean of 5.84 orders/day with a standard deviation of 5.96 and a max of 33 — which is exactly why a raw daily line chart is hard to read on its own, and why the Time Series Visualization lesson layers a rolling average on top of it."
+  - "Multiple series on one line chart (e.g. orders by channel over time) work well when there are a handful of clearly distinguishable lines — beyond 4-5 series, a multi-line chart usually becomes harder to read than several smaller charts or a different chart type entirely."
+  - "Connecting categories that don't have a true order (e.g. connecting bars for 'web,' 'mobile,' 'marketplace' with a line) implies a trend or transition between them that doesn't exist — that's a bar chart's job, not a line chart's."
+common_mistakes:
+  - "Using a line chart for unordered categories, which visually implies a trend or transition between adjacent points that isn't real — if the x-axis order is arbitrary, the connecting line is meaningless."
+  - "Plotting daily-level data with no smoothing and expecting a clean trend to be visible, when day-to-day noise (weekday/weekend effects, random variation) can dominate the visual and hide the real underlying pattern."
+  - "Putting more than 5-6 series on one line chart, producing a tangle of overlapping, hard-to-distinguish lines instead of a readable comparison."
+practical_applications:
+  - "Charting a daily or weekly order-volume trend to spot growth, plateaus, or sudden drops that a single summary statistic would hide."
+  - "Comparing a handful of channels' or segments' trends over the same time period on one chart, to see whether they're moving together or diverging."
+interview_questions:
+  - question: "Why would connecting a set of category averages (e.g. average order value for web, mobile, marketplace) with a line chart be a questionable choice?"
+    answer: "A line chart's connecting segments visually imply movement or continuity between adjacent points — appropriate when the x-axis is a true ordered quantity like time, but misleading when the x-axis is an arbitrary category order. Connecting 'web' to 'mobile' to 'marketplace' with a line suggests a trend across that sequence that doesn't actually exist; the order of those three categories on the x-axis was just a choice, not a real progression. A bar chart communicates the same comparison without the false implication of a trend."
+  - question: "You plot daily order counts and the line looks extremely jagged, with no clear pattern. What would you do next?"
+    answer: "I'd add a rolling average (e.g. a 7-day rolling mean) as a second line layered on top of the raw daily data, to smooth out day-to-day noise and reveal the underlying trend, rather than abandoning the daily data — the raw noisy line still has value for showing volatility and any real spikes or drops, but the smoothed line is usually what actually reveals whether the metric is trending up, down, or flat."
+resources:
+  - title: "Matplotlib documentation — plot()"
+    url: "https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.plot.html"
+blocks:
+  - type: text
+    body: >
+      A line chart's job, per the decision framework, is showing "comparison over time" — a trend. What
+      makes it different from a bar chart isn't just the visual style; it's that a line makes an implicit
+      claim the reader absorbs almost without noticing: **the connecting segment between two points means
+      something moved continuously from one value to the other.** That claim is exactly right for time,
+      and exactly wrong for most other axes.
+  - type: heading
+    text: "A basic trend line"
+  - type: code
+    language: python
+    code: |
+      import matplotlib.pyplot as plt
+      import pandas as pd
+
+      orders = pd.read_csv("data/sample/ecommerce/orders.csv")
+      orders["order_date"] = pd.to_datetime(orders["order_date"])
+
+      monthly = orders.groupby(orders["order_date"].dt.to_period("M")).size()
+
+      fig, ax = plt.subplots(figsize=(10, 4))
+      ax.plot(monthly.index.astype(str), monthly.values, marker="o")
+      ax.set_ylabel("Orders placed")
+      ax.set_title("Monthly order volume")
+      ax.tick_params(axis="x", rotation=45)
+    caption: Order count by month — the classic line-chart use case
+  - type: output
+    body: |
+      2024-01:   3   2024-07:  63   2025-01: 160   2025-07: 252
+      2024-02:  13   2024-08:  60   2025-02: 162   2025-08: 284
+      2024-03:  24   2024-09:  80   2025-03: 169   2025-09: 358
+      2024-04:  20   2024-10:  77   2025-04: 186   2025-10: 412
+      2024-05:  48   2024-11:  91   2025-05: 217   2025-11: 477
+      2024-06:  49   2024-12: 110   2025-06: 177   2025-12: 713
+    caption: "Real output — a clear, steady growth trend from 3 orders in Jan 2024 to 713 in Dec 2025, with December standing out both years"
+  - type: text
+    body: >
+      This is a genuinely good line-chart case: the x-axis (month) is truly ordered and continuous, and
+      the line's slope between points communicates real information — a business that's grown roughly
+      24x in order volume over two years, with a visible seasonal bump each December.
+  - type: heading
+    text: "Multiple series on one chart"
+  - type: code
+    language: python
+    code: |
+      by_channel_month = (
+          orders.groupby([orders["order_date"].dt.to_period("M"), "channel"])
+          .size()
+          .unstack("channel")
+      )
+
+      fig, ax = plt.subplots(figsize=(10, 4))
+      for channel in by_channel_month.columns:
+          ax.plot(by_channel_month.index.astype(str), by_channel_month[channel], label=channel, marker="o")
+      ax.legend(title="Channel")
+      ax.tick_params(axis="x", rotation=45)
+    caption: Three series (channels), each a distinguishable line with its own label
+  - type: callout
+    variant: tip
+    title: "Three lines is comfortable; ten is not"
+    body: >
+      This dataset happens to have exactly 3 channels, which is a comfortable number of series for one
+      line chart — each line stays visually distinguishable with a legend. If you found yourself plotting
+      order volume by product (150 of them), a single multi-line chart would become an unreadable tangle;
+      that's a signal to pick a small number of the most important series, facet into several smaller
+      charts, or switch chart types (a heatmap, covered later in this module, handles "many categories
+      over time" far better than a line chart with dozens of series).
+  - type: heading
+    text: "When a line chart misleads: implying continuity that isn't there"
+  - type: example
+    title: "Don't connect categories with a line"
+    body: >
+      Average order value by channel — web ($1,695.49), mobile ($1,695.49), marketplace ($1,605.86) — has
+      no real order along its x-axis. Plotting it as a line chart, with a segment drawn from "marketplace"
+      to "mobile" to "web," visually implies a progression or trend across that sequence. There isn't
+      one — "marketplace" isn't meaningfully "before" "mobile" the way January is before February. This
+      is exactly the bar chart case from the previous lesson, not a line chart case.
+    code: |
+      # Misleading: implies a trend across an arbitrary category order
+      ax.plot(["marketplace", "mobile", "web"], [1605.86, 1695.49, 1695.49], marker="o")
+
+      # Correct: no implied continuity between categories
+      ax.bar(["marketplace", "mobile", "web"], [1605.86, 1695.49, 1695.49])
+    language: python
+  - type: callout
+    variant: warning
+    title: "The general rule"
+    body: >
+      Reach for a line chart only when the x-axis is a genuinely ordered, continuous (or at least
+      evenly-spaced sequential) quantity — almost always time, sometimes something like a ranked
+      progression. If connecting two adjacent points with a line wouldn't correspond to anything
+      meaningfully "in between" them in reality, a line chart is the wrong tool, no matter how the data
+      happens to be ordered in your DataFrame.
+  - type: question
+    prompt: "Why is a line chart usually the wrong choice for comparing average order value across the three channels (marketplace, mobile, web)?"
+    choices:
+      - "The x-axis (channel) has no true order or continuity — the connecting line between adjacent channels implies a trend or transition that doesn't correspond to anything real"
+      - "Line charts can only be used with exactly one series at a time"
+      - "matplotlib does not support plotting categorical x-axis values with plt.plot()"
+    correct_index: 0
+    explanation: >
+      A line chart's segments imply a continuous progression between points, which only makes sense when
+      the x-axis represents a real ordered quantity like time. Channel names have no inherent order, so
+      connecting them with a line falsely suggests a trend across an arbitrary sequence — a bar chart
+      communicates the same comparison honestly.

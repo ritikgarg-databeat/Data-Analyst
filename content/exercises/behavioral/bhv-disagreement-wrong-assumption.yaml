@@ -1,0 +1,34 @@
+slug: bhv-disagreement-wrong-assumption
+skill: behavioral-interviewing
+title: Telling a Stakeholder Their Assumption Was Wrong
+description: Describe a time you had to tell a stakeholder their assumption was wrong, backed by data.
+exercise_type: INTERVIEW_RESPONSE
+difficulty: INTERMEDIATE
+points: 10
+tags:
+- behavioral
+- star-method
+- disagreement
+prompt: Describe a time you had to tell a stakeholder their assumption was wrong, backed by data.
+hints:
+- The STAR framework (Situation, Task, Action, Result) is a useful structure, not a script -- use it to
+  make sure you cover what actually happened, in what context, what you personally did, and what came
+  of it.
+- Interviewers are listening for a specific, real example -- a vague 'sometimes this happens on my team'
+  answer is much weaker than one concrete story with real details.
+rubric:
+- criterion: Describes one specific, real situation rather than a hypothetical or a generic pattern
+  points: 25
+- criterion: Clearly states the task or goal and the person's own specific role in it
+  points: 20
+- criterion: Explains concrete actions the person personally took, not just what the team did
+  points: 30
+- criterion: States a clear, ideally measurable outcome and what was learned from it
+  points: 25
+solution: A stakeholder was confident that mobile users converted worse than desktop users and wanted
+  to deprioritize mobile investment. When I pulled the actual conversion data controlling for traffic
+  source, mobile converted at a comparable rate -- the raw (unadjusted) numbers looked worse only because
+  mobile disproportionately came from lower-intent paid social traffic. I showed the adjusted comparison
+  alongside the raw one so the discrepancy was self-evident, rather than just asserting they were wrong.
+explanation: Showing the confounding variable explicitly (traffic source) rather than just stating a contradicting
+  conclusion makes the disagreement land as a data-driven correction rather than a personal pushback.

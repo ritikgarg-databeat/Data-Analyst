@@ -1,0 +1,89 @@
+slug: samp-sample-size
+module_slug: sampling
+title: Sample Size & Margin of Error
+description: Why a bigger sample gives you a more precise estimate, exactly how much more precise, and how to reason about whether "n is big enough" for the decision at hand.
+difficulty: INTERMEDIATE
+estimated_minutes: 12
+display_order: 2
+objectives:
+  - Compute the margin of error for a proportion at a given sample size and explain why it shrinks with the square root of n rather than n itself.
+  - Judge whether a given sample size is adequate for the precision a business decision actually requires.
+skills: [statistics, statistical-reasoning]
+datasets: [ecommerce]
+tags: [statistics, intermediate, e-commerce]
+prerequisites: [dist-sampling-distribution-clt]
+key_takeaways:
+  - "Margin of error is how far your estimate is likely to be from the true value, at a stated confidence level — smaller margin of error means a more precise estimate, not a more accurate one."
+  - Margin of error shrinks proportionally to the square root of sample size, so doubling precision requires roughly quadrupling the sample size, not doubling it.
+  - "\"Is this sample size big enough?\" only has an answer relative to how much precision the decision requires — 12,000 sessions might be plenty to estimate an overall rate to within half a percentage point, but far too few to reliably compare two rare sub-segments."
+common_mistakes:
+  - Assuming any "large" sample (thousands of rows) is automatically precise enough for every comparison drawn from it, without checking the margin of error for the *specific* subgroup or comparison in question.
+  - Reporting a point estimate ("conversion rate is 15.2%") without ever stating the margin of error, leaving a reader unable to tell a real difference from noise.
+interview_questions:
+  - question: You have 12,000 sessions and a 15.2% overall conversion rate, with a tight margin of error. Marketing then asks you to compare conversion rate for a niche landing page that only got 40 sessions last month. Is your original precision still relevant?
+    answer: >
+      No — margin of error is specific to the sample size actually used for a given estimate.
+      12,000 sessions gives a tight estimate of the *overall* rate, but a comparison restricted to
+      40 sessions on one landing page has a much smaller effective n and therefore a much wider
+      margin of error. It would be a mistake to imply "we have a very precise conversion number"
+      applies to that 40-session subgroup just because the full dataset is large.
+blocks:
+  - type: heading
+    text: Margin of error — quantifying "how precise is this estimate"
+  - type: text
+    body: >
+      **Margin of error** is the typical distance between a sample estimate and the true population
+      value, at a given confidence level (usually 95%). For a proportion, it's calculated directly
+      from the standard error introduced in the previous lesson, multiplied by a critical value
+      (1.96 for 95% confidence under a normal approximation).
+  - type: formula
+    expression: "margin_of_error = 1.96 * sqrt( p * (1 - p) / n )"
+    description: For a 95% confidence level on a proportion; p is the sample proportion, n is the sample size.
+  - type: example
+    title: The real session conversion rate, at different sample sizes
+    body: >
+      The ecommerce dataset's actual conversion rate is 1,827 / 12,000 = 15.2%. Using the full
+      12,000 sessions, the margin of error is tiny: about ±0.64 percentage points. If you had only
+      collected 200 sessions at that same 15.2% rate, the margin of error would be roughly ±5.0
+      percentage points — nearly 8 times wider, even though the sample shrank by only a factor of 60.
+  - type: table
+    caption: "Margin of error for a 15.2% rate at different sample sizes (95% confidence)"
+    headers: ["Sample size (n)", "Margin of error"]
+    rows:
+      - ["200", "±5.0 pts"]
+      - ["1,000", "±2.2 pts"]
+      - ["12,000", "±0.64 pts"]
+  - type: code
+    language: python
+    code: |
+      import numpy as np
+
+      p = 0.1522
+      for n in [200, 1000, 12000]:
+          se = np.sqrt(p * (1 - p) / n)
+          moe = 1.96 * se
+          print(n, round(moe, 4))
+      # 200 -> 0.0498, 1000 -> 0.0223, 12000 -> 0.0064
+    caption: Margin of error shrinks with the square root of n — a 60x increase in sample size only shrinks it by about 7.7x.
+  - type: callout
+    variant: important
+    title: "\"Big enough\" depends entirely on what you're deciding"
+    body: >
+      12,000 sessions is comfortably enough to state the overall conversion rate to within about
+      six-tenths of a percentage point — plenty of precision for a company-wide KPI dashboard. But
+      if the real decision is "should we redesign checkout for a niche segment that only generates
+      200 sessions a month," that same underlying dataset gives you a much wider ±5-point margin of
+      error for that segment specifically. Always ask what margin of error the *specific* comparison
+      needs, not just how big the overall dataset is.
+  - type: question
+    prompt: >
+      To cut your margin of error in half, roughly how much more data do you need to collect?
+    choices:
+      - "Twice as much"
+      - "About four times as much, since margin of error shrinks with the square root of sample size"
+      - "The same amount — margin of error doesn't depend on sample size"
+    correct_index: 1
+    explanation: >
+      Because margin of error scales with 1/sqrt(n), halving it requires quadrupling n — a fact
+      worth knowing before promising a stakeholder "just a little more data" will meaningfully
+      tighten an estimate.

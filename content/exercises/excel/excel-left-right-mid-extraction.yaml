@@ -1,0 +1,48 @@
+slug: excel-left-right-mid-extraction
+skill: excel-fundamentals
+title: Extracting Parts of an Order ID
+description: On `Data`, `A2` holds an OrderID formatted as `ORD-2024-00456`. On `Answer`, fill in `B2` with `=LEFT(Data!A2,3)`,
+  `C2` with `=MID(Data!A2,5,4)`, and `D2` with `=RIGHT(Data!A2,5)`.
+exercise_type: EXCEL
+difficulty: BEGINNER
+points: 10
+tags:
+- excel
+business_context: Order IDs encode the year and a sequence number inside a fixed-format string, and a report needs
+  those parts pulled out separately.
+prompt: On `Data`, `A2` holds an OrderID formatted as `ORD-2024-00456`. On `Answer`, fill in `B2` with `=LEFT(Data!A2,3)`,
+  `C2` with `=MID(Data!A2,5,4)`, and `D2` with `=RIGHT(Data!A2,5)`.
+excel_starter_sheets:
+- name: Data
+  cells:
+    A1: OrderID
+    A2: ORD-2024-00456
+- name: Answer
+  cells:
+    A1: Prefix
+    B1: Year
+    C1: Sequence
+excel_solution_sheets:
+- name: Data
+  cells:
+    A1: OrderID
+    A2: ORD-2024-00456
+- name: Answer
+  cells:
+    A1: Prefix
+    B1: Year
+    C1: Sequence
+    B2: =LEFT(Data!A2,3)
+    C2: =MID(Data!A2,5,4)
+    D2: =RIGHT(Data!A2,5)
+excel_check_cells:
+- Answer!B2
+- Answer!C2
+- Answer!D2
+hints:
+- LEFT/RIGHT count characters from their respective end of the string; MID needs a starting position AND a length.
+- 'Count the characters by hand first: "ORD-2024-00456" -- the year starts at character 5 and is 4 characters long.'
+solution: '`=LEFT(Data!A2,3)`="ORD"; `=MID(Data!A2,5,4)`="2024"; `=RIGHT(Data!A2,5)`="00456".'
+explanation: LEFT(text,3) takes the first 3 characters ("ORD"). MID(text,5,4) starts at position 5 and takes 4 characters
+  ("2024") -- position 4 is the dash. RIGHT(text,5) takes the last 5 characters ("00456"). This kind of fixed-width
+  substring extraction is common whenever an ID or code encodes multiple fields in one string.

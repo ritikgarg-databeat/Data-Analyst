@@ -1,0 +1,139 @@
+slug: lag-and-lead
+module_slug: sql-window-functions
+title: LAG and LEAD
+description: Reaching into the previous or next row within a window to compare a row against its neighbor — no self-join required.
+difficulty: ADVANCED
+estimated_minutes: 12
+display_order: 4
+objectives:
+  - Use LAG() to pull a value from the previous row within a partition, ordered by some column
+  - Use LEAD() to pull a value from the following row within a partition
+  - Compute a row-to-row difference (like days between orders) using LAG and date arithmetic
+  - Explain why LAG/LEAD replace what used to require a self-join
+prerequisites: [running-totals-and-frames]
+skills: [advanced-sql]
+datasets: [ecommerce]
+tags: [sql, advanced]
+key_takeaways:
+  - "LAG(column) OVER (PARTITION BY ... ORDER BY ...) returns that column's value from the previous row within the same partition, in the given order; LEAD() does the same for the following row."
+  - "The first row in each partition has no previous row for LAG to return (and the last has none for LEAD) — both return NULL there by default, which is usually the correct, expected behavior rather than an error."
+  - LAG and LEAD replace a pattern that used to require self-joining a table to itself on a shifted key — one window function call does what used to take a join plus row-numbering logic to get right.
+common_mistakes:
+  - "Forgetting PARTITION BY when 'previous row' should mean 'previous row for this same customer (or product, or whatever entity)' — without it, LAG pulls the previous row across the entire result set's ordering, which mixes different entities' rows together."
+  - "Assuming LAG's NULL result for the first row in a partition is a bug to work around — it's the correct, expected answer to 'what came before this customer's first order?': nothing did."
+blocks:
+  - type: heading
+    text: Comparing a row to its neighbor
+  - type: text
+    body: >
+      A very common analytical question is inherently row-to-row: "how long since this customer's
+      previous order?" or "did this month's revenue go up or down from last month?" Answering that
+      with plain SQL used to mean self-joining a table to a shifted copy of itself and carefully
+      matching rows up by position. `LAG()` and `LEAD()` do this directly: they reach into a
+      neighboring row within the same window and pull a value from it, computed once per row.
+  - type: code
+    language: sql
+    caption: Each order's previous order_date, per customer
+    code: |
+      SELECT
+        customer_id,
+        order_id,
+        order_date,
+        LAG(order_date) OVER (
+          PARTITION BY customer_id ORDER BY order_date
+        ) AS previous_order_date
+      FROM orders
+      WHERE customer_id IN (1, 2)
+      ORDER BY customer_id, order_date;
+  - type: output
+    body: |
+      customer_id | order_id | order_date | previous_order_date
+      -------------+----------+------------+----------------------
+                 1 |        1 | 2025-10-18 | NULL
+                 1 |        2 | 2025-12-16 | 2025-10-18
+                 2 |        4 | 2024-12-23 | NULL
+                 2 |        5 | 2025-04-30 | 2024-12-23
+                 2 |        3 | 2025-09-29 | 2025-04-30
+  - type: text
+    body: >
+      `PARTITION BY customer_id` keeps each customer's orders separate — LAG never reaches across
+      into a different customer's rows. `ORDER BY order_date` defines what "previous" means: the row
+      immediately before this one once the partition is sorted by order_date. Notice each customer's
+      very first order has `previous_order_date = NULL` — there genuinely is no order before it, so
+      NULL is the correct answer, not a sign something went wrong.
+  - type: heading
+    text: Turning it into a day count
+  - type: text
+    body: >
+      LAG returns a value, not a difference — but once you have the previous row's date sitting
+      alongside the current row's date, ordinary date subtraction finishes the job.
+  - type: code
+    language: sql
+    caption: Days since each customer's previous order
+    code: |
+      SELECT
+        customer_id,
+        order_id,
+        order_date,
+        order_date - LAG(order_date) OVER (
+          PARTITION BY customer_id ORDER BY order_date
+        ) AS days_since_previous_order
+      FROM orders
+      WHERE customer_id IN (1, 2)
+      ORDER BY customer_id, order_date;
+  - type: output
+    body: |
+      customer_id | order_id | order_date | days_since_previous_order
+      -------------+----------+------------+----------------------------
+                 1 |        1 | 2025-10-18 |                       NULL
+                 1 |        2 | 2025-12-16 |                         59
+                 2 |        4 | 2024-12-23 |                       NULL
+                 2 |        5 | 2025-04-30 |                        128
+                 2 |        3 | 2025-09-29 |                        152
+  - type: text
+    body: >
+      This single query now answers "how many days between consecutive orders, for every customer" in
+      one pass, with the NULL correctly marking each customer's first order as having no prior gap to
+      measure.
+  - type: heading
+    text: LEAD looks forward instead of back
+  - type: text
+    body: >
+      `LEAD()` is LAG's mirror image — it pulls a value from the *following* row in the ordering
+      instead of the preceding one. It's useful whenever the natural question is phrased forward,
+      like "what channel did this customer switch to next?"
+  - type: code
+    language: sql
+    caption: Each order's channel alongside the channel of the customer's next order
+    code: |
+      SELECT
+        customer_id,
+        order_id,
+        order_date,
+        channel,
+        LEAD(channel) OVER (
+          PARTITION BY customer_id ORDER BY order_date
+        ) AS next_order_channel
+      FROM orders
+      WHERE customer_id = 18
+      ORDER BY order_date;
+  - type: callout
+    variant: tip
+    title: Before LAG/LEAD existed
+    body: >
+      The traditional way to compute this was a self-join: join the orders table to a copy of itself
+      where the copy's row number (per customer) was exactly one less than the original's, then
+      subtract dates across the join. That approach needed a row-numbering step just to make the join
+      condition possible in the first place — LAG replaces the entire pattern with a single function
+      call inside one SELECT.
+  - type: question
+    prompt: "A customer's very first order (by order_date) has LAG(order_date) OVER (PARTITION BY customer_id ORDER BY order_date) computed for it. What value does LAG return for that row?"
+    choices:
+      - "0, representing zero days since a previous order"
+      - "NULL, because there is no row before it within that customer's partition"
+      - "The customer's most recent order_date, wrapping around"
+    correct_index: 1
+    explanation: >
+      LAG looks for the row immediately before the current one within its partition, ordered by the
+      given column. For the first row in a partition, no such row exists, so LAG correctly returns
+      NULL rather than a fabricated 0 or a value from a different customer.

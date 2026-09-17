@@ -1,0 +1,101 @@
+slug: biz-retention-and-repeat-purchase
+module_slug: customer-analytics
+title: "Retention Without Subscriptions: Repeat Purchase Rate"
+description: How to measure loyalty in a transactional business that has no subscription to renew or cancel, using repeat purchase rate as the retention analog.
+difficulty: INTERMEDIATE
+estimated_minutes: 13
+display_order: 2
+objectives:
+  - Explain why subscription-style retention rate doesn't directly apply to a transactional business
+  - Compute repeat purchase rate as the transactional-business analog of retention
+  - Interpret a repeat purchase rate in the context of purchase frequency and category
+prerequisites: [biz-customer-acquisition-and-activation]
+skills: [business-analytics, business-metrics]
+datasets: [ecommerce]
+tags: [business-analytics, customer-analytics, retention, intermediate, e-commerce]
+key_takeaways:
+  - "A transactional business has no subscription to cancel, so classic period-over-period retention rate doesn't directly apply — repeat purchase rate (share of customers who buy more than once) is the natural substitute."
+  - "Repeat Purchase Rate = customers with 2+ completed orders / total customers with at least 1 completed order × 100."
+  - In this platform's real ecommerce data, 61.7% of the 1,261 customers who ever completed an order went on to complete at least a second one — a strong loyalty signal for a business with no ongoing subscription obligation.
+common_mistakes:
+  - Applying a SaaS-style "retention rate" formula (active this period / active last period) to a transactional business, where "active" has no natural period boundary the way an active subscription does.
+  - Computing repeat purchase rate over all customers (including ones who never purchased at all) instead of over the base of customers who made at least one purchase, which understates the loyalty of the customers who actually engaged.
+blocks:
+  - type: heading
+    text: Retention needs a subscription to retain — or a substitute
+  - type: text
+    body: >
+      Classic retention rate (the share of customers still active this period who were also active last
+      period) is built for subscription businesses, where "active" is unambiguous — the subscription is
+      either in force or it's been cancelled. A transactional ecommerce business has no such boundary: a
+      customer isn't "cancelled," they simply haven't bought again yet, and might return next month or
+      next year. **Repeat purchase rate** — the share of customers who buy more than once — is the natural
+      transactional-business analog: it measures the same underlying question (does this business keep
+      its customers coming back?) using a metric shaped for how the business actually works.
+  - type: formula
+    expression: "Repeat Purchase Rate (%) = (Customers with 2+ completed orders) / (Customers with 1+ completed orders) × 100"
+    description: >
+      The denominator is customers who purchased at all — not the full customer list, and not signups —
+      so the rate measures "of the people who gave us a first chance, how many came back," not diluted by
+      people who never bought anything in the first place.
+  - type: example
+    title: Repeat purchase rate on real order data
+    body: >
+      Of the 1,261 customers in this platform's ecommerce dataset who completed at least one order, 778
+      went on to complete a second (or third, or more) — a 61.7% repeat purchase rate. For a business with
+      no subscription, no renewal reminder, and no auto-billing to bring customers back, that's a strong
+      signal: nearly two out of every three purchasing customers chose to return on their own.
+    code: |
+      WITH customer_orders AS (
+        SELECT customer_id, COUNT(*) AS completed_orders
+        FROM orders
+        WHERE status = 'completed'
+        GROUP BY 1
+      )
+      SELECT
+        COUNT(*) AS purchasing_customers,
+        SUM(CASE WHEN completed_orders > 1 THEN 1 ELSE 0 END) AS repeat_customers,
+        ROUND(100.0 * SUM(CASE WHEN completed_orders > 1 THEN 1 ELSE 0 END) / COUNT(*), 1)
+          AS repeat_purchase_rate_pct
+      FROM customer_orders;
+    language: sql
+  - type: callout
+    variant: important
+    title: The denominator has to be "people who ever bought," not "everyone"
+    body: >
+      If repeat purchase rate were computed over the entire customer list (including people who signed up
+      but never placed a single order), the metric would blend two very different failures — "never
+      bought at all" and "bought once and never came back" — into one number. Restricting the denominator
+      to customers with at least one completed order isolates the specific question: once someone gave the
+      business a first try, did they come back?
+  - type: heading
+    text: A single rate still hides useful structure
+    level: 3
+  - type: text
+    body: >
+      61.7% is a healthy topline number, but it's still a single average across every customer segment and
+      category. The same investigative instinct from unit economics applies here: segmenting repeat
+      purchase rate by acquisition channel, customer segment, or first-purchase category is very likely to
+      reveal that some acquisition paths or first purchases predict much stronger loyalty than others —
+      information a single blended rate can't surface on its own.
+  - type: checklist
+    title: Before reporting repeat purchase rate, confirm
+    items:
+      - The denominator is customers who purchased at least once, not the full customer or signup list
+      - Whether the time window is bounded (e.g. "within 12 months of first purchase") or left open-ended, and that this is stated
+      - Whether it's worth segmenting the topline rate by channel, segment, or category before presenting it as one number
+  - type: question
+    prompt: >
+      An ecommerce analyst wants to report "customer retention rate" for a store with no subscriptions.
+      What's the most appropriate adaptation?
+    choices:
+      - "Force-fit the SaaS retention formula (active this period / active last period), picking an arbitrary period length."
+      - "Use repeat purchase rate — the share of customers with at least one order who go on to place a second — as the retention analog suited to a transactional model."
+      - "Retention doesn't apply to transactional businesses at all, so no metric should be reported."
+    correct_index: 1
+    explanation: >
+      The underlying business question behind "retention" — do customers keep coming back? — is completely
+      valid for a transactional business; what doesn't transfer directly is the SaaS-shaped formula that
+      depends on a subscription's binary active/cancelled state. Repeat purchase rate answers the same
+      loyalty question using a definition that actually fits how a transactional business's customers
+      behave — buying again whenever they choose to, with no renewal date forcing the decision.

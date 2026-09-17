@@ -1,0 +1,59 @@
+slug: customers-by-country-pandas
+lesson_slug: inspecting-data
+skill: pandas
+dataset: ecommerce
+title: Customers by Country
+description: Count customers per country and rank countries from most to fewest customers.
+exercise_type: PYTHON
+difficulty: BEGINNER
+points: 15
+tags: [python, intermediate, real-world]
+business_context: >
+  The international expansion team is prioritizing which markets to invest in next and wants a
+  simple headcount of existing customers per country, ranked from the largest market down.
+prompt: >
+  Using `customers`, count how many customers exist in each country. Store your answer in a
+  variable named `result`: a DataFrame with columns `country` and `customer_count`, sorted in
+  descending order by `customer_count` (largest country first).
+python_datasets: [customers]
+python_starter_code: |
+  # customers is already loaded as a DataFrame.
+  # Explore it first:
+  customers.head()
+python_solution_code: |
+  result = (
+      customers.groupby("country")
+      .size()
+      .reset_index(name="customer_count")
+      .sort_values("customer_count", ascending=False)
+      .reset_index(drop=True)
+  )
+python_result_variable: result
+python_row_order_matters: true
+python_numeric_tolerance: 0.01
+python_hidden_tests:
+  - name: "First row holds the largest customer_count"
+    code: |
+      assert result.iloc[0]["customer_count"] == result["customer_count"].max(), (
+          "The first row should be the country with the most customers."
+      )
+hints:
+  - "Group `customers` by 'country' and count rows per group with `.size()`, then `.reset_index(name='customer_count')` to turn it into a two-column DataFrame."
+  - "Use `.sort_values('customer_count', ascending=False)` to put the largest country first, and `.reset_index(drop=True)` to give the result clean, sequential row numbers."
+solution: |
+  ```python
+  result = (
+      customers.groupby("country")
+      .size()
+      .reset_index(name="customer_count")
+      .sort_values("customer_count", ascending=False)
+      .reset_index(drop=True)
+  )
+  ```
+explanation: >
+  A groupby-count is the natural way to turn one row per customer into one row per country. The
+  key detail the prompt asks for is the descending sort by count — without
+  `sort_values(..., ascending=False)` the rows would come back in whatever order pandas happens
+  to group them in (typically alphabetical by country), which wouldn't answer "which markets are
+  biggest" at a glance. `reset_index(drop=True)` after sorting keeps the row labels tidy but
+  doesn't change which row is first.

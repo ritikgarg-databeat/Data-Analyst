@@ -1,0 +1,76 @@
+# Seed data for the `sql_tables` table — the tables that make the "ecommerce"
+# Dataset queryable in the SQL Lab. row_count/column_count are NOT listed here;
+# they're computed from the actual CSV files at seed time (see app/sql/sync.py)
+# so they can never drift from the real generated data.
+- dataset_slug: ecommerce
+  table_name: categories
+  file_path: data/sample/ecommerce/categories.csv
+  file_format: csv
+  grain: "1 row = 1 product category"
+  display_order: 1
+- dataset_slug: ecommerce
+  table_name: products
+  file_path: data/sample/ecommerce/products.csv
+  file_format: csv
+  grain: "1 row = 1 product"
+  display_order: 2
+- dataset_slug: ecommerce
+  table_name: customers
+  file_path: data/sample/ecommerce/customers.csv
+  file_format: csv
+  grain: "1 row = 1 customer"
+  display_order: 3
+- dataset_slug: ecommerce
+  table_name: marketing_campaigns
+  file_path: data/sample/ecommerce/marketing_campaigns.csv
+  file_format: csv
+  grain: "1 row = 1 marketing campaign"
+  display_order: 4
+- dataset_slug: ecommerce
+  table_name: sessions
+  file_path: data/sample/ecommerce/sessions.csv
+  file_format: csv
+  grain: "1 row = 1 website/app session"
+  display_order: 5
+- dataset_slug: ecommerce
+  table_name: orders
+  file_path: data/sample/ecommerce/orders.csv
+  file_format: csv
+  grain: "1 row = 1 order"
+  display_order: 6
+- dataset_slug: ecommerce
+  table_name: order_items
+  file_path: data/sample/ecommerce/order_items.csv
+  file_format: csv
+  grain: "1 row = 1 product line within an order"
+  display_order: 7
+- dataset_slug: ecommerce
+  table_name: payments
+  file_path: data/sample/ecommerce/payments.csv
+  file_format: csv
+  grain: "1 row = 1 payment transaction for an order"
+  display_order: 8
+- dataset_slug: saas-product
+  table_name: users
+  file_path: data/sample/saas_product/users.csv
+  file_format: csv
+  grain: "1 row = 1 signed-up user"
+  display_order: 1
+- dataset_slug: saas-product
+  table_name: events
+  file_path: data/sample/saas_product/events.csv
+  file_format: csv
+  grain: "1 row = 1 product event (signup/activated/engaged/upgraded)"
+  display_order: 2
+- dataset_slug: saas-product
+  table_name: subscriptions
+  file_path: data/sample/saas_product/subscriptions.csv
+  file_format: csv
+  grain: "1 row = 1 paid subscription"
+  display_order: 3
+- dataset_slug: saas-product
+  table_name: experiment_assignments
+  file_path: data/sample/saas_product/experiment_assignments.csv
+  file_format: csv
+  grain: "1 row = 1 user's assignment to one experiment"
+  display_order: 4

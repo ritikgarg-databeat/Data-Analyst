@@ -1,0 +1,99 @@
+slug: common-table-expressions
+module_slug: sql-subqueries-ctes
+title: Common Table Expressions (WITH)
+description: Naming an intermediate result set with WITH so a query reads top-to-bottom instead of inside-out.
+difficulty: INTERMEDIATE
+estimated_minutes: 12
+display_order: 4
+objectives:
+  - Write a CTE using the WITH clause and reference it in a subsequent SELECT
+  - Rewrite a nested subquery as an equivalent CTE
+  - Explain why a named CTE is easier to read and debug than the same logic nested inline
+prerequisites: [correlated-subqueries]
+skills: [advanced-sql]
+datasets: [ecommerce]
+tags: [sql, intermediate]
+key_takeaways:
+  - "A CTE, defined with WITH name AS (query), gives a name to an intermediate result set that the rest of the query can reference like a regular table."
+  - CTEs don't let SQL do anything a subquery couldn't already do — the benefit is entirely about readability, letting a query read top-to-bottom as a sequence of named steps instead of inside-out.
+  - A CTE can be tested on its own by running just its inner query, which makes debugging a multi-step query far easier than untangling a deeply nested subquery.
+common_mistakes:
+  - "Treating a CTE as if it were materialized and reused for free — most engines are free to re-run a CTE's definition each time it's referenced (DuckDB may or may not deduplicate depending on the query), so a CTE isn't automatically a performance optimization, only a readability one."
+  - "Forgetting a CTE only exists for the single statement it's attached to — you can't define one WITH clause and reference the same CTE from a later, separate query."
+blocks:
+  - type: heading
+    text: Giving a subquery a name
+  - type: text
+    body: >
+      The correlated subquery from the last lesson answered a real question — which products are
+      priced above their category's average — but nested subqueries get harder to read as soon as
+      there's more than one step of logic. A **common table expression** (CTE), introduced with
+      `WITH`, solves this by computing an intermediate result once, giving it a name, and letting the
+      rest of the query reference that name like an ordinary table.
+  - type: code
+    language: sql
+    caption: The same "above category average" logic, written as a CTE
+    code: |
+      WITH category_avg AS (
+        SELECT category_id, AVG(unit_price) AS avg_price
+        FROM products
+        GROUP BY category_id
+      )
+      SELECT p.product_name, p.unit_price, ca.avg_price
+      FROM products p
+      JOIN category_avg ca ON p.category_id = ca.category_id
+      WHERE p.unit_price > ca.avg_price
+      ORDER BY p.category_id;
+  - type: text
+    body: >
+      `category_avg` is computed once — one row per category_id, holding that category's average
+      price — and then the main query simply joins products to it. Compare this to the correlated
+      subquery version: there, the average had to be recomputed conceptually for every single product
+      row. Here, it's a clearly labeled, self-contained step that the final SELECT builds on.
+  - type: callout
+    variant: tip
+    title: Why this reads better than the nested version
+    body: >
+      The CTE version separates "what is a category's average price?" from "which products beat their
+      category's average?" into two distinct, sequential steps — you can read it top to bottom the
+      way you'd narrate the logic out loud. The correlated subquery version buries both questions
+      inside one WHERE clause, which is exactly the kind of nesting that gets hard to follow once a
+      query needs three or four such steps (the next lesson shows exactly that).
+  - type: heading
+    text: A CTE is still just a query
+  - type: text
+    body: >
+      It's worth being precise about what WITH does and doesn't change. It doesn't teach SQL any new
+      capability — everything a CTE can express, a nested subquery could express too, just less
+      legibly. A CTE also isn't automatically faster: most databases treat it as a named, reusable
+      *definition*, not a cached table, so referencing the same CTE twice in one query may re-run its
+      logic twice. The entire benefit of a CTE is how it organizes a query for the person reading it.
+  - type: example
+    title: Debugging a CTE by running it in isolation
+    body: >
+      One of the most practical benefits of naming a step is that you can test it on its own before
+      trusting the full query. Highlight and run just the inner SELECT to sanity-check category_avg
+      independently of everything built on top of it.
+    code: |
+      -- Run this alone first, to confirm the per-category averages look right
+      SELECT category_id, AVG(unit_price) AS avg_price
+      FROM products
+      GROUP BY category_id;
+    language: sql
+  - type: table
+    headers: ["Approach", "Where the logic lives", "Easiest to debug by running alone?"]
+    rows:
+      - ["Correlated subquery", "Nested inside the outer WHERE clause", "No — has to run as part of the whole query"]
+      - ["CTE (WITH)", "A separate, named block above the main query", "Yes — copy just that block and run it"]
+  - type: question
+    prompt: "What is the main advantage of rewriting a nested subquery as a CTE using WITH?"
+    choices:
+      - It always makes the query execute faster, because the result is cached
+      - It lets SQL do calculations that plain subqueries can't express
+      - "It makes the query easier to read and debug by naming and separating each logical step — it doesn't add new query capability"
+    correct_index: 2
+    explanation: >
+      A CTE is a readability and organization tool. Anything expressed with WITH could also be
+      expressed as a nested subquery — the difference is that a CTE names each intermediate step, so
+      the query reads top-to-bottom and each piece can be tested on its own. It's not a guaranteed
+      performance win, since most engines don't automatically materialize or cache it.

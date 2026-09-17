@@ -1,0 +1,40 @@
+slug: average-product-margin
+lesson_slug: numeric-functions
+skill: sql-fundamentals
+dataset: ecommerce
+title: Compute the Average Product Margin
+description: Write a query that computes the average per-unit margin across every product in the catalog.
+exercise_type: SQL
+difficulty: BEGINNER
+points: 15
+tags: [sql, beginner]
+business_context: >
+  Pricing wants a single benchmark number before their quarterly review: on average, how much margin
+  (selling price minus cost) does one unit of any given product in the catalog generate?
+prompt: >
+  Using the `products` table, write a query that returns the average per-unit margin
+  (`unit_price - cost`) across all products, rounded to 2 decimal places. Return one row with one
+  column.
+sql_tables: [products]
+sql_starter_query: |
+  -- Explore the products table first
+  SELECT * FROM products LIMIT 20;
+sql_solution_query: |
+  SELECT ROUND(AVG(unit_price - cost), 2) AS avg_margin
+  FROM products;
+sql_row_order_matters: false
+sql_numeric_tolerance: 0.01
+hints:
+  - "Margin per product is just a subtraction (unit_price - cost) — you don't need any filtering here, just an expression and an aggregate function over the whole table."
+  - "Wrap the subtraction inside AVG(): AVG(unit_price - cost) averages each product's margin directly, then ROUND(..., 2) formats it to cents."
+solution: |
+  ```sql
+  SELECT ROUND(AVG(unit_price - cost), 2) AS avg_margin
+  FROM products;
+  ```
+explanation: >
+  The core of a strong answer is computing the per-row margin expression (unit_price - cost) inside the
+  aggregate itself — AVG(unit_price - cost) — rather than trying to subtract two separately averaged
+  columns outside of AVG, which happens to give the same mathematical answer here but is a fragile habit
+  that breaks down the moment an exercise asks for something less linear, like a ratio or a percentage.
+  Rounding the final result to 2 decimal places matches how a dollar-and-cents figure should be reported.

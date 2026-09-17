@@ -1,0 +1,100 @@
+slug: dw-scd-types-0-1-2
+module_slug: slowly-changing-dimensions
+title: "Slowly Changing Dimensions: Types 0, 1, and 2"
+description: What happens when a dimension attribute changes over time, and the three foundational strategies (SCD 0, 1, and 2) for handling it — grounded in the real customer_segment change this dataset already models.
+difficulty: ADVANCED
+estimated_minutes: 25
+display_order: 1
+objectives:
+  - Explain the core problem SCDs solve — a dimension attribute changing after the row already exists in the warehouse.
+  - Distinguish SCD Type 0 (never change it), Type 1 (overwrite it), and Type 2 (keep every version, historically) by what each preserves and what each discards.
+  - Decide which SCD type fits a given dimension attribute in the ecommerce dataset, and justify the choice.
+skills: [dimensional-modeling, data-warehousing, data-modeling]
+datasets: [ecommerce]
+tags: [scd, dimension-table, data-modeling, advanced]
+prerequisites: [dw-facts-and-dimensions-basics]
+key_takeaways:
+  - "A Slowly Changing Dimension (SCD) problem exists whenever a dimension's attribute can legitimately change after the row already exists — a customer's segment, a product's category, an employee's department. The question an SCD strategy answers is: when that attribute changes, what happens to the warehouse's record of it?"
+  - "SCD Type 0 keeps the original value forever and never updates it (useful for attributes that should be immutable by policy, like a customer's original signup channel). SCD Type 1 overwrites the old value with the new one, keeping no history (simplest, but any report re-run after the change silently reflects the new value even for past periods). SCD Type 2 keeps every version as a separate row, with validity date ranges, so history is fully preserved and a query can ask \"what was true as of any past date.\""
+  - "customer_segment in this project's dim_customers always reflects the customer's *current* segment (SCD Type 1 behavior, in effect) — but the same customer_segment attribute is tracked historically, SCD Type 2 style, by a separate snapshot (customer_segment_snapshot), which the next lesson covers in depth."
+common_mistakes:
+  - "Assuming SCD Type 1 (overwrite) is always \"wrong\" because it loses history. For plenty of attributes — a typo correction, a genuinely immaterial value nobody needs historically (like a reformatted phone number) — overwriting is exactly the right call, since keeping a full history of every typo fix adds cost and clutter with no analytical benefit."
+  - "Assuming a dimension needs only one SCD strategy for every attribute. A single dimension can (and often should) mix strategies per column — dim_customers can legitimately overwrite most attributes (Type 1) while a specific, analytically important attribute like customer_segment is tracked with full history elsewhere (Type 2), which is exactly the split this project's real build uses."
+interview_questions:
+  - question: "A customer's country field is corrected from a data-entry typo (\"Mexio\" to \"Mexico\"). Separately, a customer's segment upgrades from \"consumer\" to \"business\" after a genuine account change. Should these be handled with the same SCD strategy? Why or why not?"
+    answer: >
+      No — they represent fundamentally different kinds of change. The country typo fix isn't a real
+      change in the customer's country, it's a correction of bad data; there's no analytical value in
+      preserving "Mexio" as a valid historical state, so overwriting it (SCD Type 1) is correct and
+      loses nothing meaningful. The segment upgrade is a genuine change in the customer's real-world
+      status over time, and analyses that segment historical orders by "what segment was this
+      customer in when they placed this order" would get a wrong, retroactively-changed answer if the
+      old segment value were overwritten instead of preserved — that's exactly the case for SCD Type
+      2, tracking the change as a new row with validity dates rather than overwriting in place.
+blocks:
+  - type: heading
+    text: The problem — a dimension attribute doesn't hold still
+  - type: text
+    body: >
+      Fact tables mostly just accumulate new rows. Dimension tables have a harder problem: an
+      attribute describing an existing entity can change after that entity is already in the
+      warehouse. A customer moves from "consumer" to "business" segment. A product gets reassigned to
+      a different category. The question a **Slowly Changing Dimension (SCD)** strategy answers is:
+      when that happens, what does the warehouse do with the old value?
+  - type: comparison
+    title: "SCD Types 0, 1, and 2"
+    columns: ["Type", "What happens on change", "History preserved?", "When it fits"]
+    rows:
+      - ["Type 0", "Nothing — the original value is retained forever, changes are ignored/rejected", "Yes, but only the original value — never the new one", "An attribute that should be immutable by policy, e.g. \"original acquisition channel\""]
+      - ["Type 1", "Overwrite the old value with the new one, in place", "No — only the current value is ever visible", "Corrections (typos), or attributes where history has no analytical value"]
+      - ["Type 2", "Insert a new row for the new value; keep the old row, with validity dates marking when each version was current", "Yes — every version, with an exact time range each was true", "Attributes where knowing \"what was true as of date X\" matters for correct historical analysis"]
+  - type: example
+    title: "customer_segment: overwritten in one place, preserved in another"
+    body: >
+      This project's `dim_customers` always shows a customer's *current* segment — a genuine,
+      real-world change in status (not a typo fix), handled with Type-1-style overwrite behavior:
+      query `dim_customers` today and you see today's truth, with no trace of what the segment used
+      to be. But `customer_segment` is exactly the kind of attribute where historical accuracy
+      matters — segmenting past orders by "what segment was this customer in *at the time* of that
+      order" would be silently wrong if you only had today's segment to work with. That's why this
+      project separately tracks `customer_segment`'s full history with a dedicated SCD Type 2
+      snapshot (`customer_segment_snapshot`), rather than trying to cram history into `dim_customers`
+      itself. `marts.yml` says this directly: "Slowly-changing attributes (customer_segment) are
+      tracked historically via the customer_segment_snapshot snapshot, not in this table — this table
+      always reflects the customer's current segment."
+  - type: callout
+    variant: important
+    title: "Type 1 and Type 2 aren't mutually exclusive for the same attribute"
+    body: >
+      It's tempting to think each dimension attribute gets exactly one SCD strategy, chosen once. In
+      practice, a "current state" table using Type 1 behavior and a separate "full history" table
+      using Type 2 behavior can coexist for the *same* attribute, serving different questions — "what
+      segment is this customer in right now" (dim_customers) vs. "what segment was true as of any
+      given date in the past" (customer_segment_snapshot). The next lesson goes inside exactly how
+      that second one is built, using dbt's real snapshot feature.
+  - type: heading
+    text: Choosing a type for a given attribute
+  - type: text
+    body: >
+      A practical way to choose: ask whether a wrong, retroactive answer to a historical question
+      would actually cause a problem. If a customer's `country` field gets corrected from a typo,
+      overwriting it (Type 1) loses nothing real — the "wrong" old value was never true in the first
+      place. If a customer's `customer_segment` genuinely changes, and a report needs to know what
+      segment was true when a past order was placed, only Type 2 gives a correct answer — Type 1
+      would silently apply today's segment to every historical order that customer ever placed,
+      which is wrong for any order placed before the change.
+  - type: question
+    prompt: >
+      A product's category_id is corrected because it was originally miscategorized due to a data
+      entry error (never actually true). Which SCD type most reasonably fits this specific change?
+    choices:
+      - "Type 2 — every correction should be preserved as a new historical version, no matter the cause"
+      - "Type 1 — overwrite the old (wrong) value, since the old value was never actually true and preserving it as \"history\" would just be preserving a data error, not a real state of the world"
+      - "Type 0 — the value should never be allowed to change once set"
+    correct_index: 1
+    explanation: >
+      SCD Type 2 exists to preserve genuine historical states that were once true and analytically
+      meaningful to reconstruct later. A correction of a data-entry error isn't a real historical
+      state — the product was never actually in the wrong category — so overwriting it (Type 1) is
+      the right call; keeping the error as a "valid historical version" would only add noise, not
+      accuracy.

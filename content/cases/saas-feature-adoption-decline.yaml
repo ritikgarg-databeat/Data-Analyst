@@ -1,0 +1,138 @@
+slug: saas-feature-adoption-decline
+title: "Case: Is Activation Really Slowing Down?"
+category: PRODUCT_ANALYTICS
+difficulty: INTERMEDIATE
+estimated_minutes: 75
+
+company_context: >
+  A mid-size B2B SaaS company tracks a core "activation" milestone in-product — the point where a
+  new signup has set up enough of the product to get real value from it (things like connecting a
+  data source, inviting a teammate, or completing initial configuration, logged as a single
+  `activated` event per user). Product leadership watches the signup-to-activation rate as one of
+  its top health metrics for the new-user experience.
+stakeholder_name: Priya Nataraj
+stakeholder_role: Head of Product
+problem_statement: >
+  "Something feels off with activation. I was looking at the new-user dashboard this week and my
+  gut says fewer of our new signups are reaching that 'activated' moment than they used to.
+  Nobody on the team can point to a specific product change that would explain it — we haven't
+  shipped anything to the onboarding flow in months — but if activation really is trending down,
+  I need to know before it shows up in the board deck. Can you dig into this and tell me what's
+  actually going on?"
+business_context: >
+  Activation is the leading indicator the product team uses to gauge whether new users are
+  getting to value quickly; it's also the metric featured in the monthly leadership review.
+  Marketing has been increasing spend on paid acquisition channels over the past several
+  quarters alongside the existing organic, referral, and content channels, but no one has
+  recently cross-checked activation against acquisition mix.
+objective: >
+  Determine whether new-user activation has genuinely declined over time, and if so (or if not),
+  explain what is actually driving the pattern Priya is noticing — then recommend where the
+  product/growth team should focus.
+initial_information: >
+  You have access to `users` (signup_date, acquisition_channel, country) and `events`
+  (per-user event log including `signup`, `engaged`, `activated`, and `upgraded` events with
+  timestamps). No survey data, support tickets, or session-replay data exists for this
+  investigation.
+constraints:
+  - "No qualitative user feedback or support-ticket data is available — the case must be built entirely from users.csv and events.csv."
+  - "Priya wants a concrete diagnosis, not just a restated 'yes it went down' or 'no it didn't' — she needs to know what to actually do differently, if anything."
+available_datasets: [saas-product]
+expected_deliverables:
+  - "Activation rate (activated / signup) computed by signup cohort month, to check whether there is a genuine sustained downward trend over time"
+  - "Activation rate broken out by acquisition_channel, with a check for whether the difference across channels is large enough to matter"
+  - "A check of whether acquisition channel mix itself has shifted over time, and whether that alone could explain what Priya is seeing in a blended, channel-agnostic view"
+  - "A clear recommendation for where the product/growth team should focus next, grounded in the actual numbers"
+learning_objectives:
+  - "Distinguish a genuine time-trend from a compositional (mix-shift) effect hiding inside a blended metric"
+  - "Compute and compare cohort-based conversion rates correctly using unique users, not raw event-row counts"
+  - "Use a segment breakdown (by channel) to explain movement in a blended top-line metric"
+  - "Communicate a nuanced 'it's not what it looks like' finding to a stakeholder without dismissing their original concern"
+stages: [CLARIFY, FRAME, EXPLORE, ANALYZE, INSIGHTS, RECOMMEND, SUBMIT]
+required_exercise_slugs: []
+tags: [product-analytics, saas, funnel, cohort, root-cause, intermediate]
+skills: [sql-fundamentals, pandas, product-metrics, root-cause-analysis, data-interpretation]
+
+clarification_guidance:
+  - "What exactly does 'activated' mean here, and is it a one-time milestone or something that could double-count a user?"
+  - "Over what time window is Priya seeing the apparent decline — the last month, the last quarter, since launch?"
+  - "Has anything changed upstream of the product experience itself, such as acquisition mix or marketing spend, that could shift a blended metric without any in-product change?"
+  - "Is Priya asking about the blended, company-wide activation rate, or a specific segment/channel she's already suspicious of?"
+  - "What decision is this feeding — is there a specific action on the table (e.g. pausing a channel, prioritizing an onboarding fix) that depends on the answer?"
+
+rubric:
+  - category: "Problem Framing & Clarification"
+    weight: 15
+    criteria:
+      - criterion: "Asks at least one clarifying question about the metric definition or time window before diving into analysis"
+        points: 10
+      - criterion: "Frames the investigation around both a time-trend check and a segment (channel) check, rather than assuming the answer is purely 'declining over time'"
+        points: 10
+  - category: "Technical Analysis"
+    weight: 30
+    is_technical: true
+    criteria:
+      - criterion: "Computes activation rate by signup cohort month using unique users (not raw event-row counts) and correctly finds no sustained multi-month downward trend"
+        points: 15
+      - criterion: "Computes activation rate by acquisition_channel and identifies the real gap between the best and worst channels"
+        points: 15
+  - category: "Insight Quality"
+    weight: 25
+    criteria:
+      - criterion: "Identifies that paid_social and paid_search users activate at a meaningfully lower rate than organic/referral users"
+        points: 15
+      - criterion: "Connects channel-level performance to the blended metric Priya is watching, explaining how channel mix can move a blended number even with zero change in the underlying product"
+        points: 10
+  - category: "Recommendation & Communication"
+    weight: 20
+    criteria:
+      - criterion: "Gives Priya a direct, non-evasive answer to her original question (is it really declining, yes/no/partially) before adding nuance"
+        points: 8
+      - criterion: "Recommends a specific, actionable next step focused on the underperforming channels or their onboarding experience, not a generic 'monitor it' response"
+        points: 12
+  - category: "Rigor & Caveats"
+    weight: 10
+    criteria:
+      - criterion: "Notes at least one real limitation (e.g. small monthly sample sizes per channel, no causal proof that channel itself — versus something correlated with it — drives the activation gap)"
+        points: 10
+
+hints:
+  - "Start by computing activation rate (unique activated users / unique signup users) for each signup month — watch out for events.csv having multiple rows for some event types per user, which can silently inflate a naive row-count-based rate."
+  - "Once you've looked at the trend over time, cut the same rate by acquisition_channel — some channels convert to activation quite differently from others."
+  - "Check whether the mix of acquisition_channel has shifted across signup cohorts. A blended, channel-agnostic metric can move purely because the underlying mix changed, even if every channel's own rate is stable or even improving."
+  - "If you find a channel-level gap, quantify how big a share of all signups those lower-performing channels represent — that's what determines how much they can drag down the blended number."
+
+reference_solution:
+  summary: >
+    The blended monthly activation rate (activated / signup, computed on unique users) does not show
+    a real, sustained decline. Across signup cohort months it fluctuates in roughly a 58%-80% band
+    with no consistent multi-month downward trend — in fact the two most recent large cohorts with
+    enough history to judge (September and October 2025) posted 75.3% and 75.9% activation, both
+    above the overall average of 69.1% (2,074 of 3,000 signups). What Priya is likely reacting to is
+    real, but it is not a time trend: activation rate differs sharply and significantly by
+    acquisition_channel (chi-square test across the 5 channels: chi2 = 128.2, p < 0.0001) —
+    organic 78.9% (720/913), referral 78.2% (340/435), content 72.0% (216/300), paid_search 61.7%
+    (449/728), and paid_social lowest at 55.9% (349/624). Paid_search and paid_social together now
+    make up roughly 45% of all signups (1,352 of 3,000), so any month where paid channels make up a
+    larger share of that month's cohort will show a lower blended activation rate purely from that
+    mix effect, with nothing wrong in the product itself.
+  key_insights:
+    - "No sustained multi-month decline exists in the blended activation rate; recent large cohorts (Sep/Oct 2025) actually activated above the historical average."
+    - "Activation rate varies by roughly 23 percentage points across acquisition channels (55.9% paid_social to 78.9% organic), a highly statistically significant difference (chi2 = 128.2, p < 0.0001, 4 dof)."
+    - "Paid_search and paid_social together account for about 45% of all signups, so month-to-month swings in paid-channel share can move the blended metric independent of any real change in onboarding or product."
+    - "The earliest cohorts (mid-2024) show unusually high activation partly because paid_social had not yet ramped up as an acquisition channel at that point, giving those months a more favorable organic/referral-heavy mix."
+  recommendation: >
+    Tell Priya directly: activation is not trending down over time company-wide — it's noisy but
+    stable, and the two most recent full cohorts actually beat the historical average. The real,
+    actionable finding is that paid_social and paid_search users activate at meaningfully lower
+    rates (56-62%) than organic and referral users (78-79%), and those two paid channels already
+    represent about 45% of signups. Recommend the product/growth team (a) report activation
+    rate split by channel going forward instead of only as one blended number, and (b) prioritize
+    understanding why paid-channel users activate less often — e.g. a channel-specific onboarding
+    experiment or a look at whether paid-channel users arrive with different expectations or use
+    cases — since that is where the real lift is available, not in fixing a decline that the data
+    doesn't actually show.
+  acceptable_alternatives:
+    - "Recommending a deeper investigation into what specifically differs about paid_social/paid_search users (device mix, campaign landing page, expectation-setting in ad creative) before committing to an onboarding redesign, since the case data alone cannot prove causation from channel to activation."
+    - "Flagging that the small per-month, per-channel sample sizes (as low as ~17-30 signups in some month/channel cells) mean the month-to-month wobble within a single channel should be interpreted cautiously, and recommending a few more months of data before reacting to any single month's dip."
+version: 1

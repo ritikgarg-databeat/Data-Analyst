@@ -1,0 +1,23 @@
+slug: excel-pivot-table-purpose
+skill: excel-fundamentals
+title: What a Pivot Table Is For
+description: You have 50,000 rows of transaction data and need to see total sales by region and product category,
+  broken down by quarter, and you expect to reshape this view several different ways as questions come in. What
+  Excel feature is built exactly for this?
+exercise_type: MULTIPLE_CHOICE
+difficulty: BEGINNER
+points: 5
+tags:
+- excel
+prompt: You have 50,000 rows of transaction data and need to see total sales by region and product category, broken
+  down by quarter, and you expect to reshape this view several different ways as questions come in. What Excel feature
+  is built exactly for this?
+correct_answer: A Pivot Table
+explanation: 'A Pivot Table is designed exactly for this: summarizing and reshaping a large flat table by dragging
+  fields into rows/columns/values, without writing a new formula every time you want a different cut of the same
+  data.'
+choices:
+- A Pivot Table
+- A single nested IF formula
+- Conditional formatting
+- A named range

@@ -1,0 +1,135 @@
+slug: saas-onboarding-email-experiment-analysis
+title: "Case: Should We Keep the New Onboarding Email Sequence?"
+category: EXPERIMENTATION
+difficulty: ADVANCED
+estimated_minutes: 90
+
+company_context: >
+  Three weeks ago, the lifecycle marketing team rolled out a redesigned onboarding email sequence
+  intended to nudge new signups toward converting to a paid plan, tested as an A/B experiment
+  (`onboarding_email`) with users randomly assigned to receive either the existing sequence
+  (control) or the new one (treatment), and a `converted` flag recorded per user.
+stakeholder_name: Priya Nataraj
+stakeholder_role: Head of Product
+problem_statement: >
+  "We rolled out the new onboarding email sequence three weeks ago and the team wants a readout
+  before we decide whether to keep it or roll back to the old sequence. I've seen a couple of
+  informal comments that it 'doesn't seem to be doing much,' but I want an actual analysis, not
+  a vibe check. Walk me through what the experiment data actually shows, and give me a clear
+  recommendation on whether we keep it, kill it, or need more time."
+business_context: >
+  The new sequence has a modest but real ongoing cost: it requires copywriting and design upkeep
+  from the lifecycle marketing team that the old sequence doesn't need, so continuing to run it
+  indefinitely isn't entirely free even if it isn't actively hurting conversion.
+objective: >
+  Determine what the onboarding_email experiment data actually shows about the new sequence's
+  effect on conversion, correctly characterize the level of certainty behind that conclusion, and
+  recommend whether to keep, kill, or continue testing it.
+initial_information: >
+  You have `experiment_assignments.csv` (experiment_id, user_id, variant, assigned_at, converted)
+  filtered to experiment_id = 'onboarding_email', with 500 users randomized to control and 500 to
+  treatment.
+constraints:
+  - "The analysis must be based on this experiment's data as currently collected — assume no additional randomized data can be gathered before the decision needs to be made, though the recommendation can still suggest gathering more if that's the right call."
+  - "Priya wants the recommendation to be precise about what is and isn't actually proven — she has explicitly said she doesn't want either overclaiming a win or overclaiming a failure."
+available_datasets: [saas-product]
+expected_deliverables:
+  - "Conversion rate for control and treatment, with sample sizes for each arm"
+  - "A proper two-proportion significance test on the conversion difference, with the actual test statistic and p-value"
+  - "A confidence interval (or equivalent reasoning) on the size of the true difference between arms"
+  - "An explicit, precise conclusion that distinguishes between 'no evidence it helped,' 'proof it does nothing,' and 'it's actively harmful' — supported by which of these the numbers actually justify"
+  - "A specific keep / kill / keep-testing recommendation, incorporating the ongoing cost of maintaining the new sequence"
+learning_objectives:
+  - "Run a proper significance test on a directionally negative (not positive) experiment result rather than assuming a small negative delta must be a real regression"
+  - "Distinguish 'statistically null result' from 'proof of zero effect' from 'proof of harm' as three genuinely different, honestly distinguishable conclusions"
+  - "Use a confidence interval to communicate the actual range of plausible true effects, not just a single point estimate and p-value"
+  - "Factor in real ongoing costs (not just the experiment's own numbers) when making a keep/kill recommendation under uncertainty"
+stages: [CLARIFY, FRAME, EXPLORE, ANALYZE, VALIDATE, INSIGHTS, RECOMMEND, SUBMIT]
+required_exercise_slugs: []
+tags: [experimentation, ab-testing, statistics, saas, advanced]
+skills: [statistics, statistical-reasoning, experimentation, data-interpretation, decision-making]
+
+clarification_guidance:
+  - "What significance threshold and/or minimum meaningful effect size is the team using to call this experiment a win, a loss, or inconclusive?"
+  - "Is there an ongoing cost to keeping the new sequence running (e.g. copywriting/design maintenance) that should factor into a 'keep vs. kill' call even absent a proven effect?"
+  - "Is more data collection genuinely off the table, or could the test run longer if the result is inconclusive?"
+  - "Are the informal comments that it 'doesn't seem to be doing much' based on any actual data review, or just impression?"
+
+rubric:
+  - category: "Problem Framing & Clarification"
+    weight: 10
+    criteria:
+      - criterion: "Asks at least one clarifying question about the significance threshold, the ongoing cost of the new sequence, or whether more data collection is possible"
+        points: 10
+  - category: "Statistical Reasoning"
+    weight: 30
+    criteria:
+      - criterion: "Runs an actual two-proportion z-test or chi-square test on the real conversion counts (control 162/500, treatment 157/500) rather than reacting to the raw percentage difference alone"
+        points: 12
+      - criterion: "Correctly reports the result is not statistically significant (p is approximately 0.73) and computes or reasons about a confidence interval on the true difference that includes zero"
+        points: 10
+      - criterion: "Explicitly distinguishes 'no evidence the new sequence helped' from 'proof it does nothing' from 'proof it's actively harmful,' and correctly identifies that only the first of these three is actually supported by the data"
+        points: 8
+  - category: "Technical Analysis"
+    weight: 15
+    is_technical: true
+    criteria:
+      - criterion: "Correctly computes conversion rate for each arm (control 32.4%, treatment 31.4%) and correctly notes the point estimate is directionally negative for treatment"
+        points: 15
+  - category: "Recommendation & Communication"
+    weight: 25
+    criteria:
+      - criterion: "Gives Priya a precise, non-overclaiming characterization of the result before moving to a recommendation"
+        points: 10
+      - criterion: "Gives a specific keep/kill/keep-testing recommendation that explicitly weighs the lack of proven benefit against the new sequence's real ongoing maintenance cost"
+        points: 15
+  - category: "Rigor & Caveats"
+    weight: 20
+    criteria:
+      - criterion: "Notes that with n=500 per arm, the test lacks power to rule out a moderate true effect in either direction, and that this uncertainty (not a confirmed null) is part of why the situation is genuinely ambiguous"
+        points: 20
+
+hints:
+  - "Don't let the fact that treatment's raw conversion rate is slightly lower than control's convince you the new sequence is actively hurting things. Run the actual two-proportion test before concluding anything about direction."
+  - "Compute a confidence interval for the true difference between arms, not just a p-value. Where the interval sits relative to zero (and how wide it is) tells you a lot more than the point estimate alone."
+  - "Think carefully about three different possible conclusions: 'we have no evidence this helped,' 'we've proven this does nothing,' and 'this is actively harmful.' Which one(s) does this specific dataset actually support?"
+  - "The decision isn't purely statistical — the new sequence has an ongoing cost to maintain. Factor that into what 'keep it running a bit longer to get more data' actually costs versus what it's worth."
+
+reference_solution:
+  summary: >
+    Control converted at 32.4% (162 of 500) and treatment at 31.4% (157 of 500) — a small,
+    directionally negative point estimate for the new sequence (-1.0 percentage point). A
+    two-proportion z-test gives z = -0.339, p = 0.734 (two-tailed); an equivalent chi-square test
+    gives chi2 = 0.115, p = 0.734. This is not statistically significant by any conventional
+    threshold. A 95% confidence interval on the true difference (treatment minus control) is
+    approximately -6.8 to +4.8 percentage points — a wide interval that includes zero and allows
+    for anywhere from a moderately meaningful loss to a moderately meaningful gain. The honest
+    characterization is "no evidence the new sequence improved conversion" — the data does not
+    support "proof it does nothing" (the interval is too wide to rule out a real effect of a few
+    points in either direction) and does not support "it's actively harmful" (the negative point
+    estimate is small and well within the range explainable by chance, and the interval's upper
+    bound is solidly positive).
+  key_insights:
+    - "Treatment converted slightly lower than control (31.4% vs 32.4%), but this difference is not statistically significant: z = -0.339, p = 0.734 (chi-square gives the same result, chi2 = 0.115, p = 0.734)."
+    - "The 95% confidence interval on the true difference (roughly -6.8pp to +4.8pp) is wide and includes zero, meaning the data is consistent with the new sequence being anywhere from modestly harmful to modestly beneficial."
+    - "The correct conclusion is 'no evidence the new sequence improved conversion' — not 'proof it does nothing' (the interval doesn't rule out a real few-point effect either direction) and not 'proof it's harmful' (the negative point estimate is small and not distinguishable from chance)."
+    - "With n=500 per arm, the test is underpowered to detect anything but a fairly large true effect, so 'inconclusive' is the statistically honest label here, distinct from a confirmed null result."
+  recommendation: >
+    Tell Priya plainly: this experiment shows no statistically significant difference between the
+    new and old onboarding email sequences (p = 0.734), and the directionally lower treatment
+    conversion rate is well within the range explainable by chance alone — it is not evidence the
+    new sequence is actively hurting conversion. At the same time, it is not proof the new sequence
+    is neutral or beneficial either; the confidence interval is wide enough to be consistent with a
+    real effect of a few points in either direction. Given that (a) there is no statistically
+    significant evidence of benefit, and (b) the new sequence carries a real ongoing
+    copywriting/design maintenance cost that the old one doesn't, the more defensible call is to
+    roll back to the original sequence rather than keep paying that maintenance cost for an
+    unproven benefit — while explicitly documenting this as "no evidence of improvement," not "the
+    new sequence was proven to fail." If the team has appetite to resolve the uncertainty properly
+    before deciding, extending the test to accumulate a larger sample (to narrow the confidence
+    interval) is the statistically cleaner alternative to either keeping or killing it on the
+    current data alone.
+  acceptable_alternatives:
+    - "Recommending the test simply be extended for more data before any keep/kill decision, on the grounds that n=500/arm is genuinely underpowered and the maintenance cost of running it a bit longer is likely less than the cost of a wrong permanent decision either way."
+    - "Recommending keeping the new sequence live (rather than rolling back) if there are non-conversion reasons to prefer it (e.g. brand consistency, other engagement metrics not covered by this dataset), as long as the recommendation is explicit that this is not being justified by a proven conversion win."
+version: 1

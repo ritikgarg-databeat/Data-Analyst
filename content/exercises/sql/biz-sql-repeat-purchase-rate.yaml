@@ -1,0 +1,79 @@
+slug: biz-sql-repeat-purchase-rate
+lesson_slug: biz-retention-and-repeat-purchase
+skill: business-metrics
+dataset: ecommerce
+title: Compute Repeat Purchase Rate
+description: Compute the share of purchasing customers who placed more than one completed order.
+exercise_type: SQL
+difficulty: INTERMEDIATE
+points: 15
+tags: [sql, business-analytics, intermediate, retention, e-commerce]
+business_context: >
+  With no subscription to renew, the retention team wants a transactional-business-appropriate
+  loyalty metric: of everyone who ever completed a purchase, what share came back and purchased
+  again at least once?
+prompt: >
+  Using `orders`, write a query that computes repeat purchase rate. Return a single row with
+  columns `purchasing_customers` (count of distinct customers with at least one completed order),
+  `repeat_customers` (count of those customers with 2 or more completed orders), and
+  `repeat_purchase_rate_pct` (`ROUND(100.0 * repeat_customers / purchasing_customers, 1)`).
+sql_tables: [orders]
+sql_starter_query: |
+  -- Explore the table first
+  SELECT * FROM orders LIMIT 20;
+sql_solution_query: |
+  WITH customer_orders AS (
+    SELECT customer_id, COUNT(*) AS completed_orders
+    FROM orders
+    WHERE status = 'completed'
+    GROUP BY 1
+  )
+  SELECT
+    COUNT(*) AS purchasing_customers,
+    SUM(CASE WHEN completed_orders > 1 THEN 1 ELSE 0 END) AS repeat_customers,
+    ROUND(100.0 * SUM(CASE WHEN completed_orders > 1 THEN 1 ELSE 0 END) / COUNT(*), 1)
+      AS repeat_purchase_rate_pct
+  FROM customer_orders;
+sql_row_order_matters: false
+sql_numeric_tolerance: 0.1
+sql_hidden_tests:
+  - name: "repeat_purchase_rate_pct matches an independent recomputation keyed on purchasing_customers"
+    query: |
+      WITH customer_orders AS (
+        SELECT customer_id, COUNT(*) AS completed_orders
+        FROM orders
+        WHERE status = 'completed'
+        GROUP BY 1
+      )
+      SELECT
+        COUNT(*) AS purchasing_customers,
+        ROUND(100.0 * SUM(CASE WHEN completed_orders > 1 THEN 1 ELSE 0 END) / COUNT(*), 1)
+          AS repeat_purchase_rate_pct
+      FROM customer_orders
+    key_columns: 1
+hints:
+  - "First collapse orders to one row per customer with COUNT(*) completed orders each — a customer with completed_orders > 1 is a repeat customer."
+  - "The denominator (purchasing_customers) is every customer who appears in that collapsed table at all — customers with zero completed orders never appear there in the first place, which is exactly the denominator you want."
+solution: >
+  ```sql
+  WITH customer_orders AS (
+    SELECT customer_id, COUNT(*) AS completed_orders
+    FROM orders
+    WHERE status = 'completed'
+    GROUP BY 1
+  )
+  SELECT
+    COUNT(*) AS purchasing_customers,
+    SUM(CASE WHEN completed_orders > 1 THEN 1 ELSE 0 END) AS repeat_customers,
+    ROUND(100.0 * SUM(CASE WHEN completed_orders > 1 THEN 1 ELSE 0 END) / COUNT(*), 1)
+      AS repeat_purchase_rate_pct
+  FROM customer_orders;
+  ```
+explanation: >
+  Filtering to `status = 'completed'` before grouping by customer_id ensures the denominator is customers
+  who actually purchased, not every customer in the table (which would include people who signed up but
+  never bought, understating how loyal the actual purchasing base is). Using `100.0 *` rather than `100 *`
+  avoids integer-division truncation. A common mistake is computing this rate over the full `customers`
+  table rather than over customers who appear in `orders` at all, which conflates "never purchased" with
+  "purchased once and didn't return" — two very different situations that this metric is meant to keep
+  separate.

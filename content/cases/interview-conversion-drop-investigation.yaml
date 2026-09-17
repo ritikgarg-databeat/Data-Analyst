@@ -1,0 +1,120 @@
+slug: interview-conversion-drop-investigation
+title: Checkout Conversion Dropped From 3.2% to 2.6%
+category: PRODUCT_ANALYTICS
+difficulty: INTERMEDIATE
+estimated_minutes: 25
+company_context: An e-commerce site tracked via the ecommerce schema, with sessions linking to orders.
+stakeholder_name: Jordan Blake
+stakeholder_role: VP Growth
+problem_statement: '"Our site-wide conversion rate dropped noticeably this month and I need to know why before we
+  brief the exec team."'
+business_context: Jordan wants to know whether this is a tracking issue, a funnel-specific problem, or something
+  broader.
+objective: Localize where in the funnel the conversion drop occurs and recommend a fix.
+initial_information: You have access to sessions, orders, order_items, and payments.
+constraints:
+- Rule out a measurement/tracking issue before assuming a real behavioral change.
+available_datasets:
+- ecommerce
+expected_deliverables:
+- A funnel-step breakdown showing where the drop concentrates
+- A measurement-integrity check
+- A recommendation tied to the specific step found
+learning_objectives:
+- Rule out tracking issues before behavioral explanations
+- Break a funnel into steps to localize a problem
+- Tie a recommendation to a specific funnel step
+stages:
+- CLARIFY
+- ANALYZE
+- INSIGHTS
+- RECOMMEND
+- SUBMIT
+tags:
+- interview
+- product-analytics
+- conversion
+- funnel
+- case-study
+skills:
+- product-metrics
+- root-cause-analysis
+- communication
+clarification_guidance:
+- A good clarifying question asks whether any release or deploy coincided with the drop.
+- A good clarifying question asks whether the drop is uniform across platforms/devices or concentrated in one.
+rubric:
+- category: Problem Framing & Clarification
+  weight: 20
+  criteria:
+  - criterion: Asks about recent releases/deploys and platform/device segmentation before analyzing
+    points: 20
+- category: Technical Analysis
+  weight: 35
+  is_technical: true
+  criteria:
+  - criterion: Breaks the funnel into steps and computes step-to-step conversion
+    points: 20
+  - criterion: Identifies the specific step where the drop concentrates
+    points: 15
+- category: Insight Quality
+  weight: 20
+  criteria:
+  - criterion: Rules out a measurement/tracking artifact before concluding it's behavioral
+    points: 20
+- category: Recommendation & Business Judgment
+  weight: 15
+  criteria:
+  - criterion: Ties the recommendation to the specific step/segment identified
+    points: 15
+- category: Communication
+  weight: 10
+  criteria:
+  - criterion: Explains the finding in terms Jordan could brief upward
+    points: 10
+hints:
+- Break the funnel into steps (view -> cart -> checkout -> payment -> confirmation) rather than looking only at
+  the overall rate.
+- Check for a broken tracking event before assuming user behavior actually changed.
+reference_solution:
+  summary: Site-wide session conversion rate has not dropped in a clean, isolable way this month -- across the full
+    two-year history it has actually risen substantially, from roughly 3-9% through 2024 to the high teens by late
+    2025 (19.58% in November 2025, the recent peak). The most recent month, December 2025, does show a real
+    pullback to 17.46% (-2.12 points, -10.8% relative to November) -- the only meaningful month-over-month decline
+    in the trailing months. By device, that pullback is more pronounced on mobile (18.99% to 15.42%, -18.8%
+    relative) than desktop (-5.0%) or tablet (-9.3%), though at 358-480 sessions per device per month this gap is
+    directional rather than statistically decisive (a two-proportion test on the mobile November-to-December change
+    gives z~1.36, p~0.17). A measurement-integrity check on the sessions table -- duplicate session_ids, null rates
+    for customer_id and marketing_campaign_id over time, zero-duration sessions, and invalid converted values --
+    turns up nothing anomalous, so there is no evidence this is a tracking artifact. On the order side, the
+    completed-order rate has been remarkably stable at 80-85% for the entire two years with no discrete break in
+    any month, so a checkout/payment-step failure doesn't show up there either. Structurally, this schema has no
+    session-level cart/checkout/payment event data (only one aggregate converted flag) and no session-to-order join
+    key, so the granular view-to-cart-to-checkout-to-payment-to-confirmation funnel this case describes cannot
+    literally be reconstructed -- only the two coarse proxies above (session conversion rate, order status mix) are
+    available.
+  key_insights:
+  - Session-level conversion rate has risen for essentially the entire two-year history (about 3-9% in 2024 to the
+    high teens by late 2025), so the premise of a sustained, dramatic drop is not supported -- the real signal is a
+    one-month pullback, from November 2025's 19.58% to December 2025's 17.46% (-10.8% relative).
+  - The December dip is larger, proportionally, on mobile (18.99% to 15.42%, -18.8% relative) than desktop (-5.0%)
+    or tablet (-9.3%), but the sample size (358 and 480 mobile sessions in the two months) is not large enough to
+    call this statistically decisive on its own (z~1.36, p~0.17).
+  - A measurement-integrity check (duplicate session_ids, null customer_id/marketing_campaign_id rates by month,
+    zero-duration sessions, invalid converted values) finds nothing anomalous -- there is no evidence of a broken
+    tracking event behind the dip.
+  - Completed-order rate has held steady at 80-85% for the full two-year history with no discrete monthly break, so
+    the order/payment side shows no equivalent checkout-step failure either.
+  recommendation: Given the dip is real but modest, one month old, mobile-leaning but not statistically airtight,
+    and tracking checks out clean, recommend against a broad redesign or a confirmed root-cause claim in this
+    month's brief to Jordan. Instead, recommend watching mobile conversion rate specifically over the next one to
+    two months to see whether the pullback persists or reverts, and in parallel, flag the lack of granular funnel
+    and session-to-order instrumentation as a gap worth closing so a future, larger drop can actually be localized
+    to a specific checkout step rather than only a device-level proxy.
+  acceptable_alternatives:
+  - A learner who treats the December dip as too recent and too small a sample to act on at all, recommending only
+    continued monitoring with no interim device-specific hypothesis, should receive credit for appropriate caution.
+  - A learner who instead highlights that the true funnel steps (cart, checkout, payment, confirmation) are not
+    captured in this schema at all, and recommends instrumenting them before any future funnel-step diagnosis is
+    attempted, should receive full credit for identifying the more fundamental data gap.
+version: 1

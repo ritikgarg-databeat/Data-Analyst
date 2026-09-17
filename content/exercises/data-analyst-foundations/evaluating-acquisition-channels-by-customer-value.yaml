@@ -1,0 +1,46 @@
+slug: evaluating-acquisition-channels-by-customer-value
+lesson_slug: welcome-to-the-challenge-library
+skill: exploratory-data-analysis
+dataset: ecommerce
+title: "Which Acquisition Channel Brings the Highest-Value Customers?"
+description: Compare customer lifetime value by acquisition channel using sessions and marketing_campaigns, and reason through the attribution-methodology choices the question forces you to make explicit.
+exercise_type: DATA_INTERPRETATION
+difficulty: ADVANCED
+points: 25
+tags: [eda, real-world, advanced, case-study]
+prompt: >
+  Using `sessions`, `marketing_campaigns`, `orders`, and `payments`, you attribute each spending customer to
+  a channel using their EARLIEST campaign-attributed session's `marketing_campaigns.channel`. The result:
+  display ($4,752.36 avg spend, n=418), social ($4,548.93, n=393), email ($4,465.50, n=220), search
+  ($4,441.62, n=73) — and 157 spending customers have no campaign-attributed session at all (their only
+  sessions are organic/direct). Display comes out on top by this method. What would you tell a stakeholder
+  who wants to shift more budget toward display based on this result, and what about the METHOD itself
+  deserves scrutiny before that recommendation is made?
+hints:
+  - "The spread between the highest (display, $4,752.36) and lowest (search, $4,441.62) attributed channel is only about 7% — ask whether that's a large enough, robust enough gap to justify a real budget decision, versus how it would look with a different attribution rule."
+  - "'Earliest campaign-attributed session' is one specific choice among several reasonable ones (last-touch instead of first-touch, or splitting credit across multiple touchpoints) — and it completely excludes the 157 customers with no campaign-attributed session, who aren't a small group. Think about what excluding them does to the comparison."
+solution: >
+  I would not recommend shifting budget toward display based on this result alone, and I'd explain why to
+  the stakeholder directly. Two specific concerns: first, the spread across all four channels is small —
+  $4,441.62 to $4,752.36 is roughly a 7% range, well within the kind of variation that could shift under a
+  different attribution rule or turn out to not be statistically meaningful at these sample sizes (73 to
+  418 customers per channel). Second, and more important, this is a first-touch attribution method — it
+  credits whichever channel a customer's EARLIEST tracked campaign session came from, and completely
+  excludes 157 spending customers who have no campaign-attributed session at all (their whole relationship
+  with the business is organic/direct as far as this data shows).
+  That's a real, non-trivial group being left out of a channel comparison entirely, which biases the
+  average per remaining channel calculated in ways this simple attribution can't detect. Before
+  recommending a budget shift, I'd re-run the comparison using last-touch attribution as a check (does
+  display still lead, or does the ranking change?), report the organic/direct group as its own significant
+  segment rather than dropping it, and treat any recommendation as tentative given how close the four
+  channel averages actually are. The honest takeaway for the stakeholder: "this data doesn't show a strong
+  enough or robust enough gap between channels to justify a budget shift on its own — here's what a more
+  rigorous comparison would need to check first."
+explanation: >
+  A strong answer questions the attribution methodology itself, not just the resulting numbers — naming
+  first-touch vs. last-touch as a real modeling choice that could change the conclusion, and flagging that
+  157 real customers were silently excluded from the comparison entirely. It also correctly reads a 7%
+  spread across 4 groups with sample sizes as small as 73 as too thin a margin to act on without further
+  validation. A weaker answer takes the "display wins" result at face value and recommends the budget shift
+  directly, treating the specific attribution choice as neutral or invisible rather than as a decision that
+  shapes the conclusion.

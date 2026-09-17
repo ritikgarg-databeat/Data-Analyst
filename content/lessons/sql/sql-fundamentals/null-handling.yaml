@@ -1,0 +1,81 @@
+slug: null-handling
+module_slug: sql-fundamentals
+title: "NULL"
+description: Three-valued logic, why equality checks against NULL never match, and using COALESCE to supply defaults.
+difficulty: BEGINNER
+estimated_minutes: 10
+display_order: 6
+objectives:
+  - Explain what NULL represents and why comparisons involving it return unknown rather than true or false
+  - Predict how NULL propagates through AND, OR, and arithmetic
+  - Use COALESCE to substitute a default value in place of NULL
+prerequisites: [distinct]
+skills: [sql-fundamentals]
+datasets: [orders-sample]
+tags: [sql, beginner, foundations]
+key_takeaways:
+  - NULL means "unknown," not zero, not an empty string, and not "false" — it's a distinct third state.
+  - Any arithmetic or comparison touching a NULL produces NULL or unknown, which is why NULLs quietly vanish from calculations instead of raising an error.
+  - COALESCE(column, default) returns the first non-NULL argument, which is the standard way to substitute a fallback value.
+common_mistakes:
+  - Assuming order_total * 1 or order_total + 0 "cleans up" a NULL — any expression that includes a NULL input still evaluates to NULL.
+  - Forgetting that a WHERE clause treats "unknown" the same as "false" — a row is only kept when the condition evaluates to true, so both false and unknown rows get filtered out silently.
+blocks:
+  - type: heading
+    text: What NULL actually means
+  - type: text
+    body: >
+      In `orders-sample`, a cancelled or still-pending order has no order_total yet — that cell holds
+      NULL. NULL is not zero and not an empty string; it means "this value is unknown or doesn't
+      exist yet." That distinction matters because SQL doesn't treat NULL like an ordinary value in
+      comparisons or arithmetic: it forces a third logical outcome. Most languages have two — true or
+      false. SQL has three: true, false, and
+      **unknown**. Any comparison involving NULL — `order_total = NULL`, `order_total > 50` when
+      order_total is NULL, even `NULL = NULL` — evaluates to unknown, not true or false. A WHERE
+      clause only keeps rows where the condition is true, so rows that evaluate to unknown are
+      filtered out exactly like rows that evaluate to false, with no warning that it happened.
+  - type: table
+    headers: ["Expression", "Result"]
+    rows:
+      - ["order_total = 50 (order_total is 50)", "true"]
+      - ["order_total = 50 (order_total is NULL)", "unknown"]
+      - ["order_total IS NULL (order_total is NULL)", "true"]
+      - ["NULL = NULL", "unknown"]
+  - type: callout
+    variant: common_mistake
+    title: NULL breaks arithmetic too, not just comparisons
+    body: >
+      order_total * 0.08 for a row where order_total is NULL doesn't produce 0 — it produces NULL.
+      Any expression with a NULL input propagates NULL through to the result, whether it's a
+      comparison, arithmetic, or string concatenation.
+  - type: text
+    body: >
+      The standard tool for supplying a default in place of a NULL is COALESCE. COALESCE(expr1,
+      expr2, ...) returns the first argument in the list that isn't NULL. It's the
+      standard way to say "use this value, but fall back to a default if it's missing."
+  - type: example
+    title: Treating a missing total as zero for a running sum
+    body: >
+      If a report needs to sum order_total across all orders, including cancelled ones with no total
+      recorded, wrapping the column in COALESCE ensures those NULLs contribute 0 instead of quietly
+      vanishing from the arithmetic (SUM already ignores NULLs on its own — COALESCE is for cases
+      where you need the substitution to happen before an operation like multiplication that would
+      otherwise turn the whole row's result into NULL).
+    code: |
+      SELECT
+        order_id,
+        COALESCE(order_total, 0) AS order_total_or_zero
+      FROM orders;
+    language: sql
+  - type: question
+    prompt: A row has order_total = NULL. What does the expression "order_total > 100" evaluate to for that row, and is the row kept by a WHERE clause using that condition?
+    choices:
+      - "false, and the row is filtered out"
+      - "true, because NULL is treated as larger than any number"
+      - "unknown, and the row is filtered out because WHERE only keeps rows that are true"
+    correct_index: 2
+    explanation: >
+      Any comparison against NULL evaluates to unknown, not false. The practical effect on a WHERE
+      clause is the same as false — the row is excluded — but understanding it's "unknown" rather
+      than "false" matters once you start combining conditions with AND/OR/NOT, where unknown
+      propagates differently than false does.

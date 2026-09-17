@@ -1,0 +1,103 @@
+slug: dm-measures-vs-attributes
+module_slug: star-schema-design
+title: "Measures vs. Attributes"
+description: Which numbers are safe to sum, which have to be recomputed instead of averaged, and why a numeric column sitting on a dimension table is worth a second look.
+difficulty: INTERMEDIATE
+estimated_minutes: 24
+display_order: 2
+objectives:
+  - Distinguish an additive measure from a non-additive one, and correctly recompute a non-additive measure (like a margin percentage) from its summed components instead of averaging it directly.
+  - Explain what the Data Modeler's dimension_looks_like_measure check is nudging at, and describe a concrete scenario where a numeric column on a dimension gets silently double-counted.
+skills: [dimensional-modeling]
+datasets: [ecommerce]
+tags: [dimension-table, fact-table, data-modeling, intermediate]
+prerequisites: [dm-facts-and-dimensions]
+key_takeaways:
+  - "Measures are the numeric values you SUM or AVG on a fact table (gross_revenue, gross_margin, item_count). Attributes are the descriptive values on a dimension you GROUP BY or filter on (customer_segment, category_name, channel) — mixing the two up is the root of several common modeling mistakes."
+  - "Not every measure is safely additive. gross_margin_pct cannot be correctly averaged across orders — it has to be recomputed from the summed numerator and denominator (SUM(gross_margin) / SUM(gross_revenue) x 100), exactly what this project's real fct_orders.sql does with its pct_of() macro."
+  - "A numeric column sitting on a dimension table (like a stored lifetime_order_count on dim_customers) is exactly what the Data Modeler's dimension_looks_like_measure warning is nudging at — not because storing it is wrong, but because joining that dimension to a finer-grained fact table and then summing the column repeats it once per matching fact row."
+common_mistakes:
+  - "Computing AVG(gross_margin_pct) across many orders instead of SUM(gross_margin) / SUM(gross_revenue). Both produce a plausible-looking percentage, and only the second is mathematically correct."
+  - "Joining dim_customers to fct_orders (one customer, many orders) and then summing dim_customers.lifetime_order_count directly in that joined result — it repeats once per order row and wildly overstates the true total."
+blocks:
+  - type: heading
+    text: Measures live on facts; attributes live on dimensions
+  - type: text
+    body: >
+      A **measure** is a numeric value tied to the event the fact table represents — something you'd
+      legitimately SUM or AVG across many rows to get a meaningful total. An **attribute** is a descriptive
+      value tied to the entity a dimension table represents — something you'd GROUP BY or filter on, not add up.
+  - type: table
+    caption: "Measures (fct_orders) vs. attributes (dim_customers / dim_products)"
+    headers: ["Column", "Table", "Measure or attribute?"]
+    rows:
+      - ["gross_revenue", "fct_orders", "Measure — safely additive across orders"]
+      - ["item_count", "fct_orders", "Measure — safely additive across orders"]
+      - ["gross_margin_pct", "fct_orders", "Measure, but NOT safely additive — see below"]
+      - ["customer_segment", "dim_customers", "Attribute — group/filter by it, never sum it"]
+      - ["category_name", "dim_products", "Attribute — group/filter by it, never sum it"]
+      - ["channel", "fct_orders", "Attribute traveling with the fact — group/filter by it"]
+  - type: heading
+    text: Not every measure is safely additive
+  - type: text
+    body: >
+      `gross_margin_pct` looks like a number you could average, but averaging a ratio across rows of different
+      sizes gives the wrong answer. The correct approach is to sum the numerator and denominator separately
+      first, then divide — exactly what this project's real `fct_orders.sql` does with a small `pct_of()` dbt
+      macro (`100.0 * numerator / denominator`, guarding against a zero denominator).
+  - type: code
+    language: sql
+    code: |
+      -- WRONG: averaging a pre-computed percentage across orders of different sizes
+      SELECT AVG(gross_margin_pct) FROM fct_orders WHERE channel = 'web';
+
+      -- RIGHT: recompute the ratio from the summed components
+      SELECT 100.0 * SUM(gross_margin) / NULLIF(SUM(gross_revenue), 0) AS gross_margin_pct
+      FROM fct_orders WHERE channel = 'web';
+    caption: "A $2 order at 90% margin and a $2,000 order at 10% margin average to a meaningless 50% — but summing the actual dollars first gives the real blended margin."
+  - type: callout
+    variant: common_mistake
+    title: "Percentages, rates, and ratios almost never average correctly"
+    body: >
+      Any measure that's already a ratio of two other things — a percentage, a rate, an average-of-an-average —
+      should be treated as a signal to look for its two underlying components and recompute from those, not
+      averaged directly across a GROUP BY.
+  - type: heading
+    text: When a dimension's own number isn't safe to sum after a join
+  - type: text
+    body: >
+      `dim_customers` stores `lifetime_order_count` — a legitimate, useful attribute of a customer. But if you
+      join `dim_customers` to `fct_orders` (one customer, many orders) and then `SUM(lifetime_order_count)`
+      across that joined result, the value repeats once per matching order row and the total is wildly
+      inflated — a customer with 15 lifetime orders contributes 15 x 15 = 225 to that sum, not 15. This is
+      exactly the scenario the Data Modeler's `dimension_looks_like_measure` warning is nudging at: a numeric
+      column on a DIMENSION table whose name looks like something you'd sum (matching hints like count, total,
+      amount) is flagged not because storing it is wrong, but because it's a common, specific way analysts
+      accidentally double-count after a join.
+  - type: heading
+    text: A preview — dimensions can change over time too
+  - type: text
+    body: >
+      `dim_customers` is intentionally simple: it always shows a customer's *current* segment and country,
+      overwritten on every dbt run. That's what's usually called a "Type 1" dimension in data warehousing — no
+      history kept. If the business needed to know what segment a customer was in *at the time of* a specific
+      past order rather than today, that requires deliberately preserving history — a "Type 2" slowly changing
+      dimension. That's a deeper technique covered in this platform's dbt/snapshots material rather than this
+      module; the takeaway here is just recognizing the tradeoff exists and being able to name which one a
+      given dimension is doing.
+  - type: question
+    prompt: >
+      dim_customers has a numeric column named total_lifetime_spend. The Data Modeler's validator flags it with
+      dimension_looks_like_measure. Is the validator saying this column shouldn't exist on dim_customers?
+    choices:
+      - "Yes — a warning like this means the column must be removed before the model can be saved"
+      - "No — it's an educational nudge that this kind of column is a common double-counting risk after a join to a finer-grained fact table, not a rule that the column is forbidden"
+      - "Yes, because DIMENSION tables are only allowed to contain text columns, never numeric ones"
+    correct_index: 1
+    explanation: >
+      Every check with severity "warning" in this validator (missing_primary_key, duplicate_column, the
+      foreign_key_* checks, fact_table_missing_grain, and dimension_looks_like_measure) is explicitly designed
+      as an educational nudge, not a hard rule — the model can still be saved. dimension_looks_like_measure
+      specifically calls out that a stored numeric attribute like this is easy to double-count if it's ever
+      summed after joining the dimension to a finer-grained fact table, which is worth knowing, not a ban on
+      storing it.

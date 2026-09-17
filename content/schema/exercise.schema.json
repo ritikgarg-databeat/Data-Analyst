@@ -1,0 +1,111 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://data-analyst-lab.local/schema/exercise.schema.json",
+  "title": "ExerciseContentFile",
+  "description": "Schema for content/exercises/<domain>/<exercise>.yaml. Enforced by apps/api/app/content/schema.py via `python -m app.content.validate`. Mirrored in TypeScript at packages/shared/src/content-types.ts.",
+  "type": "object",
+  "required": ["slug", "title", "description", "exercise_type", "difficulty", "points", "prompt", "explanation"],
+  "properties": {
+    "slug": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+    "lesson_slug": { "type": "string" },
+    "skill": { "type": "string" },
+    "dataset": { "type": "string" },
+    "title": { "type": "string" },
+    "description": { "type": "string" },
+    "exercise_type": {
+      "enum": [
+        "MULTIPLE_CHOICE", "TRUE_FALSE", "SHORT_ANSWER", "CODE", "SQL", "PYTHON", "DBT",
+        "BUSINESS_REASONING", "DATA_INTERPRETATION", "MODELING", "INTERVIEW_RESPONSE"
+      ]
+    },
+    "difficulty": { "enum": ["BEGINNER", "INTERMEDIATE", "ADVANCED"] },
+    "points": { "type": "integer", "minimum": 1 },
+    "tags": { "type": "array", "items": { "type": "string" }, "default": [] },
+    "prompt": { "type": "string" },
+    "choices": { "type": "array", "items": { "type": "string" } },
+    "correct_answer": { "type": "string" },
+    "hints": { "type": "array", "items": { "type": "string" }, "default": [] },
+    "solution": { "type": "string" },
+    "explanation": { "type": "string" },
+    "business_context": { "type": "string", "description": "Originally SQL-only; also used as the business-framing paragraph for BUSINESS_REASONING/DATA_INTERPRETATION case-study exercises (Phase 6)." },
+    "sql_tables": { "type": "array", "items": { "type": "string" }, "default": [], "description": "SQL exercises only — tables to surface in the schema explorer; empty = all." },
+    "sql_starter_query": { "type": "string", "description": "SQL exercises only." },
+    "sql_solution_query": { "type": "string", "description": "SQL exercises only — never sent to the client." },
+    "sql_row_order_matters": { "type": "boolean", "default": false, "description": "SQL exercises only." },
+    "sql_numeric_tolerance": { "type": "number", "default": 0.01, "description": "SQL exercises only." },
+    "sql_hidden_tests": {
+      "type": "array",
+      "default": [],
+      "description": "SQL exercises only — extra keyed-lookup checks against the student's own result.",
+      "items": {
+        "type": "object",
+        "required": ["name", "query"],
+        "properties": {
+          "name": { "type": "string" },
+          "query": { "type": "string" },
+          "key_columns": { "type": "integer", "minimum": 1, "default": 1 }
+        }
+      }
+    },
+    "python_datasets": { "type": "array", "items": { "type": "string" }, "default": [], "description": "PYTHON exercises only — dataset files to pre-load as DataFrames; empty = all files in `dataset`." },
+    "python_starter_code": { "type": "string", "description": "PYTHON exercises only." },
+    "python_solution_code": { "type": "string", "description": "PYTHON exercises only — never sent to the client." },
+    "python_result_variable": { "type": "string", "default": "result", "description": "PYTHON exercises only — the variable name both student and solution code must define." },
+    "python_row_order_matters": { "type": "boolean", "default": false, "description": "PYTHON exercises only." },
+    "python_numeric_tolerance": { "type": "number", "default": 0.000001, "description": "PYTHON exercises only." },
+    "python_hidden_tests": {
+      "type": "array",
+      "default": [],
+      "description": "PYTHON exercises only — Python snippets (typically assertions) run in the student's own kernel namespace after correctness passes.",
+      "items": {
+        "type": "object",
+        "required": ["name", "code"],
+        "properties": {
+          "name": { "type": "string" },
+          "code": { "type": "string" }
+        }
+      }
+    },
+    "dbt_model_name": { "type": "string", "description": "DBT exercises only — the model name written to dbt/models/exercises/<name>.sql for real execution." },
+    "dbt_starter_sql": { "type": "string", "description": "DBT exercises only." },
+    "dbt_schema_yml": { "type": "string", "description": "DBT exercises only — the columns/tests block nested under this model in a generated schema.yml; never sent to the client." },
+    "stakeholder": { "type": "string", "description": "Case-study exercises (Phase 6) — a short job title framing who's asking." },
+    "constraints": { "type": "array", "items": { "type": "string" }, "default": [], "description": "Case-study exercises (Phase 6) — realistic limits on data/tools/time." },
+    "expected_deliverables": { "type": "array", "items": { "type": "string" }, "default": [], "description": "Case-study exercises (Phase 6) — what a complete answer should include." },
+    "rubric": {
+      "type": "array",
+      "default": [],
+      "description": "Case-study exercises (Phase 6) — self-assessed evaluation criteria shown to the learner before they answer; see app/services/grading.py.",
+      "items": {
+        "type": "object",
+        "required": ["criterion", "points"],
+        "properties": {
+          "criterion": { "type": "string" },
+          "points": { "type": "integer", "minimum": 1 }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "exercise_type": { "const": "MULTIPLE_CHOICE" } } },
+      "then": { "required": ["choices", "correct_answer"] }
+    },
+    {
+      "if": { "properties": { "exercise_type": { "const": "TRUE_FALSE" } } },
+      "then": { "required": ["correct_answer"] }
+    },
+    {
+      "if": { "properties": { "exercise_type": { "const": "SQL" } } },
+      "then": { "required": ["dataset", "sql_solution_query"] }
+    },
+    {
+      "if": { "properties": { "exercise_type": { "const": "PYTHON" } } },
+      "then": { "required": ["dataset", "python_solution_code"] }
+    },
+    {
+      "if": { "properties": { "exercise_type": { "const": "DBT" } } },
+      "then": { "required": ["dbt_model_name", "dbt_starter_sql"] }
+    }
+  ]
+}

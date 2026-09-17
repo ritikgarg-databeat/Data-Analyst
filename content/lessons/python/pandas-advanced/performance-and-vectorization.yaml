@@ -1,0 +1,152 @@
+slug: performance-and-vectorization
+module_slug: pandas-advanced
+title: Performance and Vectorization
+description: Why vectorized pandas/NumPy operations beat .apply() and Python loops — a real, measured timing comparison on the ecommerce dataset using Python's time module.
+content_type: READING
+difficulty: ADVANCED
+estimated_minutes: 13
+display_order: 3
+objectives:
+  - Explain why vectorized operations outperform .apply(axis=1) and row-by-row loops
+  - Measure the real performance difference between a vectorized calculation and .apply() using time.perf_counter
+  - Recognize when .apply() is genuinely necessary versus when it's a slower stand-in for a vectorized operation
+prerequisites: [categorical-data]
+skills: [pandas]
+datasets: [ecommerce]
+tags: [python, advanced, real-world]
+key_takeaways:
+  - "A vectorized operation (df['a'] - df['b']) runs as compiled, batch NumPy code across the whole column at once; .apply(axis=1) runs a Python function once per row, with Python-level overhead paid on every single row."
+  - "On this dataset's order_items table (12,627 rows), computing line revenue with .apply(axis=1) took 0.4188s versus 0.00094s vectorized — a measured ~447x speedup, using nothing but Python's time module."
+  - "The gap gets worse, not better, as data grows — the same calculation on a 252,540-row version of the same table took 9.69s with .apply() versus 0.005s vectorized, a ~1,931x speedup, because .apply()'s per-row Python overhead scales linearly while vectorized code's fixed overhead barely grows."
+common_mistakes:
+  - "Reaching for .apply(axis=1) as a default habit for any row-wise calculation, when the same logic can almost always be expressed as direct column arithmetic — (df['a'] - df['b']) * df['c'] instead of df.apply(lambda row: (row['a'] - row['b']) * row['c'], axis=1)."
+  - "Assuming .apply() is 'a bit slower' rather than orders of magnitude slower — the real, measured gap here (447x-1,931x) is large enough to turn a sub-second calculation into a multi-second (or, at production scale, multi-minute) one."
+  - "Benchmarking on a tiny sample and concluding the difference 'doesn't matter' — the gap widens with row count, so a difference that looks trivial on 100 rows can dominate runtime on a real production table."
+practical_applications:
+  - "Auditing existing analysis code for .apply(axis=1, lambda row: ...) calls that compute something expressible as direct column arithmetic, and rewriting them for a measurable speed win."
+  - "Choosing a vectorized approach up front when writing a new derived column on a large DataFrame, rather than reaching for the more 'obviously correct-looking' row-by-row version and optimizing later."
+interview_questions:
+  - question: "Why is df.apply(lambda row: ..., axis=1) typically much slower than an equivalent vectorized expression?"
+    answer: "apply(axis=1) calls a Python function once per row, and each call carries real Python-level overhead — interpreter dispatch, attribute lookups on the row Series, function call overhead — repeated for every single row. A vectorized expression like df['a'] - df['b'] instead runs as compiled, batch NumPy code across the entire column in one pass, with the per-element work happening in C rather than in the Python interpreter loop. The fixed cost of a vectorized call is tiny and roughly constant; apply's cost scales linearly with row count, which is why the gap gets worse, not better, as data grows."
+  - question: "You measured .apply(axis=1) as 'only' 2x slower than vectorized on a 100-row test DataFrame. Is it safe to assume that ratio holds at production scale (millions of rows)?"
+    answer: "No — apply's per-row overhead means its runtime scales roughly linearly with row count, while a vectorized operation's fixed overhead barely grows with size. A 2x gap on 100 rows commonly turns into a much larger multiple at real scale, as demonstrated directly in this lesson: the same calculation went from a 447x gap at 12,627 rows to a 1,931x gap at 252,540 rows on identical logic. Small-sample benchmarks routinely understate how much apply() will cost in production."
+blocks:
+  - type: text
+    body: >
+      This ties directly back to the NumPy vectorization lesson earlier in the curriculum: pandas
+      Series are built on NumPy arrays, and the same reason vectorized NumPy beats a Python loop
+      applies here too. `.apply(axis=1)` looks convenient — write a function, apply it row by row —
+      but it quietly gives up the thing that makes pandas fast in the first place. This lesson proves
+      it with real, measured numbers rather than asking you to take that on faith.
+  - type: heading
+    text: "The task: compute line revenue two ways"
+  - type: text
+    body: >
+      order_items has unit_price, discount, and quantity columns. Line revenue is
+      (unit_price - discount) * quantity — a simple row-wise calculation, and a realistic stand-in for
+      the kind of derived column you write constantly in real analysis work.
+  - type: code
+    language: python
+    code: |2
+      import pandas as pd
+      import time
+
+      items = pd.read_csv("data/sample/ecommerce/order_items.csv")
+      len(items)
+
+      def apply_version(df):
+          return df.apply(lambda row: (row["unit_price"] - row["discount"]) * row["quantity"], axis=1)
+
+      def vectorized_version(df):
+          return (df["unit_price"] - df["discount"]) * df["quantity"]
+    caption: Two ways to compute the exact same derived column, on 12,627 real rows
+  - type: heading
+    text: "Timing both, with Python's time module"
+  - type: text
+    body: >
+      No notebook and no %timeit magic here — just time.perf_counter() before and after each version,
+      the same technique that works in any plain Python script.
+  - type: code
+    language: python
+    code: |2
+      t0 = time.perf_counter()
+      result_apply = apply_version(items)
+      apply_time = time.perf_counter() - t0
+
+      t0 = time.perf_counter()
+      result_vectorized = vectorized_version(items)
+      vectorized_time = time.perf_counter() - t0
+
+      apply_time, vectorized_time, apply_time / vectorized_time
+    caption: "Real, measured times on this exact dataset (12,627 rows) — one run"
+  - type: output
+    body: |2
+      apply_time      = 0.4188 s
+      vectorized_time = 0.00094 s
+      speedup         = ~447x
+  - type: callout
+    variant: important
+    title: Both produce the identical result
+    body: >
+      result_apply and result_vectorized are numerically identical (np.allclose(result_apply,
+      result_vectorized) is True) — this isn't a case of trading correctness for speed. The vectorized
+      version is simply the same calculation, expressed in a form pandas can run as a single batch
+      operation instead of 12,627 separate Python function calls.
+  - type: heading
+    text: "The gap widens as data grows"
+  - type: text
+    body: >
+      To see how this scales, the same comparison was run again on a 20x-larger version of the same
+      table (252,540 rows, built with pd.concat([items] * 20) — pure row duplication for the timing
+      test, not a claim about real order volume).
+  - type: code
+    language: python
+    code: |2
+      big = pd.concat([items] * 20, ignore_index=True)
+      len(big)
+
+      t0 = time.perf_counter(); apply_version(big); apply_time_big = time.perf_counter() - t0
+      t0 = time.perf_counter(); vectorized_version(big); vec_time_big = time.perf_counter() - t0
+
+      apply_time_big, vec_time_big, apply_time_big / vec_time_big
+    caption: Same calculation, 20x the rows
+  - type: output
+    body: |2
+      rows            = 252,540
+      apply_time      = 9.69 s
+      vectorized_time = 0.005 s
+      speedup         = ~1,931x
+  - type: table
+    headers: ["Row count", ".apply(axis=1) time", "Vectorized time", "Speedup"]
+    rows:
+      - ["12,627 (real dataset)", "0.4188 s", "0.00094 s", "~447x"]
+      - ["252,540 (20x replicated)", "9.69 s", "0.005 s", "~1,931x"]
+  - type: callout
+    variant: warning
+    title: "apply()'s cost scales with rows; vectorized's barely does"
+    body: >
+      20x the rows made .apply() take about 23x longer (0.42s -> 9.69s) — roughly linear, as expected
+      from paying per-row Python overhead 20x more times. The vectorized version barely moved (0.00094s
+      -> 0.005s), since NumPy's batch execution has a small, mostly-fixed overhead that doesn't scale
+      the same way. This is exactly why the speedup factor got bigger, not smaller, at scale.
+  - type: heading
+    text: When .apply() genuinely is necessary
+  - type: text
+    body: >
+      Vectorization isn't always possible. If a row's calculation genuinely needs conditional branching
+      that doesn't map cleanly onto array operations, or calls an external function with no vectorized
+      equivalent, .apply() (or a plain loop) may be the only option — but it should be a deliberate
+      choice, not the automatic first instinct, and np.where()/np.select() (covered in the NumPy
+      vectorization lesson) can often replace even fairly complex conditional row logic.
+  - type: question
+    prompt: "You're deciding whether to write a new derived column using .apply(axis=1, lambda row: (row['a'] - row['b']) * row['c']) or the vectorized (df['a'] - df['b']) * df['c']. Based on the measurements in this lesson, what should guide the choice?"
+    choices:
+      - "They perform about the same, so pick whichever reads more clearly"
+      - "Prefer the vectorized form by default — the measured gap (hundreds to thousands of times faster) only grows as the DataFrame gets larger"
+      - "Prefer .apply() by default, since it's more explicit about what's happening on each row"
+    correct_index: 1
+    explanation: >
+      The measured difference here wasn't marginal — 447x on the real dataset, 1,931x on a larger
+      version of the same data — and that gap widens with row count because apply()'s overhead is
+      per-row while vectorized code's overhead is largely fixed. Whenever the logic can be expressed
+      as direct column arithmetic (as it can here), the vectorized form should be the default choice.

@@ -1,0 +1,53 @@
+slug: what-modern-analysts-do
+module_slug: how-to-use-this-lab
+title: What Modern Data Analysts Actually Do
+description: A realistic picture of the day-to-day Data Analyst role at roughly the 2-year experience level.
+difficulty: BEGINNER
+estimated_minutes: 10
+display_order: 2
+objectives:
+  - Describe the day-to-day responsibilities of a Data Analyst at roughly the 2-year experience level
+  - Distinguish Data Analyst work from adjacent roles at a high level
+prerequisites: [the-learning-loop]
+skills: [business-problem-solving, communication]
+tags: [foundations, beginner]
+key_takeaways:
+  - The job is answering business questions with data, not just writing queries.
+  - Stakeholder communication and framing ambiguous questions matter as much as technical execution.
+  - Strong analysts at the 2-year mark can own a metric or a domain end to end.
+interview_questions:
+  - question: Walk me through a time you had to translate a vague stakeholder ask into an analysis plan.
+    answer: >
+      A strong answer names the original ambiguous ask, the clarifying questions asked, the concrete
+      metric/analysis plan produced, and how the result changed a decision.
+blocks:
+  - type: heading
+    text: The role, honestly
+  - type: text
+    body: >
+      At roughly two years of experience, a strong Data Analyst is expected to take an ambiguous
+      business question ("why did signups drop last week?") and turn it into a concrete, answerable
+      analysis plan — then execute it themselves.
+  - type: checklist
+    items:
+      - Pull and shape the data themselves — SQL first, spreadsheets/Python where useful
+      - Sanity-check their own numbers before presenting them
+      - Communicate findings and a recommendation, not just a chart
+      - Know when a result is not statistically or practically meaningful
+      - Own at least one metric or business area well enough to be the go-to person for it
+  - type: heading
+    text: How this differs from adjacent roles
+  - type: comparison
+    title: Data Analyst vs. adjacent roles
+    columns: ["Role", "Primary focus", "How it relates to the Analyst"]
+    rows:
+      - ["Data Scientist", "Modeling / ML / experiment design", "A strong Analyst partners with, but isn't expected to replace, this work"]
+      - ["Data Engineer", "Pipelines and infrastructure", "The Analyst consumes that infrastructure and should understand it, not build it"]
+      - ["Product Manager", "Owns the roadmap decision", "The Analyst supplies the evidence that decision should be based on"]
+  - type: callout
+    variant: tip
+    title: Why the domain list looks the way it does
+    body: >
+      Every domain in this platform — SQL, Python, Statistics, Business Analytics, Product Analytics,
+      Data Engineering, Data Warehousing, Data Modeling — exists because it shows up in this
+      day-to-day picture.

@@ -1,0 +1,179 @@
+slug: outliers-in-eda
+module_slug: exploratory-data-analysis
+title: "Outliers in EDA: Data Error, or the Case That Matters Most?"
+description: The EDA-specific judgment call the Data Cleaning module's outlier mechanics don't make for you — is an extreme value a mistake to fix, or a whale customer or fraud signal you'd be wrong to discard?
+difficulty: INTERMEDIATE
+estimated_minutes: 12
+display_order: 7
+objectives:
+  - Distinguish the mechanical detection of outliers from the judgment call about what to do with one
+  - Investigate a real extreme value by looking at the pattern of rows behind it, not just the single number
+  - Explain why discarding a genuine extreme case can be as costly a mistake as keeping a genuine error
+prerequisites: [segmentation-in-eda]
+skills: [pandas]
+datasets: [ecommerce]
+tags: [python, intermediate, real-world]
+key_takeaways:
+  - "This lesson assumes you already know how to detect outliers mechanically (IQR bounds, z-scores) from the Data Cleaning module's outliers lesson — go there for that. This lesson is about the decision an EDA pass has to make once you've found one: is it an error to fix, or a real case to keep?"
+  - "A data error usually looks like an isolated, inconsistent incident — one row that doesn't fit any pattern. A real extreme case usually looks like a consistent pattern across multiple rows — the same customer, repeatedly, over time."
+  - "In this dataset, customer 1362's total completed spend is $32,936.81 against a median customer total of $3,083.13 — over 10x. But it comes from 13 separate completed orders spread across roughly two and a half months (October to December 2025), each individually unremarkable ($415 to $5,789). That pattern looks like a genuine high-value repeat customer, not a single erroneous transaction — and deleting this customer as an 'outlier' would mean deleting your best customer from the analysis."
+  - "The IQR rule flags 37 of 3,441 completed orders (about 1.1%) as statistically extreme on order value alone — a purely mechanical result. Whether each of those 37 is a data error or a legitimately large order is a separate question the statistic itself cannot answer."
+common_mistakes:
+  - "Automatically removing every value an IQR or z-score rule flags, without ever looking at the actual rows behind the flag — the mechanical rule tells you where to look, not what to conclude."
+  - "Assuming a large single value must be an error because it's far from the average — in businesses with real variation in order size or customer value (bulk buyers, enterprise accounts, VIP customers), being far from average is exactly what a genuinely important case looks like."
+  - "Deleting a whale customer, a large legitimate order, or a real fraud case from an analysis because it 'skews the average' — this doesn't clean the data, it deletes the exact signal that might matter most to the business question being asked."
+practical_applications:
+  - "Investigating a customer or transaction flagged as statistically extreme by checking whether it's backed by a consistent pattern (multiple orders, a stable behavior over time) before deciding whether to keep, cap, or exclude it from an analysis."
+  - "Explicitly separating 'clean this because it's an error' from 'keep this because it's a real business-important case' as two different actions with two different justifications, rather than treating 'outlier' as a single bucket that always means 'remove.'"
+interview_questions:
+  - question: "You find a customer whose total spend is 10x the median. How do you decide whether to exclude them from your analysis as an outlier?"
+    answer: "I'd look at the pattern behind the number rather than the number alone — is this one suspicious transaction, or a consistent history of many individually-reasonable orders over time? A single anomalous row is more likely to be a data error (a duplicate, a unit mismatch, a test account). A consistent pattern across many separate orders and dates is more likely to be a genuine high-value customer. I'd also ask what the analysis is for — a customer segmentation or LTV analysis needs that whale included, since they're exactly the kind of customer the business cares most about; a 'typical order size' benchmark might reasonably exclude them so they don't distort what 'typical' means."
+  - question: "What's the difference between how you'd handle a data-quality outlier versus a genuine extreme case?"
+    answer: "A data-quality outlier (a mistyped price, a duplicate row, a unit conversion error) should be corrected or removed, because it doesn't represent anything real. A genuine extreme case (a whale customer, a legitimately large order, a real fraud event) should usually be kept, but handled deliberately — reported separately, capped rather than deleted if it's distorting a specific statistic like a mean, or flagged for a different kind of follow-up (a fraud investigation, an account-management outreach) rather than simply cleaned away."
+resources:
+  - title: "Pandas documentation — Working with missing data"
+    url: "https://pandas.pydata.org/docs/user_guide/missing_data.html"
+blocks:
+  - type: text
+    body: >
+      The Data Cleaning module's outliers lesson covers *how* to detect an outlier — IQR bounds, z-scores,
+      the mechanical side. This lesson picks up exactly where that one leaves off: once a value is
+      flagged, what do you actually do with it? That decision is where EDA earns its keep, because the
+      mechanical rule alone can't make it for you.
+  - type: heading
+    text: "A mechanical flag is a question, not an answer"
+  - type: code
+    language: python
+    code: |
+      import pandas as pd
+
+      orders = pd.read_csv("data/sample/ecommerce/orders.csv")
+      order_items = pd.read_csv("data/sample/ecommerce/order_items.csv")
+      order_items["line_revenue"] = (
+          (order_items["unit_price"] - order_items["discount"]) * order_items["quantity"]
+      )
+      order_value = order_items.groupby("order_id")["line_revenue"].sum().rename("order_value")
+      orders = orders.merge(order_value, on="order_id", how="left")
+      completed = orders[orders["status"] == "completed"]
+
+      q1, q3 = completed["order_value"].quantile([0.25, 0.75])
+      iqr = q3 - q1
+      upper_bound = q3 + 1.5 * iqr
+      n_flagged = (completed["order_value"] > upper_bound).sum()
+      print(f"Upper IQR bound: ${upper_bound:,.2f}")
+      print(f"Orders flagged above it: {n_flagged} of {len(completed)} ({n_flagged/len(completed)*100:.1f}%)")
+    caption: The mechanical detection step — the same IQR rule from the Data Cleaning module
+  - type: output
+    body: |
+      Upper IQR bound: $4,661.64
+      Orders flagged above it: 37 of 3441 (1.1%)
+    caption: Real output
+  - type: text
+    body: >
+      That's the mechanics done. The EDA question starts here: are these 37 orders errors, or are they
+      real large orders from real customers? The statistic can't tell you — you have to go look.
+  - type: heading
+    text: "A real case: is customer 1362 an error, or your best customer?"
+  - type: code
+    language: python
+    code: |
+      customer_spend = completed.groupby("customer_id")["order_value"].sum().sort_values(ascending=False)
+      print(customer_spend.head(3))
+      print(f"\nMedian customer total spend: ${customer_spend.median():,.2f}")
+    caption: Looking at customer-level totals, not just individual order values
+  - type: output
+    body: |
+      customer_id
+      1362    32936.81
+      1110    30305.34
+      855     30284.45
+      Name: order_value, dtype: float64
+
+      Median customer total spend: $3,083.13
+    caption: "Real output — customer 1362's total spend is over 10x the median"
+  - type: text
+    body: >
+      That single fact — "10x the median" — is exactly the kind of number that tempts a quick "must be
+      an error, exclude it." Before deciding, look at what's actually behind it:
+  - type: code
+    language: python
+    code: |
+      cust_orders = orders[(orders["customer_id"] == 1362) & (orders["status"] == "completed")]
+      print(cust_orders[["order_id", "order_date", "channel", "order_value"]].sort_values("order_date"))
+    caption: Every completed order behind that $32,936.81 total
+  - type: output
+    body: |
+      order_id  order_date channel  order_value
+      3887      3888  2025-10-28     web      1329.08
+      3897      3898  2025-10-30     web       415.34
+      3886      3887  2025-12-04     web      2168.84
+      3888      3889  2025-12-04     web      1329.08
+      3889      3890  2025-12-05     web      1018.68
+      3896      3897  2025-11-09     web      5664.75
+      3890      3891  2025-11-15  mobile      5789.28
+      3893      3894  2025-11-20  mobile      2692.04
+      3895      3896  2025-11-29  mobile      2285.38
+      3898      3899  2025-11-29     web      1391.38
+      3900      3901  2025-11-30     web      2262.74
+      3892      3893  2025-12-08     web      2899.40
+      3899      3900  2025-12-19     web      1391.38
+    caption: "Real output — 13 separate orders across roughly two and a half months"
+  - type: callout
+    variant: important
+    title: "This is a whale, not an error"
+    body: >
+      Nothing about this looks like a data-entry mistake. It's 13 separate, individually unremarkable
+      orders ($415 to $5,789 each — none of them extreme on its own) placed on 13 different dates over
+      about ten weeks, across both web and mobile. A duplicate-row bug or a unit-conversion error tends
+      to produce one obviously-wrong row; this is a consistent, repeated purchasing pattern from a real
+      customer who simply orders often and orders a fair amount each time. Deleting customer 1362 as an
+      "outlier" wouldn't clean the data — it would remove the single most valuable customer from
+      whatever analysis you're running, right when a customer-value or retention analysis is exactly
+      where they matter most.
+  - type: heading
+    text: "The general test: one row, or a pattern?"
+  - type: table
+    headers: ["Signal", "More consistent with a data error", "More consistent with a real extreme case"]
+    rows:
+      - ["Number of rows behind it", "A single isolated row", "Multiple rows forming a consistent pattern over time"]
+      - ["Internal consistency", "Doesn't add up (e.g. price far outside the product's normal range, a negative quantity)", "Each individual row looks ordinary; only the aggregate is extreme"]
+      - ["Plausibility check", "Physically or logically impossible given what you know (e.g. a 500-unit single-customer order for a product typically bought 1-2 at a time)", "Plausible given the business — a known enterprise account, a legitimately bulk-buying segment"]
+      - ["What to do", "Fix or remove the specific bad row(s)", "Keep it — report it separately if it distorts a mean, but don't delete it"]
+  - type: heading
+    text: "Checking the low end too"
+  - type: code
+    language: python
+    code: |
+      cheapest_order = order_items[order_items["order_id"] == 272]
+      print(cheapest_order[["order_id", "product_id", "quantity", "unit_price", "discount", "line_revenue"]])
+    caption: "The lowest-value completed order in the dataset, at $9.45 — investigate the same way"
+  - type: output
+    body: |
+      order_id  product_id  quantity  unit_price  discount  line_revenue
+      order_item  272         111         1       11.12      1.67          9.45
+    caption: "Real output — a single, ordinary line item: one unit of an $11.12 product, with a $1.67 discount applied"
+  - type: text
+    body: >
+      Also unremarkable once you look — a genuinely small, single-item order, not a data problem. The
+      lesson is the same on both ends of the distribution: look at the rows behind the number before
+      deciding what an extreme value means.
+  - type: callout
+    variant: common_mistake
+    title: "'It's an outlier, so I'll just remove it' is not a data cleaning decision"
+    body: >
+      Removing a value because it's statistically extreme, without checking whether it's real, quietly
+      substitutes "convenient for my average" for "accurate about the business." If the analysis is
+      specifically about customer value, fraud detection, or anything else where extreme cases *are*
+      the subject of the analysis, discarding them isn't cleanup — it's deleting your answer.
+  - type: question
+    prompt: "Customer 1362's total spend is over 10x the median customer. What made the case for keeping them rather than treating them as a data error?"
+    choices:
+      - "The total was made up of 13 separate, individually ordinary orders spread across ten weeks — a consistent pattern, not a single anomalous transaction"
+      - "Their total spend was an exact round number, which is typical of real customers"
+      - "Nothing — a value 10x the median should always be excluded regardless of context"
+    correct_index: 0
+    explanation: >
+      The deciding signal was the pattern behind the number: many separate, unremarkable orders over
+      real time, rather than one suspicious row. A genuine data error tends to show up as an isolated,
+      inconsistent incident — this looked like ordinary repeat-customer behavior at a larger scale, which
+      is exactly what a real high-value customer looks like.

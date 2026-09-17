@@ -1,0 +1,96 @@
+slug: de-lakes-warehouses-lakehouses
+module_slug: modern-data-architecture
+title: "Lakes, Warehouses, and Lakehouses: How They Fit Together"
+description: Data lakes, data warehouses, and the lakehouse pattern that increasingly combines them — what each stores, and the schema-on-read vs. schema-on-write tradeoff at the center of the difference.
+difficulty: INTERMEDIATE
+estimated_minutes: 20
+display_order: 1
+objectives:
+  - Distinguish a data lake from a data warehouse by what each stores and how strictly it enforces structure
+  - Define schema-on-read and schema-on-write, and state which system uses which
+  - Explain what a lakehouse is trying to combine from both patterns
+prerequisites: [de-foundations-what-is-data-engineering]
+skills: [modern-data-stack, data-warehousing]
+datasets: [ecommerce]
+tags: [data-lake, data-warehouse, lakehouse, architecture, data-engineering, intermediate]
+key_takeaways:
+  - "A data warehouse stores structured, cleaned, schema-enforced data, ready for SQL analytics — you decide the schema before data is written (schema-on-write)."
+  - "A data lake stores raw data of any shape (structured, semi-structured, unstructured) cheaply, and only imposes structure at the moment you read it (schema-on-read) — flexible, but with no guarantee the data is clean or well-formed until you check."
+  - "A lakehouse layers warehouse-like structure, reliability guarantees, and fast SQL access on top of a lake's cheap, flexible storage — trying to get both properties without maintaining two entirely separate systems."
+common_mistakes:
+  - "Assuming a data lake is simply \"a cheaper data warehouse\" — a lake's defining tradeoff is flexibility and low cost in exchange for weaker guarantees about structure and quality, not just a lower price tag on the same thing."
+  - "Assuming schema-on-read means \"no schema exists\" — the schema still exists, it's just applied when the data is queried rather than validated and enforced at write time, which means malformed data can sit unnoticed until someone actually reads it."
+interview_questions:
+  - question: "What problem is a lakehouse architecture actually trying to solve?"
+    answer: >
+      Before lakehouses, many organizations ran two separate systems: a data lake for cheap,
+      flexible storage of raw and varied data, and a separate data warehouse for reliable,
+      fast, structured analytics — often copying data from the lake into the warehouse
+      redundantly. A lakehouse tries to deliver warehouse-like reliability guarantees (ACID
+      transactions, enforced schemas, fast SQL) directly on top of lake-style cheap object storage,
+      so a single system can serve both raw storage and structured analytics without maintaining two
+      copies of everything.
+blocks:
+  - type: heading
+    text: Two answers to "where does the data live?"
+  - type: text
+    body: >
+      Once data has been extracted from its source, it has to land somewhere. Historically, that
+      "somewhere" split into two very different kinds of systems, built around opposite tradeoffs.
+  - type: table
+    headers: ["", "Data Warehouse", "Data Lake"]
+    rows:
+      - ["Stores", "Structured, cleaned data — tables with enforced schemas", "Any shape of data — structured, semi-structured (JSON), unstructured (images, logs)"]
+      - ["Schema enforced", "On write — the schema is defined and enforced before data is loaded", "On read — the schema is applied only when something queries the data"]
+      - ["Cost", "Higher per gigabyte, optimized for fast SQL", "Very cheap object storage, optimized for volume, not speed"]
+      - ["Guarantees", "Strong — reliable, consistent, ready for direct analytics", "Weaker — flexible, but data can sit malformed or undiscovered until it's actually read"]
+      - ["Best for", "Business-ready tables analysts query directly", "Raw, high-volume, or not-yet-understood data that may need reprocessing later"]
+  - type: example
+    title: "Where the ecommerce tables would sit in each"
+    body: >
+      In a warehouse, `orders`, `customers`, `order_items`, and `payments` exist as clean, structured
+      tables with an enforced schema — exactly the shape they're in as CSVs in this dataset. In a
+      pure data lake, the *raw* version of that same data might instead sit as a folder of daily JSON
+      exports straight from the source application, structured however that application happened to
+      emit them, with no guarantee every day's file has the same fields — the schema only gets
+      applied by whatever code later reads and interprets those files.
+  - type: heading
+    text: Schema-on-write vs. schema-on-read
+  - type: text
+    body: >
+      This is the real distinction underneath "warehouse vs. lake." **Schema-on-write** means the
+      structure (column names, types, constraints) is decided and enforced the moment data is
+      written — if a row doesn't fit, it's rejected or flagged immediately. **Schema-on-read** means
+      the raw bytes are stored as-is, and structure is only imposed by whatever process later reads
+      and interprets them — which means a malformed or unexpected record can sit silently in storage
+      for a long time before anyone notices, simply because nothing checked it at write time.
+  - type: callout
+    variant: important
+    title: "Schema-on-read isn't \"schemaless\" — it's just deferred"
+    body: >
+      A common misreading is that a data lake has no schema at all. It still has one — every reader
+      needs *some* agreed-upon structure to make sense of the bytes — that agreement is just applied
+      later, by convention or by whatever code queries the data, rather than being validated and
+      enforced by the storage system itself at write time.
+  - type: heading
+    text: "The lakehouse: trying to get both"
+  - type: text
+    body: >
+      A **lakehouse** is an architecture that layers warehouse-style guarantees — enforced schemas,
+      ACID-style transactional reliability, fast SQL querying — directly on top of cheap,
+      lake-style object storage, using an open table format (like Delta Lake, Iceberg, or Hudi) to
+      bridge the two. The goal is avoiding the old pattern of maintaining a lake *and* a separate
+      warehouse, with data duplicated and kept in sync between them, by getting both properties from
+      one underlying storage layer.
+  - type: question
+    prompt: >
+      What best describes the core tradeoff a data lake makes compared to a data warehouse?
+    choices:
+      - "A lake is simply a cheaper warehouse with identical guarantees"
+      - "A lake trades some structure, reliability, and write-time validation for cheaper storage and the flexibility to hold any shape of data — with schema applied only when the data is read"
+      - "A lake can only store data that's already perfectly structured"
+    correct_index: 1
+    explanation: >
+      The lake's defining tradeoff is deferring schema enforcement to read time in exchange for low
+      cost and flexibility to store any data shape — not simply being a discount version of a
+      warehouse with the same write-time guarantees.

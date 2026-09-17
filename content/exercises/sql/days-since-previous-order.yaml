@@ -1,0 +1,78 @@
+slug: days-since-previous-order
+lesson_slug: lag-and-lead
+skill: advanced-sql
+dataset: ecommerce
+title: Compute Days Since Each Customer's Previous Order
+description: Write a query that computes, for every order, how many days passed since that same customer's previous order.
+exercise_type: SQL
+difficulty: ADVANCED
+points: 25
+tags: [sql, advanced, window-functions]
+business_context: >
+  The retention team is building a model of purchase cadence and needs to know, for every single order,
+  how long it had been since that same customer's previous order — a customer whose gap keeps widening
+  is a churn risk worth flagging.
+prompt: >
+  Using the `orders` table, write a query that returns every order (any status) with columns
+  `customer_id`, `order_id`, `order_date`, and `days_since_previous_order` — the number of days between
+  this order's `order_date` and that same customer's immediately preceding order (by `order_date`).
+  Include every order from every customer, even customers with only one order: a customer's very first
+  order (chronologically) should have `days_since_previous_order` equal to NULL, since there is no
+  earlier order to compare against. Order the result by `customer_id`, then by `order_date` ascending.
+sql_tables: [orders]
+sql_starter_query: |
+  -- Explore the orders table first
+  SELECT * FROM orders LIMIT 20;
+sql_solution_query: |
+  SELECT
+    customer_id,
+    order_id,
+    order_date,
+    DATE_DIFF(
+      'day',
+      LAG(order_date) OVER (PARTITION BY customer_id ORDER BY order_date),
+      order_date
+    ) AS days_since_previous_order
+  FROM orders
+  ORDER BY customer_id, order_date;
+sql_row_order_matters: true
+sql_numeric_tolerance: 0.01
+sql_hidden_tests:
+  - name: "A repeat customer's second order shows the correct gap"
+    query: |
+      SELECT order_id, DATE_DIFF(
+        'day',
+        LAG(order_date) OVER (PARTITION BY customer_id ORDER BY order_date),
+        order_date
+      ) AS days_since_previous_order
+      FROM orders
+      WHERE customer_id = 3
+      ORDER BY order_date
+      LIMIT 1 OFFSET 1
+    key_columns: 1
+hints:
+  - "For each order you need to look back at the SAME customer's previous order — that's a per-customer lookback, which means partitioning a window function by customer_id rather than comparing across the whole table."
+  - "LAG(order_date) OVER (PARTITION BY customer_id ORDER BY order_date) gives you the previous order_date for that customer (NULL if there isn't one). Then DATE_DIFF('day', <that previous date>, order_date) turns the two dates into a day count."
+solution: >
+  ```sql
+  SELECT
+    customer_id,
+    order_id,
+    order_date,
+    DATE_DIFF(
+      'day',
+      LAG(order_date) OVER (PARTITION BY customer_id ORDER BY order_date),
+      order_date
+    ) AS days_since_previous_order
+  FROM orders
+  ORDER BY customer_id, order_date;
+  ```
+explanation: >
+  A strong answer partitions the LAG() window by customer_id so that "previous order" always means the
+  previous order of the SAME customer, never the previous row in the raw table regardless of who placed
+  it. Ordering the window by order_date (not order_id) ensures "previous" reflects actual chronology even
+  if orders were inserted out of date order. Leaving a customer's first order with a NULL
+  days_since_previous_order is the correct, honest representation of "no earlier order exists" rather
+  than a fabricated 0. A common mistake is omitting PARTITION BY customer_id entirely, which would
+  compute gaps between consecutive rows in the whole orders table regardless of which customer placed
+  them — silently mixing different customers' order histories together.

@@ -1,0 +1,63 @@
+slug: category-product-counts
+lesson_slug: multi-table-joins
+skill: sql-fundamentals
+dataset: ecommerce
+title: Count Active Products per Category
+description: Write a query that joins products to categories and counts active products per category name.
+exercise_type: SQL
+difficulty: BEGINNER
+points: 15
+tags: [sql, foundations, easy]
+business_context: >
+  Merchandising is reviewing catalog balance across categories and wants to see how many currently
+  active products sit in each category, from the most heavily stocked category down to the least, so
+  they know where the catalog is thin.
+prompt: >
+  Using the `products` and `categories` tables, write a query that returns each `category_name`
+  together with the count of currently active products in that category (`active_product_count`,
+  counting only rows where `products.is_active` is true), sorted from the highest count to the lowest.
+  If two categories have the same count, break the tie alphabetically by category name (A to Z).
+sql_tables: [products, categories]
+sql_starter_query: |
+  -- category_name lives on categories, not products — you'll need to join the two tables
+  SELECT * FROM products LIMIT 20;
+sql_solution_query: |
+  SELECT cat.category_name, COUNT(*) AS active_product_count
+  FROM products p
+  JOIN categories cat ON cat.category_id = p.category_id
+  WHERE p.is_active
+  GROUP BY cat.category_name
+  ORDER BY active_product_count DESC, cat.category_name ASC;
+sql_row_order_matters: true
+sql_numeric_tolerance: 0.01
+sql_hidden_tests:
+  - name: "Category with the most active products is correct"
+    query: |
+      SELECT cat.category_name, COUNT(*) AS active_product_count
+      FROM products p
+      JOIN categories cat ON cat.category_id = p.category_id
+      WHERE p.is_active
+      GROUP BY cat.category_name
+      ORDER BY active_product_count DESC, cat.category_name ASC
+      LIMIT 1
+    key_columns: 1
+hints:
+  - "category_name isn't on the products table, so you'll need to bring it in with a join before you can group by it — and filter to active products before or during that grouping, not after."
+  - "JOIN products to categories on category_id, filter WHERE p.is_active, GROUP BY cat.category_name, COUNT(*) for the tally, and ORDER BY that count descending with category_name as a tiebreaker."
+solution: |
+  ```sql
+  SELECT cat.category_name, COUNT(*) AS active_product_count
+  FROM products p
+  JOIN categories cat ON cat.category_id = p.category_id
+  WHERE p.is_active
+  GROUP BY cat.category_name
+  ORDER BY active_product_count DESC, cat.category_name ASC;
+  ```
+explanation: >
+  A strong answer joins products to categories on category_id to bring category_name into scope,
+  filters to is_active products with WHERE before grouping, and counts per category with COUNT(*). Two
+  categories in this dataset land on identical active-product counts, so a second ORDER BY key
+  (category_name ASC) is needed to make the ranking fully deterministic rather than dependent on
+  incidental row order. A common mistake is forgetting the is_active filter entirely and counting every
+  product per category regardless of status, which overstates how well-stocked a category's *live*
+  catalog actually is by mixing in products that aren't even sellable right now.

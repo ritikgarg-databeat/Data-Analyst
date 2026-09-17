@@ -1,0 +1,23 @@
+slug: pa-feature-usage-vs-value
+skill: product-metrics
+title: Feature Usage Isn't Always Feature Value
+description: A feature has high usage (many clicks) but users who use it heavily don't retain any better than users
+  who never touch it. What should this make you question?
+exercise_type: MULTIPLE_CHOICE
+difficulty: ADVANCED
+points: 5
+tags:
+- product-analytics
+prompt: A feature has high usage (many clicks) but users who use it heavily don't retain any better than users who
+  never touch it. What should this make you question?
+correct_answer: Whether the feature actually drives retention/value, or is just a frequently-clicked but non-essential
+  action (e.g. a workaround for a UX problem elsewhere)
+explanation: Usage volume alone doesn't establish value -- a feature could be clicked often because it's genuinely
+  valuable, OR because it's a confusing workaround people are forced to repeat -- checking whether usage actually
+  correlates with a downstream outcome like retention is what distinguishes the two.
+choices:
+- Whether the feature actually drives retention/value, or is just a frequently-clicked but non-essential action
+  (e.g. a workaround for a UX problem elsewhere)
+- Nothing -- high usage always proves high value regardless of retention
+- That the retention metric itself must be measured incorrectly
+- That the feature should immediately be removed with no further investigation

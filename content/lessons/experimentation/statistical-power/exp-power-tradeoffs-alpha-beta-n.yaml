@@ -1,0 +1,114 @@
+slug: exp-power-tradeoffs-alpha-beta-n
+module_slug: statistical-power
+title: The Power Tradeoffs — Alpha, Beta, Effect Size, and Sample Size
+description: >
+  Four knobs that all trade off against each other — tightening one (fewer false positives, higher
+  power, a smaller detectable effect) always costs you on another, usually sample size.
+difficulty: ADVANCED
+estimated_minutes: 20
+display_order: 2
+objectives:
+  - Explain the relationship between alpha, power, effect size, and sample size as a four-way tradeoff
+  - Read a power curve (power vs. sample size, for a fixed effect) and explain its shape
+  - Decide, given a business constraint (e.g. a hard cap on sample size or test duration), which of the other three knobs to adjust
+prerequisites: [exp-statistical-power-intuition]
+skills: [experimentation, statistical-reasoning]
+datasets: [saas-product]
+tags: [experimentation, ab-testing, saas, advanced]
+key_takeaways:
+  - "Four quantities are linked by one relationship: alpha (false-positive rate), power (1 - false-negative rate), effect size (MDE), and sample size — fix any three, and the fourth is determined."
+  - Demanding a lower alpha (fewer false positives) or higher power (fewer false negatives), holding effect size fixed, always costs you sample size.
+  - Power increases with sample size following a curve that's steep in the middle and flat at both ends — small increases in n barely help once you're already near 0% or 100% power.
+common_mistakes:
+  - Tightening alpha from 0.05 to 0.01 "to be more rigorous" without recognizing that, holding sample size fixed, this directly reduces power (more true effects will be missed).
+  - Assuming that if 1,000 users didn't reach significance, 1,500 will — without checking where on the power curve that increase actually lands.
+blocks:
+  - type: heading
+    text: Four knobs, one relationship
+  - type: text
+    body: >
+      Alpha, power, effect size (MDE), and sample size are linked by a single underlying relationship —
+      fix any three and the fourth is determined. That means every choice here is a tradeoff:
+      demanding a smaller MDE, a lower alpha, or a higher power (each of which sounds purely like "more
+      rigor") always has to be paid for somewhere, and that somewhere is almost always sample size.
+  - type: code
+    language: python
+    code: |
+      from statsmodels.stats.proportion import proportion_effectsize
+      from statsmodels.stats.power import NormalIndPower
+
+      # checkout_redesign's real observed effect: 11.3% -> 12.5%
+      effect_size = proportion_effectsize(0.125, 0.113)
+      analysis = NormalIndPower()
+
+      for n in [500, 1000, 2000, 5000, 11422]:
+          power = analysis.solve_power(effect_size=effect_size, nobs1=n, alpha=0.05, ratio=1,
+                                        alternative="two-sided")
+          print(n, round(power, 3))
+    caption: >
+      Real output — the power curve for checkout_redesign's actual observed effect size, at alpha=0.05.
+  - type: table
+    caption: "Power vs. sample size, for checkout_redesign's real effect size (alpha=0.05, two-sided)"
+    headers: ["Users per group", "Power"]
+    rows:
+      - ["500", "9.0%"]
+      - ["1,000 (the real test's actual size)", "13.2%"]
+      - ["2,000", "21.6%"]
+      - ["5,000", "45.8%"]
+      - ["11,422", "80.0% (the conventional target)"]
+  - type: text
+    body: >
+      Notice the shape: power climbs slowly at first, accelerates through the middle, and eventually
+      approaches (but never quite reaches) 100% — it's an S-shaped curve, not a straight line. Near the
+      bottom of the curve, doubling your sample size (500 to 1,000) only takes you from 9% to 13% power —
+      barely moving the needle. This is exactly why "let's just run it a bit longer" doesn't rescue a
+      badly underpowered test unless the sample-size increase is large enough to meaningfully move along
+      the curve.
+  - type: table
+    caption: "Same effect size, same alpha — required sample size at two power targets"
+    headers: ["Target power", "Required users per group"]
+    rows:
+      - ["80% (conventional)", "≈11,422"]
+      - ["90% (higher confidence you won't miss it)", "≈15,291"]
+  - type: table
+    caption: "Same effect size, same power target (80%) — required sample size at three alpha levels"
+    headers: ["Alpha (false-positive rate)", "Required users per group"]
+    rows:
+      - ["0.10 (more false positives allowed)", "≈8,997"]
+      - ["0.05 (conventional)", "≈11,422"]
+      - ["0.01 (stricter, fewer false positives)", "≈16,996"]
+  - type: callout
+    variant: tip
+    title: If sample size is capped, something else has to give
+    body: >
+      If a product only has, say, 3,000 eligible users total and a test can't realistically run longer
+      than a month, the honest options are: accept a larger MDE (only commit to detecting bigger effects),
+      accept lower power (more risk of missing a real effect), or accept a higher alpha (more risk of a
+      false positive) — there's no free way to simultaneously want a tiny MDE, high power, low alpha, and
+      a small sample.
+  - type: question
+    prompt: >
+      A team wants to cut their test's alpha from 0.05 to 0.01 "to be extra sure," while keeping the same
+      sample size and the same MDE. What's the direct consequence?
+    choices:
+      - "Nothing changes — alpha only affects how the result is reported, not the test's ability to detect an effect"
+      - "Holding sample size and MDE fixed, lowering alpha reduces the test's power — it becomes more likely to miss a real effect of that size (a higher false-negative rate), in exchange for a lower false-positive rate"
+      - "Lowering alpha automatically increases power as a side effect"
+    correct_index: 1
+    explanation: >
+      Alpha, power, effect size, and sample size are linked — you can't change one without something
+      else moving, if you hold the rest fixed. A stricter alpha (0.01 instead of 0.05) makes it harder to
+      call a result significant, which — at the same sample size and same effect size — directly lowers
+      power. To keep power at 80% after tightening alpha to 0.01, the earlier table shows sample size
+      would need to rise from about 11,422 to about 16,996 per group.
+interview_questions:
+  - question: "If a stakeholder asks you to make an experiment 'more rigorous' by lowering alpha to 0.01, what tradeoff would you flag before agreeing?"
+    answer: >
+      I'd point out that alpha, power, MDE, and sample size are linked, so lowering alpha from 0.05 to
+      0.01 without changing anything else directly reduces the test's power — it becomes more likely to
+      miss a real effect at the sample size we'd planned for. If we still want the same power (say 80%)
+      after tightening alpha, we'd need a meaningfully larger sample size — in a case I've worked with,
+      moving from alpha=0.05 to alpha=0.01 at fixed power and effect size raised the required sample from
+      about 11,400 to about 17,000 per group. So "more rigorous" is achievable, but it has a real cost in
+      either sample size or test duration, and that tradeoff should be made explicitly rather than assumed
+      to be free.

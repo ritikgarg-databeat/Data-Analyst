@@ -1,0 +1,25 @@
+slug: de-ex-batch-or-streaming-scenario
+lesson_slug: de-batch-vs-streaming
+skill: data-pipelines
+title: Does This Actually Need Streaming?
+description: Apply the latency-vs-complexity tradeoff to decide whether a real scenario needs streaming or is well served by batch.
+exercise_type: MULTIPLE_CHOICE
+difficulty: INTERMEDIATE
+points: 10
+tags: [batch-processing, streaming, data-engineering, intermediate]
+prompt: >
+  A merchandising team wants a report, refreshed once a day before the morning stand-up, showing
+  which products sold out over the past 24 hours. An engineer on the team suggests building a
+  real-time streaming pipeline so the report is "always current to the second." What's the most
+  reasonable response?
+choices:
+  - "Agree — fresher is always strictly better regardless of the use case, so streaming is worth building"
+  - "Push back — since the report is only ever looked at once a day, a scheduled batch job that runs before stand-up delivers the same practical value at a fraction of the operational complexity streaming would add"
+  - "Reject both options — this kind of report can only be produced manually, never through a pipeline"
+correct_answer: "Push back — since the report is only ever looked at once a day, a scheduled batch job that runs before stand-up delivers the same practical value at a fraction of the operational complexity streaming would add"
+explanation: >
+  The decision this data supports (reviewing sold-out products once a day) doesn't change based on
+  whether the underlying data is fresh to the second or fresh as of an hour before stand-up. Batch
+  processing on a schedule gets exactly the freshness this use case needs without taking on
+  streaming's added complexity (handling out-of-order events, duplicate delivery, continuous state)
+  that pays off only when a real-time action depends on the data, which isn't the case here.

@@ -1,0 +1,22 @@
+slug: stat-correlation-vs-causation
+skill: statistics
+title: Correlation vs. Causation
+description: Ice cream sales and drowning incidents are strongly positively correlated across months. What's the
+  best explanation?
+exercise_type: MULTIPLE_CHOICE
+difficulty: BEGINNER
+points: 5
+tags:
+- statistics
+- correlation
+prompt: Ice cream sales and drowning incidents are strongly positively correlated across months. What's the best
+  explanation?
+correct_answer: A confounding variable (hot weather) drives both, rather than either causing the other
+explanation: 'This is the textbook confounding-variable example: hot weather increases both ice cream sales and
+  swimming (and therefore drowning risk), creating a correlation between the two with no causal link between them
+  directly.'
+choices:
+- A confounding variable (hot weather) drives both, rather than either causing the other
+- Ice cream sales cause drowning incidents
+- Drowning incidents cause increased ice cream sales
+- The correlation must be a coincidence with no explanation

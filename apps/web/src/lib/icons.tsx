@@ -1,0 +1,27 @@
+import * as React from "react";
+import * as LucideIcons from "lucide-react";
+import type { LucideIcon, LucideProps } from "lucide-react";
+import { HelpCircle } from "lucide-react";
+
+const iconMap = LucideIcons as unknown as Record<string, LucideIcon>;
+
+/**
+ * Resolve a Lucide icon by its export name (as used in NAV_SECTIONS / domain
+ * `icon` fields, which are plain strings coming from data, not code).
+ * Falls back to a generic icon so unexpected/missing names never crash render.
+ */
+export function getLucideIcon(name: string | null | undefined, fallback: LucideIcon = HelpCircle): LucideIcon {
+  if (!name) return fallback;
+  return iconMap[name] ?? fallback;
+}
+
+interface DynamicIconProps extends Omit<LucideProps, "name"> {
+  /** Lucide export name from data (e.g. a domain's `icon` field). */
+  iconName: string | null | undefined;
+  fallback?: LucideIcon;
+}
+
+/** Renders a Lucide icon looked up by name at data-fetch time, not import time. */
+export function DynamicIcon({ iconName, fallback = HelpCircle, ...props }: DynamicIconProps) {
+  return React.createElement(getLucideIcon(iconName, fallback), props);
+}

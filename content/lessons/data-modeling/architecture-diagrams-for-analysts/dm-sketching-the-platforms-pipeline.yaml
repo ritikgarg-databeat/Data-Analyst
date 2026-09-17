@@ -1,0 +1,88 @@
+slug: dm-sketching-the-platforms-pipeline
+module_slug: architecture-diagrams-for-analysts
+title: "Sketching Your Own Architecture Diagram"
+description: A hands-on walkthrough in the Architecture Diagram Builder — modeling this platform's own real ecommerce pipeline end to end, then validating it and deliberately triggering a dangling_relationship error.
+difficulty: INTERMEDIATE
+estimated_minutes: 18
+display_order: 2
+objectives:
+  - Build a complete ARCHITECTURE model in the Architecture Diagram Builder, choosing an appropriate level of node granularity and connecting it with FLOW relationships.
+  - Deliberately trigger and then resolve a dangling_relationship error by deleting a connected node, confirming the exact same check behaves identically in an ARCHITECTURE model as it did in the Data Modeler.
+skills: [data-lineage, data-engineering-fundamentals]
+datasets: [ecommerce]
+tags: [architecture, data-modeling, real-world, intermediate]
+prerequisites: [dm-reading-architecture-diagrams]
+key_takeaways:
+  - "Choosing how many nodes to use for a real multi-step pipeline (one \"dbt project\" TRANSFORM node vs. separate staging/intermediate/marts nodes) is a judgment call about the diagram's purpose, not something the validator has an opinion about — both are structurally valid."
+  - "dangling_relationship behaves identically here as it did in the Data Modeler, because it's the exact same check running against the exact same underlying engine — only model_kind differs."
+  - "Passing validation on an architecture diagram means every referenced table and column is real and every relationship is intact — it does not mean the diagram is drawn in the direction that matches reality. A FLOW edge drawn backward from BI to SOURCE would still validate cleanly, since the checks verify structure, not the semantic correctness of the story you're telling."
+common_mistakes:
+  - "Drawing a FLOW edge in the wrong direction and assuming Validate would have caught it — it won't; Validate checks structural consistency (do the referenced tables and columns exist), not whether the direction you drew matches how data actually moves."
+  - "Modeling every one of dbt's staging/intermediate/marts files as a separate node when the diagram's purpose is a 10,000-foot overview — more nodes than the audience needs makes the diagram harder to read, not more correct."
+blocks:
+  - type: heading
+    text: Building the diagram
+  - type: text
+    body: >
+      Create a new ARCHITECTURE model in the Architecture Diagram Builder. Add four nodes, one for each real
+      stage of this platform's own ecommerce pipeline, choosing a level of detail suited to a 10,000-foot
+      overview rather than a file-by-file map of the dbt project.
+  - type: table
+    caption: "Nodes for this platform's real ecommerce pipeline"
+    headers: ["Node name", "table_type"]
+    rows:
+      - ["ecommerce CSVs", "SOURCE"]
+      - ["Warehouse", "WAREHOUSE"]
+      - ["dbt project (staging -> intermediate -> marts)", "TRANSFORM"]
+      - ["SQL Lab / Data Modeler", "BI"]
+  - type: text
+    body: >
+      Connect them with three FLOW relationships, in order: "ecommerce CSVs" -> "Warehouse", "Warehouse" ->
+      "dbt project," and "dbt project" -> "SQL Lab / Data Modeler." Each edge reads as "data moves from the
+      first node to the second," matching the real direction data actually travels in this project.
+  - type: heading
+    text: Validating
+  - type: text
+    body: >
+      Click Validate. With four real nodes and three relationships each pointing at a table that exists, this
+      should return zero findings — the same clean result you'd expect from any correctly-structured model,
+      dimensional or architectural.
+  - type: heading
+    text: Breaking it, seeing it, fixing it
+  - type: text
+    body: >
+      Delete the "Warehouse" node without first deleting the two relationships connected to it (the one coming
+      in from "ecommerce CSVs" and the one going out to "dbt project"). Click Validate again.
+  - type: output
+    body: |
+      severity: error
+      code: dangling_relationship
+      message: "A relationship references a table that no longer exists in this model."
+    caption: "The identical dangling_relationship check from the Data Modeler, firing the same way here — model_kind ARCHITECTURE doesn't change this check at all."
+  - type: text
+    body: >
+      Restore the "Warehouse" node (or delete the two now-stale relationships and redraw them once it's back)
+      and validate a third time to confirm the finding is gone.
+  - type: callout
+    variant: common_mistake
+    title: "Passing validation isn't the same as being drawn correctly"
+    body: >
+      If you had instead drawn the "dbt project" -> "Warehouse" FLOW edge backward, reversed in meaning even
+      though the node names and columns were otherwise fine, Validate would still return zero findings — every
+      referenced table and column would still be real. The checks verify structural consistency, not whether
+      the story the diagram tells matches how data actually moves. A human still has to read it and confirm the
+      direction is true.
+  - type: question
+    prompt: >
+      After deleting the "Warehouse" node in this walkthrough (without cleaning up its two relationships), what
+      exactly does the resulting dangling_relationship finding tell you is wrong?
+    choices:
+      - "That the dbt project node's grain field is empty"
+      - "That at least one relationship still references a from_table_id or to_table_id that no longer corresponds to a real table in the model"
+      - "That a cycle exists between SOURCE and BI nodes"
+    correct_index: 1
+    explanation: >
+      dangling_relationship fires specifically when a relationship's stored from_table_id or to_table_id no
+      longer matches any table in the model — exactly the situation created by deleting "Warehouse" while two
+      relationships still pointed at it. It has nothing to do with grain (a DIMENSIONAL-only, FACT-specific
+      check) or cycles (a separate check, circular_relationship).

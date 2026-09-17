@@ -1,0 +1,24 @@
+slug: abt-statistical-vs-practical-significance
+skill: experimentation
+title: Statistical vs. Practical Significance
+description: An experiment on 2 million users finds a statistically significant (p<0.01) 0.02 percentage-point lift
+  in conversion rate. What's the most important next question before shipping?
+exercise_type: MULTIPLE_CHOICE
+difficulty: ADVANCED
+points: 5
+tags:
+- ab-testing
+- hypothesis-testing
+prompt: An experiment on 2 million users finds a statistically significant (p<0.01) 0.02 percentage-point lift in
+  conversion rate. What's the most important next question before shipping?
+correct_answer: Is a 0.02 percentage-point lift actually large enough to matter for the business, given the cost/complexity
+  of the change?
+explanation: At very large sample sizes, even a practically trivial effect can be statistically significant -- the
+  analyst's job is to separate 'is this real' (statistical significance) from 'is this worth shipping' (practical
+  significance, weighed against implementation cost and complexity).
+choices:
+- Is a 0.02 percentage-point lift actually large enough to matter for the business, given the cost/complexity of
+  the change?
+- Nothing further -- statistical significance alone is sufficient to ship
+- Whether the sample size was large enough (it clearly was, given 2 million users)
+- Whether the p-value is below 0.001 instead of 0.01

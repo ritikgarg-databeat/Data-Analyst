@@ -1,0 +1,45 @@
+slug: ex-orders-per-channel-summary
+skill: dbt
+dataset: ecommerce
+title: "dbt Exercise: A One-Row-Per-Channel Aggregate"
+description: Build a small aggregate model and get its grain right — one row per channel, not per order.
+exercise_type: DBT
+difficulty: INTERMEDIATE
+points: 15
+tags: [dbt, models, aggregation, grain, real-execution]
+business_context: >
+  Marketing wants a single small table summarizing order volume by channel (mobile/web/marketplace) —
+  a model whose grain is explicitly "1 row = 1 channel", not "1 row = 1 order".
+prompt: >
+  Write a dbt model named `ex_orders_per_channel` that aggregates `{{ ref('stg_orders') }}` to one row
+  per `channel`, with a column `order_count` counting the orders in that channel. The grain must be
+  one row per channel — the `unique` test below will fail if you group by anything else (or forget to
+  group at all).
+hints:
+  - "group by channel, and use count(*) for order_count."
+  - "Don't select order_id — including it would break the one-row-per-channel grain."
+dbt_model_name: ex_orders_per_channel
+dbt_starter_sql: |
+  select
+      channel
+      -- TODO: add order_count and the GROUP BY
+  from {{ ref('stg_orders') }}
+dbt_schema_yml: |
+  columns:
+    - name: channel
+      tests:
+        - unique
+        - not_null
+        - accepted_values:
+            arguments:
+              values: ["mobile", "web", "marketplace"]
+solution: |
+  select
+      channel,
+      count(*) as order_count
+  from {{ ref('stg_orders') }}
+  group by channel
+explanation: >
+  Grain is a property of the query, not something dbt enforces automatically — `group by channel`
+  (and nothing more granular) is what guarantees exactly one row per channel value, which is exactly
+  what the `unique` test on `channel` checks for real.

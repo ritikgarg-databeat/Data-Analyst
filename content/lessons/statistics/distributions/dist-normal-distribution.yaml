@@ -1,0 +1,101 @@
+slug: dist-normal-distribution
+module_slug: distributions
+title: The Normal Distribution (and When Real Data Isn't Normal)
+description: The bell curve, z-scores, and the empirical rule — plus a real example of business data that looks nothing like it, and why that matters.
+difficulty: INTERMEDIATE
+estimated_minutes: 15
+display_order: 1
+objectives:
+  - Describe the normal distribution's shape and use the empirical rule (68-95-99.7) to reason about how unusual a value is.
+  - Recognize right-skewed real-world data (using a real example) and explain why applying normal-distribution rules of thumb to it is misleading.
+skills: [statistics, exploratory-data-analysis]
+datasets: [ecommerce]
+tags: [statistics, intermediate, e-commerce]
+prerequisites: [prob-fundamentals-expected-value]
+key_takeaways:
+  - The normal distribution is symmetric around its mean, and the empirical rule says about 68% of values fall within 1 standard deviation, 95% within 2, and 99.7% within 3.
+  - A z-score standardizes a value into "how many standard deviations from the mean," which only translates cleanly into a percentile when the underlying data is actually close to normal.
+  - Many real business metrics (order value, payment amount, session duration) are right-skewed, not normal — check the shape (e.g., compare mean vs. median) before leaning on normal-distribution shortcuts.
+common_mistakes:
+  - Assuming any bell-ish-looking histogram is "close enough" to normal without checking whether the mean and median actually agree.
+  - Applying the empirical rule to skewed data and concluding a large value is a rare 3-standard-deviation outlier, when the true distribution simply has a long right tail where such values are unremarkable.
+interview_questions:
+  - question: What does a z-score of 2 tell you, and does that mean the same thing regardless of the underlying data's distribution?
+    answer: >
+      A z-score of 2 means the value sits 2 standard deviations above the mean. Under a normal
+      distribution, that translates to roughly the 97.7th percentile (via the empirical rule, about
+      97.5% of values fall below it). But that percentile interpretation specifically assumes
+      normality — for a skewed distribution, a z-score of 2 can correspond to a very different
+      percentile, so the translation from z-score to "how rare is this" breaks down.
+blocks:
+  - type: heading
+    text: The normal distribution and the empirical rule
+  - type: text
+    body: >
+      The **normal distribution** is the symmetric bell-shaped curve where values cluster around
+      the mean and taper off evenly in both directions. Its most useful shortcut is the **empirical
+      rule**: about 68% of values fall within 1 standard deviation of the mean, about 95% within 2,
+      and about 99.7% within 3. A **z-score** just expresses a value as "how many standard
+      deviations from the mean" — z = (x - mean) / standard deviation.
+  - type: formula
+    expression: "z = (x - mean) / standard_deviation"
+    description: Standardizes any value onto a common "number of standard deviations away" scale.
+  - type: heading
+    text: "Reality check: is ecommerce payment amount actually normal?"
+  - type: text
+    body: >
+      Before trusting the empirical rule for a real metric, check whether the distribution is
+      roughly symmetric. A fast, honest check: compare the **mean** to the **median**. In a
+      symmetric (roughly normal) distribution the two are close. In a skewed distribution, they
+      diverge — the mean gets pulled toward the long tail.
+  - type: example
+    title: Successful payment amounts in the ecommerce dataset
+    body: >
+      Across 3,441 successful payments, the mean amount is $1,686.32 but the median is only
+      $1,569.11 — the mean sits noticeably above the median. That gap is the signature of a
+      **right-skewed** distribution: a long tail of larger payments (up to $6,370.39) pulls the mean
+      up, while most payments cluster below it. This is typical of transaction-amount data, and it
+      is *not* a normal distribution.
+  - type: code
+    language: sql
+    code: |
+      SELECT
+        ROUND(AVG(amount), 2) AS mean_amount,
+        ROUND(MEDIAN(amount), 2) AS median_amount,
+        ROUND(STDDEV(amount), 2) AS stddev_amount,
+        MIN(amount) AS min_amount,
+        MAX(amount) AS max_amount
+      FROM payments
+      WHERE status = 'success';
+    caption: "mean $1,686.32 vs. median $1,569.11 — the mean-median gap signals right skew."
+  - type: callout
+    variant: common_mistake
+    title: Don't apply the empirical rule blindly
+    body: >
+      With a mean of $1,686 and a standard deviation of $1,079, a naive "2 standard deviations above
+      the mean" boundary would be $3,844 — and the empirical rule would suggest only about 2.5% of
+      payments should exceed it. But because the real distribution is right-skewed (bounded at $0,
+      long tail upward) rather than normal, that estimate is unreliable. The honest approach on
+      skewed data is to use actual percentiles from the data (e.g., "the 97.5th percentile payment
+      is $X") rather than a normal-distribution shortcut.
+  - type: text
+    body: >
+      The business takeaway: when someone reports "average order value" without also checking
+      shape, they risk both overstating what a "typical" transaction looks like (the mean is pulled
+      up by big orders) and misjudging how unusual a large transaction really is (skewed tails are
+      fatter than the normal curve assumes). Reporting the median alongside the mean, and using
+      percentiles instead of z-scores for skewed metrics, avoids both mistakes.
+  - type: question
+    prompt: >
+      A metric has mean = $500 and median = $310. What does this most likely tell you about its
+      distribution, and what statistic should you be cautious about reporting alone?
+    choices:
+      - "The distribution is symmetric and normal; either statistic is fine to report alone"
+      - "The distribution is right-skewed (a few large values pull the mean up); reporting only the mean risks overstating what's typical"
+      - "The data must contain an error, since mean and median should always be equal"
+    correct_index: 1
+    explanation: >
+      A mean well above the median is the classic signature of right skew — some large values are
+      pulling the average up while most observations sit below it. Reporting the mean alone would
+      make the "typical" transaction look bigger than it really is; pairing it with the median (or
+      reporting percentiles) gives a fuller picture.

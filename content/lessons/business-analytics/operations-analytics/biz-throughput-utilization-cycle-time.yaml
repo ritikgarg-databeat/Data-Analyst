@@ -1,0 +1,93 @@
+slug: biz-throughput-utilization-cycle-time
+module_slug: operations-analytics
+title: "Throughput, Utilization, and Cycle Time: The Three Numbers Behind \"We're Busy\""
+description: How throughput, utilization, and cycle time interact — and why a team that looks maximally busy can actually be getting slower.
+difficulty: INTERMEDIATE
+estimated_minutes: 13
+display_order: 1
+objectives:
+  - Define throughput, utilization, and cycle time and how each is computed
+  - Explain why very high utilization can quietly cause cycle time to increase
+  - Use all three metrics together to diagnose an operational bottleneck
+skills: [business-analytics, business-metrics, metric-definition]
+tags: [business-analytics, operations, intermediate]
+key_takeaways:
+  - "Throughput = completed units of work per period (e.g. orders fulfilled per day); Utilization = time spent actively working / time available, as a percentage; Cycle Time = average time from work starting to work finishing for one unit."
+  - Utilization and cycle time have a well-documented, non-obvious relationship — as a system approaches 100% utilization, queueing effects cause cycle time to increase sharply, not gradually.
+  - "\"We're at 95% utilization\" sounds like a success story but is often an early-warning sign that cycle times are about to worsen for anyone waiting behind current work."
+common_mistakes:
+  - Treating utilization as an unambiguous good ("more busy = more efficient") without checking what it's doing to cycle time and the queue behind the current work.
+  - Reporting throughput alone as "productivity," without checking whether cycle time for any individual unit of work is quietly increasing at the same time.
+blocks:
+  - type: heading
+    text: Three metrics, one operational system
+  - type: text
+    body: >
+      Any operational process — a warehouse fulfilling orders, a support team resolving tickets, a
+      manufacturing line producing units — can be described by three related numbers. **Throughput** is
+      how much work gets completed per period. **Utilization** is how much of the available capacity is
+      actively being used. **Cycle time** is how long one unit of work takes from start to finish. They
+      sound independent, but they're tightly linked — and the link is where most operational surprises
+      come from.
+  - type: formula
+    expression: "Throughput = Units completed / Time period          Utilization (%) = Time actively working / Time available × 100          Cycle Time = AVG(Finish time − Start time) across completed units"
+    description: >
+      Throughput and utilization both look "healthier" the higher they go. Cycle time looks healthier the
+      lower it goes — which is exactly why pushing utilization too high can quietly work against cycle
+      time, even while throughput still looks fine.
+  - type: example
+    title: A warehouse at 60% vs. 95% utilization
+    body: >
+      Consider a fulfillment team that can process 100 orders/hour at full capacity. At 60 orders/hour
+      actual volume (60% utilization), orders rarely queue — average cycle time from "order received" to
+      "packed" holds steady around 12 minutes. Push volume to 95 orders/hour (95% utilization) with the
+      exact same team and capacity, and average cycle time jumps to 38 minutes — not because anyone got
+      slower, but because at high utilization, small random variations in order complexity or arrival
+      timing start creating queues that compound instead of dissipating.
+  - type: table
+    headers: ["Utilization", "Orders/hour", "Avg. cycle time"]
+    rows:
+      - ["60%", "60", "12 minutes"]
+      - ["80%", "80", "19 minutes"]
+      - ["95%", "95", "38 minutes"]
+    caption: "Hand-built illustrative figures showing the characteristic non-linear relationship between utilization and cycle time — cycle time worsens disproportionately as utilization approaches full capacity, a well-documented pattern in queueing systems."
+  - type: callout
+    variant: important
+    title: High utilization is a warning to check cycle time, not a win on its own
+    body: >
+      A team running at 95% utilization looks maximally efficient on a utilization dashboard alone — every
+      available hour is being used. But that same number, paired with cycle time, often tells the opposite
+      story: work is piling up faster than it can be processed cleanly, and a small spike in incoming
+      volume (or one person calling in sick) can push cycle time much further out, since there's no slack
+      left to absorb it.
+  - type: heading
+    text: Throughput can hide the same problem
+    level: 3
+  - type: text
+    body: >
+      Throughput alone has the same blind spot. A team completing 95 orders/hour looks more productive
+      than one completing 60/hour — until cycle time reveals that customers waiting behind that 95-order
+      queue are experiencing a 38-minute wait instead of 12. Raw throughput answers "how much came out the
+      other end," not "how long did any individual unit have to wait to get there" — both numbers are
+      needed to actually understand whether the system is healthy.
+  - type: checklist
+    title: Before declaring an operational process "efficient," confirm
+    items:
+      - Cycle time has been checked alongside throughput and utilization, not reported in isolation
+      - Whether utilization is running so high that there's no slack to absorb normal variation in incoming volume
+      - Whether a throughput increase came with a cycle-time cost that customers or downstream teams are actually feeling
+  - type: question
+    prompt: >
+      An operations lead proudly reports "we hit 96% utilization this month, our highest ever." What
+      follow-up question should an analyst ask before treating this as good news?
+    choices:
+      - "None — higher utilization is unambiguously better and needs no further context."
+      - "What happened to average cycle time over the same period, since very high utilization commonly comes with a disproportionate cycle-time cost."
+      - "How many people work on the team."
+    correct_index: 1
+    explanation: >
+      Utilization and cycle time are linked in a well-documented, non-linear way — as utilization
+      approaches full capacity, queueing effects tend to push cycle time up sharply rather than gradually.
+      A record utilization number, celebrated without checking cycle time in the same period, risks
+      missing that the system may now be running with little to no slack — meaning any unexpected spike in
+      volume could cause cycle times (and customer experience) to degrade quickly.

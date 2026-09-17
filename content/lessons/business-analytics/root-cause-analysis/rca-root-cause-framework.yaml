@@ -1,0 +1,99 @@
+slug: rca-root-cause-framework
+module_slug: root-cause-analysis
+title: "The Root Cause Analysis Framework: Eleven Steps From Symptom to Recommendation"
+description: A repeatable, step-by-step methodology for tracing a metric change back to its real driver, instead of jumping straight from symptom to guess.
+difficulty: ADVANCED
+estimated_minutes: 16
+display_order: 1
+objectives:
+  - Recite the eleven-step root cause analysis framework in order
+  - Explain why validating a metric and checking its time trend must happen before segmentation or hypothesis generation
+  - Apply the framework's early steps to a metric-change scenario before reaching for an explanation
+skills: [root-cause-analysis, business-analytics, business-problem-solving]
+tags: [business-analytics, root-cause, advanced, case-study]
+key_takeaways:
+  - "The framework is a fixed sequence for a reason: Problem -> Define metric -> Validate metric -> Check time trend -> Segment -> Identify anomalies -> Generate hypotheses -> Test hypotheses -> Find root cause -> Quantify impact -> Recommend action — skipping ahead to hypotheses before validating and segmenting the metric is the single most common way root cause analysis goes wrong."
+  - Validating the metric (step 3) means confirming the number itself is computed correctly and means what everyone assumes it means — many "mysteries" turn out to be a metric definition or data pipeline issue, not a real business event.
+  - Segmentation (step 5) almost always has to happen before a specific, testable hypothesis (step 7) can be proposed — a hypothesis proposed before segmenting is usually just a guess dressed up as analysis.
+common_mistakes:
+  - Jumping from "the metric moved" directly to a favorite explanation, skipping validation, trend-checking, and segmentation entirely.
+  - Stopping at "we found a segment where the drop is concentrated" without going the extra step to a specific, testable hypothesis and a quantified impact estimate.
+blocks:
+  - type: heading
+    text: Why root cause analysis needs a fixed order
+  - type: text
+    body: >
+      When a metric moves unexpectedly, the instinct is to explain it immediately — but the fastest
+      explanation is rarely the correct one, and skipping steps to get there is exactly how root cause
+      analysis produces confident, wrong answers. The eleven-step framework below imposes a specific
+      order because each step either prevents a mistake the next step is prone to, or supplies information
+      the next step actually needs.
+  - type: table
+    headers: ["Step", "What it means", "What it prevents"]
+    rows:
+      - ["1. Problem", "State plainly what's being observed and why it matters, without yet proposing a cause", "Skipping straight to an explanation before the problem is even clearly framed"]
+      - ["2. Define metric", "Write the exact formula and denominator being used", "Two people debating a metric they've each silently defined differently"]
+      - ["3. Validate metric", "Confirm the number is computed correctly and reflects a real change, not a data or pipeline issue", "Investigating a business explanation for what turns out to be a broken dashboard or a schema change"]
+      - ["4. Check time trend", "Look at the metric over several periods before and after the change", "Reacting to one noisy data point as if it were a sustained shift"]
+      - ["5. Segment", "Break the metric down by relevant dimensions (channel, plan, geography, cohort)", "Proposing a company-wide explanation for a change that's actually concentrated in one segment"]
+      - ["6. Identify anomalies", "Look for the specific segment(s), dates, or cohorts that deviate most from the rest", "Treating a uniform, gradual trend the same as a sharp, localized anomaly"]
+      - ["7. Generate hypotheses", "Propose 2-4 specific, testable explanations grounded in the segmentation", "Settling on the first plausible-sounding story instead of considering real alternatives"]
+      - ["8. Test hypotheses", "Run the specific query or analysis that would confirm or rule out each hypothesis", "Treating a hypothesis as true just because it sounds reasonable"]
+      - ["9. Find root cause", "State which hypothesis survived testing, and why the others didn't", "Reporting a correlation as a cause without having ruled out competing explanations"]
+      - ["10. Quantify impact", "Put a number on how much of the total change the root cause explains", "A root cause that's real but explains only a small fraction of the actual movement"]
+      - ["11. Recommend action", "Propose a specific next step tied directly to the root cause found", "A well-diagnosed problem that ends in \"interesting analysis\" instead of a decision"]
+  - type: callout
+    variant: important
+    title: Steps 2 and 3 are not busywork
+    body: >
+      Explicitly writing out a metric's definition (step 2) and then checking it's computed correctly
+      (step 3) feels slow when the pressure is to explain a business event quickly — but a large share of
+      "mysterious metric drops" turn out to be a changed filter, a broken join, a new field going null, or
+      a timezone shift in how a date is bucketed. Confirming the number is real, and means what people
+      assume, is almost always faster than debugging a business explanation for a data artifact.
+  - type: heading
+    text: A short walkthrough of steps 1-6
+    level: 3
+  - type: example
+    title: "\"Signups dropped 15% this week\" — before proposing any cause"
+    body: >
+      Step 1 (Problem): a stakeholder reports weekly signups fell from 2,000 to 1,700. Step 2 (Define
+      metric): "signups" is defined as distinct users completing the signup form, counted by the date the
+      form was submitted. Step 3 (Validate metric): rerunning the underlying query against raw event logs
+      confirms 1,700 signups really did happen — this isn't a dashboard bug. Step 4 (Time trend): the prior
+      four weeks were 1,950, 2,010, 1,980, 2,000 — this week's 1,700 is a real, sudden break from a stable
+      baseline, not noise. Step 5 (Segment): breaking the drop down by acquisition channel shows paid
+      search fell from 800 to 500 signups while every other channel held steady. Step 6 (Anomalies): the
+      drop is fully concentrated in paid search, and specifically in one campaign that stopped serving
+      mid-week — a very different, much more specific finding than "signups are down" was on its own.
+  - type: callout
+    variant: tip
+    title: A hypothesis is not allowed to precede its segmentation
+    body: >
+      Notice the walkthrough above didn't propose "maybe our messaging got worse" or "maybe a competitor
+      launched something" until after segmenting and finding the anomaly was concentrated in one paid
+      search campaign. A hypothesis proposed before segmenting is a guess; a hypothesis proposed after
+      segmenting is a lead — the same words can describe two very different levels of rigor.
+  - type: checklist
+    title: Before treating any explanation as a "root cause," confirm
+    items:
+      - The metric has been validated against raw data, not assumed correct because a dashboard shows it
+      - The time trend has been checked over multiple periods, not just the single period in question
+      - The change has been segmented by at least one relevant dimension before any hypothesis was proposed
+      - The leading hypothesis has actually been tested against data, not just judged plausible
+      - The root cause's impact has been quantified — does it explain most of the change, or only a fraction?
+  - type: question
+    prompt: >
+      A stakeholder asks "why did conversion rate drop last week?" and expects an answer within the hour.
+      Which step of the framework is safest to skip under real time pressure?
+    choices:
+      - "None of the first six steps should be skipped — even under time pressure, validating the metric and checking the time trend are usually the fastest way to avoid chasing a false signal."
+      - "Step 3 (validating the metric) is safe to skip, since dashboards are rarely wrong."
+      - "Step 5 (segmenting) is safe to skip if the analyst already has a strong guess about the cause."
+    correct_index: 0
+    explanation: >
+      Every step in the framework exists because skipping it is a documented, common way root cause
+      analysis goes wrong — and the earliest steps (validating the metric, checking its trend) are usually
+      also the *cheapest and fastest* to do, since they can rule out entire classes of non-explanations
+      (a broken pipeline, ordinary noise) in minutes. Skipping them to "save time" more often costs more
+      time later, when a confidently wrong explanation has to be walked back after the real cause surfaces.

@@ -1,0 +1,41 @@
+slug: skewed-distribution-mean-vs-median
+lesson_slug: dist-normal-distribution
+skill: data-interpretation
+dataset: ecommerce
+title: "\"Average Payment: $1,686\" — Is That the Right Number to Lead With?"
+description: Given the real mean and median of successful ecommerce payments, decide which figure (or combination) a finance report should actually lead with.
+exercise_type: DATA_INTERPRETATION
+difficulty: INTERMEDIATE
+points: 15
+tags: [statistics, e-commerce, eda, intermediate]
+prompt: >
+  Successful payments in the ecommerce dataset have a mean of $1,686.32 and a median of $1,569.11
+  (n = 3,441, standard deviation $1,078.58, ranging from $9.45 to $6,370.39). A finance analyst is
+  drafting a one-line summary for an executive dashboard and asks whether to report "average payment:
+  $1,686" alone. What does the gap between the mean and median tell you about this distribution, and
+  what would you recommend the analyst actually report, and why?
+hints:
+  - "A mean sitting noticeably above the median is a specific, well-known signature — think about which direction it points and why."
+  - "Consider not just *which* single number to report, but whether a single number is even the right unit of communication here."
+solution: >
+  The mean ($1,686.32) sitting above the median ($1,569.11) is the signature of a right-skewed
+  distribution: a relatively small number of larger payments (up to $6,370.39) are pulling the average
+  upward, while most individual payments cluster below it. This is typical, expected behavior for
+  transaction-amount data, not a data quality problem — but it does mean "$1,686" alone overstates
+  what a *typical* payment looks like.
+  Recommendation: report both figures, not the mean alone — e.g., "average payment: $1,686 (median:
+  $1,569)" — so a reader isn't misled into thinking $1,686 represents a typical transaction. If the
+  dashboard only has room for one summary line, the median is the safer standalone choice precisely
+  because it isn't distorted by the small number of large payments; if the *total* dollar volume is
+  what actually matters for the report's purpose (e.g., total revenue projections), the mean (or the
+  sum directly) is actually the more appropriate figure, since total revenue does depend on those
+  larger payments too. The specific choice depends on what question the dashboard is trying to
+  answer — "what does a typical transaction look like" points to the median; "how much money is
+  flowing through the system" points to the mean or sum — and the analyst should pick based on that,
+  not out of habit.
+explanation: >
+  A strong answer correctly diagnoses the mean-above-median gap as right skew, explicitly states that
+  reporting the mean alone risks overstating what's typical, and — rather than reflexively picking
+  "always use the median" — reasons about which statistic actually answers the report's underlying
+  question. A weaker answer treats "always report the median for skewed data" as a universal rule
+  without considering that the mean can still be the right choice depending on what's being measured.

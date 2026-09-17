@@ -1,0 +1,121 @@
+slug: reading-explain-plans
+module_slug: sql-performance
+title: Reading EXPLAIN Plans
+description: What EXPLAIN actually shows — scans, joins, filters, and estimated row counts — and how to read one to spot an expensive full table scan.
+difficulty: ADVANCED
+estimated_minutes: 12
+display_order: 2
+objectives:
+  - Explain what a query plan represents and why it's the database's chosen strategy, not the SQL itself
+  - Identify a full table scan vs. a targeted lookup in a plan sketch
+  - Read estimated row counts through a plan to spot where a query is doing more work than expected
+prerequisites: [query-execution-order]
+skills: [advanced-sql]
+datasets: [ecommerce]
+tags: [sql, advanced]
+key_takeaways:
+  - "EXPLAIN doesn't run your query differently — it shows the plan the database's optimizer decided on: which tables get scanned, in what order joins happen, and where filters get applied."
+  - "A plan is usually a tree, read from the bottom (or innermost step) up: leaf nodes are how each table is accessed (a scan), and higher nodes combine those results (joins, filters, aggregation) until the final result comes out the top."
+  - "Estimated row counts at each step are the fastest way to spot a problem — a step whose estimated rows are wildly larger than you'd expect (e.g. scanning all 4,205 orders when a filter should narrow it to a few dozen) is telling you the filter didn't do what you assumed."
+common_mistakes:
+  - "Reading EXPLAIN output once, out of curiosity, and never again — it's much more useful as a habit: check the plan any time a query feels slower than the data size would suggest."
+  - "Assuming a JOIN in the SQL always becomes exactly one 'join' step in the plan, in the written order — the optimizer can reorder joins, push filters down below them, or restructure the query entirely, as long as the result is equivalent."
+practical_applications:
+  - "Confirming that adding a WHERE clause actually narrowed the data early, instead of the database scanning everything and filtering at the end."
+  - "Spotting a runaway join (row counts exploding at a join step) before it becomes a slow-query complaint in production."
+blocks:
+  - type: heading
+    text: EXPLAIN shows the plan, not a re-run of the query
+  - type: text
+    body: >
+      `EXPLAIN <query>` asks the database to show its **query plan** — the step-by-step strategy its
+      optimizer picked to answer the query — without actually returning the query's real result rows.
+      The plan describes things like which table(s) get scanned, what order joins happen in, where
+      filters get applied, and (in most databases) an *estimate* of how many rows flow through each
+      step.
+  - type: text
+    body: >
+      This matters because the same SQL can be executed many different ways and still return an
+      identical result. `EXPLAIN` reveals which of those ways the optimizer actually chose — which is
+      the only way to know, for sure, whether a query is doing efficient targeted work or brute-forcing
+      its way through far more data than it needs to.
+  - type: heading
+    text: A plan is a tree — read it from the bottom up
+  - type: text
+    body: >
+      Real EXPLAIN output (DuckDB's included) can be dense — box-drawing characters, cost estimates,
+      column lists. Stripped down to the concepts that matter, a plan for a filtered join looks
+      something like this:
+  - type: output
+    caption: "A simplified, illustrative plan sketch — not literal captured EXPLAIN output"
+    body: |
+      RESULT
+       └─ HASH_JOIN (orders.customer_id = customers.customer_id)
+           ├─ FILTER (orders.status = 'completed')
+           │    └─ SEQ_SCAN orders           [~4,205 rows]
+           └─ SEQ_SCAN customers              [~1,500 rows]
+  - type: text
+    body: >
+      Read from the bottom (or innermost) node up: each `SEQ_SCAN` is how a table gets read — here, a
+      full sequential scan of every row in that table. The `FILTER` sits directly above the orders scan,
+      applying `status = 'completed'` to those rows. The `HASH_JOIN` at the top combines the filtered
+      orders with the full customers scan, and `RESULT` is the final output handed back to the caller.
+  - type: table
+    headers: ["Plan concept", "What it means"]
+    rows:
+      - ["Scan", "Reading rows from a table or index — the plan's leaves; every query starts with at least one"]
+      - ["Filter", "Applying a WHERE-style condition to rows already in hand — cheaper the earlier it happens"]
+      - ["Join", "Combining rows from two inputs — how it's implemented (hash join, nested loop, etc.) affects cost a lot"]
+      - ["Estimated rows", "The optimizer's guess at how many rows survive each step — the number to sanity-check against what you expect"]
+  - type: heading
+    text: Spotting an expensive full scan
+  - type: text
+    body: >
+      "Full table scan" simply means every row of a table gets read, with no way to skip straight to
+      the relevant ones. That's completely normal and often optimal for a small table, or a query that
+      genuinely needs most of the table's rows. It becomes a problem when a query only needs a handful
+      of rows but the plan shows it reading everything to find them.
+  - type: output
+    caption: "Illustrative plan for a highly selective filter that still scans the whole table"
+    body: |
+      RESULT
+       └─ FILTER (customer_id = 842)
+           └─ SEQ_SCAN customers              [~1,500 rows]
+  - type: text
+    body: >
+      Here the filter only wants one customer out of 1,500, but the estimated rows on the scan (1,500)
+      show the database still has to look at every row to find that one — because nothing about how
+      the table is stored lets it jump straight to `customer_id = 842`. On a table with 1,500 rows
+      that's irrelevant; on a table with 50 million rows, scanning all of them to find one is exactly
+      the kind of thing an index exists to avoid — the next lesson's topic.
+  - type: callout
+    variant: tip
+    title: The habit that matters more than any one plan
+    body: >
+      You don't need to memorize every operator name a query planner can produce. What's worth building
+      as a habit is: when a query feels slower than the data size justifies, run EXPLAIN, find the step
+      with the largest estimated row count, and ask whether that row count makes sense for what the
+      query is actually trying to answer.
+  - type: callout
+    variant: warning
+    title: This platform's engine is DuckDB, and its plans look different from a typical OLTP database
+    body: >
+      DuckDB is a columnar, analytical engine (more on exactly what that means in the next lesson) —
+      its EXPLAIN output uses its own operator names and formatting, and on small tables like this
+      course's sample data, it often chooses a full scan even when a filter looks very selective,
+      simply because scanning a few thousand rows is cheap regardless. The concepts on this page
+      (scans, filters, joins, estimated rows) transfer to any SQL engine; the exact plan text will not.
+  - type: question
+    prompt: >
+      An EXPLAIN plan shows a filter for `WHERE order_id = 4180` sitting above a scan whose estimated
+      row count is 4,205 — the full size of the orders table. What does that tell you?
+    choices:
+      - "The query is optimal, since EXPLAIN always shows the fastest possible plan"
+      - "The database is reading every row in orders to find the one matching order_id = 4180, rather than jumping directly to it — worth investigating if this table were much larger"
+      - "The plan is broken and the query will return incorrect results"
+    correct_index: 1
+    explanation: >
+      An estimated row count equal to the table's full size on a scan feeding into a highly selective
+      filter (looking for exactly one order_id) means the database has no faster way to locate that row
+      than reading all of them. The query still returns the correct result — EXPLAIN doesn't indicate
+      correctness — but on a large table this pattern is precisely the one an index is built to fix.

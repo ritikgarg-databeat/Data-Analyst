@@ -1,0 +1,112 @@
+slug: sets
+module_slug: python-for-analysts
+title: Sets
+description: Unordered collections of unique values, fast membership testing, and set operations that mirror SQL's UNION/INTERSECT/EXCEPT.
+difficulty: BEGINNER
+estimated_minutes: 11
+display_order: 11
+objectives:
+  - Create sets and explain why they only ever contain unique, unordered values
+  - Explain why membership testing (x in s) is much faster on a set than on a list for large collections
+  - Use union, intersection, and difference to combine sets, and connect each to its SQL equivalent
+prerequisites: [tuples]
+skills: [python-fundamentals]
+datasets: []
+tags: [python, beginner, foundations]
+key_takeaways:
+  - "A set is an unordered collection of unique values — duplicates are automatically dropped, and there's no indexing by position since a set has no defined order."
+  - "Checking membership (x in s) is much faster on a set than on a list, especially as the collection grows — a set looks values up directly instead of scanning element by element."
+  - "Set operations (union, intersection, difference) do exactly what SQL's UNION, INTERSECT, and EXCEPT do — the same idea, applied to two in-memory collections instead of two query results."
+common_mistakes:
+  - "Expecting a set to preserve the order you added elements in — sets are unordered, so printing one can show elements in a different order than you inserted them, and you can't index into a set with s[0]."
+  - "Using a list purely to track \"have I seen this value before\" (checking with in inside a loop) when a set would do the same job far faster on any collection of meaningful size."
+  - "Forgetting that sets can only hold hashable (effectively, immutable) elements — you can put tuples in a set, but not lists, since a list can change and a set needs its elements to stay fixed."
+blocks:
+  - type: text
+    body: >
+      A **set** is an unordered collection that only ever holds unique values — adding a duplicate is a
+      no-op, and there's no such thing as "the third element" the way there is with a list. Sets exist
+      for two things: guaranteeing uniqueness, and answering "is this value in here?" very quickly.
+  - type: heading
+    text: Creating sets
+  - type: code
+    language: python
+    code: |
+      channels = {"email", "organic", "paid"}
+
+      # The most common way sets show up: deduplicating a list
+      regions_seen = ["US", "EMEA", "APAC", "US", "EMEA"]
+      unique_regions = set(regions_seen)
+      print(sorted(unique_regions))   # ['APAC', 'EMEA', 'US']
+    caption: "Curly braces create a set literal; set(some_list) deduplicates an existing list"
+  - type: callout
+    variant: tip
+    title: Sets have no order
+    body: >
+      Printing a set won't necessarily show elements in the order you added them — Python makes no
+      guarantee about set ordering. `sorted(some_set)` gives you a predictable, sorted list back when
+      order matters for display; the examples on this page use it for exactly that reason.
+  - type: heading
+    text: Membership testing — sets are fast
+  - type: text
+    body: >
+      Checking `x in collection` on a list has to scan the list element by element in the worst case — the
+      larger the list, the longer that can take. A set checks membership directly, without scanning, so
+      it stays fast even as the collection grows into the hundreds of thousands of elements. If you find
+      yourself writing `if some_id in a_long_list:` inside a loop, that's usually a sign the list should
+      be a set instead.
+  - type: code
+    language: python
+    code: |
+      seen_order_ids = {1001, 1002, 1003}
+
+      1002 in seen_order_ids   # True — direct lookup, not a scan
+      9999 in seen_order_ids   # False
+    caption: "x in a_set is the idiomatic, fast way to check membership"
+  - type: heading
+    text: "Set operations — the same ideas as SQL's UNION / INTERSECT / EXCEPT"
+  - type: text
+    body: >
+      If you've used `UNION`, `INTERSECT`, or `EXCEPT` in SQL to combine two result sets, Python's set
+      operators do the exact same thing — just on two in-memory collections instead of two query
+      results.
+  - type: table
+    headers: ["Python", "SQL equivalent", "What it returns"]
+    rows:
+      - ["a | b  (union)", "UNION", "Every element in a, b, or both"]
+      - ["a & b  (intersection)", "INTERSECT", "Only elements present in both a and b"]
+      - ["a - b  (difference)", "EXCEPT", "Elements in a that are NOT in b"]
+  - type: code
+    language: python
+    code: |
+      customers_2024 = {"C001", "C002", "C003"}
+      customers_2025 = {"C002", "C003", "C004"}
+
+      customers_2024 | customers_2025   # {'C001','C002','C003','C004'} — active in either year
+      customers_2024 & customers_2025   # {'C002','C003'}               — active in both years
+      customers_2024 - customers_2025   # {'C001'}                      — churned: active in 2024, not 2025
+    caption: "Verified output shown as sorted for readability — actual set order is not guaranteed"
+  - type: example
+    title: "Finding churned customers"
+    body: >
+      This is exactly the kind of question set difference answers well: which customers were active last
+      year but haven't ordered this year? `customers_2024 - customers_2025` reads almost like the
+      business question itself.
+    code: |
+      customers_2024 = {"C001", "C002", "C003"}
+      customers_2025 = {"C002", "C003", "C004"}
+
+      churned = customers_2024 - customers_2025
+      print(sorted(churned))   # ['C001']
+    language: python
+  - type: question
+    prompt: "a = {1, 2, 3} and b = {2, 3, 4}. What does a & b return?"
+    choices:
+      - "{1, 2, 3, 4}"
+      - "{2, 3}"
+      - "{1}"
+    correct_index: 1
+    explanation: >
+      & is the intersection operator — it returns only the elements present in both sets. 2 and 3 appear
+      in both a and b, so a & b returns {2, 3}. (a | b would give the union {1,2,3,4}, and a - b would
+      give the difference {1}.)

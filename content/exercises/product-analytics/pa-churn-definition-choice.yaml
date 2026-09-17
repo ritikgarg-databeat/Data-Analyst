@@ -1,0 +1,20 @@
+slug: pa-churn-definition-choice
+skill: product-metrics
+title: Choosing a Churn Definition
+description: For a subscription product with monthly billing, which is the most standard and unambiguous churn definition?
+exercise_type: MULTIPLE_CHOICE
+difficulty: INTERMEDIATE
+points: 5
+tags:
+- churn
+- product-analytics
+prompt: For a subscription product with monthly billing, which is the most standard and unambiguous churn definition?
+correct_answer: A customer's subscription is cancelled or lapses without renewal in a given billing period
+explanation: For a subscription business, churn is most unambiguously tied to the actual billing/cancellation event,
+  not a proxy like inactivity or support contacts -- those proxies can be useful EARLY WARNING signals of churn
+  risk, but they are not churn itself.
+choices:
+- A customer's subscription is cancelled or lapses without renewal in a given billing period
+- A user who hasn't logged in for exactly one day
+- Any user who contacts customer support
+- A user who has used fewer than 10 features

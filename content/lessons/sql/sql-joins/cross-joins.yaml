@@ -1,0 +1,99 @@
+slug: cross-joins
+module_slug: sql-joins
+title: CROSS JOIN
+description: Cartesian products — generating every combination on purpose, and avoiding one by accident.
+difficulty: INTERMEDIATE
+estimated_minutes: 10
+display_order: 4
+objectives:
+  - Explain what a cartesian product is and predict the row count a CROSS JOIN will produce
+  - Use CROSS JOIN deliberately to generate every combination of two small sets, like a category-by-channel grid
+  - Recognize a missing or incorrect ON condition as an accidental cross join, and know why it's usually a bug
+prerequisites: [full-outer-joins]
+skills: [sql-fundamentals]
+datasets: [ecommerce]
+tags: [sql, intermediate]
+key_takeaways:
+  - "CROSS JOIN pairs every row of one table with every row of another — no ON condition, no matching logic. A tables has 10 rows and B has 3, A CROSS JOIN B always returns 10 x 3 = 30 rows."
+  - "A legitimate use is generating a complete grid of combinations — every category paired with every channel, for instance — so that combinations with zero real activity still show up as an explicit zero rather than being silently absent."
+  - "The far more common encounter with a cartesian product is accidental: a JOIN with no ON clause, or with an ON condition that doesn't actually relate the two tables, produces the exact same explosion of rows without anyone intending it."
+common_mistakes:
+  - "Writing a comma-separated FROM orders o, customers c with no WHERE relating them (old-style join syntax) and not realizing it's a cross join — it silently returns the full cartesian product, and with real table sizes that can mean millions of nonsensical rows."
+  - "Not noticing a result set is way larger than expected after adding a join — a cartesian product often doesn't error, it just quietly multiplies every downstream COUNT, SUM, or AVG by however many rows leaked in from the unintended combination."
+blocks:
+  - type: heading
+    text: Every combination, deliberately
+  - type: text
+    body: >
+      Every join so far has paired rows based on some condition — a matching customer_id, a matching
+      order_id. CROSS JOIN removes that condition entirely: it pairs every row of the first table with
+      every row of the second, producing what's called a cartesian product. If one table has 10 rows
+      and the other has 3, the result has exactly 10 x 3 = 30 rows, regardless of what the data
+      actually contains.
+  - type: code
+    language: sql
+    caption: Every category paired with every order channel
+    code: |
+      SELECT
+        cat.category_name,
+        ch.channel
+      FROM categories cat
+      CROSS JOIN (SELECT DISTINCT channel FROM orders) ch
+      ORDER BY cat.category_name, ch.channel;
+      -- 10 categories x 3 channels = 30 rows, every combination present
+  - type: text
+    body: >
+      This is a legitimate, useful pattern: with 10 categories and 3 channels, this produces a
+      complete 30-row grid of every possible pairing. That matters when a report needs to show a zero
+      explicitly — if "Books" never sold through the "marketplace" channel, a normal JOIN against
+      actual order data wouldn't produce that row at all, and a chart or table built from it would
+      just have a gap. Cross-joining the reference grid first, then LEFT JOINing real order data onto
+      it, is the standard way to guarantee every combination appears, zeros included.
+  - type: callout
+    variant: tip
+    title: Other legitimate uses follow the same shape
+    body: >
+      Generating a full calendar of dates crossed with every category (so a chart has one row per
+      day per category even on days with zero sales), or a small lookup table of size options crossed
+      with every product — anywhere the goal is "all possible combinations of two small sets,"
+      regardless of what data currently exists for them, is a CROSS JOIN.
+  - type: heading
+    text: The accidental version
+  - type: text
+    body: >
+      The far more common encounter with a cartesian product isn't intentional at all. Older SQL
+      syntax lists tables separated by commas in FROM instead of using JOIN...ON, and it's easy to
+      forget the WHERE clause that's supposed to relate them. Without it, the comma is a cross join in
+      disguise.
+  - type: example
+    title: A cross join nobody meant to write
+    body: >
+      This looks like it might be trying to pair each order with its customer, but there's no
+      condition connecting order.customer_id to customer.customer_id anywhere — so every one of the
+      4,205 orders gets paired with all 1,500 customers.
+    code: |
+      SELECT o.order_id, c.customer_id
+      FROM orders o, customers c;
+      -- 4,205 x 1,500 = 6,307,500 rows — almost certainly not the intended result
+    language: sql
+  - type: callout
+    variant: warning
+    title: A cross join rarely announces itself
+    body: >
+      Nothing about the query above is invalid SQL — it runs without error and returns a result, just
+      an enormous and meaningless one. The tell isn't an error message; it's a row count that's far
+      larger than expected, or a downstream aggregate (a SUM or COUNT built on top of this) that comes
+      out wildly inflated. Whenever a join's row count doesn't make sense, checking for a missing or
+      incomplete ON condition is the first thing to try.
+  - type: question
+    prompt: "A query joins products (150 rows) and categories (10 rows) and returns 1,500 rows. What's the most likely explanation?"
+    choices:
+      - "The join is working correctly and products happens to have 150 rows per category"
+      - "The join has no effective ON condition relating the two tables, producing the full 150 x 10 cartesian product"
+      - "150 and 10 are unrelated to the result — 1,500 is just how many rows categories always returns"
+    correct_index: 1
+    explanation: >
+      150 x 10 = 1,500 is exactly the row count a cartesian product between these two tables would
+      produce. That specific number appearing is a strong signal the join condition isn't actually
+      relating the tables — either it's missing, or it references columns that don't create a
+      real one-to-one or one-to-many relationship between them.

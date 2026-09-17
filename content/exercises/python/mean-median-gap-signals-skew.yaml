@@ -1,0 +1,62 @@
+slug: mean-median-gap-signals-skew
+skill: statistics
+dataset: ecommerce
+title: Does the Mean-Median Gap Signal Skewed Revenue?
+description: Compare the mean and median of order line-item revenue to check whether a handful of large orders are skewing the "typical" order upward.
+exercise_type: PYTHON
+difficulty: INTERMEDIATE
+points: 20
+tags: [python, intermediate, real-world]
+business_context: >
+  Finance is about to describe a "typical" order's revenue using its average, but before trusting
+  that number they want a quick skew check — if a handful of unusually large orders are pulling the
+  average well above the middle of the distribution, the average is a misleading stand-in for
+  "typical."
+prompt: >
+  Using the pre-loaded `order_items` DataFrame, compute each row's line revenue as `(unit_price -
+  discount) * quantity`. Store your answer in a variable named `result`: a dict with keys `"mean"`
+  (the mean line revenue, rounded to 2 decimals), `"median"` (the median line revenue, rounded to 2
+  decimals), and `"gap_pct"` (`100 * (mean - median) / median`, rounded to 1 decimal — a
+  meaningfully positive value signals the distribution is right-skewed by a few large orders).
+python_datasets: [order_items]
+python_starter_code: |
+  # order_items is already loaded as a DataFrame.
+  # Explore it first:
+  order_items.head()
+python_solution_code: |
+  line_revenue = (order_items["unit_price"] - order_items["discount"]) * order_items["quantity"]
+  mean_val = round(float(line_revenue.mean()), 2)
+  median_val = round(float(line_revenue.median()), 2)
+  gap_pct = round(100 * (mean_val - median_val) / median_val, 1)
+  result = {"mean": mean_val, "median": median_val, "gap_pct": gap_pct}
+python_result_variable: result
+python_row_order_matters: false
+python_numeric_tolerance: 0.01
+python_hidden_tests:
+  - name: "Mean sits above median, confirming right-skew"
+    code: |
+      assert result["mean"] > result["median"], (
+          f"Expected the mean ({result['mean']}) to sit above the median ({result['median']}) — "
+          "a right-skewed distribution pulled up by a handful of large orders."
+      )
+      assert result["gap_pct"] > 0, f"Expected a positive gap_pct signaling right-skew, got {result['gap_pct']}"
+hints:
+  - "Line revenue isn't a column in order_items — you have to derive it first from unit_price, discount, and quantity before you can summarize it."
+  - "pandas Series have .mean() and .median() methods built in. Compute both from the same line-revenue Series, round each to 2 decimals, then compute gap_pct = 100 * (mean - median) / median, rounded to 1 decimal."
+solution: |
+  ```python
+  line_revenue = (order_items["unit_price"] - order_items["discount"]) * order_items["quantity"]
+  mean_val = round(float(line_revenue.mean()), 2)
+  median_val = round(float(line_revenue.median()), 2)
+  gap_pct = round(100 * (mean_val - median_val) / median_val, 1)
+  result = {"mean": mean_val, "median": median_val, "gap_pct": gap_pct}
+  ```
+explanation: >
+  A strong answer derives line revenue from its components before summarizing it, computes mean and
+  median from the exact same underlying Series (so the comparison is apples-to-apples), and
+  expresses the gap as a percentage of the median rather than a raw dollar difference, which makes
+  the signal interpretable regardless of the underlying currency scale. A common mistake is
+  comparing the mean of `unit_price` to the median of line revenue (or some other mismatched pair of
+  columns), or eyeballing the two numbers without actually checking which one is larger — on this
+  dataset the mean sits noticeably above the median, which is exactly the fingerprint of a
+  right-skewed distribution driven by a smaller number of unusually large orders.

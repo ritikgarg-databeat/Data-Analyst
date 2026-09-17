@@ -1,0 +1,35 @@
+slug: dm-ex-sql-orphan-fk-check
+lesson_slug: dm-keys-and-relationships
+skill: dimensional-modeling
+dataset: ecommerce
+title: "Check a Foreign Key for Orphans"
+description: Writing the real query that checks whether order_items.product_id genuinely holds as a foreign key against products, with no orphaned references.
+exercise_type: SQL
+difficulty: INTERMEDIATE
+points: 15
+tags: [relationships, data-modeling, real-world]
+business_context: >
+  order_items.product_id is meant to reference products.product_id. Confirm whether that foreign key actually
+  holds for every row in the real data, rather than assuming it does.
+sql_tables: [order_items, products]
+prompt: >
+  Write a query that returns the count of order_items rows whose product_id does NOT match any real product_id
+  in the products table (i.e., an orphaned foreign key reference).
+sql_starter_query: |
+  SELECT COUNT(*) AS orphan_count
+  FROM order_items oi
+  -- your query here
+sql_solution_query: |
+  SELECT COUNT(*) AS orphan_count
+  FROM order_items oi
+  LEFT JOIN products p ON oi.product_id = p.product_id
+  WHERE p.product_id IS NULL;
+sql_row_order_matters: false
+hints:
+  - "A LEFT JOIN from the child table to the parent table, filtered to WHERE parent.key IS NULL, surfaces exactly the child rows with no matching parent."
+explanation: >
+  Against the real ecommerce data this returns 0 — every order_items.product_id has a matching row in
+  products, confirming the foreign key genuinely holds with no orphans. This LEFT JOIN ... WHERE <parent key>
+  IS NULL pattern is the general way to check any foreign key for orphaned references directly against real
+  data, complementing the Data Modeler's own foreign_key_* checks, which validate the declared metadata rather
+  than the live rows.

@@ -1,0 +1,117 @@
+slug: dw-raw-staging-marts
+module_slug: warehouse-architecture
+title: "Why Data Moves Through Layers: Raw, Staging, and Marts"
+description: Why a warehouse transforms data in stages instead of one big query, and how the real dbt project's models/staging, models/intermediate, and models/marts folders implement exactly that layering.
+difficulty: INTERMEDIATE
+estimated_minutes: 35
+display_order: 1
+objectives:
+  - Explain the raw / staging / marts layering pattern and what job each layer is responsible for.
+  - Explain why splitting transformation into layers is preferable to one large, monolithic query per report.
+  - Trace one real ecommerce order through this project's actual layers, from raw CSV to fct_orders.
+skills: [data-warehousing, dbt, data-engineering-fundamentals]
+datasets: [ecommerce]
+tags: [architecture, data-warehouse, models, dbt, intermediate]
+prerequisites: [dw-what-is-a-data-warehouse, dw-the-data-lake]
+key_takeaways:
+  - "A warehouse's data typically moves through layers with distinct jobs: raw (data as it arrived from the source, untouched), staging (light cleaning and standardization, still one row per source row), and marts (business-ready, often dimensionally modeled tables built for a specific set of questions)."
+  - "Layering exists to avoid re-solving the same cleaning problem in every downstream query — a fix made once in staging (like standardizing `status`) is inherited by everything built on top of it, instead of every analyst re-implementing (and possibly getting wrong) the same fix independently."
+  - "This project's real dbt build implements this exact pattern: raw = the CSVs read by sources.yml, staging = models/staging/stg_*.sql (one row in, one row out, lightly cleaned), intermediate = models/intermediate/int_*.sql (joins and business logic), marts = models/marts/*.sql (the final, business-ready dimensional model)."
+common_mistakes:
+  - "Writing one giant query that reads straight from raw sources and produces a final report table in a single step. This works until two reports need the same cleaning logic (like standardized order status) — now that logic is duplicated in two places, and a fix to one won't automatically apply to the other."
+  - "Assuming 'staging' means 'temporary and disposable.' In this project, staging models are real, permanent parts of the DAG — every mart model depends on them via ref(), and they materialize as views precisely so every downstream query always sees fresh, standardized data rather than a stale copy."
+interview_questions:
+  - question: "Why not just write one big SQL query per report, straight from the raw source tables?"
+    answer: >
+      Because reports share cleaning and business logic that shouldn't be duplicated. If two
+      different marts both need "revenue per order line, net of discount," writing that logic
+      independently in each report risks the two definitions drifting apart over time (one gets
+      updated, the other doesn't), and makes debugging harder because a wrong number could be coming
+      from either copy. Splitting the work into layers — a staging model that standardizes the raw
+      data once, an intermediate model that computes shared business logic once (like
+      int_order_items_priced computing line_margin) — means every downstream mart or report inherits
+      the same, single, testable definition. It also makes lineage traceable: you can look at any
+      mart's SQL and see exactly which upstream models (and ultimately, which raw sources) it depends
+      on, instead of reverse-engineering one large query.
+blocks:
+  - type: heading
+    text: A pipeline, not a single step
+  - type: text
+    body: >
+      It's tempting to think of "transforming data for analysis" as one step: read the raw source,
+      produce the report. In practice, well-built warehouses split this into layers, each with a
+      narrow job, chained together. The three most common layers: **raw** (data exactly as it arrived
+      — no cleaning, no joins), **staging** (each source table gets lightly cleaned and standardized,
+      still at the same grain as the source), and **marts** (the final, business-ready layer, often
+      shaped as dimensional models — the star schemas covered in the next module).
+  - type: text
+    body: >
+      This project's dbt build implements this literally, as folders you can go read right now.
+      `dbt/models/staging/` holds one `stg_*.sql` model per raw source table (`stg_orders`,
+      `stg_customers`, `stg_order_items`, `stg_payments`, `stg_products`, `stg_categories`) — each one
+      selects from `{{ source('raw', '...') }}` and does small, targeted cleanup, staying at the same
+      grain as its source. `dbt/models/intermediate/` adds a layer in between for joins and shared
+      business logic that doesn't belong to any single source (`int_order_items_priced`,
+      `int_order_payments`). `dbt/models/marts/` holds the final, business-ready tables analysts and
+      dashboards actually query (`dim_customers`, `dim_products`, `fct_orders`, `fct_daily_revenue`).
+  - type: example
+    title: "Following one order through every layer"
+    body: >
+      Trace a single order through the real project. **Raw**: one row in
+      `data/sample/ecommerce/orders.csv`, exactly as exported — an untouched `status` value that might
+      be inconsistently cased. **Staging**: `stg_orders.sql` reads that row via
+      `{{ source('raw', 'orders') }}` and standardizes it — `trim(lower(status)) as status` — while
+      keeping one row per order, same grain as the raw source. **Intermediate**: that order's line
+      items pass through `int_order_items_priced`, which joins in each product's cost to compute
+      `line_margin` per line — logic that both `fct_orders` and any future margin-focused mart can
+      reuse without recomputing it. **Marts**: `fct_orders.sql` finally joins the cleaned order (via
+      `ref('stg_orders')`) with the aggregated, priced line items (via `ref('int_order_items_priced')`)
+      and aggregated payments, producing one business-ready row per order — the shape a dashboard or
+      analyst actually wants.
+  - type: code
+    language: sql
+    code: |
+      -- Layer 1: staging (dbt/models/staging/stg_orders.sql) — clean, same grain as source
+      select order_id, customer_id, order_date, trim(lower(status)) as status, channel
+      from {{ source('raw', 'orders') }}
+
+      -- Layer 2: intermediate (dbt/models/intermediate/int_order_items_priced.sql) — shared business logic
+      select oi.order_item_id, oi.order_id, oi.line_revenue - (oi.quantity * p.cost) as line_margin
+      from {{ ref('stg_order_items') }} as oi
+      left join {{ ref('stg_products') }} as p on oi.product_id = p.product_id
+
+      -- Layer 3: marts (dbt/models/marts/fct_orders.sql) — business-ready, joins everything together
+      select o.order_id, o.status, coalesce(oi.gross_margin, 0) as gross_margin
+      from {{ ref('stg_orders') }} as o
+      left join order_items_agg as oi on o.order_id = oi.order_id
+    caption: "Each layer's job is narrow and testable on its own — staging cleans, intermediate computes shared logic, marts assembles the business-ready result."
+  - type: callout
+    variant: tip
+    title: "ref() is what makes the layering enforceable, not just conventional"
+    body: >
+      Every arrow in the chain above is a dbt `ref()` call, not a hardcoded table name. That means
+      dbt can build a dependency graph (its DAG) from the models' actual code, know that `fct_orders`
+      depends on `stg_orders`, and always run models in the correct order — the layering isn't just a
+      folder-naming convention, it's mechanically enforced by how the models reference each other.
+  - type: checklist
+    title: "What each layer should (and shouldn't) do"
+    items:
+      - "Raw: no transformation at all — exactly what the source produced."
+      - "Staging: rename/standardize columns, fix casing/types, stay at the same grain as the source — no joins to other entities yet."
+      - "Intermediate: joins and business logic that multiple downstream marts might share (e.g., pricing a line item)."
+      - "Marts: the final, business-ready, typically dimensionally modeled shape — what a dashboard or analyst actually queries."
+  - type: question
+    prompt: >
+      A team keeps computing "net revenue per order line" slightly differently in three separate
+      report queries, and the numbers don't always match. Which architectural fix does this module
+      argue for?
+    choices:
+      - "Have all three reports query the raw source tables directly, so they're at least consistent about starting from the same place"
+      - "Push that shared calculation into a single staging or intermediate model that all three reports reference via ref(), so there's exactly one definition to maintain and inherit"
+      - "Pick whichever of the three report queries is most recently updated and copy its logic into the other two by hand"
+    correct_index: 1
+    explanation: >
+      Copying logic between queries (manually or otherwise) just relocates the duplication problem —
+      it doesn't remove the risk of future drift. Centralizing the shared calculation in one
+      referenceable model (staging or intermediate, depending on what it needs) means every downstream
+      report inherits the same definition automatically, and a future fix only needs to happen once.

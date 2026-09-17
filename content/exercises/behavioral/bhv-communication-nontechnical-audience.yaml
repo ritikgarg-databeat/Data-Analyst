@@ -1,0 +1,36 @@
+slug: bhv-communication-nontechnical-audience
+skill: behavioral-interviewing
+title: Explaining Complex Analysis Simply
+description: Tell me about a time you had to explain a complex analysis to a non-technical audience.
+exercise_type: INTERVIEW_RESPONSE
+difficulty: INTERMEDIATE
+points: 10
+tags:
+- behavioral
+- star-method
+- communication
+prompt: Tell me about a time you had to explain a complex analysis to a non-technical audience.
+hints:
+- The STAR framework (Situation, Task, Action, Result) is a useful structure, not a script -- use it to
+  make sure you cover what actually happened, in what context, what you personally did, and what came
+  of it.
+- Interviewers are listening for a specific, real example -- a vague 'sometimes this happens on my team'
+  answer is much weaker than one concrete story with real details.
+rubric:
+- criterion: Describes one specific, real situation rather than a hypothetical or a generic pattern
+  points: 25
+- criterion: Clearly states the task or goal and the person's own specific role in it
+  points: 20
+- criterion: Explains concrete actions the person personally took, not just what the team did
+  points: 30
+- criterion: States a clear, ideally measurable outcome and what was learned from it
+  points: 25
+solution: I needed to explain a cohort-retention analysis with survival curves to a group of regional
+  sales managers who had no statistics background. Instead of showing the curves, I reframed it as 'out
+  of 100 customers who joined in January, here's roughly how many are still with us after each month,'
+  with a simple table instead of a chart with confidence bands. I kept the underlying method available
+  as an appendix for anyone who wanted the detail, but led with the plain-language version, which is what
+  actually drove the conversation.
+explanation: The answer shows translating statistical framing into a plain, concrete narrative the audience
+  already understands (customers joining and staying), while still preserving the rigorous version for
+  anyone who wants it.

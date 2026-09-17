@@ -1,0 +1,45 @@
+slug: characterizing-the-top-10-percent-of-customers-by-spend
+lesson_slug: welcome-to-the-challenge-library
+skill: business-problem-solving
+dataset: ecommerce
+title: "What Actually Sets the Top 10% of Customers Apart?"
+description: Identify the top decile of customers by total spend and determine which characteristic actually differentiates them from everyone else — segment, geography, or something else entirely.
+exercise_type: DATA_INTERPRETATION
+difficulty: ADVANCED
+points: 25
+tags: [eda, real-world, advanced, case-study, interview]
+prompt: >
+  Using `orders`, `payments`, and `customers`, you rank all 1,261 spending customers by total successful
+  payment amount and take the top 10% (126 customers). This top decile accounts for 35% of all revenue,
+  averaging $16,117.48 in total spend versus $3,323.19 for everyone else — about 4.8x. You check two
+  candidate explanations: customer_segment mix (top decile: 70.6% consumer / 29.4% business; everyone else:
+  71.1% consumer / 28.9% business — essentially identical) and country mix (spread fairly evenly across all
+  8 countries in the top decile, 8.7%-15.9% each, no single country dominating). Neither differentiates the
+  top decile at all. What's the recommendation you'd make to a retention team about how to actually identify
+  these high-value customers, given that segment and country both turned out to be dead ends?
+hints:
+  - "You've ruled out two candidate explanations, but you haven't yet checked the one variable most directly implied by 'total spend' itself, which is available in the same tables you already used to compute it — reread what customer-level fields you can derive from orders beyond just the total dollar amount."
+  - "Think about what this means practically for a retention team: if segment and country don't predict who the highest-value customers are, what CAN a team actually use to build a targeting list — a variable that's directly observable and updates as customer behavior happens, versus a static attribute set at signup?"
+solution: >
+  The natural next check is order COUNT per customer, since total spend is mechanically a function of both
+  how much each order is worth and how many orders a customer places — and this is the one that actually
+  differentiates the two groups sharply: the top decile averages 8.8 orders per customer versus 2.05 for
+  everyone else, a 4.3x gap that closely tracks the 4.8x gap in total spend itself. In other words, top-decile
+  customers aren't distinguished by placing dramatically bigger individual orders, or by belonging to a
+  particular segment or coming from a particular country — they're distinguished almost entirely by ordering
+  much more OFTEN. My recommendation to the retention team: build the high-value-customer identification
+  and targeting logic around order-frequency signals (order count over a trailing window, or days since last
+  order combined with historical order count) rather than customer_segment or country, since those two
+  static, signup-time attributes carry essentially no predictive value here. A frequency-based signal is also
+  more actionable operationally — it's directly observable, updates continuously as a customer's behavior
+  unfolds, and would let the team flag a customer's transition toward high-value status in near real time,
+  rather than relying on a segment label assigned once at signup that this data shows doesn't actually track
+  spend behavior.
+explanation: >
+  A strong answer follows the logical next step the two ruled-out explanations point toward — checking
+  order count, the other half of what determines total spend — rather than stopping at "segment and country
+  don't work" with no further investigation. It reaches a specific, well-evidenced conclusion (frequency
+  drives value, not segment or geography) and translates that into a concrete, operationally different
+  recommendation for the retention team (a frequency-based signal instead of static attributes). A weaker
+  answer stops after ruling out segment and country without proposing or checking order frequency, or
+  recommends continuing to target by segment despite the data showing it doesn't differentiate anything.

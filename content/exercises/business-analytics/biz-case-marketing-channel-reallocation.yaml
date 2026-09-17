@@ -1,0 +1,80 @@
+slug: biz-case-marketing-channel-reallocation
+lesson_slug: dm-analytical-decision-framework
+skill: decision-making
+dataset: ecommerce
+title: "Case: Should We Shift Budget Away From Our Biggest Marketing Channel?"
+description: Use the analytical decision framework to decide whether to reallocate marketing budget away from the highest-spend channel, using real CAC and customer value data.
+exercise_type: BUSINESS_REASONING
+difficulty: ADVANCED
+points: 25
+tags: [case-study, real-world, marketing, e-commerce]
+business_context: >
+  The CMO is finalizing next quarter's channel budget. Display currently receives the largest
+  share of total paid marketing spend, on the reasoning that "it's our biggest channel, so it
+  should get the biggest budget." The CMO wants a data-backed recommendation on whether that
+  reasoning holds up before signing off on next quarter's allocation.
+stakeholder: "CMO"
+constraints:
+  - "You have access to marketing_campaigns, sessions, orders, order_items, and customers — no ad-platform-reported attribution or brand-lift data."
+  - "Any recommended reallocation has to be a specific dollar amount or percentage, not a vague \"consider shifting some budget\"."
+expected_deliverables:
+  - "CAC computed per channel, from actual campaign budgets and attributed conversions"
+  - "Average customer value (or LTV:CAC ratio) computed per channel, from actual completed-order revenue"
+  - "A specific, quantified reallocation recommendation, including which channel(s) should receive more and less budget"
+  - "At least one caveat or risk to watch for if the recommendation is implemented"
+prompt: >
+  Using `marketing_campaigns`, `sessions`, `orders`, `order_items`, and `customers`, walk through
+  the nine-step analytical decision framework (clarify the problem, define success, identify
+  metrics, segment, analyze, validate, quantify impact, recommend, define next steps) to decide
+  whether display's current budget allocation is justified relative to the other three paid
+  channels. State your answer in prose, citing the actual CAC and customer-value figures you
+  compute, and end with a specific recommendation.
+hints:
+  - "Compute CAC per channel first (channel spend / distinct converted customers attributed to that channel), then pair it with each channel's average customer value (from completed-order revenue) to get an LTV:CAC ratio — CAC alone can't answer a budget-allocation question."
+  - "Before recommending a reallocation, check display's absolute scale (how many customers, how much budget) against the other channels — a channel with a weak ratio but tiny spend matters less to fix than one with a weak ratio and the largest budget in the mix."
+rubric:
+  - criterion: "Computes CAC per channel correctly, using channel-level spend and distinct attributed customers"
+    points: 20
+  - criterion: "Pairs CAC with a customer-value metric (LTV, average revenue, or ROAS) per channel, rather than judging channels on cost alone"
+    points: 20
+  - criterion: "Identifies display specifically as the weakest channel by return, and states why its scale (largest budget share) makes this more consequential than if it were a small channel"
+    points: 25
+  - criterion: "Gives a specific, quantified reallocation recommendation (which channel(s), roughly how much) and names at least one risk or caveat to monitor"
+    points: 35
+solution: >
+  CAC per channel: email $194.44 (112 customers, $21,776.99 budget), social $252.56 (215 customers,
+  $54,300.54), search $265.80 (46 customers, $12,226.66), display $342.03 (224 customers, $76,614.79).
+  Display is both the most expensive channel per customer acquired and receives the largest share of
+  total paid budget — $76,614.79 of $164,918.98 across all four channels, or about 46%.
+
+  Pairing CAC with average customer value (lifetime completed-order revenue for customers attributed to
+  each channel) gives a clearer picture than cost alone: email's customers average $3,425.93 in lifetime
+  revenue (a 17.62x LTV:CAC ratio), search's average $3,717.20 (13.99x), social's average $3,525.83
+  (13.96x), and display's average just $3,306.58 (9.67x) — the lowest average customer value of any
+  channel, combined with the highest cost to acquire one. Display isn't merely "the biggest channel that
+  happens to cost more" — it's the weakest-returning channel of the four on every measure, while also
+  commanding the largest share of the budget.
+
+  This matters more than it would for a small channel precisely because of its scale: a channel with a
+  9.67x ratio and a tiny budget would be a minor inefficiency; a channel with a 9.67x ratio and 46% of
+  total spend is a much larger amount of budget sitting in the weakest-performing place.
+
+  Recommendation: shift a meaningful share of display's budget — a reasonable starting move is $20,000/month
+  — toward email and search, the two strongest LTV:CAC channels, while leaving social's allocation
+  roughly intact given its solid, middle-of-the-pack performance. At their current marginal CAC, that
+  $20,000 would trade roughly 58 display-acquired customers for roughly 103 email-acquired customers, at a
+  meaningfully higher average value per customer.
+
+  Risk to monitor: channel efficiency at low spend doesn't always hold at higher spend — email's CAC could
+  rise once it's absorbing incremental budget previously spent reaching a different audience through
+  display. The reallocation should be treated as a test with a defined re-check point (e.g. 60 days),
+  re-measuring CAC and LTV:CAC per channel before committing to a larger, permanent shift.
+explanation: >
+  A strong answer never lets "display is our biggest channel" stand in for "display deserves its budget" —
+  it explicitly computes both cost (CAC) and value (customer LTV) per channel, and notices that display is
+  the worst performer on both dimensions simultaneously, not just relatively expensive. It also correctly
+  identifies that a bad ratio is a bigger problem specifically because of the dollar amount involved (46%
+  of total spend), which is what turns a metric observation into an actual decision worth making. A weaker
+  answer stops at "display has a worse CAC" without checking value per customer, or recommends a vague
+  reallocation with no specific amount, no named risk, and no re-check point — leaving the CMO with an
+  observation rather than an actionable decision.

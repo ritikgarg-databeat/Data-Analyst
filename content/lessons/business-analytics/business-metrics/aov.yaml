@@ -1,0 +1,84 @@
+slug: aov
+module_slug: business-metrics
+title: Average Order Value (AOV)
+description: What AOV measures, how to calculate it, and how it combines with conversion rate and traffic to determine total revenue.
+difficulty: BEGINNER
+estimated_minutes: 12
+display_order: 4
+objectives:
+  - Define Average Order Value and calculate it from order-level data
+  - Explain the mathematical relationship between traffic, conversion rate, AOV, and total revenue
+  - Identify when a change in AOV is masking a change in conversion rate, or vice versa
+prerequisites: [conversion-rate]
+skills: [business-metrics]
+datasets: [orders-sample]
+tags: [business-analytics, beginner]
+key_takeaways:
+  - "AOV = Total Revenue / Number of Orders, and it's one of three levers — traffic × conversion rate × AOV — that together determine revenue."
+  - A rising AOV can hide a falling conversion rate, and vice versa, when a team only looks at total revenue.
+  - Discounting and bundling both move AOV, but in opposite directions and for different strategic reasons.
+common_mistakes:
+  - Celebrating a rising AOV without checking whether conversion rate fell in the same period — the two can offset each other and hide a real funnel problem.
+  - Computing AOV over all orders, including cancelled or refunded ones, which distorts the average away from what customers actually kept.
+blocks:
+  - type: heading
+    text: "AOV: the piece that connects traffic to revenue"
+  - type: text
+    body: >
+      Average Order Value is the average dollar amount of a single order. On its own it's a simple
+      average — but it becomes powerful once you see it as one of three levers that multiply together
+      to produce total revenue. Move any one of the three and revenue moves, even if the other two
+      stay flat.
+  - type: formula
+    expression: "AOV = Total Revenue / Number of Orders"
+    description: "Almost always calculated over completed, non-refunded orders — otherwise it understates what a real purchase is worth."
+  - type: formula
+    expression: "Revenue = Traffic × Conversion Rate × AOV"
+    description: >
+      This identity is why AOV can't be read in isolation: if AOV rises while traffic and conversion
+      rate hold steady, revenue rises proportionally — but if AOV rises because conversion rate fell
+      (fewer, bigger orders), revenue may not move at all.
+  - type: comparison
+    title: What moves AOV, and in which direction
+    columns: ["Lever", "Typical effect on AOV", "Example"]
+    rows:
+      - ["Bundling / upsells", "Up", "\"Buy 2, get 10% off\" nudges customers toward a bigger basket"]
+      - ["Free-shipping threshold", "Up", "A $50 free-shipping minimum pulls small carts up toward $50"]
+      - ["Percentage-off discount codes", "Down", "A 20%-off code lowers the realized average even if unit volume rises"]
+      - ["Growth in low-price SKU sales", "Down", "More $8 items sold pulls the blended average down"]
+  - type: example
+    title: Flat revenue can hide two opposite stories
+    body: >
+      A store's total revenue holds steady at $100,000 for two consecutive months. In month one, AOV
+      is $40 and conversion rate is 2.5% on the same traffic. In month two, AOV rises to $50 while
+      conversion rate falls to 2.0%. Total revenue looks unchanged — but the funnel actually got
+      *worse* at turning visitors into buyers, and only a bigger average basket from the buyers who
+      remained is masking it.
+    code: |
+      SELECT
+        ROUND(AVG(order_total), 2) AS aov,
+        SUM(order_total) AS total_revenue,
+        COUNT(*) AS order_count
+      FROM orders
+      WHERE status = 'completed';
+    language: sql
+  - type: callout
+    variant: common_mistake
+    title: "\"AOV is up\" is not automatically good news"
+    body: >
+      A rising AOV combined with a falling conversion rate can mean the same thing as fewer, richer
+      customers buying — while everyone else is quietly bouncing off the funnel. Always check AOV and
+      conversion rate together, not AOV alone.
+  - type: question
+    prompt: >
+      A team reports "AOV grew 15% this quarter" as a win. What additional number would you ask for
+      before agreeing it's good news?
+    choices:
+      - The company's stock price
+      - Conversion rate over the same period, to check whether fewer people are buying bigger baskets
+      - The number of employees on the marketing team
+    correct_index: 1
+    explanation: >
+      Because Revenue = Traffic × Conversion Rate × AOV, a rising AOV alongside a falling conversion
+      rate can leave total revenue flat or even declining. Conversion rate is the number that reveals
+      whether AOV growth reflects broad improvement or a narrower, more expensive customer base.

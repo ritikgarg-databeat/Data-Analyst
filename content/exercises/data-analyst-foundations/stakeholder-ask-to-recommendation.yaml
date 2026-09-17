@@ -1,0 +1,22 @@
+slug: stakeholder-ask-to-recommendation
+lesson_slug: stakeholder-communication
+skill: communication
+title: From a Vague Worry to a Decision-Ready Message
+description: Turn a vague stakeholder concern into a properly framed question and a decision-ready message structure.
+exercise_type: BUSINESS_REASONING
+difficulty: BEGINNER
+points: 10
+tags: [foundations, beginner, business-analytics]
+prompt: >
+  A stakeholder messages you: "Can you check on customer satisfaction? I think it's dropping." Once you
+  have a real answer, write how you would open your response message to them, following an answer-first
+  structure — not the clarifying questions you'd ask beforehand.
+hints:
+  - "Assume your investigation found: NPS dropped from 42 to 31 over the last month, concentrated almost entirely among customers who contacted support in that window."
+  - "Structure: headline recommendation first, then 2-3 supporting numbers, then confidence and caveats — methodology only if asked."
+explanation: >
+  A strong answer leads with a one-sentence headline finding and recommendation, for example: "NPS
+  dropped from 42 to 31 this month, driven almost entirely by customers who contacted support — recommend
+  prioritizing a support-quality review before the next NPS survey." It follows with 2-3 supporting
+  numbers, states confidence and caveats briefly, and offers methodology only if asked. A weak answer
+  opens with how the data was pulled, or presents the NPS drop with no named cause or recommended action.

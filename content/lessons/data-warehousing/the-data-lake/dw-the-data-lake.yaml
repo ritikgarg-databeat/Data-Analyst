@@ -1,0 +1,97 @@
+slug: dw-the-data-lake
+module_slug: the-data-lake
+title: "The Data Lake: Cheap, Flexible, Schema-on-Read"
+description: Storing raw data cheaply in its native format, the schema-on-read tradeoff that makes that possible, and where it breaks down without more structure.
+difficulty: BEGINNER
+estimated_minutes: 30
+display_order: 1
+objectives:
+  - Explain what a data lake is and how storing raw files differs from storing data in warehouse tables.
+  - Define "schema-on-read" vs "schema-on-write" and state the tradeoff each one makes.
+  - Identify the raw CSVs in data/sample/ecommerce, read directly by dbt's sources, as a miniature stand-in for a lake's raw layer.
+skills: [data-warehousing, data-engineering-fundamentals]
+datasets: [ecommerce]
+tags: [data-lake, architecture, foundations, beginner]
+prerequisites: [dw-what-is-a-data-warehouse]
+key_takeaways:
+  - "A data lake stores raw data cheaply and flexibly, in its original format (CSV, JSON, Parquet, log files), without requiring a schema to be defined before the data lands — that's what \"schema-on-read\" means: the structure is imposed later, at query time, rather than enforced up front at write time."
+  - "The lake's flexibility is also its risk: because nothing enforces structure or correctness on the way in, a lake can accumulate unusable or inconsistent data (often called a \"data swamp\") if nothing downstream ever imposes discipline on it."
+  - "This platform's own `data/sample/ecommerce/*.csv` files, read directly by the dbt project's `raw` source (see sources.yml's `external_location`), are architecturally a tiny data lake — raw files, in their original format, with structure only imposed once dbt's staging models query them."
+common_mistakes:
+  - "Assuming a data lake is just \"a data warehouse but cheaper,\" and interchangeable with it. A lake trades structure and query performance for storage flexibility and cost — it's suited to raw, high-volume, possibly semi-structured data, not to being queried directly by business dashboards the way a warehouse's marts are."
+  - "Believing schema-on-read means \"no schema exists.\" A schema still gets applied — just later, at the moment something reads the data, instead of being enforced when the data is written. If every reader defines that schema slightly differently (or gets it wrong), the same file can be interpreted inconsistently by different consumers."
+blocks:
+  - type: heading
+    text: Store first, structure later
+  - type: text
+    body: >
+      A **data lake** is a storage layer that holds data in its raw, native format — CSV exports,
+      JSON event logs, Parquet files, images, anything — without requiring a predefined schema before
+      it lands. Object storage (like S3, GCS, or Azure Blob Storage) made this genuinely cheap at
+      scale: you can store enormous volumes of raw, unstructured or semi-structured data for a
+      fraction of what structured, indexed database storage costs, and worry about interpreting it
+      later.
+  - type: formula
+    expression: "schema-on-write (warehouse) applies structure at write time  |  schema-on-read (lake) applies structure at read time"
+    description: >
+      The core tradeoff. A warehouse table rejects a row that doesn't fit its schema before it's ever
+      stored. A lake accepts the raw file as-is; the schema only gets imposed the moment a query or
+      job reads it — which means two different readers could, in principle, interpret the same raw
+      file two different ways.
+  - type: example
+    title: "This project's own raw layer is a small data lake"
+    body: >
+      `data/sample/ecommerce/orders.csv` is a raw file sitting on disk — no database schema enforces
+      its column types until something reads it. The dbt project's `sources.yml` points straight at
+      it (`external_location: "'{{ env_var('DBT_DATA_DIR') }}/{name}.csv'"` for the `raw` source), and
+      it's `stg_orders.sql` — a staging model — that's the first place any *structure* actually gets
+      imposed: selecting specific columns, standardizing `status`, and implicitly asserting a shape.
+      Until that staging model runs, the CSV is exactly the kind of "raw, cheap, schema-on-read"
+      artifact a data lake stores at a much larger scale — event logs, exported files, whatever a
+      source system happens to produce.
+  - type: code
+    language: yaml
+    code: |
+      # dbt/models/staging/sources.yml
+      sources:
+        - name: raw
+          meta:
+            external_location: "'{{ env_var('DBT_DATA_DIR') }}/{name}.csv'"
+          tables:
+            - name: orders
+              description: "1 row = 1 order."
+    caption: "dbt reading a raw CSV directly, with no schema enforced until a model queries it — the same idea a data lake runs at much larger scale, over object storage instead of a local folder."
+  - type: heading
+    text: The tradeoff nobody escapes
+  - type: text
+    body: >
+      Schema-on-read is what makes a lake cheap and flexible: you can dump data from a brand-new
+      source system into the lake today, before anyone has decided exactly how it should be modeled,
+      and figure that out later. The cost is that nothing stops inconsistent, malformed, or simply
+      wrong data from accumulating right alongside good data — there's no gatekeeper at write time.
+      A lake with no downstream discipline imposed on it earns the (only half-joking) nickname **data
+      swamp**: technically all your data, practically unusable because nobody agreed on what any of
+      it means.
+  - type: callout
+    variant: warning
+    title: "A lake without staging discipline becomes a swamp"
+    body: >
+      If ten different teams query `data/sample/ecommerce/orders.csv` directly, and five of them
+      remember to lowercase and trim `status` while five don't, you now have two silently different
+      definitions of "completed" in circulation. This project's staging layer exists specifically to
+      prevent that: `stg_orders.sql` imposes one agreed structure once, so every downstream model —
+      and every analyst — inherits the same clean definition instead of re-deriving (and possibly
+      mis-deriving) it independently.
+  - type: question
+    prompt: "What does \"schema-on-read\" actually mean, precisely?"
+    choices:
+      - "The data has no structure at all, ever, under any circumstance"
+      - "Structure is applied at the moment the data is read/queried, rather than being enforced when it was originally written — which is cheap and flexible, but leaves room for readers to interpret the same raw data inconsistently"
+      - "It's another name for schema-on-write, just used in cloud contexts"
+    correct_index: 1
+    explanation: >
+      Schema-on-read doesn't mean "no schema" — it means the schema is deferred until read time
+      instead of enforced at write time. That deferral is exactly what makes a lake cheap and
+      flexible for raw ingestion, and exactly what creates the risk of inconsistent interpretation if
+      nothing standardizes the read-time structure (which is precisely the job a staging layer, or a
+      lakehouse's built-in guarantees, exists to solve).

@@ -1,0 +1,119 @@
+slug: saas-product-analytics-capstone
+title: SaaS Product Analytics
+category: PRODUCT_ANALYTICS
+business_context: >
+  You're the analyst supporting the product team at a subscription SaaS company with starter, pro,
+  and enterprise plans. The product team knows users sign up, but has never rigorously measured how
+  many actually become engaged, activated, and upgraded users, why people churn once they're on a
+  paid plan, or whether the two experiments currently running (a checkout redesign and an onboarding
+  email sequence) are actually working. The Head of Product has asked you to build a full picture of
+  product health — funnel, retention, churn, and experiment results — that the team can use to decide
+  what to fix next.
+objective: >
+  Build a complete product-analytics view of the SaaS business: the signup-to-engaged-to-activated-
+  to-upgraded funnel, cohort retention curves, a churn analysis by plan, a readout of at least one
+  running experiment, and a product-health dashboard summarizing it all for the product team, backed
+  by a written recommendation of where the team should focus next.
+requirements:
+  - "A funnel analysis quantifying conversion rates through signup, engaged, activated, and upgraded stages, using the events table"
+  - "A cohort retention analysis (e.g. monthly signup cohorts) showing how retention changes over time since signup"
+  - "A churn analysis broken down by plan (starter/pro/enterprise), including churn rate and average tenure before churn"
+  - "A statistically grounded readout of at least one experiment (checkout_redesign or onboarding_email) from experiment_assignments, including the conversion rates for control vs. treatment and whether the difference is meaningful"
+  - "A product-health dashboard with at least 4 charts spanning the funnel, retention, and churn analyses"
+  - "A written recommendation memo identifying the biggest opportunity for improving product health and the experiment(s) that support or refute proposed changes"
+suggested_datasets:
+  - saas-product
+milestones:
+  - title: Understand the Product and Business
+    description: Understand the SaaS company's plan structure, what signup/engaged/activated/upgraded actually mean for this product, and what the product team needs to decide.
+  - title: Data Discovery
+    description: Profile the users, events, subscriptions, and experiment_assignments tables, including event sequencing and any gaps or duplicate events.
+  - title: Funnel Construction
+    description: Build the signup-to-engaged-to-activated-to-upgraded funnel and quantify conversion and drop-off at each stage.
+  - title: Cohort Retention Analysis
+    description: Group users into signup cohorts and analyze how engagement or subscription retention changes over time since signup.
+  - title: Churn Analysis
+    description: Analyze churn rate and tenure by plan tier to understand where and when the business loses subscribers.
+  - title: Experiment Readout
+    description: Analyze the checkout_redesign and/or onboarding_email experiment(s), comparing control and treatment conversion rates.
+  - title: Build the Product-Health Dashboard
+    description: Design and build a dashboard summarizing the funnel, retention, and churn metrics for ongoing product-team use.
+  - title: Insights and Recommendation
+    description: Synthesize the funnel, retention, churn, and experiment findings into a prioritized recommendation for the product team.
+  - title: Final Presentation
+    description: Present the product-health picture and your recommendation in a form the Head of Product can act on.
+required_skills:
+  - sql-fundamentals
+  - advanced-sql
+  - product-metrics
+  - experimentation
+  - statistical-reasoning
+  - exploratory-data-analysis
+  - data-visualization
+  - communication
+rubric:
+  - category: Business Understanding
+    weight: 10
+    criteria:
+      - criterion: Correctly frames what each funnel stage means for this SaaS product and why it matters
+        points: 10
+      - criterion: Connects the analysis to a decision the product team actually needs to make
+        points: 10
+  - category: Technical Execution
+    weight: 25
+    is_technical: true
+    criteria:
+      - criterion: Funnel conversion rates are correctly computed stage-to-stage
+        points: 10
+      - criterion: Cohort retention analysis correctly aligns users by time-since-signup
+        points: 10
+      - criterion: Churn and experiment queries are correct and use the right population definitions
+        points: 10
+  - category: Analytical Reasoning
+    weight: 25
+    criteria:
+      - criterion: Identifies where the funnel actually leaks and why, not just that it does
+        points: 10
+      - criterion: Churn analysis correctly distinguishes churn rate from tenure and rate by plan
+        points: 5
+      - criterion: Experiment readout correctly interprets the control-vs-treatment result and its limitations
+        points: 10
+  - category: Visualization
+    weight: 15
+    criteria:
+      - criterion: Dashboard covers funnel, retention, and churn with at least 4 well-chosen charts
+        points: 10
+      - criterion: Retention is visualized in a way that makes cohort comparisons legible (e.g. cohort curves or a retention heatmap)
+        points: 10
+  - category: Recommendations
+    weight: 10
+    criteria:
+      - criterion: Recommendation is specific and prioritized, not a generic list of ideas
+        points: 10
+  - category: Communication
+    weight: 15
+    criteria:
+      - criterion: Final presentation clearly explains funnel, retention, churn, and experiment findings to a product audience
+        points: 10
+      - criterion: Technical detail is translated into business implications throughout
+        points: 10
+learning_objectives:
+  - Build a multi-stage product funnel from raw event data
+  - Construct and interpret cohort retention curves
+  - Analyze churn rate and tenure across subscription plan tiers
+  - Read out an A/B experiment result including its statistical limitations
+  - Design a product-health dashboard for a product-management audience
+  - Prioritize product recommendations from a combination of funnel, retention, churn, and experiment evidence
+estimated_hours: 8.0
+tags:
+  - sql
+  - product-analytics
+  - saas
+  - funnel
+  - cohort
+  - churn
+  - retention
+  - experimentation
+  - ab-testing
+  - advanced
+version: 1

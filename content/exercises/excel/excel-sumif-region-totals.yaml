@@ -1,0 +1,76 @@
+slug: excel-sumif-region-totals
+skill: excel-fundamentals
+title: "Total Revenue by Region with SUMIF"
+description: Use SUMIF to total a revenue column by a category in another column, without manually filtering or sorting.
+exercise_type: EXCEL
+difficulty: BEGINNER
+points: 10
+tags: [excel, sumifs]
+business_context: >
+  A sales log lists one row per order with its region and amount. Finance wants a one-glance
+  summary of total revenue per region, without pivoting the whole sheet.
+prompt: >
+  The `Data` sheet lists each order's `Region` (column A) and `Amount` (column B). On the `Summary`
+  sheet, fill in `B2` and `B3` with a SUMIF formula that totals `Data!B2:B6` for orders where
+  `Data!A2:A6` matches the region named in that row's column A (`Summary!A2` = "West",
+  `Summary!A3` = "East"). Do not hardcode the totals as literal numbers — the formula must
+  recompute correctly if the underlying data changes.
+excel_starter_sheets:
+  - name: Data
+    cells:
+      A1: Region
+      B1: Amount
+      A2: West
+      B2: "100"
+      A3: East
+      B3: "200"
+      A4: West
+      B4: "150"
+      A5: East
+      B5: "250"
+      A6: West
+      B6: "50"
+  - name: Summary
+    cells:
+      A1: Region
+      B1: Total Revenue
+      A2: West
+      A3: East
+excel_solution_sheets:
+  - name: Data
+    cells:
+      A1: Region
+      B1: Amount
+      A2: West
+      B2: "100"
+      A3: East
+      B3: "200"
+      A4: West
+      B4: "150"
+      A5: East
+      B5: "250"
+      A6: West
+      B6: "50"
+  - name: Summary
+    cells:
+      A1: Region
+      B1: Total Revenue
+      A2: West
+      B2: "=SUMIF(Data!A2:A6,A2,Data!B2:B6)"
+      A3: East
+      B3: "=SUMIF(Data!A2:A6,A3,Data!B2:B6)"
+excel_check_cells: ["Summary!B2", "Summary!B3"]
+hints:
+  - "SUMIF takes three arguments: the range to check (Data!A2:A6), the criteria to match (a cell like A2, or a literal like \"West\"), and the range to sum (Data!B2:B6)."
+  - "Reference the criteria from the cell in column A on the Summary sheet itself (e.g. =SUMIF(Data!A2:A6,A2,Data!B2:B6)) rather than typing the region name directly, so the formula also works for East without editing it."
+solution: >
+  `Summary!B2` = `=SUMIF(Data!A2:A6,A2,Data!B2:B6)` (evaluates to 300)
+
+  `Summary!B3` = `=SUMIF(Data!A2:A6,A3,Data!B2:B6)` (evaluates to 450)
+explanation: >
+  SUMIF(range, criteria, sum_range) scans `range` for cells matching `criteria` and sums the
+  corresponding cells in `sum_range`. West totals 100 + 150 + 50 = 300; East totals 200 + 250 = 450.
+  Referencing the criteria from `Summary!A2`/`A3` (rather than typing "West"/"East" literally into
+  the formula) means the same formula pattern works for every row without editing the formula
+  itself — the standard way to make a lookup formula reusable down a column.
+version: 1

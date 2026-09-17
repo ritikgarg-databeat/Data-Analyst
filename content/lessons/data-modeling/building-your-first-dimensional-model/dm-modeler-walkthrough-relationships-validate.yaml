@@ -1,0 +1,91 @@
+slug: dm-modeler-walkthrough-relationships-validate
+module_slug: building-your-first-dimensional-model
+title: "Connecting Relationships and Validating"
+description: Drawing the relationship edge between dim_customers and fct_orders, running Validate for real, and deliberately breaking then fixing a finding to see exactly what the checks look at.
+difficulty: INTERMEDIATE
+estimated_minutes: 28
+display_order: 2
+objectives:
+  - Draw a relationship between two tables in the Data Modeler with the correct type and columns, and explain the difference between what a relationship edge checks and what a column's foreign-key metadata checks.
+  - Deliberately break and then fix a real validator finding (missing_primary_key) on the model from the previous lesson, confirming the finding appears and then disappears.
+skills: [dimensional-modeling]
+datasets: [ecommerce]
+tags: [relationships, validation, star-schema, data-modeling, intermediate]
+prerequisites: [dm-modeler-walkthrough-tables]
+key_takeaways:
+  - "A relationship edge (from-table/from-column to to-table/to-column, with a type) is what the dangling_relationship and circular_relationship checks look at. A column's own is_foreign_key/references_table/references_column metadata is what the foreign_key_* checks look at. You'll usually set both together, but they're independently checked."
+  - "Direction on a drawn relationship is just which end you started dragging from — dim_customers to fct_orders as ONE_TO_MANY and fct_orders to dim_customers as MANY_TO_ONE describe the same real relationship."
+  - "The validator does not flag a table that simply has no relationships drawn to it at all — there's no 'orphan table' check. Passing validation means the structure you've explicitly declared is internally consistent, not that every table in the model is being used for something."
+common_mistakes:
+  - "Treating every warning as something that must be fixed before the model can be saved — missing_primary_key and the rest are educational nudges, not blockers."
+  - "Drawing the relationship edge and assuming that alone makes a column a recognized foreign key — the edge and the column's own is_foreign_key metadata are two separate things the validator checks separately."
+blocks:
+  - type: heading
+    text: Drawing the relationship
+  - type: text
+    body: >
+      With dim_customers, dim_products, and the corrected fct_orders from the previous lesson on the canvas,
+      draw one relationship: drag from dim_customers to fct_orders, set from_column to customer_id, to_column
+      to customer_id, and relationship_type to **ONE_TO_MANY** — one customer, many orders. Drawn from the
+      other direction (fct_orders to dim_customers), the identical real relationship would be labeled
+      MANY_TO_ONE; either is correct, they're the same edge.
+  - type: heading
+    text: Clicking Validate
+  - type: text
+    body: >
+      With fct_orders.customer_id already marked is_foreign_key referencing dim_customers.customer_id (from the
+      previous lesson), order_id marked as the primary key, and grain set to "1 row = 1 order," click
+      **Validate**. On this model, it should come back clean — zero findings.
+  - type: callout
+    variant: important
+    title: "dim_products isn't flagged for sitting unconnected"
+    body: >
+      dim_products has no relationship drawn to it and validates without complaint. There is no check in this
+      engine for "a table with no relationships" — the checks that run are duplicate_column,
+      foreign_key_missing_target/unknown_table/unknown_column, dangling_relationship,
+      relationship_unknown_column, circular_relationship, and — for DIMENSIONAL models specifically —
+      missing_primary_key, fact_table_missing_grain, and dimension_looks_like_measure. None of them ask whether
+      a table is actually being referenced by anything else. Recognizing a table's role in the bigger picture
+      is still a judgment call for you, not something Validate does for you.
+  - type: heading
+    text: Breaking it on purpose
+  - type: text
+    body: >
+      Un-mark order_id as the primary key on fct_orders (leave every other setting untouched) and click
+      Validate again.
+  - type: output
+    body: |
+      severity: warning
+      code: missing_primary_key
+      table: fct_orders
+      message: "'fct_orders' has no column marked as a primary key. Most tables need one so each row can be uniquely identified and safely referenced by other tables."
+    caption: "The real finding text returned by this engine's validator for this exact situation."
+  - type: text
+    body: >
+      Re-mark order_id as the primary key and validate a third time — the missing_primary_key finding is gone,
+      and the model is back to zero findings. Nothing else about the model changed in between; this one check
+      responds to exactly one thing (whether any column on the table has is_primary_key set), which is worth
+      confirming for yourself rather than taking on faith.
+  - type: heading
+    text: What passing validation actually means
+  - type: text
+    body: >
+      Zero findings means the *structure* you declared is internally consistent: every foreign key points
+      somewhere real, every fact table has a grain, no relationship dangles or cycles unexpectedly. It does not
+      mean the model correctly answers the business question you started with, that you've picked the right
+      grain for the question, or that a table you forgot to connect isn't actually needed. Those are still
+      judgment calls a person makes — the validator's job is narrower and more mechanical than that, by design.
+  - type: question
+    prompt: >
+      You draw a relationship from dim_customers to fct_orders, but you set to_column to "customerid" (no
+      underscore) while the actual column on fct_orders is named "customer_id". What happens when you click
+      Validate?
+    choices:
+      - "Nothing — the Data Modeler automatically matches similarly-spelled column names"
+      - "A relationship_unknown_column warning, since the relationship references a column name that doesn't exist on that table"
+      - "A dangling_relationship error, since the target table can't be found"
+    correct_index: 1
+    explanation: >
+      dangling_relationship fires when a relationship points at a table that no longer exists — the table
+      itself (fct_orders) is fine here. The column name on the relationship just doesn't match any real column
+      on that table, which is exactly what relationship_unknown_column checks for and reports as a warning.

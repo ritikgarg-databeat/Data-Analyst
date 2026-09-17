@@ -1,0 +1,161 @@
+slug: selecting-columns
+module_slug: pandas-dataframes-fundamentals
+title: Selecting Columns
+description: "df['col'] vs df[['col1', 'col2']] (Series vs DataFrame), and why attribute access like df.col is convenient but fragile."
+difficulty: BEGINNER
+estimated_minutes: 9
+display_order: 5
+objectives:
+  - "Select a single column as a Series with df['col'], and multiple columns as a DataFrame with df[['col1', 'col2']]"
+  - Explain why attribute access (df.col) is risky and when it silently does the wrong thing
+prerequisites: [inspecting-data]
+skills: [pandas]
+datasets: [ecommerce]
+tags: [python, beginner, foundations]
+key_takeaways:
+  - "Single brackets with a single column name (df['col']) return a Series. Double brackets — a list of column names inside the selection brackets (df[['col1', 'col2']]) — return a DataFrame, even if the list has only one name in it."
+  - "df.col (attribute access) works for convenience in a notebook, but breaks on column names with spaces or special characters, and silently returns the wrong thing when a column name collides with a DataFrame method name like count or sum."
+  - "Bracket access — df['col'] — always works and is never ambiguous, so it's the recommended default for code you intend to keep."
+common_mistakes:
+  - "Writing df[['col']] when a single Series was wanted, or df['col'] when a one-column DataFrame was wanted — the extra brackets are the entire difference and it's easy to type the wrong one out of habit."
+  - "Using df.column_name in a script, then hitting a confusing bug months later when a column named count or a column named with a space gets added to the same DataFrame."
+blocks:
+  - type: text
+    body: >
+      Once a DataFrame is loaded, pulling out the column(s) you actually need is one of the most common
+      operations you'll write. There are three ways to do it, and they don't all behave the same way.
+  - type: heading
+    text: "Single brackets: df['col'] returns a Series"
+  - type: code
+    language: python
+    code: |
+      import pandas as pd
+
+      orders = pd.read_csv("data/sample/ecommerce/orders.csv")
+
+      status = orders["status"]
+      print(type(status))
+      print(status.head(3))
+    caption: One column name in single brackets gives you back a Series
+  - type: output
+    body: |
+      <class 'pandas.Series'>
+      0    completed
+      1    completed
+      2    completed
+      Name: status, dtype: str
+  - type: heading
+    text: "Double brackets: df[['col1', 'col2']] returns a DataFrame"
+  - type: code
+    language: python
+    code: |
+      subset = orders[["order_id", "status"]]
+      print(type(subset))
+      print(subset.head(3))
+    caption: A list of column names inside the brackets — the outer brackets do the selecting, the inner list says which columns
+  - type: output
+    body: |
+      <class 'pandas.DataFrame'>
+         order_id     status
+      0         1  completed
+      1         2  completed
+      2         3  completed
+  - type: callout
+    variant: important
+    title: The double brackets are a list literal, not special syntax
+    body: >
+      orders[["order_id", "status"]] is really orders[ ["order_id", "status"] ] — you're passing a
+      Python list into the selection brackets. That's why even a single-column selection written as
+      orders[["status"]] returns a one-column DataFrame, not a Series — the list, not the number of
+      names in it, decides the return type.
+  - type: heading
+    text: ".loc and .iloc also select columns"
+  - type: text
+    body: >
+      You'll meet `.loc` and `.iloc` properly in a later lesson on row selection, but they work for
+      columns too — `.loc` takes a row selector and a column *label*, `.iloc` takes a row selector and a
+      column *position*. For plain column selection, `df['col']` is simpler and more common, but this is
+      worth recognizing when you see it.
+  - type: code
+    language: python
+    code: |
+      print(orders.loc[:, "status"].head(3))     # all rows, column labeled "status"
+      print(orders.iloc[:, 2].head(3))            # all rows, the 3rd column by position
+    caption: "The colon (:) means 'all rows' — the second argument picks the column"
+  - type: output
+    body: |
+      0    completed
+      1    completed
+      2    completed
+      Name: status, dtype: str
+      0    2025-10-18
+      1    2025-12-16
+      2    2025-09-29
+      Name: order_date, dtype: str
+  - type: heading
+    text: "Attribute access: df.col — convenient but fragile"
+  - type: code
+    language: python
+    code: |
+      print(orders.status.head(3))
+    caption: Dot notation works, when the column name is a valid Python identifier
+  - type: output
+    body: |
+      0    completed
+      1    completed
+      2    completed
+      Name: status, dtype: str
+  - type: text
+    body: >
+      This looks identical to bracket access and, when it works, it's genuinely convenient — less typing,
+      and autocomplete-friendly in most editors. The problem is it doesn't always work, and when it
+      fails, it doesn't always fail loudly.
+  - type: code
+    language: python
+    code: |
+      messy = pd.DataFrame({"order id": [1, 2, 3], "count": [10, 20, 30]})
+
+      # messy.order id     <- not even valid Python syntax, the space breaks it outright
+
+      print(messy.count)           # NOT the column! This is DataFrame.count, a built-in method
+      print(type(messy.count))
+      print()
+      print(messy["count"])        # the actual column — bracket access is unambiguous
+    caption: A column name with a space, and a column name that collides with a DataFrame method
+  - type: output
+    body: |
+      <bound method DataFrame.count of    order id  count
+      0         1     10
+      1         2     20
+      2         3     30>
+      <class 'method'>
+
+      0    10
+      1    20
+      2    30
+      Name: count, dtype: int64
+  - type: callout
+    variant: common_mistake
+    title: "messy.count doesn't raise an error — it just quietly gives you the wrong thing"
+    body: >
+      Because DataFrame already has a built-in .count() method, messy.count resolves to that method
+      object instead of the column, with no warning at all. A column named "order id" is even worse —
+      the space makes messy.order id invalid syntax, so you can't even attempt attribute access. Bracket
+      access, messy['count'] and messy['order id'], works correctly for both and never has this problem.
+  - type: table
+    headers: ["Syntax", "Returns", "Recommended?"]
+    rows:
+      - ["df['col']", "Series", "Yes — always unambiguous"]
+      - ["df[['col1', 'col2']]", "DataFrame", "Yes — always unambiguous"]
+      - ["df.col", "Series (usually)", "Fine for quick, interactive exploration only; avoid in code you'll keep"]
+  - type: question
+    prompt: "orders has a column named 'count'. Which of these reliably returns that column's values?"
+    choices:
+      - "orders['count']"
+      - "orders.count"
+      - "Either one works identically"
+    correct_index: 0
+    explanation: >
+      orders.count resolves to DataFrame's built-in .count() method (which counts non-null values per
+      column), not to a column literally named 'count' — bracket access is the only one of the two that
+      is guaranteed to return the column.

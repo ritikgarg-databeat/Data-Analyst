@@ -1,0 +1,119 @@
+slug: vectorization
+module_slug: numpy-for-analytics
+title: Vectorization
+description: Element-wise array operations without an explicit loop, and a real, measured performance comparison against the equivalent Python for-loop.
+difficulty: BEGINNER
+estimated_minutes: 12
+display_order: 5
+objectives:
+  - Perform element-wise arithmetic on whole arrays without writing an explicit loop
+  - Explain why vectorized operations are dramatically faster than the equivalent Python for-loop
+prerequisites: [slicing]
+skills: [pandas]
+datasets: [ecommerce]
+tags: [python, beginner, foundations]
+key_takeaways:
+  - "Vectorization means applying an operation to an entire array at once (arr * 2) instead of looping element by element — NumPy pushes the actual looping down into fast, compiled C code."
+  - "Two arrays of the same shape combine element-wise with the usual operators (+, -, *, /) — arr1 + arr2 adds each pair of corresponding elements, producing a new array of the same shape."
+  - "On a 1,000,000-element array, a measured vectorized multiply ran roughly 20x faster than the equivalent Python for-loop — the gap only grows as the data gets larger."
+common_mistakes:
+  - "Writing a Python for-loop to do elementwise math on a NumPy array (for x in arr: result.append(x * 2)) — this works, but throws away essentially all of NumPy's speed advantage; arr * 2 does the same thing, faster and in one line."
+  - "Assuming vectorization only applies to simple arithmetic — comparisons (arr > 100), boolean logic, and many NumPy functions (np.sqrt(arr)) are all vectorized the same way, covered in later lessons."
+  - "Not noticing that vectorized operations require compatible shapes — arr1 + arr2 works element-wise only when the arrays are the same shape, or shaped compatibly under broadcasting (next lesson)."
+blocks:
+  - type: text
+    body: >
+      **Vectorization** is the single biggest reason NumPy exists: applying an operation to an entire
+      array at once, instead of writing a Python loop that processes one element at a time. The syntax
+      is almost deceptively simple — the payoff is real, measurable speed.
+  - type: heading
+    text: Element-wise operations
+  - type: code
+    language: python
+    code: |
+      import numpy as np
+
+      prices = np.array([10, 20, 30, 40])
+
+      prices * 2          # array([20, 40, 60, 80])   — every element multiplied by 2
+      prices + 5           # array([15, 25, 35, 45])   — every element plus 5
+
+      costs = np.array([6, 12, 18, 22])
+      prices - costs        # array([ 4,  8, 12, 18])   — element-wise subtraction, position by position
+    caption: "arr op scalar and arr1 op arr2 both apply element-wise — no loop written anywhere"
+  - type: example
+    title: "A real calculation: line revenue across every order item"
+    body: >
+      This is the ecommerce dataset's order_items table (12,627 rows) loaded as plain NumPy arrays.
+      Computing revenue per line — (unit_price - discount) * quantity — for every single row is one
+      vectorized expression, no loop required.
+    code: |
+      import pandas as pd
+
+      items = pd.read_csv("data/sample/ecommerce/order_items.csv")
+      unit_price = items["unit_price"].to_numpy()
+      discount = items["discount"].to_numpy()
+      quantity = items["quantity"].to_numpy()
+
+      line_revenue = (unit_price - discount) * quantity
+
+      print(line_revenue[:5])        # [  75.89 1414.56  966.03  859.9   829.32]
+      print(round(line_revenue.sum(), 2))   # 7096779.45
+    language: python
+  - type: heading
+    text: "Why it's fast: measuring the difference"
+  - type: text
+    body: >
+      A Python for-loop processes one element at a time, and every iteration carries real overhead —
+      Python has to check each element's type, dispatch the right operation, and manage a lot of
+      bookkeeping that has nothing to do with the actual arithmetic. A vectorized NumPy operation skips
+      all of that: it hands the whole array to compiled, optimized C code that loops internally, far
+      faster than Python's own interpreter loop ever could.
+  - type: code
+    language: python
+    code: |
+      import time
+
+      n = 1_000_000
+      py_list = list(range(n))
+      np_arr = np.arange(n)
+
+      start = time.perf_counter()
+      result_list = [x * 2 for x in py_list]
+      py_time = time.perf_counter() - start
+
+      start = time.perf_counter()
+      result_arr = np_arr * 2
+      np_time = time.perf_counter() - start
+
+      print(f"Python loop:     {py_time:.4f}s")
+      print(f"NumPy vectorized: {np_time:.4f}s")
+    caption: "Multiplying every element of a 1,000,000-element array by 2, two ways"
+  - type: output
+    body: |
+      Python loop:     0.1661s
+      NumPy vectorized: 0.0080s
+    caption: "Measured on this platform's sandbox — roughly a 21x speedup for the vectorized version. Exact numbers vary by machine, but the gap is always large and grows with array size."
+  - type: callout
+    variant: important
+    title: The gap widens as data grows
+    body: >
+      This isn't a fixed 20x — the performance gap between a Python loop and a vectorized NumPy
+      operation tends to widen as the array gets larger, since the loop's per-element overhead
+      accumulates linearly while NumPy's compiled code stays efficient. On real analysis-sized data
+      (hundreds of thousands to millions of rows), reaching for vectorized operations instead of loops
+      is not a minor optimization — it's often the difference between a script finishing in seconds
+      versus minutes.
+  - type: question
+    prompt: "Why is arr * 2 dramatically faster than [x * 2 for x in arr] on a large NumPy array?"
+    choices:
+      - "arr * 2 uses less memory, which is the only reason it's faster"
+      - "The list comprehension still processes one Python object at a time with per-element overhead; arr * 2 pushes the entire operation into compiled code operating directly on contiguous memory"
+      - "There's no real difference — Python's list comprehensions are already implemented in C"
+    correct_index: 1
+    explanation: >
+      Even a compact list comprehension still runs Python's interpreter loop once per element, with the
+      type-checking and dispatch overhead that implies. arr * 2 instead hands the whole operation to
+      NumPy's compiled code, which operates directly on the array's contiguous block of same-typed
+      values with none of that per-element Python overhead — that's the real source of the speedup, not
+      memory usage.

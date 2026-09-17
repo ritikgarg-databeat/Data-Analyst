@@ -1,0 +1,105 @@
+slug: prob-conditional-independence
+module_slug: probability
+title: Conditional Probability & Independence
+description: How to compute the probability of an event given another has happened, and how to tell whether two things are actually related or just coincidentally similar-looking.
+difficulty: INTERMEDIATE
+estimated_minutes: 15
+display_order: 2
+objectives:
+  - Compute a conditional probability (P(A given B)) from a real dataset using a GROUP BY.
+  - Determine whether two variables appear independent by comparing a conditional rate to the overall (unconditional) rate.
+skills: [statistics, statistical-reasoning]
+datasets: [ecommerce, saas-product]
+tags: [statistics, intermediate, e-commerce, saas]
+prerequisites: [prob-fundamentals-expected-value]
+key_takeaways:
+  - "P(A | B) is the probability of A restricted to only the cases where B happened — it's still just a count divided by a count, but over a narrower slice of the data."
+  - "Two events are independent when knowing one tells you nothing about the other: P(A | B) equals P(A) overall. When the conditional rate diverges noticeably from the overall rate, that's a signal (not yet proof — see the hypothesis-testing modules) that they're related."
+  - Checking independence before segmenting is a fast, honest first pass — it tells you whether a segment is actually worth treating differently, before you invest in a deeper statistical test.
+common_mistakes:
+  - Assuming any difference between a conditional rate and the overall rate is automatically "real" — small differences in small samples are often just noise, which is exactly what a hypothesis test (covered later) is for.
+  - Confusing P(A | B) with P(B | A) — the probability a user who churned was on the free plan is not the same number as the probability a free-plan user churns.
+interview_questions:
+  - question: What does it mean for two events to be statistically independent, and how would you check it with real data?
+    answer: >
+      Two events are independent if knowing one occurred doesn't change the probability of the
+      other — formally, P(A | B) = P(A). To check it with data, compute the event's overall rate,
+      then compute it again conditioned on each value of the other variable (e.g., a GROUP BY); if
+      the conditional rates all sit close to the overall rate, the variables look independent. A
+      formal test (chi-square, covered later in this domain) tells you whether an observed gap is
+      large enough to call "real" rather than sampling noise.
+blocks:
+  - type: heading
+    text: Conditional probability — probability within a slice
+  - type: text
+    body: >
+      **Conditional probability**, written P(A | B), is the probability of event A *given that*
+      event B already happened. Computationally, it's the same ratio as before — count of favorable
+      outcomes over count of total outcomes — except now both counts are restricted to cases where
+      B is true. You've likely computed dozens of these already: "conversion rate for mobile
+      sessions" is P(converted | device = mobile).
+  - type: formula
+    expression: "P(A | B) = P(A and B) / P(B)"
+    description: In practice, easier to compute directly as (count of A within the B group) / (count of B).
+  - type: heading
+    text: Independence — when the condition changes nothing
+  - type: text
+    body: >
+      A and B are **independent** if conditioning on B doesn't move the probability of A at all:
+      P(A | B) = P(A). If it does move — even a little — A and B have some relationship, and the
+      size of that movement is a first clue to how strong it is.
+  - type: example
+    title: "Case 1: device type looks independent of conversion"
+    body: >
+      Across all 12,000 ecommerce sessions, the overall conversion rate is 15.2%. Split by device,
+      it's 15.3% on desktop, 14.8% on mobile, and 15.6% on tablet — every conditional rate sits
+      within about half a point of the overall rate. Device type doesn't appear to move conversion
+      probability much at all, which is consistent with (though doesn't formally prove) device and
+      conversion being independent.
+  - type: example
+    title: "Case 2: acquisition channel is clearly NOT independent of activation"
+    body: >
+      In the SaaS product dataset, the overall probability a signed-up user activates is 69.1%. But
+      conditioned on acquisition channel, it ranges from 55.9% (paid_social) and 61.7% (paid_search)
+      up to 78.9% (organic) and 78.2% (referral) — a 23-point spread. That's a large, business-
+      relevant gap: users who arrive through paid channels are activating at a meaningfully lower
+      rate than users who arrive organically or via referral.
+  - type: code
+    language: sql
+    code: |
+      SELECT
+        u.acquisition_channel,
+        COUNT(*) AS n_users,
+        ROUND(AVG(CASE WHEN e.activated_user THEN 1.0 ELSE 0.0 END), 4) AS activation_rate
+      FROM users u
+      LEFT JOIN (
+        SELECT DISTINCT user_id, TRUE AS activated_user
+        FROM events WHERE event_name = 'activated'
+      ) e ON u.user_id = e.user_id
+      GROUP BY u.acquisition_channel
+      ORDER BY activation_rate DESC;
+    caption: Conditional activation rate by acquisition channel — the spread signals a real relationship worth investigating.
+  - type: callout
+    variant: important
+    title: A gap is a lead, not a verdict
+    body: >
+      Seeing paid_social convert at 55.9% versus organic's 78.9% is a strong lead — worth flagging
+      to growth and lifecycle teams — but "is this gap bigger than we'd expect from randomness
+      alone?" is a separate, answerable question. That's precisely what the chi-square test (later
+      in the Statistical Tests module) is built for. Don't skip straight from "the rates look
+      different" to "we should reallocate the paid budget" without that check, especially when a
+      channel's sample size is small.
+  - type: question
+    prompt: >
+      A team observes that 15.3% of desktop sessions convert versus 15.6% of tablet sessions — a
+      0.3-point gap — and wants to redesign the desktop checkout flow to catch up. What's the best
+      next step?
+    choices:
+      - Approve the redesign immediately, since any observed gap must reflect something real about desktop
+      - Recognize that a 0.3-point gap this small, on rates this close to the dataset's overall 15.2%, is a plausible candidate for random noise, and check with a formal test before committing resources
+      - Ignore the gap entirely and never revisit conversion-by-device again
+    correct_index: 1
+    explanation: >
+      A 0.3-point difference sitting close to the overall rate is exactly the kind of gap that a
+      formal significance test (not covered here yet, but coming) is designed to evaluate before a
+      team commits engineering time to "fixing" something that may just be sampling variation.

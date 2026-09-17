@@ -1,0 +1,66 @@
+# --- Node / Next.js ---
+node_modules/
+.next/
+out/
+.turbo/
+*.tsbuildinfo
+npm-debug.log*
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+htmlcov/
+.coverage
+
+# --- Env / secrets ---
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# --- Database ---
+*.db
+*.sqlite3
+database/data/
+pgdata/
+
+# --- Data ---
+data/raw/*
+data/processed/*
+data/datasets/*
+data/warehouse/*
+data/backups/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/datasets/.gitkeep
+!data/warehouse/.gitkeep
+!data/backups/.gitkeep
+
+# --- dbt ---
+dbt/target/
+dbt/logs/
+dbt/dbt_packages/
+dbt/.user.yml
+dbt/profiles/.user.yml
+# Generated per exercise submission (see app/services/dbt_exercise_service.py) — scratch state, not part of the authored project.
+dbt/models/exercises/*
+!dbt/models/exercises/.gitkeep
+
+# --- Testing / build artifacts ---
+playwright-report/
+test-results/
+coverage/
+dist/
+build/
+
+# --- Editor / OS ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

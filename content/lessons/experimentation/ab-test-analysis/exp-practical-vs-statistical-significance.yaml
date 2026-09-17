@@ -1,0 +1,104 @@
+slug: exp-practical-vs-statistical-significance
+module_slug: ab-test-analysis
+title: Practical vs. Statistical Significance — Turning a Result Into a Decision
+description: >
+  A p-value answers "is this probably not chance?" — it doesn't answer "is this big enough to matter?"
+  or "what should we do?" Turning both of this domain's real results into an actual recommendation.
+difficulty: ADVANCED
+estimated_minutes: 20
+display_order: 2
+objectives:
+  - Distinguish statistical significance (is the effect probably not chance?) from practical significance (is the effect big enough to matter?)
+  - Turn a non-significant result into a specific recommendation instead of a shrug
+  - Explain why guardrail metrics and business cost belong in the decision even when the primary metric result is clear-cut
+prerequisites: [exp-reading-p-values-and-confidence-intervals]
+skills: [experimentation, statistical-reasoning, decision-making]
+datasets: [saas-product]
+tags: [experimentation, ab-testing, saas, advanced]
+key_takeaways:
+  - "Statistical significance and practical significance are different questions: 'is this probably not chance?' vs. 'is this effect large enough, and cheap enough to ship, to be worth acting on?'"
+  - A non-significant result isn't automatically "do nothing" — the right next step depends on whether the point estimate is promising-but-underpowered, or genuinely flat.
+  - "checkout_redesign (promising direction, likely underpowered) and onboarding_email (flat, likely null) both come back 'not significant,' but warrant two different recommendations."
+common_mistakes:
+  - Treating "not significant" as automatically meaning "kill the idea," even when the point estimate and confidence interval suggest a plausible large effect that the test simply lacked the power to confirm.
+  - Treating "significant" as automatically meaning "ship it," without checking whether the effect is large enough to be worth the engineering cost, and without checking guardrail metrics.
+blocks:
+  - type: heading
+    text: Two different questions
+  - type: text
+    body: >
+      **Statistical significance** asks: is this difference probably not just random noise? **Practical
+      significance** asks a completely separate question: is the effect, if real, big enough to justify
+      the cost of building, shipping, and maintaining the change? A tiny, statistically significant
+      effect (easy to achieve with a huge sample size) can be practically meaningless. And a
+      statistically inconclusive result can still be practically important to keep investigating, if the
+      point estimate is large enough to matter.
+  - type: example
+    title: "Turning both real results into a recommendation"
+    body: >
+      checkout_redesign: control 11.3%, treatment 12.5% (a +10.6% relative lift), p = 0.41, 95% CI
+      [-1.6pp, +4.0pp], and — from the Statistical Power module — only about 13% power to detect its own
+      observed effect at n = 1,000/group. The point estimate is practically significant (a double-digit
+      relative lift in checkout conversion would be a meaningful business win) but statistically
+      inconclusive because the test was underpowered. The right recommendation is neither "ship it" nor
+      "kill it" — it's "extend the test toward the roughly 11,000-13,000 users per group this effect size
+      would need to confirm," because the potential upside is large enough to be worth the extra
+      data-collection cost. onboarding_email: control 32.4%, treatment 31.4% (treatment slightly *lower*),
+      p = 0.73, 95% CI [-6.8pp, +4.8pp] — a wide interval centered near zero, not leaning positive. Here
+      the honest recommendation is closer to "no evidence of a meaningful effect; even a true effect this
+      small would require an impractically large sample to ever confirm, so it's probably not worth
+      further investment in this specific email change."
+  - type: table
+    caption: Same "not significant" label, two different recommendations
+    headers: ["", "checkout_redesign", "onboarding_email"]
+    rows:
+      - ["Point estimate", "+1.2pp (+10.6% relative), in the hypothesized direction", "-1.0pp (-3.1% relative), opposite the hypothesized direction"]
+      - ["CI", "Leans positive, wide", "Centered near zero, wide"]
+      - ["Likely explanation", "Underpowered — real effect plausibly exists", "Likely null, or too small to matter economically"]
+      - ["Recommendation", "Extend the test to reach adequate sample size before deciding", "Deprioritize; effect (if any) is likely too small to be worth chasing"]
+  - type: callout
+    variant: important
+    title: A significant result still needs a guardrail check and a cost check
+    body: >
+      Even when a result is clearly significant, "ship it" isn't automatic. Two more questions still
+      belong in the decision: did any guardrail metric move the wrong way (Hypothesis Design module), and
+      is the effect size large enough to justify what it costs to build, maintain, and support the
+      change? A statistically bulletproof 0.3-percentage-point lift might still not be worth a costly
+      engineering rebuild.
+  - type: callout
+    variant: common_mistake
+    title: "\"Inconclusive\" is not the same recommendation for every inconclusive result"
+    body: >
+      It's tempting to file every non-significant p-value under the same bucket ("we need more data" or
+      "it didn't work"). But a promising point estimate with a wide, underpowered interval calls for
+      "collect more data, because the potential upside justifies it," while a flat point estimate with a
+      similarly wide interval more often calls for "deprioritize — the effect, if any, is probably too
+      small to matter."
+  - type: question
+    prompt: >
+      Two different tests both come back with p = 0.30 (not significant). Test A's point estimate is a
+      +15% relative lift on a metric that would be very valuable if real. Test B's point estimate is a
+      +0.5% relative lift on the same metric. Should both get the same recommendation?
+    choices:
+      - "Yes — both are 'not significant,' so both should be treated the same way (e.g., discard the idea)"
+      - "No — Test A's large point estimate makes it worth extending the test to get enough power to confirm or rule out a potentially valuable effect, while Test B's tiny point estimate suggests the true effect (if any) is likely too small to be worth chasing further"
+      - "Yes — since neither result is statistically significant, neither is practically significant either"
+    correct_index: 1
+    explanation: >
+      The p-value alone doesn't capture the size of the opportunity being left on the table. A large,
+      promising point estimate that merely lacks the power to confirm is worth pursuing with a bigger
+      sample; a tiny point estimate is unlikely to become practically important even if it turns out to
+      be technically "real," and is usually better deprioritized in favor of ideas with larger potential
+      upside.
+interview_questions:
+  - question: "You get back a non-significant result on an experiment. How do you decide whether to recommend collecting more data versus moving on?"
+    answer: >
+      I look at the point estimate and confidence interval together, not just the p-value. If the point
+      estimate is in the hypothesized direction and large enough to be a meaningful business win, and the
+      interval is wide (a sign of low power rather than a truly flat effect), I'd recommend extending the
+      test — the potential upside justifies the extra data collection, and I'd quantify exactly how much
+      more sample size is needed rather than just saying 'run it longer.' If instead the point estimate is
+      near zero or in the opposite direction, with the interval centered near zero, I'd recommend moving
+      on — even a real effect that small is unlikely to be worth the sample size (and therefore time)
+      required to ever confirm it, so continuing to invest in that specific idea has a low expected
+      payoff.

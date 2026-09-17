@@ -1,0 +1,36 @@
+slug: bhv-stakeholder-building-trust
+skill: behavioral-interviewing
+title: Building Trust With a Skeptical Stakeholder
+description: Tell me about a time you built trust with a skeptical stakeholder who didn't believe your
+  analysis.
+exercise_type: INTERVIEW_RESPONSE
+difficulty: INTERMEDIATE
+points: 10
+tags:
+- behavioral
+- star-method
+- stakeholder-management
+prompt: Tell me about a time you built trust with a skeptical stakeholder who didn't believe your analysis.
+hints:
+- The STAR framework (Situation, Task, Action, Result) is a useful structure, not a script -- use it to
+  make sure you cover what actually happened, in what context, what you personally did, and what came
+  of it.
+- Interviewers are listening for a specific, real example -- a vague 'sometimes this happens on my team'
+  answer is much weaker than one concrete story with real details.
+rubric:
+- criterion: Describes one specific, real situation rather than a hypothetical or a generic pattern
+  points: 25
+- criterion: Clearly states the task or goal and the person's own specific role in it
+  points: 20
+- criterion: Explains concrete actions the person personally took, not just what the team did
+  points: 30
+- criterion: States a clear, ideally measurable outcome and what was learned from it
+  points: 25
+solution: An operations director was skeptical of a forecast I produced predicting a warehouse capacity
+  shortfall, since a similar forecast from a prior analyst had been wrong. Rather than just asserting
+  my number was different, I walked him through the specific assumptions in the model, showed him how
+  the prior forecast's assumptions differed from mine, and gave him a way to sanity-check the number himself
+  against a simpler back-of-envelope estimate. Once he could reproduce a similar answer his own way, he
+  trusted the more detailed model.
+explanation: The answer builds credibility through transparency of method and giving the stakeholder a
+  way to independently verify the logic, rather than asking for trust based on authority alone.

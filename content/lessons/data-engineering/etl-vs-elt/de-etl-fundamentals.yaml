@@ -1,0 +1,90 @@
+slug: de-etl-fundamentals
+module_slug: etl-vs-elt
+title: "ETL: Extract, Transform, Load"
+description: The classic three-verb pipeline pattern — why transformation traditionally happened before loading, and what that bought (and cost) pipelines built this way.
+difficulty: BEGINNER
+estimated_minutes: 20
+display_order: 1
+objectives:
+  - Name and define the three steps of ETL in order
+  - Explain why transformation historically happened before loading, given the constraints of older warehouses
+  - Identify what gets lost when raw data is transformed before it's ever stored
+prerequisites: [de-foundations-what-is-data-engineering]
+skills: [etl-elt]
+datasets: [ecommerce]
+tags: [etl, data-engineering, foundations, beginner]
+key_takeaways:
+  - "ETL stands for Extract, Transform, Load: pull data out of a source, reshape it into its final form, and only then write it into the destination system."
+  - "ETL puts transformation on a separate processing system, before the warehouse ever sees the data — a design forced by older warehouses that were too expensive and too slow to do heavy transformation themselves."
+  - "The cost of transforming before loading is that the untransformed, original data is usually never kept — if a transformation rule turns out to be wrong, or a new question needs a detail that got dropped, there's often no raw copy left to go back to."
+common_mistakes:
+  - "Assuming ETL is simply \"the old way\" and therefore wrong — it's still the right choice in some situations, such as when a strict compliance requirement mandates that certain raw data (like unmasked PII) must never be persisted anywhere, even temporarily, before being cleaned."
+  - "Describing a pipeline as \"ETL\" just because it has three general stages, without checking whether transformation actually happens before or after the load step — that ordering is the entire distinction."
+interview_questions:
+  - question: "What does the T in ETL actually involve, concretely?"
+    answer: >
+      Transformation is where raw extracted data gets reshaped into its usable, final form before
+      it's loaded: standardizing formats (dates, currencies), joining or enriching data from
+      multiple sources, filtering out rows that don't belong, deduplicating, and computing derived
+      columns. In ETL, all of this happens on a separate processing system — outside the
+      destination warehouse — before a single row is written to its final table.
+blocks:
+  - type: heading
+    text: The three verbs, in order
+  - type: text
+    body: >
+      **ETL** names both the three steps a pipeline takes and the order it takes them in:
+      **Extract** data from a source system, **Transform** it into its final, clean, business-ready
+      shape, and only then **Load** the finished result into the destination (a data warehouse or
+      mart). The defining feature of ETL — the thing that makes it "ETL" rather than "ELT" — is that
+      transformation happens *before* loading, on a separate system dedicated to processing, not
+      inside the warehouse itself.
+  - type: example
+    title: "ETL applied to raw order data"
+    body: >
+      Imagine raw order data arriving from a source system in a form close to the `ecommerce`
+      dataset's `orders` table, but messier — statuses stored inconsistently (`"Cancelled"`,
+      `"cancelled "`, `"CANCELLED"`), dates as free-text strings, and a few duplicate rows from a
+      retried API call. In an ETL pipeline, a separate transformation engine would standardize the
+      status values, parse the dates into a real date type, deduplicate the rows, and only load the
+      final, clean version into the warehouse's `orders` table. The warehouse never sees the messy
+      version at all — by the time it lands, all of that cleanup has already happened elsewhere.
+  - type: heading
+    text: Why transform before loading?
+  - type: text
+    body: >
+      This ordering wasn't an arbitrary design choice — it was forced by the warehouses ETL
+      pipelines were built for. Older on-premise data warehouses were expensive to run and had
+      limited compute, so heavy transformation work (joins across large tables, complex string
+      cleanup, deduplication) was pushed onto separate, purpose-built processing servers instead of
+      being run inside the warehouse itself. The warehouse's precious compute was reserved for
+      storing the finished result and serving fast analytical queries against it — not for doing the
+      transformation work too.
+  - type: table
+    headers: ["Property", "What ETL gives you", "What it costs you"]
+    rows:
+      - ["Storage", "Only clean, finished data ever enters the warehouse", "The original raw data usually isn't kept anywhere"]
+      - ["Compute", "Warehouse only serves queries, not transformation load", "A separate transformation system has to be built and maintained"]
+      - ["Flexibility", "Destination tables are always business-ready", "Reprocessing history with a new transformation rule often means re-extracting from the source all over again"]
+  - type: callout
+    variant: common_mistake
+    title: "If the raw data isn't kept, a wrong transformation rule can be unrecoverable"
+    body: >
+      Suppose an ETL pipeline's transformation step incorrectly maps `channel = 'marketplace'` to
+      `'web'` for six months before anyone notices. If the raw, pre-transformation data was never
+      persisted anywhere, there may be no way to recompute the correct historical channel breakdown
+      — the original information needed to fix it is simply gone. This single risk is one of the
+      biggest reasons the industry shifted toward ELT, covered next.
+  - type: question
+    prompt: >
+      In a classic ETL pipeline, where does the heavy transformation work (cleaning, joining,
+      deduplicating) actually happen?
+    choices:
+      - "Inside the destination warehouse, using SQL run against already-loaded tables"
+      - "On a separate processing system, before any data is loaded into the destination warehouse"
+      - "It doesn't happen at all — ETL loads raw data as-is"
+    correct_index: 1
+    explanation: >
+      The defining trait of ETL is that transformation is a distinct step performed on separate
+      infrastructure, completed before the Load step ever runs. This is precisely the ordering ELT
+      reverses, which the next lesson covers.

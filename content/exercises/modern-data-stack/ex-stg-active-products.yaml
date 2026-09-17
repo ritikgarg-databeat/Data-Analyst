@@ -1,0 +1,58 @@
+slug: ex-stg-active-products
+skill: dbt
+dataset: ecommerce
+title: "dbt Exercise: Your First Model"
+description: Write a real dbt model that selects from a source and filters rows — graded by actually running it.
+exercise_type: DBT
+difficulty: BEGINNER
+points: 15
+tags: [dbt, models, real-execution]
+business_context: >
+  The catalog team wants a clean, standardized view of active products only — the raw `products`
+  source includes discontinued items mixed in with a boolean `is_active` flag. This is exactly the
+  kind of "select from a source, apply one clear filter" model that makes up most of a staging layer.
+prompt: >
+  Write a dbt model named `ex_active_products` that selects `product_id`, `product_name`,
+  `category_id`, `unit_price`, and `is_active` from the raw `products` source
+  (`{{ source('raw', 'products') }}`), keeping only rows where `is_active` is true. This is graded by
+  actually running your model with `dbt build` and checking that it builds successfully and its tests
+  pass — there's no text comparison against a "correct" answer string. The attached test requires
+  every row's `is_active` to be `true`, so forgetting the filter (leaving discontinued products in)
+  will fail for real, not just look wrong.
+hints:
+  - "Reference the source with {{ source('raw', 'products') }} — the same source stg_products.sql already reads from."
+  - "`is_active` is a boolean column — filter with `where is_active` (or `where is_active = true`)."
+dbt_model_name: ex_active_products
+dbt_starter_sql: |
+  select
+      product_id,
+      product_name,
+      category_id,
+      unit_price,
+      is_active
+  from {{ source('raw', 'products') }}
+  -- TODO: keep only active products
+dbt_schema_yml: |
+  columns:
+    - name: product_id
+      tests: [unique, not_null]
+    - name: is_active
+      tests:
+        - accepted_values:
+            arguments:
+              values: ["true"]
+solution: |
+  select
+      product_id,
+      product_name,
+      category_id,
+      unit_price,
+      is_active
+  from {{ source('raw', 'products') }}
+  where is_active
+explanation: >
+  `is_active` (a real boolean column on the raw products source) is what separates "still sold" from
+  "discontinued" — the `accepted_values` test on `is_active` (requiring every remaining row to be
+  `true`) is what makes forgetting the `where` filter a real, catchable failure instead of a silently
+  wrong-but-passing model: without the filter, discontinued products (`is_active = false`) would still
+  be in the output and the test would fail for real.

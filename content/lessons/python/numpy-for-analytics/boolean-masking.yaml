@@ -1,0 +1,112 @@
+slug: boolean-masking
+module_slug: numpy-for-analytics
+title: Boolean Masking
+description: Comparisons that produce boolean arrays, using them to filter, and combining conditions with & and | instead of and/or.
+difficulty: BEGINNER
+estimated_minutes: 11
+display_order: 8
+objectives:
+  - Use comparison operators on an array to produce a boolean array
+  - Filter an array using a boolean mask, including arr[arr > threshold]
+  - Combine multiple conditions with & and |, and explain why Python's and/or don't work element-wise
+prerequisites: [aggregation]
+skills: [pandas]
+datasets: []
+tags: [python, beginner, foundations]
+key_takeaways:
+  - "A comparison like arr > 100 applies element-wise, producing a same-shape array of True/False — this is called a boolean mask."
+  - "Indexing an array with its own boolean mask (arr[arr > 100]) filters it down to only the elements where the mask is True — one of the most common NumPy patterns you'll write."
+  - "Combine conditions with & (and) and | (or), each side wrapped in parentheses — Python's own and/or keywords only work on single True/False values, not element-wise on whole arrays, and raise an error if you try."
+common_mistakes:
+  - "Using and/or instead of &/| to combine array conditions — (arr > 50) and (arr < 200) raises a ValueError, because Python's and/or expect one True/False, not an array of many."
+  - "Forgetting parentheses around each condition when combining with & or | — arr > 50 & arr < 200 without parens parses incorrectly, because & binds tighter than > in Python's operator precedence."
+  - "Assuming a boolean mask has to come from a comparison on the exact same array being filtered — a mask can be computed from one array and used to filter a different, same-shaped array (e.g. filtering names by a condition on ages)."
+blocks:
+  - type: text
+    body: >
+      Filtering an array — "give me only the values that satisfy some condition" — is one of the most
+      common things you'll do with NumPy, and it's built on a simple idea: comparisons on arrays produce
+      arrays of True/False, which can then be used directly as a filter.
+  - type: heading
+    text: Comparisons produce boolean arrays
+  - type: code
+    language: python
+    code: |
+      import numpy as np
+
+      revenue = np.array([45, 120, 300, 15, 89, 250, 60])
+
+      mask = revenue > 100
+      print(mask)   # [False  True  True False False  True False]
+    caption: "revenue > 100 compares every element and returns a same-shape array of True/False — a boolean mask"
+  - type: heading
+    text: Filtering with a boolean mask
+  - type: text
+    body: >
+      Indexing an array with a boolean mask of the same shape keeps only the elements where the mask is
+      True — this is exactly how you filter a NumPy array, and it's usually written in one line without
+      even naming the mask separately.
+  - type: code
+    language: python
+    code: |
+      revenue[mask]           # array([120, 300, 250])   — using the mask from above
+
+      revenue[revenue > 100]  # array([120, 300, 250])   — same result, written in one line
+    caption: "arr[boolean_mask] returns only the elements where the mask is True"
+  - type: heading
+    text: "Combining conditions: & and |, not and/or"
+  - type: text
+    body: >
+      To filter on more than one condition at once, combine boolean arrays with `&` (element-wise and)
+      and `|` (element-wise or) — **not** Python's `and`/`or` keywords, which only make sense for a
+      single True/False value, not an entire array of them. Each individual condition needs parentheses,
+      because `&` and `|` bind more tightly than comparison operators like `>` and `<`.
+  - type: code
+    language: python
+    code: |
+      revenue[(revenue > 50) & (revenue < 200)]
+      # array([120,  89,  60])   — both conditions true
+
+      revenue[(revenue < 50) | (revenue > 200)]
+      # array([ 45, 300,  15, 250])   — either condition true
+    caption: "Parentheses around each condition are required — & binds tighter than the comparisons"
+  - type: callout
+    variant: warning
+    title: "and/or raise an error on arrays"
+    body: >
+      `(revenue > 50) and (revenue < 200)` raises `ValueError: The truth value of an array with more
+      than one element is ambiguous. Use a.any() or a.all()`. Python's `and`/`or` need to collapse each
+      side to one True or False to decide what to do — but a boolean array with more than one element
+      has no single truth value. `&` and `|` instead compare element-by-element, which is what a filter
+      condition on a whole array actually needs.
+  - type: table
+    headers: ["Python keyword", "Works on", "NumPy equivalent", "Works on"]
+    rows:
+      - ["and", "A single True/False value", "&", "Two boolean arrays, element-wise"]
+      - ["or", "A single True/False value", "|", "Two boolean arrays, element-wise"]
+      - ["not", "A single True/False value", "~", "One boolean array, element-wise (flips each value)"]
+  - type: example
+    title: "Filtering high-value orders above the average"
+    body: >
+      Combining a computed threshold (the array's own mean) with a boolean mask is a very common
+      pattern — no hardcoded cutoff, the condition adapts to the data itself.
+    code: |
+      revenue = np.array([45, 120, 300, 15, 89, 250, 60])
+
+      above_average = revenue[revenue > revenue.mean()]
+      print(revenue.mean())     # 125.57142857142857
+      print(above_average)      # [300 250]
+    language: python
+  - type: question
+    prompt: "Why does revenue[(revenue > 50) and (revenue < 200)] raise a ValueError?"
+    choices:
+      - "and requires both sides to be integers, not arrays"
+      - "Python's and needs to reduce each side to a single True/False, but a multi-element boolean array has no single truth value"
+      - "The parentheses around each condition are unnecessary and cause the error"
+    correct_index: 1
+    explanation: >
+      Python's and/or are designed for single boolean values — they need to know definitively whether
+      the left side is 'true' before deciding whether to evaluate the right side. A NumPy boolean array
+      with more than one element can't be reduced to a single True or False that way, so Python raises a
+      ValueError rather than guessing what you meant. & and | instead operate element-wise, which is what
+      a filter condition on an array needs.

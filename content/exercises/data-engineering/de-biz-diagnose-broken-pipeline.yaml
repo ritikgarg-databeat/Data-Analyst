@@ -1,0 +1,101 @@
+slug: de-biz-diagnose-broken-pipeline
+lesson_slug: de-reading-a-broken-pipeline
+skill: pipeline-troubleshooting
+dataset: ecommerce
+title: "Case: The Revenue Dashboard That Stopped Moving"
+description: Diagnose which pipeline step most likely broke, using a run log and a set of quick diagnostic queries, then write the flag you'd send to the data engineering team.
+exercise_type: BUSINESS_REASONING
+difficulty: INTERMEDIATE
+points: 25
+tags: [case-study, pipelines, analyst-boundary, real-world]
+business_context: >
+  It's Wednesday morning. The "Revenue by Channel" dashboard — built on top of a
+  `fct_daily_revenue` mart, which is itself built from a `stg_orders_payments` staging model, which
+  reads from raw `orders` and `payments` extracts — has shown the exact same total for `channel =
+  'web'` for the last two days running, while `mobile` and `marketplace` have kept moving normally
+  day to day. The pipeline's own monitoring shows every scheduled run completed with status
+  "SUCCESS" both mornings. Here is the pipeline's own run log for the last three nights:
+
+    Mon 02:00 extract_orders ... SUCCESS (4,205 rows)
+    Mon 02:04 extract_payments ... SUCCESS (3,699 rows)
+    Mon 02:10 stg_orders_payments ... SUCCESS
+    Mon 02:14 fct_daily_revenue ... SUCCESS
+    Tue 02:00 extract_orders ... SUCCESS (4,205 rows)
+    Tue 02:04 extract_payments ... SUCCESS (3,699 rows)
+    Tue 02:10 stg_orders_payments ... SUCCESS
+    Tue 02:14 fct_daily_revenue ... SUCCESS
+    Wed 02:00 extract_orders ... SUCCESS (4,205 rows)
+    Wed 02:04 extract_payments ... SUCCESS (3,699 rows)
+    Wed 02:10 stg_orders_payments ... SUCCESS
+    Wed 02:14 fct_daily_revenue ... SUCCESS
+
+  Note that extract_orders and extract_payments report the *exact same row count* every single
+  night (4,205 and 3,699 respectively) — Monday, Tuesday, and Wednesday alike.
+stakeholder: "Head of Analytics"
+constraints:
+  - "You have access to the run log above, and can describe what quick diagnostic queries you'd run against stg_orders_payments and fct_daily_revenue — you do not have direct access to fix anything yourself."
+  - "The pipeline's own SUCCESS/FAILURE status cannot be trusted at face value here — reason from the evidence in the log, not from the status labels alone."
+expected_deliverables:
+  - "An explanation of why 'every step reports SUCCESS' does not rule out a real pipeline problem"
+  - "Identification of the specific symptom in the run log that points to the true root cause"
+  - "A specific hypothesis for which step is most likely broken, and why the other steps are probably not the cause"
+  - "A well-formed flag (table/column, symptom, since when, downstream impact) ready to send to the data engineering team"
+prompt: >
+  Using only the run log above (an unusually stable dashboard number for one channel, plus three
+  nights of otherwise-identical extract row counts), and the "own / recognize / hand off" framework
+  from this module, diagnose what's most likely wrong, explain why the pipeline's SUCCESS status is
+  misleading here, and write the specific flag you'd send to the data engineering team.
+hints:
+  - "A pipeline step can report SUCCESS while still doing the wrong thing — SUCCESS usually just means 'the code ran without throwing an error,' not 'the result is correct.'"
+  - "extract_orders and extract_payments reporting the exact same row count three nights in a row, for a source table that should be gaining new orders and payments daily, is itself a major clue — a healthy ingestion step's row count should change day to day."
+rubric:
+  - criterion: "Explains why a step reporting SUCCESS does not guarantee its output is correct, distinguishing 'ran without erroring' from 'produced the right result'"
+    points: 20
+  - criterion: "Identifies the frozen extract row counts (4,205 / 3,699 unchanged for three consecutive nights) as the key anomaly, rather than focusing only on the frozen dashboard number itself"
+    points: 25
+  - criterion: "Forms a specific, well-reasoned hypothesis: the extraction steps themselves are most likely stuck re-extracting the same stale snapshot (or a broken incremental watermark), not the staging or mart transformation logic further downstream, since transformation steps operating on the same unchanging input would naturally also produce unchanging output"
+    points: 30
+  - criterion: "Writes a specific, actionable flag naming the affected steps, the exact symptom (identical row counts since which night), and the downstream impact (frozen web revenue on the dashboard, decision-makers relying on it)"
+    points: 25
+solution: >
+  A SUCCESS status typically only means the step's code executed without throwing an error — it
+  says nothing about whether the extracted data actually reflects current reality. That distinction
+  is the whole story here: every step "succeeded" for three straight nights while doing the wrong
+  thing underneath.
+
+  The key anomaly isn't really the frozen `web` revenue number by itself — it's that
+  `extract_orders` and `extract_payments` report the *identical* row count (4,205 and 3,699) on
+  Monday, Tuesday, and Wednesday. A healthy ecommerce business should be generating new orders and
+  payments every day, so an ingestion step whose row count never changes across three consecutive
+  nights strongly suggests it's re-extracting the exact same stale snapshot each time — for example,
+  an incremental load whose watermark stopped advancing, or an extraction job silently pointed at a
+  cached/stale source instead of the live one.
+
+  Given that, the most likely root cause sits in the extraction layer (`extract_orders` /
+  `extract_payments`), not in `stg_orders_payments` or `fct_daily_revenue`. If the staging or mart
+  transformation logic were the problem instead, the raw extract row counts would still be expected
+  to change night to night (since the underlying source data keeps changing) even if the
+  *transformed* output were wrong — but here the extracts themselves are frozen, which points
+  upstream of any transformation step entirely. `mobile` and `marketplace` still moving normally is
+  a bit of a puzzle worth flagging rather than fully resolving here (it could mean only part of the
+  source data is stale, or that the freeze is more recent than three nights and is only now becoming
+  visible in `web` specifically) — but it doesn't change the core diagnosis that this looks like a
+  stuck extraction step, not a transformation bug.
+
+  Flag to send: "extract_orders and extract_payments have reported the exact same row count
+  (4,205 and 3,699 respectively) for three consecutive nightly runs (Mon-Wed), despite reporting
+  SUCCESS each time — this strongly suggests one or both extraction steps are re-pulling a stale
+  snapshot rather than current source data, possibly a stuck incremental watermark. Downstream
+  impact: fct_daily_revenue's `channel = 'web'` figure has been frozen on the Revenue by Channel
+  dashboard for the same two days, which the Head of Analytics is relying on for reporting. Please
+  check the extraction jobs' source connection and watermark state as a first step."
+explanation: >
+  A strong answer treats "SUCCESS" as a claim to verify, not a fact to trust, and correctly reads
+  the frozen extract row counts — not just the frozen dashboard number — as the actual smoking gun,
+  since it points to the earliest broken step rather than a downstream symptom of it. It also
+  reasons explicitly about why the bug is more likely upstream (in extraction) than downstream (in
+  transformation): frozen raw extract counts are the more fundamental anomaly, since even a buggy
+  transformation would still be operating on daily-changing input if extraction were healthy. A
+  weaker answer stops at "the web channel's number looks frozen, must be a transformation bug in
+  fct_daily_revenue" without noticing that the extraction row counts were frozen too — the earlier
+  and more diagnostic clue in the log.

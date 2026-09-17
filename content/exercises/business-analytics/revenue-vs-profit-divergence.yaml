@@ -1,0 +1,22 @@
+slug: revenue-vs-profit-divergence
+lesson_slug: revenue-growth
+skill: business-problem-solving
+title: Revenue Up, Profit Down
+description: Diagnose a scenario where revenue growth and profit move in opposite directions.
+exercise_type: BUSINESS_REASONING
+difficulty: INTERMEDIATE
+points: 15
+tags: [business-analytics, real-world]
+prompt: >
+  Revenue increased 15% quarter-over-quarter, but profit decreased 5% over the same period. List the
+  first three things you would investigate to explain the divergence, and why each one is a plausible
+  cause.
+hints:
+  - "Profit = Revenue - Costs. If revenue is up and profit is down, costs grew faster than revenue — where would you look first?"
+  - "Consider both cost-side explanations (COGS, discounting, fulfillment) and revenue-quality explanations (mix shift toward lower-margin products)."
+explanation: >
+  Strong answers name concrete, checkable hypotheses rather than vague ones — e.g. (1) discounting or
+  promotions inflating revenue while compressing margin, (2) a mix shift toward lower-margin
+  products/segments driving the extra revenue, (3) a cost-side spike (COGS, shipping, headcount) that
+  outpaced revenue growth, (4) one-time or non-recurring costs in the period. A weak answer just says
+  "costs went up" without naming what to check or how you'd confirm it against the data.

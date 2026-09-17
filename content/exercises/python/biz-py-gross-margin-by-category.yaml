@@ -1,0 +1,96 @@
+slug: biz-py-gross-margin-by-category
+lesson_slug: biz-unit-economics-fundamentals
+skill: pandas
+dataset: ecommerce
+title: Gross Margin by Category
+description: Merge order line items through products and categories to compute revenue-weighted gross margin percentage for each product category.
+exercise_type: PYTHON
+difficulty: INTERMEDIATE
+points: 20
+tags: [python, business-analytics, intermediate, e-commerce]
+business_context: >
+  Merchandising wants gross margin computed per category on actual completed-order revenue —
+  weighted by what really sold, not a flat average across the catalog's list prices — to decide
+  where to focus promotional spend.
+prompt: >
+  Using `order_items`, `products`, `categories`, and `orders`, restrict to completed orders
+  (`orders.status == 'completed'`), then compute each category's gross margin percentage as
+  `(revenue - cost) / revenue * 100`, where `revenue` is the sum of
+  `quantity * (unit_price - discount)` (from `order_items`) and `cost` is the sum of
+  `quantity * cost` (using each product's `cost` from `products`). Store your answer in a
+  variable named `result`: a DataFrame with columns `category_name` and `gross_margin_pct`
+  (rounded to 2 decimal places), sorted in descending order by `gross_margin_pct`.
+python_datasets: [order_items, products, categories, orders]
+python_starter_code: |
+  # order_items, products, categories, and orders are already loaded as DataFrames.
+  # Explore them first:
+  order_items.head()
+python_solution_code: |
+  oi = order_items.merge(products[["product_id", "category_id", "cost"]], on="product_id")
+  oi = oi.merge(categories[["category_id", "category_name"]], on="category_id")
+  oi = oi.merge(orders[["order_id", "status"]], on="order_id")
+  oi = oi[oi["status"] == "completed"].copy()
+  oi["line_revenue"] = oi["quantity"] * (oi["unit_price"] - oi["discount"])
+  oi["line_cost"] = oi["quantity"] * oi["cost"]
+  grp = oi.groupby("category_name").agg(
+      revenue=("line_revenue", "sum"), cost=("line_cost", "sum")
+  ).reset_index()
+  grp["gross_margin_pct"] = ((grp["revenue"] - grp["cost"]) / grp["revenue"] * 100).round(2)
+  result = (
+      grp[["category_name", "gross_margin_pct"]]
+      .sort_values("gross_margin_pct", ascending=False)
+      .reset_index(drop=True)
+  )
+python_result_variable: result
+python_row_order_matters: true
+python_numeric_tolerance: 0.01
+python_hidden_tests:
+  - name: "Top category matches a live recomputation"
+    code: |
+      oi2 = order_items.merge(products[["product_id", "category_id", "cost"]], on="product_id")
+      oi2 = oi2.merge(categories[["category_id", "category_name"]], on="category_id")
+      oi2 = oi2.merge(orders[["order_id", "status"]], on="order_id")
+      oi2 = oi2[oi2["status"] == "completed"].copy()
+      oi2["line_revenue"] = oi2["quantity"] * (oi2["unit_price"] - oi2["discount"])
+      oi2["line_cost"] = oi2["quantity"] * oi2["cost"]
+      recompute = oi2.groupby("category_name").apply(
+          lambda g: (g["line_revenue"].sum() - g["line_cost"].sum()) / g["line_revenue"].sum() * 100
+      )
+      top_row = result.iloc[0]
+      assert top_row["category_name"] == recompute.idxmax(), (
+          f"Expected '{recompute.idxmax()}' to have the highest gross_margin_pct, got '{top_row['category_name']}'"
+      )
+      assert abs(top_row["gross_margin_pct"] - recompute.max()) < 0.05, (
+          "The top category's gross_margin_pct doesn't match a fresh recomputation."
+      )
+hints:
+  - "Merge order_items to products (bringing in category_id and cost) and then to categories (bringing in category_name), keeping only the columns you need from each to avoid a unit_price naming collision between order_items and products."
+  - "Filter to completed orders by merging in orders.status, then compute line_revenue and line_cost per row before grouping — gross margin has to be computed from summed revenue and summed cost per category, not by averaging a per-row margin percentage."
+solution: |
+  ```python
+  oi = order_items.merge(products[["product_id", "category_id", "cost"]], on="product_id")
+  oi = oi.merge(categories[["category_id", "category_name"]], on="category_id")
+  oi = oi.merge(orders[["order_id", "status"]], on="order_id")
+  oi = oi[oi["status"] == "completed"].copy()
+  oi["line_revenue"] = oi["quantity"] * (oi["unit_price"] - oi["discount"])
+  oi["line_cost"] = oi["quantity"] * oi["cost"]
+  grp = oi.groupby("category_name").agg(
+      revenue=("line_revenue", "sum"), cost=("line_cost", "sum")
+  ).reset_index()
+  grp["gross_margin_pct"] = ((grp["revenue"] - grp["cost"]) / grp["revenue"] * 100).round(2)
+  result = (
+      grp[["category_name", "gross_margin_pct"]]
+      .sort_values("gross_margin_pct", ascending=False)
+      .reset_index(drop=True)
+  )
+  ```
+explanation: >
+  Selecting only `product_id`, `category_id`, and `cost` from `products` before merging avoids a silent
+  `unit_price_x` / `unit_price_y` column collision, since both `order_items` and `products` have their own
+  `unit_price` column with different meanings (line price paid vs. catalog price). Computing
+  `gross_margin_pct` from *summed* revenue and cost per category — rather than averaging each row's
+  individual margin percentage — correctly weights the result by how much actually sold, so a category
+  with a few high-volume, lower-margin products isn't mismeasured by treating every line item's margin as
+  equally important regardless of its dollar size. A common mistake is computing margin at the product
+  level first and then averaging those per-product margins per category, which silently reverts to an
+  unweighted average and can shift the ranking.

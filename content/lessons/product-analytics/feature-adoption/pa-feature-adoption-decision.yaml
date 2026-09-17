@@ -1,0 +1,115 @@
+slug: pa-feature-adoption-decision
+module_slug: feature-adoption
+title: "From Adoption Data to a Ship/Iterate/Kill Decision"
+description: >
+  Segmenting repeat-usage rate by acquisition channel to find out whether an adoption gap is
+  channel-specific or product-wide — and what each answer implies for where to invest next.
+difficulty: INTERMEDIATE
+estimated_minutes: 20
+display_order: 2
+objectives:
+  - Segment a repeat-usage rate by channel and determine whether variation across segments is meaningful or essentially flat
+  - Distinguish a channel-specific adoption problem (needs a channel-specific fix) from a product-wide one (needs a product change)
+  - "Turn a segmented adoption finding into one of three decisions: ship as-is, iterate on the product, or target a specific segment"
+prerequisites: [pa-feature-adoption-curve, pa-activation-segmentation]
+skills: [product-analytics, product-metrics, decision-making]
+datasets: [saas-product]
+tags: [product, saas, intermediate]
+key_takeaways:
+  - "Repeat-usage rate (activated users who go on to engage) is nearly flat across acquisition channels in this dataset — 53.3% to 55.3%, a 2-point spread — compared to activation rate's 23-point spread across the same channels."
+  - A metric that's flat across every segment while a related metric on the same population varies widely is strong evidence the flat metric reflects something about the product itself, not about any one segment or acquisition source.
+  - The decision that follows from a flat, product-wide gap is different from the decision that follows from a segment-specific one — a flat gap calls for a product change that helps everyone equally; a segment-specific gap calls for a targeted fix aimed at just that segment.
+common_mistakes:
+  - Investigating a metric segment-by-segment as if every gap must have a segment-specific cause, without first checking whether the metric is actually flat across segments (in which case the cause is more likely product-wide).
+  - Recommending a channel-specific intervention (e.g. "improve the paid_social onboarding") to fix a metric that's actually uniform across all channels, which wastes effort on a segment that isn't actually different from any other.
+blocks:
+  - type: text
+    body: >
+      The previous lesson found a real gap between trial (69.1%) and repeat usage (54.2%) for the
+      core action. Before deciding how to fix that gap, the natural next question is: is this gap
+      worse for some segments than others, or is it roughly the same everywhere?
+  - type: code
+    language: sql
+    caption: Repeat-usage rate (activated → engaged), segmented by acquisition channel
+    code: |
+      WITH per_user AS (
+        SELECT
+          e.user_id,
+          u.acquisition_channel,
+          MAX(CASE WHEN event_name = 'activated' THEN 1 ELSE 0 END) AS activated,
+          MAX(CASE WHEN event_name = 'engaged'   THEN 1 ELSE 0 END) AS engaged
+        FROM events e
+        JOIN users u ON u.user_id = e.user_id
+        GROUP BY e.user_id, u.acquisition_channel
+      )
+      SELECT
+        acquisition_channel,
+        SUM(activated)                                            AS activated_users,
+        SUM(CASE WHEN activated = 1 AND engaged = 1 THEN 1 END)   AS repeat_users,
+        ROUND(SUM(CASE WHEN activated = 1 AND engaged = 1 THEN 1 END)
+              * 1.0 / SUM(activated), 4)                            AS repeat_usage_rate
+      FROM per_user
+      GROUP BY acquisition_channel
+      ORDER BY repeat_usage_rate DESC;
+  - type: table
+    headers: ["Channel", "Activated users", "Repeat users", "Repeat-usage rate"]
+    rows:
+      - ["referral", "340", "188", "55.29%"]
+      - ["paid_search", "449", "246", "54.79%"]
+      - ["content", "216", "116", "53.70%"]
+      - ["organic", "720", "389", "54.03%"]
+      - ["paid_social", "349", "186", "53.30%"]
+  - type: callout
+    variant: important
+    title: A 2-point spread is essentially flat — compare it to the 23-point activation spread
+    body: >
+      Repeat-usage rate ranges only from 53.30% to 55.29% across every channel — a roughly 2-point
+      spread. That's a strikingly small range compared to activation rate's 23-point spread (55.9% to
+      78.9%) across the exact same five channels and the exact same underlying users. When one metric
+      varies widely by segment and a closely related metric on the same population barely varies at
+      all, that's a meaningful pattern in itself.
+  - type: heading
+    text: What "flat across segments" implies about the cause
+  - type: text
+    body: >
+      Activation rate varying by 23 points suggests something about *how each channel's users arrive*
+      (their intent, expectations, or first-touch experience) drives whether they try the core action
+      at all. Repeat-usage rate barely moving at all, regardless of which channel brought the user in,
+      suggests the *reason* activated users don't come back has little to do with which channel
+      acquired them — and much more to do with something uniform in the product experience itself,
+      once someone has already tried the core action.
+  - type: heading
+    text: Turning this into a decision
+  - type: comparison
+    title: Three possible decisions, and which one this data supports
+    columns: ["Decision", "When it applies", "Does it apply here?"]
+    rows:
+      - ["Ship as-is / no action needed", "Metric is within an acceptable range and shows no meaningful segment variation", "No — a 45.8% drop-off between trying and repeating is large enough to warrant investigation regardless of segment"]
+      - ["Target a specific segment", "The metric varies widely by segment, pointing at a segment-specific cause", "No — that pattern fits activation rate, not repeat-usage rate"]
+      - ["Iterate on the product broadly", "The metric is weak but roughly uniform across every segment, pointing at a shared, product-wide cause", "Yes — repeat-usage rate is weak (54.2% overall) and nearly flat (53.3%-55.3%) across every channel, which is the signature of a product-wide issue"]
+  - type: callout
+    variant: tip
+    title: The recommendation this analysis supports
+    body: >
+      Given a widely-varying activation rate and a nearly-flat repeat-usage rate on the same
+      population, the defensible recommendation is two separate workstreams: a **channel-specific**
+      investigation into paid_social and paid_search's weaker activation (as covered in the
+      `product-activation` module), and a **product-wide** investigation into what happens right
+      after a user tries the core action for the first time — since that gap shows up almost
+      identically no matter where the user came from.
+  - type: question
+    prompt: >
+      Activation rate varies by 23 points across acquisition channels; repeat-usage rate (among
+      activated users) varies by only about 2 points across the same channels. What does this
+      difference in variation most strongly suggest?
+    choices:
+      - "The repeat-usage metric must be measured incorrectly, since real metrics always vary as much as related ones"
+      - "Whatever drives activation differences is likely channel-specific (arrival intent, first-touch experience), while whatever drives the repeat-usage drop-off is more likely a shared, product-wide factor affecting all channels similarly"
+      - "Both metrics are driven by the same underlying cause, since they use the same core events"
+      - "Channels with lower activation should automatically have lower repeat-usage rates too"
+    correct_index: 1
+    explanation: >
+      When one metric varies widely by segment and a related metric on the same users barely varies
+      at all, the flat metric's cause is more likely something uniform in the product itself, while
+      the widely-varying metric's cause is more likely tied to what differs between those segments —
+      here, how each channel's users arrive and what they expect.

@@ -1,0 +1,138 @@
+slug: sort
+module_slug: pandas-transformation
+title: Sorting
+description: ".sort_values() for single and multi-column sorts (with a per-column ascending list), .sort_index(), and pandas' stable sort behavior."
+difficulty: INTERMEDIATE
+estimated_minutes: 9
+display_order: 5
+objectives:
+  - "Sort a DataFrame by one or more columns with .sort_values()"
+  - "Sort by a mix of ascending and descending columns using a list passed to ascending"
+  - "Sort by the index with .sort_index(), and rely on pandas' stable sort to preserve tie order"
+prerequisites: [replace-and-rename]
+skills: [pandas]
+datasets: [ecommerce]
+tags: [python, intermediate, real-world]
+key_takeaways:
+  - ".sort_values('col') sorts a DataFrame by one column, ascending by default; .sort_values(['col1', 'col2']) sorts by col1 first, breaking ties with col2 — exactly like a SQL ORDER BY with multiple columns."
+  - "ascending accepts a list matching the sort columns one-to-one, so a multi-column sort can mix directions: ascending=[True, False] sorts col1 ascending and, within each tie, col2 descending."
+  - "pandas' default sort is stable — rows that are exactly tied on the sort key(s) keep their original relative order rather than being shuffled, which matters whenever 'first come, first served' among ties is meaningful."
+  - ".sort_index() sorts by the row labels instead of any column's values — useful right after a .set_index() call, or to restore a DataFrame's natural row order after some other operation scrambled it."
+common_mistakes:
+  - "Passing a single ascending=False when sorting by multiple columns, expecting it to apply per-column, when it actually applies the same direction to every column in the list — a per-column mix needs a list matching the columns."
+  - "Assuming .sort_values() sorts in place — like most pandas methods, it returns a new, sorted DataFrame by default; the original is unchanged unless you pass inplace=True or reassign the result."
+blocks:
+  - type: text
+    body: >
+      Sorting shows up everywhere — ranking products by price, ordering a report chronologically,
+      finding the largest or smallest values in a column. `.sort_values()` and `.sort_index()` cover
+      essentially every case you'll need.
+  - type: heading
+    text: "Single-column sort with .sort_values()"
+  - type: code
+    language: python
+    code: |
+      import pandas as pd
+
+      products = pd.read_csv("data/sample/ecommerce/products.csv")
+
+      print(products.sort_values("unit_price").head(3)[["product_name", "unit_price"]])
+      print()
+      print(products.sort_values("unit_price", ascending=False).head(3)[["product_name", "unit_price"]])
+    caption: "Ascending by default; ascending=False reverses it"
+  - type: output
+    body: |
+                     product_name  unit_price
+                     130    Classic Skincare Set       10.91
+                     110     Deluxe Skincare Set       11.12
+                     127  Essential Skincare Set       12.17
+
+                          product_name  unit_price
+                     148  Classic Bluetooth Speaker      499.81
+                     95              Deluxe Backpack      498.77
+                     7                 Pro Notebook      495.36
+  - type: heading
+    text: "Multi-column sort, with a per-column ascending list"
+  - type: code
+    language: python
+    code: |
+      result = products.sort_values(
+          ["category_id", "unit_price"],
+          ascending=[True, False],
+      )
+      print(result.head(5)[["category_id", "product_name", "unit_price"]])
+    caption: "category_id ascending (1, 1, 1, ...) as the primary key; within each category, unit_price descending breaks ties"
+  - type: output
+    body: |
+           category_id           product_name  unit_price
+           89             1   Portable Garden Hose      490.37
+           41             1     Compact Headphones      478.77
+           118            1         Deluxe Blender      453.53
+           79             1  Wireless Water Bottle      413.08
+           57             1      Wireless Backpack      336.01
+  - type: callout
+    variant: tip
+    title: "This is exactly SQL's ORDER BY category_id ASC, unit_price DESC"
+    body: >
+      Both the column list and the ascending list line up position by position — the first entry in each
+      controls the primary sort, the second controls the tiebreaker, and so on. It's the same mental
+      model as a multi-column ORDER BY clause, just expressed as two parallel Python lists.
+  - type: heading
+    text: ".sort_index()"
+  - type: code
+    language: python
+    code: |
+      by_price = products.set_index("unit_price").sort_index()
+      print(by_price.head(3)[["product_name"]])
+    caption: "set_index() promotes unit_price to the index; sort_index() then orders rows by that index"
+  - type: output
+    body: |
+                          product_name
+                          unit_price
+                          10.91         Classic Skincare Set
+                          11.12          Deluxe Skincare Set
+                          12.17       Essential Skincare Set
+  - type: heading
+    text: Stable sort behavior
+  - type: code
+    language: python
+    code: |
+      demo = pd.DataFrame({
+          "group": ["a", "a", "b", "b"],
+          "val": [2, 1, 2, 1],
+          "orig_order": [0, 1, 2, 3],
+      })
+      print(demo.sort_values("group"))
+    caption: "Sorting only by 'group' — rows already tied on group keep their original relative order"
+  - type: output
+    body: |
+        group  val  orig_order
+        0     a    2           0
+        1     a    1           1
+        2     b    2           2
+        3     b    1           3
+  - type: text
+    body: >
+      All four rows were already sorted by `group`, so nothing visibly moved — the point is what *didn't*
+      happen: pandas' default sort algorithm (quicksort, but stable in practice for this kind of tie)
+      never reorders rows that are exactly tied on the sort key. Compare this against `val`, which is NOT
+      sorted (2, 1, 2, 1) — sorting by `group` alone leaves ties on `group` exactly where they started,
+      confirming the sort didn't touch `val`'s order arbitrarily.
+  - type: callout
+    variant: important
+    title: Why "stable" matters in practice
+    body: >
+      If you sort orders by order_date and two orders share the exact same timestamp, a stable sort
+      guarantees they'll stay in whatever order they were already in (commonly, insertion order — the
+      order they were loaded in). That's a meaningful guarantee any time "the earlier of two ties came
+      first" matters, like preserving an original processing order in a report.
+  - type: question
+    prompt: "products.sort_values(['category_id', 'unit_price'], ascending=[True, False]) sorts rows..."
+    choices:
+      - "By category_id ascending first, then by unit_price descending within each category"
+      - "By unit_price descending first, then by category_id ascending within each price"
+      - "By whichever of the two columns has more unique values first"
+    correct_index: 0
+    explanation: >
+      The column list and the ascending list are matched by position — category_id is the primary sort
+      key (ascending), and unit_price is the tiebreaker within each category_id group (descending).

@@ -1,0 +1,40 @@
+slug: practical-vs-statistical-significance-onboarding-email
+lesson_slug: bridge-from-inference-to-experiments
+skill: statistical-reasoning
+dataset: saas-product
+title: "Even If It Were Significant, Would It Matter? The Onboarding Email Test"
+description: Reason about the onboarding_email experiment's tiny effect size and decide whether it would be worth acting on even under a more favorable statistical result.
+exercise_type: DATA_INTERPRETATION
+difficulty: INTERMEDIATE
+points: 15
+tags: [statistics, experimentation, ab-testing, intermediate]
+prompt: >
+  The onboarding_email experiment showed control converting at 32.4% (162/500) and treatment at
+  31.4% (157/500) — a two-proportion test gives p = 0.734. A teammate proposes running the exact
+  same test again with 20x more users (10,000 per arm instead of 500) specifically to try to reach
+  statistical significance on this same roughly 1-point gap. Evaluate this proposal: if a much
+  larger sample did reach p < 0.05 on an effect this size, would that change the recommendation
+  about the onboarding email redesign? Explain the distinction driving your answer.
+hints:
+  - "Separate the two questions completely: 'would more data make this statistically significant?' and 'would that significance make the change worth shipping?' — a large enough sample can make almost any non-zero effect statistically significant."
+  - "Consider the direction of the observed gap too, not just its size, when deciding what a significant result would actually be telling the team to do."
+solution: >
+  The proposal correctly recognizes that sample size drives statistical power, and it's true that
+  running this same roughly-1-point gap on 10,000 users per arm instead of 500 would very plausibly
+  push the result below p = 0.05 — large samples make even small, real effects statistically
+  detectable. But that would not change the underlying business recommendation. This is a practical
+  significance problem, not a statistical power problem: the observed effect (about 1 percentage
+  point, and control is actually higher than treatment here, meaning the "redesigned" email
+  performed slightly worse) is too small to justify continued engineering and marketing investment
+  regardless of whether a future test manages to make it statistically significant. A "significant"
+  1-point gap in the wrong direction is not a reason to ship the change — if anything, it's a mild
+  signal to leave the original email alone. The right response to the teammate is: don't spend the
+  10x-larger sample chasing significance on an effect this small; that effort would be better spent
+  testing a idea with a larger hypothesized effect, or investigating why the redesigned email
+  underperformed rather than trying to prove it's technically not zero.
+explanation: >
+  A strong answer explicitly separates "can we make this statistically significant with more data"
+  (usually yes, given enough data) from "is this effect big enough to act on" (no, here) and notes
+  the observed direction of the effect (treatment underperforming control) as a further reason not
+  to pursue it. A weaker answer either treats "more data could reach significance" as automatically
+  worth attempting, or forgets to check which direction the small effect actually points.

@@ -1,0 +1,88 @@
+slug: cohort-first-order-month
+lesson_slug: chaining-multiple-ctes
+skill: advanced-sql
+dataset: ecommerce
+title: Count New Customers by First-Order Cohort Month
+description: Chain two CTEs to find each customer's first completed order, then bucket those first orders into monthly cohorts.
+exercise_type: SQL
+difficulty: INTERMEDIATE
+points: 20
+tags: [sql, intermediate, product-analytics]
+business_context: >
+  Growth wants the foundation of a cohort analysis: how many customers made their very first completed
+  purchase in each calendar month, ordered chronologically, so they can see whether new-customer
+  acquisition is accelerating or slowing over time.
+prompt: >
+  Using the `orders` table, write a query that returns one row per calendar month showing how many
+  customers made their first-ever completed order (`status = 'completed'`) in that month. Return
+  `cohort_month` and `new_customers`, ordered chronologically from earliest month to latest.
+sql_tables: [orders]
+sql_starter_query: |
+  -- Explore the orders table first
+  SELECT * FROM orders LIMIT 20;
+sql_solution_query: |
+  WITH first_orders AS (
+    SELECT customer_id, MIN(order_date) AS first_order_date
+    FROM orders
+    WHERE status = 'completed'
+    GROUP BY customer_id
+  ),
+  cohorts AS (
+    SELECT DATE_TRUNC('month', first_order_date) AS cohort_month
+    FROM first_orders
+  )
+  SELECT cohort_month, COUNT(*) AS new_customers
+  FROM cohorts
+  GROUP BY cohort_month
+  ORDER BY cohort_month;
+sql_row_order_matters: true
+sql_numeric_tolerance: 0.01
+sql_hidden_tests:
+  - name: "Earliest cohort month's new-customer count is correct"
+    query: |
+      WITH first_orders AS (
+        SELECT customer_id, MIN(order_date) AS first_order_date
+        FROM orders
+        WHERE status = 'completed'
+        GROUP BY customer_id
+      ),
+      cohorts AS (
+        SELECT DATE_TRUNC('month', first_order_date) AS cohort_month
+        FROM first_orders
+      )
+      SELECT cohort_month, COUNT(*) AS new_customers
+      FROM cohorts
+      GROUP BY cohort_month
+      ORDER BY cohort_month ASC
+      LIMIT 1
+    key_columns: 1
+hints:
+  - "This is two questions chained together: first, what is each customer's earliest completed order date? Second, once you know that date per customer, what month does it fall in, and how many customers share that month? Solve them as two CTEs, one feeding the next."
+  - "First CTE: `SELECT customer_id, MIN(order_date) AS first_order_date FROM orders WHERE status = 'completed' GROUP BY customer_id`. Second CTE: truncate that date with `DATE_TRUNC('month', first_order_date)`. Then GROUP BY the truncated month and COUNT(*), ordering by the month ascending."
+solution: >
+  ```sql
+  WITH first_orders AS (
+    SELECT customer_id, MIN(order_date) AS first_order_date
+    FROM orders
+    WHERE status = 'completed'
+    GROUP BY customer_id
+  ),
+  cohorts AS (
+    SELECT DATE_TRUNC('month', first_order_date) AS cohort_month
+    FROM first_orders
+  )
+  SELECT cohort_month, COUNT(*) AS new_customers
+  FROM cohorts
+  GROUP BY cohort_month
+  ORDER BY cohort_month;
+  ```
+explanation: >
+  A strong answer chains two CTEs that each answer one clear sub-question: `first_orders` collapses
+  each customer down to a single earliest completed `order_date` with `MIN(order_date) GROUP BY
+  customer_id`, filtering to `status = 'completed'` before that aggregation so cancelled/refunded/
+  pending orders never get treated as anyone's "first order." The second CTE then truncates that one
+  date per customer down to its calendar month, and the final SELECT groups by that month to count
+  customers, ordering chronologically. A common mistake is truncating and grouping raw `order_date`
+  values directly (over every order) instead of first reducing to one row per customer — that measures
+  "orders placed per month" instead of "customers acquired per month," double-counting customers who
+  ordered again in a later month.

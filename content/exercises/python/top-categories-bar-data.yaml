@@ -1,0 +1,95 @@
+slug: top-categories-bar-data
+lesson_slug: bar-charts
+skill: pandas
+dataset: ecommerce
+title: Top 5 Categories Bar Chart
+description: Build the top-5-category revenue data behind a bar chart for a merchandising review.
+exercise_type: PYTHON
+difficulty: INTERMEDIATE
+points: 20
+tags: [python, intermediate, real-world]
+business_context: >
+  Merchandising is presenting a review of top-performing categories and wants a bar chart showing
+  the 5 highest-revenue product categories, ranked from highest to lowest.
+prompt: >
+  Using `order_items`, `products`, and `categories`, find the 5 product categories with the
+  highest total order-item revenue, and plot them as a bar chart. Line revenue for an order item
+  is `(unit_price - discount) * quantity`. Merge `order_items` to `products` (to get
+  `category_id`) and then to `categories` (to get `category_name`), compute line revenue, and
+  group by `category_name` to sum it. Store your answer in a variable named `result`: a
+  DataFrame with columns `category_name` and `revenue` (rounded to 2 decimal places), containing
+  exactly the top 5 categories sorted descending by revenue. Then, using matplotlib or seaborn,
+  draw a horizontal bar chart of these 5 categories — the chart itself isn't graded, but a
+  complete answer includes it.
+python_datasets: [order_items, products, categories]
+python_starter_code: |
+  import matplotlib.pyplot as plt
+
+  # order_items, products, and categories are already loaded as DataFrames.
+  # Explore them first:
+  order_items.head()
+python_solution_code: |
+  import matplotlib.pyplot as plt
+
+  merged = order_items.merge(products[["product_id", "category_id"]], on="product_id").merge(
+      categories[["category_id", "category_name"]], on="category_id"
+  )
+  merged["line_revenue"] = (merged["unit_price"] - merged["discount"]) * merged["quantity"]
+  cat_rev = (
+      merged.groupby("category_name")["line_revenue"]
+      .sum()
+      .round(2)
+      .reset_index()
+      .rename(columns={"line_revenue": "revenue"})
+  )
+  result = cat_rev.sort_values("revenue", ascending=False).head(5).reset_index(drop=True)
+
+  plt.figure(figsize=(8, 5))
+  plt.barh(result["category_name"], result["revenue"])
+  plt.gca().invert_yaxis()
+  plt.title("Top 5 Categories by Revenue")
+  plt.xlabel("Revenue ($)")
+  plt.tight_layout()
+python_result_variable: result
+python_row_order_matters: true
+python_numeric_tolerance: 0.01
+python_hidden_tests:
+  - name: "Exactly 5 rows, sorted descending by revenue"
+    code: |
+      assert len(result) == 5, f"Expected exactly 5 rows, got {len(result)}"
+      assert result["revenue"].is_monotonic_decreasing, "Expected result sorted descending by revenue"
+hints:
+  - "This is the same category-revenue rollup as computing total revenue per category (merge order_items -> products -> categories, compute (unit_price - discount) * quantity, group by category_name and sum) — the new part is just keeping only the top 5."
+  - "After sorting descending by revenue, .head(5) keeps the top 5 rows. plt.barh(names, values) draws a horizontal bar chart; plt.gca().invert_yaxis() puts the largest bar at the top instead of the bottom."
+solution: |
+  ```python
+  import matplotlib.pyplot as plt
+
+  merged = order_items.merge(products[["product_id", "category_id"]], on="product_id").merge(
+      categories[["category_id", "category_name"]], on="category_id"
+  )
+  merged["line_revenue"] = (merged["unit_price"] - merged["discount"]) * merged["quantity"]
+  cat_rev = (
+      merged.groupby("category_name")["line_revenue"]
+      .sum()
+      .round(2)
+      .reset_index()
+      .rename(columns={"line_revenue": "revenue"})
+  )
+  result = cat_rev.sort_values("revenue", ascending=False).head(5).reset_index(drop=True)
+
+  plt.figure(figsize=(8, 5))
+  plt.barh(result["category_name"], result["revenue"])
+  plt.gca().invert_yaxis()
+  plt.title("Top 5 Categories by Revenue")
+  plt.xlabel("Revenue ($)")
+  plt.tight_layout()
+  ```
+explanation: >
+  Sorting descending before truncating to `.head(5)` (rather than truncating first and sorting
+  after) guarantees you actually get the 5 highest-revenue categories rather than an arbitrary 5.
+  A horizontal bar chart (`barh`) reads more naturally than a vertical one when the category
+  names are long text labels, since it avoids rotated or truncated x-axis tick labels; inverting
+  the y-axis afterward keeps the largest bar at the top, matching how a ranked list is normally
+  read. As with any Visualization exercise here, correctness grading only inspects the `result`
+  data — the chart-drawing code is still expected as part of answering the prompt fully.

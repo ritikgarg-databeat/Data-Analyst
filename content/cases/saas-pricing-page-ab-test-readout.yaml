@@ -1,0 +1,131 @@
+slug: saas-pricing-page-ab-test-readout
+title: "Case: Did the Checkout Redesign Actually Work?"
+category: EXPERIMENTATION
+difficulty: INTERMEDIATE
+estimated_minutes: 70
+
+company_context: >
+  The engineering and design teams spent several weeks building a redesigned checkout flow,
+  intended to reduce friction for users converting to a paid plan. It shipped as an A/B test
+  (`checkout_redesign`), randomly assigning users to see either the existing checkout (control) or
+  the redesigned one (treatment), with a `converted` flag recorded for each assigned user.
+stakeholder_name: Marcus Webb
+stakeholder_role: Product Manager
+problem_statement: >
+  "The checkout redesign test has been running long enough that we said we'd make a call by this
+  week. Someone glanced at the raw numbers and treatment looked a bit higher than control, but
+  nobody's actually run the numbers properly, and I don't want to greenlight a permanent rollout
+  (or tell engineering their work didn't pay off) based on a hallway eyeball of two percentages.
+  I need an actual readout: did this work, and should we ship it?"
+business_context: >
+  Rolling the redesign out permanently and removing the old checkout code path is not free —
+  engineering estimates it as a nontrivial cleanup and maintenance commitment, and the design
+  system change would need to be extended to a few other flows if adopted permanently.
+objective: >
+  Determine whether the checkout redesign produced a statistically meaningful improvement in
+  conversion, and give a clear ship/no-ship/keep-testing recommendation that accounts for both
+  statistical and practical significance.
+initial_information: >
+  You have `experiment_assignments.csv` (experiment_id, user_id, variant, assigned_at, converted)
+  filtered to experiment_id = 'checkout_redesign', with 1,000 users randomized to control and 1,000
+  to treatment.
+constraints:
+  - "The decision needs to be made from this experiment's data as it currently stands — there is no more time budgeted to keep the test running before the deadline."
+  - "Marcus wants the recommendation to address both whether the result is statistically real and whether it's worth the engineering cost, not just one or the other."
+available_datasets: [saas-product]
+expected_deliverables:
+  - "Conversion rate for control and treatment, with sample sizes for each arm"
+  - "A proper significance test (e.g. two-proportion z-test or chi-square test) on the conversion difference, with the actual test statistic and p-value reported, not just an eyeballed comparison"
+  - "An explicit statement of whether the observed lift is statistically significant at a conventional threshold, and what that does and doesn't tell you given the sample size"
+  - "A separate judgment on practical significance: whether the observed lift, real or not, would be worth the engineering cost of a permanent rollout"
+  - "A clear ship / don't ship / keep testing recommendation"
+learning_objectives:
+  - "Run a proper two-proportion significance test on A/B test data rather than eyeballing a percentage difference"
+  - "Correctly interpret a non-significant (or significant) p-value in terms of what it does and doesn't prove"
+  - "Distinguish statistical significance from practical/business significance as separate questions"
+  - "Make a ship decision recommendation under genuine uncertainty rather than false confidence in either direction"
+stages: [CLARIFY, FRAME, EXPLORE, ANALYZE, VALIDATE, INSIGHTS, RECOMMEND, SUBMIT]
+required_exercise_slugs: []
+tags: [experimentation, ab-testing, statistics, saas, intermediate]
+skills: [statistics, statistical-reasoning, experimentation, data-interpretation, decision-making]
+
+clarification_guidance:
+  - "What significance threshold (e.g. p < 0.05) is the team using to call a test result 'real', and is that appropriate given the sample size?"
+  - "Was the sample size (1,000 per arm) determined in advance with a target minimum detectable effect, or is this whatever accumulated by the deadline?"
+  - "Beyond statistical significance, what lift would actually be worth the engineering cost of a permanent rollout, in Marcus's view?"
+  - "Is there any possibility of extending the test if the result is inconclusive, or is this genuinely a one-shot decision?"
+
+rubric:
+  - category: "Problem Framing & Clarification"
+    weight: 10
+    criteria:
+      - criterion: "Asks at least one clarifying question about the significance threshold or what lift size would actually justify the rollout cost"
+        points: 10
+  - category: "Statistical Reasoning"
+    weight: 25
+    criteria:
+      - criterion: "Runs an actual two-proportion z-test or chi-square test on the real conversion counts (control 113/1000, treatment 125/1000) rather than just comparing the two percentages"
+        points: 15
+      - criterion: "Correctly reports that the result is not statistically significant at the conventional p < 0.05 threshold (p is approximately 0.41) and explains what that does and doesn't mean (does not prove there is no effect, just that this sample can't distinguish the observed lift from chance)"
+        points: 10
+  - category: "Technical Analysis"
+    weight: 20
+    is_technical: true
+    criteria:
+      - criterion: "Correctly computes conversion rate for each arm (control 11.3%, treatment 12.5%) and the raw and relative lift"
+        points: 10
+      - criterion: "Computes or reasons about a confidence interval or similar uncertainty range around the observed difference, and notes it includes zero"
+        points: 10
+  - category: "Recommendation & Communication"
+    weight: 25
+    criteria:
+      - criterion: "Explicitly separates the statistical significance question from the practical/business significance question rather than conflating them"
+        points: 12
+      - criterion: "Gives a specific, justified recommendation (e.g. don't ship on this evidence alone, keep testing for more power, or ship cautiously with monitoring) rather than a vague 'it's promising, let's see'"
+        points: 13
+  - category: "Rigor & Caveats"
+    weight: 20
+    criteria:
+      - criterion: "Notes that with n=1,000 per arm and an 11.3% baseline, the test only has power to reliably detect fairly large lifts, and a modest true lift of this size could plausibly be missed (a false negative), which is a real limitation of stopping here"
+        points: 20
+
+hints:
+  - "Don't stop at comparing 11.3% and 12.5%. Run an actual two-proportion z-test (or an equivalent chi-square test) using the raw counts, and look at the resulting p-value before concluding anything."
+  - "Once you have the p-value, ask what it does and doesn't tell you: a result that isn't statistically significant is not the same as proof that the redesign has zero effect."
+  - "Compute a confidence interval (or think through the plausible range) for the true difference in conversion rate between the two arms. Does it comfortably exclude zero, or not?"
+  - "Even if you conclude the result is statistically inconclusive, Marcus still needs an answer. Think about what recommendation makes sense given both the statistical uncertainty and the real engineering cost of shipping."
+
+reference_solution:
+  summary: >
+    Control converted at 11.3% (113 of 1,000) and treatment at 12.5% (125 of 1,000), a raw lift of
+    1.2 percentage points (about a 10.6% relative lift). A two-proportion z-test on these counts
+    gives z = 0.829, p = 0.407 (two-tailed); a chi-square test on the same 2x2 table gives an
+    equivalent chi2 = 0.687, p = 0.407. Neither is anywhere close to the conventional p < 0.05
+    threshold — this result is not statistically significant. A 95% confidence interval on the
+    difference in conversion rate (treatment minus control) is approximately -1.6 to +4.0
+    percentage points, which comfortably includes zero, meaning the data cannot rule out that the
+    true effect of the redesign is zero or even slightly negative. This does not prove the redesign
+    has no effect — with n=1,000 per arm and an 11.3% baseline rate, the test is underpowered to
+    reliably detect a lift as modest as 1.2 points; a real effect of this size is genuinely
+    plausible but this sample cannot confirm it.
+  key_insights:
+    - "The observed 1.2-point lift (11.3% to 12.5%) is not statistically significant: two-proportion z-test z = 0.829, p = 0.407 (chi-square gives the same result, chi2 = 0.687, p = 0.407)."
+    - "The 95% confidence interval on the true difference (roughly -1.6pp to +4.0pp) includes zero, so the data is consistent with anywhere from a small negative effect to a meaningfully positive one."
+    - "A non-significant result here is a power problem, not proof of no effect — at n=1,000/arm with an 11.3% baseline, only fairly large lifts would reliably clear statistical significance, so this test genuinely cannot distinguish 'no effect' from 'a real but modest effect that this sample is too small to detect.'"
+    - "Statistical significance and practical significance are separate questions here: even if the 1.2-point lift were confirmed as real, whether it's worth the engineering team's ongoing maintenance cost to fully adopt the redesign (and extend it to other flows) is a business judgment call the statistics alone don't answer."
+  recommendation: >
+    Tell Marcus this experiment, as it stands, cannot confirm the redesign improved conversion —
+    the observed 1.2-point lift is not statistically significant (p = 0.407) and the confidence
+    interval on the true effect spans from slightly negative to solidly positive. Do not present
+    this as a proven win. Given the deadline constraint, the two reasonable paths are: (a) if there
+    is any way to extend the test to accumulate more data (a larger sample would narrow the
+    confidence interval enough to tell a modest true lift from noise), that is the statistically
+    cleanest option; or (b) if the deadline is truly fixed, treat this as inconclusive rather than
+    a green light, and weigh the real engineering cost of a permanent rollout against a lift that
+    is plausible but unconfirmed — a reasonable call is to not commit to the full permanent
+    rollout (with the added commitment of extending the pattern to other flows) purely on this
+    evidence, while optionally keeping the redesign live for a longer read if resourcing allows.
+  acceptable_alternatives:
+    - "Recommending a cautious full rollout despite the non-significant result, provided the reasoning explicitly acknowledges the statistical uncertainty and frames it as a business risk-tolerance call (e.g. low cost of being wrong, directionally positive point estimate) rather than claiming the test proved anything."
+    - "Recommending a formal power analysis to determine how much additional sample size would be needed to detect a lift of this magnitude before deciding whether extending the test is worthwhile at all."
+version: 1

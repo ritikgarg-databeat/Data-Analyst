@@ -1,0 +1,181 @@
+slug: ecommerce-warehouse-design-for-analytics
+title: "Case: Designing an Analytics Data Model for Meridian Retail"
+category: DATA_ARCHITECTURE
+difficulty: INTERMEDIATE
+
+estimated_minutes: 90
+company_context: >
+  Meridian Retail Co. is a multi-category online retailer that has grown quickly over the past two
+  years. Analysts have always queried the raw operational tables directly — orders, order_items,
+  products, categories, customers, payments, sessions, and marketing_campaigns — with no
+  intermediate analytics layer. As the company has scaled, so has the number of analysts writing
+  ad-hoc joins across those same eight tables every day.
+stakeholder_name: Priya Shah
+stakeholder_role: Head of Data / VP Engineering
+problem_statement: >
+  "We've outgrown querying the raw tables directly. Two analysts pulled 'monthly revenue' for the
+  same month last week and got different numbers — turned out one of them included cancelled
+  orders and the other didn't, and neither of them was 'wrong' exactly, they just made different
+  assumptions because nothing tells them which one is right. Queries are also getting slower and
+  more error-prone as people write their own five- and six-table joins from scratch every time.
+  I want a proper analytics data model — fact and dimension tables — so people stop reinventing the
+  same joins and the same definitions every time. I don't want a patch; I want this designed
+  properly."
+business_context: >
+  There is currently no dimensional model, no documented definition of "an order" for reporting
+  purposes, and no single agreed source of truth for revenue, order counts, or customer counts.
+  Every analyst writes their own joins across orders, order_items, products, categories, customers,
+  payments, sessions, and marketing_campaigns, and different people make different, undocumented
+  choices about which order statuses to include, how to handle a customer or product whose
+  attributes change over time, and how to attribute a session to a marketing campaign. The team is
+  about to double in size over the next two quarters, which will make inconsistent, ad-hoc queries
+  a much bigger problem than it is today.
+objective: >
+  Design a dimensional (star-schema) model for the ecommerce dataset that gives analysts a single,
+  consistent, efficient source for order- and revenue-related reporting, and resolves the
+  "what counts as an order" ambiguity explicitly rather than leaving it to each analyst's judgment.
+initial_information: >
+  The current raw schema has eight tables: orders (order_id, customer_id, order_date, status,
+  channel), order_items (order_item_id, order_id, product_id, quantity, unit_price, discount),
+  products (product_id, product_name, category_id, unit_price, cost, is_active), categories
+  (category_id, category_name, parent_category), customers (customer_id, name fields, email,
+  country, signup_date, customer_segment), payments (payment_id, order_id, payment_date, amount,
+  payment_method, status), sessions (session_id, customer_id, session_start/end, device,
+  landing_page, marketing_campaign_id, converted), and marketing_campaigns (campaign_id,
+  campaign_name, channel, start_date, end_date, budget). orders.status takes four values
+  (completed, cancelled, refunded, pending); there is no existing documentation of which of those
+  should count toward "revenue" versus "order volume" metrics.
+constraints:
+  - "The model must be built from the existing raw ecommerce tables — no new source systems or fields are available."
+  - "It must support both order-level questions (order counts, order status mix) and line-item-level questions (revenue by category or product), since both come up constantly."
+  - "It should account for the fact that a product's price/cost or a customer's segment could change over time — the design needs to say what happens to historical reporting when that happens, not just describe the current-state case."
+  - "Use the platform's Data Modeler tool to sketch the proposed schema (fact table(s), grain, and dimension tables) as part of the deliverable."
+available_datasets:
+  - ecommerce
+expected_deliverables:
+  - "A star-schema sketch (built in the Data Modeler) naming at least one fact table and its exact grain (what one row represents)"
+  - "At least three dimension tables, each with a defined key and a short list of the attributes it carries"
+  - "An explicit, written definition of which order statuses count toward 'revenue' and which count toward 'order volume' metrics, so future analysts don't have to guess"
+  - "A brief explanation of how the model handles a product's price/cost or a customer's segment changing over time, so historical reports stay correct"
+learning_objectives:
+  - "Translate a normalized operational (OLTP) schema into a dimensional (star-schema) model suited for analytics"
+  - "Choose an appropriate fact table grain and justify the choice against the reporting needs described"
+  - "Identify dimension tables, their keys, and their attributes from a raw operational schema"
+  - "Treat an undocumented business-metric ambiguity (what counts as 'an order') as a first-class data-modeling deliverable, not an afterthought"
+  - "Apply slowly-changing-dimension thinking to at least one entity whose attributes change over time"
+stages:
+  - UNDERSTAND
+  - CLARIFY
+  - FRAME
+  - EXPLORE
+  - RECOMMEND
+  - COMMUNICATE
+  - SUBMIT
+required_exercise_slugs: []
+tags:
+  - data-modeling
+  - star-schema
+  - fact-table
+  - dimension-table
+  - data-warehouse
+  - architecture
+  - e-commerce
+  - case-study
+  - real-world
+  - intermediate
+  - grain
+skills:
+  - data-modeling
+  - dimensional-modeling
+  - data-warehousing
+  - business-problem-solving
+  - communication
+  - metric-definition
+clarification_guidance:
+  - "Asks whether the model needs to support line-item-level analysis (e.g., revenue by category or product) or only order-level reporting, since that determines the fact table's grain"
+  - "Asks which order statuses should count toward 'revenue' metrics and which should count toward 'order volume' metrics, rather than assuming an answer"
+  - "Asks whether historical point-in-time accuracy matters (e.g., reporting a past order against the customer's segment or product's price/cost AS OF that order date) or only current-state lookups are needed"
+  - "Asks who the primary users of the model will be and what kinds of questions they ask most often, to prioritize which dimensions matter most"
+rubric:
+  - category: "Problem Framing"
+    weight: 15
+    criteria:
+      - criterion: "States, in plain language, an explicit definition of what counts as 'an order' for revenue vs. order-count purposes, before proposing table structures"
+        points: 8
+      - criterion: "Identifies that the fact table's grain must be decided before dimensions can be chosen, and states the chosen grain explicitly"
+        points: 7
+  - category: "Modeling Approach"
+    weight: 30
+    criteria:
+      - criterion: "Proposes a coherent fact table (or fact tables) with a clearly stated grain that supports both order-level and line-item-level questions"
+        points: 15
+      - criterion: "Proposes at least three sensible dimension tables (e.g., customer, product/category, date, channel) with keys and attributes"
+        points: 10
+      - criterion: "Addresses how the model handles a changing product or customer attribute over time (slowly-changing-dimension reasoning), rather than assuming current-state values are always correct"
+        points: 5
+  - category: "Technical Analysis"
+    weight: 25
+    is_technical: true
+    criteria:
+      - criterion: "Correctly maps each raw table (orders, order_items, products, categories, customers, payments, sessions, marketing_campaigns) to a role in the proposed model (fact, dimension, or bridge/other) with a stated reason"
+        points: 15
+      - criterion: "The proposed grain and keys are internally consistent (e.g., no double-counting revenue, no orphaned foreign keys) when checked against a few example rows"
+        points: 10
+  - category: "Deliverable Completeness"
+    weight: 15
+    criteria:
+      - criterion: "Includes a Data Modeler sketch of the fact/dimension structure, not just prose description"
+        points: 8
+      - criterion: "Includes the explicit order-status-to-metric mapping as a written artifact, not just something implied"
+        points: 7
+  - category: "Communication"
+    weight: 15
+    criteria:
+      - criterion: "Explains the design in terms the stakeholder (a technical VP, but not necessarily focused on modeling terminology) can evaluate, including why the chosen grain and dimensions solve the specific pain points described"
+        points: 15
+hints:
+  - "Start by writing down, in plain language, exactly what 'one order' means for reporting purposes — does a cancelled order count as an order? Does it count toward revenue? Write the answer down before designing any tables."
+  - "Decide your fact table's grain first (one row per order? one row per order line item?) before picking dimensions — almost everything else follows from that one decision."
+  - "Look at which raw tables represent things that change over time about an entity (a product's price and cost, a customer's segment) — that's a sign you may need slowly-changing-dimension handling, not just a simple current-state lookup dimension."
+  - "Use the platform's Data Modeler to sketch your star schema visually before writing up the final recommendation — it's much easier to catch a missing key or an ambiguous grain visually than in a paragraph."
+reference_solution:
+  summary: >
+    A workable design uses a single core fact table, fact_order_items, at ORDER-LINE-ITEM grain
+    (one row per order_items row) — this is the finest grain available in the raw data, and it lets
+    analysts roll up to order-level, category-level, or product-level as needed, which a coarser
+    order-grain fact table cannot do without losing information. Core dimensions: dim_customer
+    (from customers, surrogate key, with slowly-changing handling on customer_segment so a past
+    order keeps the segment the customer had AT THE TIME of that order, not their current segment);
+    dim_product (from products joined to categories, similarly slowly-changing on unit_price/cost/
+    is_active, so historical margin and revenue analysis reflects the price and cost in effect when
+    the sale happened, not today's catalog); dim_date (calendar attributes derived from order_date);
+    dim_channel (web/mobile/marketplace); and dim_campaign (from marketing_campaigns, nullable FK,
+    since sessions and by extension orders are not always attributable to a campaign). The fact
+    table carries quantity, unit_price, discount, and an extended_revenue measure
+    (quantity*unit_price - discount), plus a foreign key to the parent order's status. Crucially,
+    the model makes the order-status ambiguity an explicit, documented attribute rather than
+    something buried in every analyst's WHERE clause: "revenue" is defined as
+    SUM(extended_revenue) WHERE order_status IN ('completed'), refunded orders are tracked as a
+    separate, explicit adjustment rather than silently included or excluded, and "order count" is
+    defined separately at the order (not line-item) grain, counted regardless of status unless a
+    metric name says otherwise. This directly resolves the "two analysts got different numbers"
+    complaint by making the status filter a documented, named business rule instead of an
+    unstated assumption in each person's query.
+  key_insights:
+    - "orders.status has exactly four values (completed, cancelled, refunded, pending) and every one of the 4,205 orders has exactly one — but there is no existing documented rule for which of those four belong in a 'revenue' metric versus an 'order count' metric, which is exactly the kind of undocumented business rule a dimensional model should make explicit rather than leaving to convention."
+    - "order_items has no date of its own — order_date lives only on the parent orders table — so a line-item-grain fact table must inherit its date dimension key from the parent order, not from order_items directly."
+    - "products.unit_price and products.cost are stored as a single current value per product with no history table; if the catalog is ever updated in place, a naive current-state join would silently rewrite the economics of every past order unless the model captures price/cost history (via slowly-changing dimension versioning or a price-at-time-of-sale value stored on the fact)."
+    - "sessions.marketing_campaign_id is nullable, meaning not every session (and therefore not every resulting order) is attributable to a campaign — any campaign dimension must support an explicit 'no campaign' case rather than assuming every fact row has one."
+  recommendation: >
+    Adopt fact_order_items (line-item grain) as the core fact table, paired with conformed
+    dim_customer, dim_product, dim_date, dim_channel, and dim_campaign dimensions, with
+    slowly-changing-dimension handling on dim_customer.customer_segment and
+    dim_product.unit_price/cost so historical reports stay correct as the catalog and customer base
+    evolve. Formally document, alongside the model, exactly which order statuses count toward each
+    headline metric (e.g., "net revenue" = completed orders only; refunds tracked as a separate,
+    explicit adjustment; "order count" defined at order grain regardless of status unless named
+    otherwise) so different teams stop computing divergent numbers from the same underlying tables.
+  acceptable_alternatives:
+    - "A learner who proposes fact_orders (order-grain) as the primary fact table, paired with a separate, more granular fact_order_items (a 'fact constellation' with two fact tables at different grains), is also a fully valid and common design — full credit as long as the grain of each fact table is stated explicitly and the choice is justified against the reporting needs described."
+    - "Combining refunds and cancellations into the fact table via a signed adjustment measure (e.g., a negative net_quantity/net_revenue row) rather than filtering by status downstream is an acceptable alternative design, provided the approach is called out explicitly and still resolves the 'what counts as an order' ambiguity in writing."
+version: 1

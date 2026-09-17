@@ -1,0 +1,95 @@
+version: 2
+
+models:
+  - name: stg_orders
+    description: "1 row = 1 order, standardized (trimmed/lowercased status)."
+    columns:
+      - name: order_id
+        tests: [unique, not_null]
+      - name: customer_id
+        tests: [not_null]
+      - name: status
+        tests:
+          - accepted_values:
+              arguments:
+                values: ["refunded", "pending", "completed", "cancelled"]
+      - name: channel
+        tests:
+          - accepted_values:
+              arguments:
+                values: ["mobile", "web", "marketplace"]
+
+  - name: stg_customers
+    description: "1 row = 1 customer, standardized (trimmed/lowercased segment)."
+    columns:
+      - name: customer_id
+        tests: [unique, not_null]
+      - name: email
+        tests: [not_null]
+      - name: customer_segment
+        tests:
+          - accepted_values:
+              arguments:
+                values: ["consumer", "business"]
+
+  - name: stg_order_items
+    description: "1 row = 1 product line within an order."
+    columns:
+      - name: order_item_id
+        tests: [unique, not_null]
+      - name: order_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_orders')
+                field: order_id
+      - name: product_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_products')
+                field: product_id
+
+  - name: stg_payments
+    description: "1 row = 1 payment transaction for an order."
+    columns:
+      - name: payment_id
+        tests: [unique, not_null]
+      - name: order_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_orders')
+                field: order_id
+      - name: payment_method
+        tests:
+          - accepted_values:
+              arguments:
+                values: ["gift_card", "credit_card", "paypal"]
+      - name: status
+        tests:
+          - accepted_values:
+              arguments:
+                values: ["success", "refunded"]
+
+  - name: stg_products
+    description: "1 row = 1 product."
+    columns:
+      - name: product_id
+        tests: [unique, not_null]
+      - name: category_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_categories')
+                field: category_id
+
+  - name: stg_categories
+    description: "1 row = 1 product category."
+    columns:
+      - name: category_id
+        tests: [unique, not_null]

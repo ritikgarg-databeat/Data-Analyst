@@ -1,0 +1,34 @@
+slug: data-analyst
+title: Data Analyst
+category: DATA_ANALYST
+description: >
+  The generalist analyst role — turns raw data into answers for business
+  stakeholders using SQL, spreadsheets/Python, and clear communication.
+  A generic shape based on common postings, not any single employer's
+  exact requirements.
+core_skills:
+  - sql-fundamentals
+  - advanced-sql
+  - pandas
+  - statistics
+  - data-cleaning
+  - exploratory-data-analysis
+  - data-visualization
+  - business-metrics
+  - communication
+preferred_skills:
+  - business-problem-solving
+  - statistical-reasoning
+  - data-interpretation
+  - metric-definition
+nice_to_have_skills:
+  - data-modeling
+  - excel-fundamentals
+  - experimentation
+typical_responsibilities:
+  - Write SQL queries to answer ad hoc business questions
+  - Build and maintain dashboards and recurring reports
+  - Clean and validate data before analysis
+  - Communicate findings clearly to non-technical stakeholders
+  - Monitor key business metrics and flag anomalies
+version: 1

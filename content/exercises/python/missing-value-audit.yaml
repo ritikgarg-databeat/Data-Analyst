@@ -1,0 +1,63 @@
+slug: missing-value-audit
+lesson_slug: missing-values
+skill: pandas
+dataset: ecommerce
+title: Missing Value Audit
+description: Profile every column of the sessions table for null counts and null percentages.
+exercise_type: PYTHON
+difficulty: BEGINNER
+points: 15
+tags: [python, intermediate, real-world]
+business_context: >
+  Data engineering is about to build a dashboard on top of the `sessions` table and wants a
+  null-value audit of every column first, so they know which fields need a fallback or a
+  "not applicable" bucket before anything gets charted.
+prompt: >
+  Using `sessions`, audit every column for missing values. Store your answer in a variable named
+  `result`: a DataFrame with one row per column of `sessions`, and columns `column_name`,
+  `null_count` (the number of missing values in that column), and `null_pct` (the percentage of
+  rows that are missing, rounded to 1 decimal place).
+python_datasets: [sessions]
+python_starter_code: |
+  # sessions is already loaded as a DataFrame.
+  # Explore it first:
+  sessions.head()
+python_solution_code: |
+  null_counts = sessions.isna().sum()
+  result = pd.DataFrame({
+      "column_name": null_counts.index,
+      "null_count": null_counts.values,
+      "null_pct": (null_counts.values / len(sessions) * 100).round(1),
+  }).reset_index(drop=True)
+python_result_variable: result
+python_row_order_matters: false
+python_numeric_tolerance: 0.01
+python_hidden_tests:
+  - name: "customer_id is genuinely nullable in this dataset"
+    code: |
+      assert (result.loc[result["column_name"] == "customer_id", "null_count"] > 0).all(), (
+          "customer_id should show a nonzero null_count — some sessions are from anonymous, "
+          "not-yet-identified visitors."
+      )
+hints:
+  - "`sessions.isna().sum()` returns a Series with one entry per column: the count of missing values in that column. `.index` gives you the column names and `.values` gives you the counts."
+  - "The percentage is `null_count / total_row_count * 100`, rounded with `.round(1)`. Build the three columns into a new DataFrame with `pd.DataFrame({...})` rather than modifying `sessions` itself."
+solution: |
+  ```python
+  null_counts = sessions.isna().sum()
+  result = pd.DataFrame({
+      "column_name": null_counts.index,
+      "null_count": null_counts.values,
+      "null_pct": (null_counts.values / len(sessions) * 100).round(1),
+  }).reset_index(drop=True)
+  ```
+explanation: >
+  `DataFrame.isna().sum()` is the standard one-liner for a per-column null count — `isna()`
+  produces a same-shaped DataFrame of booleans, and summing it column-wise (the default axis)
+  collapses each column to a single count. Dividing by `len(sessions)` and multiplying by 100
+  turns each raw count into a percentage of the whole table, which is usually the more actionable
+  number for deciding whether a column's missingness is a rounding error or a real data-quality
+  problem. Here, `customer_id` is null on a meaningful share of rows because some sessions belong
+  to anonymous visitors who hadn't identified themselves yet, and `marketing_campaign_id` is null
+  whenever a session didn't arrive through a tracked campaign — both are expected, "real" nulls
+  rather than data-quality bugs.

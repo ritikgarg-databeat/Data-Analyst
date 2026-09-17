@@ -1,0 +1,73 @@
+slug: excel-countifs-two-criteria
+skill: excel-fundamentals
+title: Counting Completed Orders by Region with COUNTIFS
+description: The `Data` sheet lists each order's `Region` (A) and `Status` (B). On `Summary`, fill in `B2` with
+  a COUNTIFS formula that counts rows where `Data!A2:A9` is "East" AND `Data!B2:B9` is "Completed".
+exercise_type: EXCEL
+difficulty: BEGINNER
+points: 10
+tags:
+- excel
+business_context: Ops wants a quick count of completed orders for one region, without filtering the sheet manually.
+prompt: The `Data` sheet lists each order's `Region` (A) and `Status` (B). On `Summary`, fill in `B2` with a COUNTIFS
+  formula that counts rows where `Data!A2:A9` is "East" AND `Data!B2:B9` is "Completed".
+excel_starter_sheets:
+- name: Data
+  cells:
+    A1: Region
+    B1: Status
+    A2: East
+    B2: Completed
+    A3: West
+    B3: Completed
+    A4: East
+    B4: Pending
+    A5: East
+    B5: Completed
+    A6: West
+    B6: Pending
+    A7: East
+    B7: Completed
+    A8: West
+    B8: Completed
+    A9: East
+    B9: Pending
+- name: Summary
+  cells:
+    A1: East Completed Count
+    A2: Result
+excel_solution_sheets:
+- name: Data
+  cells:
+    A1: Region
+    B1: Status
+    A2: East
+    B2: Completed
+    A3: West
+    B3: Completed
+    A4: East
+    B4: Pending
+    A5: East
+    B5: Completed
+    A6: West
+    B6: Pending
+    A7: East
+    B7: Completed
+    A8: West
+    B8: Completed
+    A9: East
+    B9: Pending
+- name: Summary
+  cells:
+    A1: East Completed Count
+    A2: Result
+    B2: =COUNTIFS(Data!A2:A9,"East",Data!B2:B9,"Completed")
+excel_check_cells:
+- Summary!B2
+hints:
+- COUNTIFS takes pairs of (criteria range, criteria) with no separate sum/count range -- it just counts rows matching
+  every pair.
+- Count each East row's Status by eye first to sanity-check whatever formula you write.
+solution: '`=COUNTIFS(Data!A2:A9,"East",Data!B2:B9,"Completed")` evaluates to 3.'
+explanation: Rows 2, 5, and 7 are the only ones where Region is "East" AND Status is "Completed" -- COUNTIFS requires
+  every criteria pair to hold for a row to be counted, exactly like SUMIFS but returning a count instead of a sum.

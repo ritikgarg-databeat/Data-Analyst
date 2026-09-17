@@ -1,0 +1,148 @@
+slug: pa-funnel-sql
+module_slug: funnels
+title: "Building a Funnel Query in SQL"
+description: >
+  Writing the exact SQL to compute a cumulative, segmentable funnel from a raw events table —
+  overall and broken out by acquisition channel — and verifying it against known totals.
+difficulty: INTERMEDIATE
+estimated_minutes: 20
+display_order: 2
+objectives:
+  - Write a conditional-aggregation CTE that turns a long, one-row-per-event table into one row per user with a flag per funnel step
+  - Compute both step-to-step and overall conversion from that per-user flag table
+  - Extend the same query to segment the funnel by a dimension like acquisition channel
+prerequisites: [pa-funnel-fundamentals]
+skills: [product-analytics, sql-fundamentals]
+datasets: [saas-product]
+tags: [product, saas, funnel, sql, intermediate]
+key_takeaways:
+  - The core pattern for any "ever completed" funnel is the same two steps every time — pivot events into one row per user with a 0/1 flag per step (conditional aggregation with MAX/CASE), then aggregate those flags with cumulative AND conditions.
+  - Cumulative AND conditions (signup=1 AND activated=1 AND engaged=1) are what make the funnel "cumulative" — dropping them turns the query into independent per-step reach counts instead, which is a different (and usually wrong) question to answer.
+  - Adding a segment column to the funnel query is a one-line change (join the dimension table, add it to GROUP BY) — always verify the segmented numbers sum back to the overall total before trusting them.
+common_mistakes:
+  - Forgetting the cumulative AND chain and instead reporting each step's flag independently (SUM(activated), SUM(engaged) with no AND), which counts users as "engaged" even if they skipped activation — inflating every step past the first.
+  - Segmenting a funnel by joining a dimension table without checking whether that join can duplicate rows (e.g. a user with multiple matching dimension rows), which silently double-counts a step.
+blocks:
+  - type: text
+    body: >
+      The previous lesson established the numbers; this one builds the query from scratch. The
+      pattern has two stages: first collapse the long `events` table (7,863 rows, one per event) into
+      exactly one row per user with a 0/1 flag for each of the four steps; then aggregate those flags
+      with **cumulative** conditions so that "reached step N" means "reached steps 1 through N."
+  - type: heading
+    text: "Stage 1: one row per user, with a flag per step"
+  - type: code
+    language: sql
+    caption: Conditional aggregation collapses events into a per-user flag table
+    code: |
+      SELECT
+        user_id,
+        MAX(CASE WHEN event_name = 'signup'    THEN 1 ELSE 0 END) AS signup,
+        MAX(CASE WHEN event_name = 'activated'  THEN 1 ELSE 0 END) AS activated,
+        MAX(CASE WHEN event_name = 'engaged'    THEN 1 ELSE 0 END) AS engaged,
+        MAX(CASE WHEN event_name = 'upgraded'   THEN 1 ELSE 0 END) AS upgraded
+      FROM events
+      GROUP BY user_id;
+  - type: text
+    body: >
+      `MAX(CASE WHEN ... THEN 1 ELSE 0 END)` is doing the work here: for each user, it scans all of
+      that user's event rows and returns 1 if *any* of them matches the event name, 0 otherwise. A
+      user with 3 events (say, `signup`, `activated`, `engaged`) gets `signup=1, activated=1,
+      engaged=1, upgraded=0` — exactly the flag row the next stage needs.
+  - type: heading
+    text: "Stage 2: cumulative counts from the flag table"
+  - type: code
+    language: sql
+    caption: Full funnel query — verified against the saas-product dataset
+    code: |
+      WITH reached AS (
+        SELECT
+          user_id,
+          MAX(CASE WHEN event_name = 'signup'    THEN 1 ELSE 0 END) AS signup,
+          MAX(CASE WHEN event_name = 'activated'  THEN 1 ELSE 0 END) AS activated,
+          MAX(CASE WHEN event_name = 'engaged'    THEN 1 ELSE 0 END) AS engaged,
+          MAX(CASE WHEN event_name = 'upgraded'   THEN 1 ELSE 0 END) AS upgraded
+        FROM events
+        GROUP BY user_id
+      )
+      SELECT
+        SUM(signup)                                                       AS signup,
+        SUM(CASE WHEN signup=1 AND activated=1 THEN 1 END)                AS activated,
+        SUM(CASE WHEN signup=1 AND activated=1 AND engaged=1 THEN 1 END)  AS engaged,
+        SUM(CASE WHEN signup=1 AND activated=1 AND engaged=1
+                  AND upgraded=1 THEN 1 END)                              AS upgraded
+      FROM reached;
+  - type: output
+    caption: Result, run against the real saas-product data
+    body: "signup=3000, activated=2074, engaged=1125, upgraded=212"
+  - type: callout
+    variant: warning
+    title: Why the AND chain, and not just SUM(engaged)?
+    body: >
+      Without `signup=1 AND activated=1 AND`, `SUM(engaged)` alone would return 2,577 — everyone who
+      has an `engaged` event on record, whether or not they ever activated. That's a real, valid
+      metric (marginal reach per step), but it's a *different* metric from cumulative funnel
+      progression, and reporting it as "engaged step of the funnel" without saying so would overstate
+      how many users passed through activation on their way to engagement.
+  - type: heading
+    text: "Extending it: segment by acquisition channel"
+  - type: text
+    body: >
+      Adding a segment is a small change — join `users` for the dimension, add it to `GROUP BY`, and
+      compute the same cumulative flags per group.
+  - type: code
+    language: sql
+    caption: Same funnel, segmented by acquisition_channel
+    code: |
+      WITH reached AS (
+        SELECT
+          e.user_id,
+          u.acquisition_channel,
+          MAX(CASE WHEN event_name = 'signup'    THEN 1 ELSE 0 END) AS signup,
+          MAX(CASE WHEN event_name = 'activated'  THEN 1 ELSE 0 END) AS activated,
+          MAX(CASE WHEN event_name = 'engaged'    THEN 1 ELSE 0 END) AS engaged,
+          MAX(CASE WHEN event_name = 'upgraded'   THEN 1 ELSE 0 END) AS upgraded
+        FROM events e
+        JOIN users u ON u.user_id = e.user_id
+        GROUP BY e.user_id, u.acquisition_channel
+      )
+      SELECT
+        acquisition_channel,
+        SUM(signup)                                                      AS signup,
+        SUM(CASE WHEN signup=1 AND activated=1 THEN 1 END)               AS activated,
+        ROUND(SUM(CASE WHEN signup=1 AND activated=1 THEN 1 END)::DOUBLE
+              / SUM(signup), 4)                                          AS activation_rate
+      FROM reached
+      GROUP BY acquisition_channel
+      ORDER BY activation_rate DESC;
+  - type: table
+    headers: ["acquisition_channel", "signup", "activated", "activation_rate"]
+    rows:
+      - ["organic", "913", "720", "0.7886"]
+      - ["referral", "435", "340", "0.7816"]
+      - ["content", "300", "216", "0.7200"]
+      - ["paid_search", "728", "449", "0.6168"]
+      - ["paid_social", "624", "349", "0.5593"]
+  - type: callout
+    variant: tip
+    title: Always sanity-check a segmented query against the overall total
+    body: >
+      Sum the `signup` column above: 913+435+300+728+624 = 3,000, matching the unsegmented total
+      exactly. Sum `activated`: 720+340+216+449+349 = 2,074, also matching. Whenever you add a join
+      to segment a funnel, this check catches the most common bug — a join that duplicates or drops
+      rows — before the segmented numbers get reported anywhere.
+  - type: question
+    prompt: >
+      In the flag-table CTE, why does the final SELECT use `SUM(CASE WHEN signup=1 AND activated=1
+      AND engaged=1 THEN 1 END)` for the "engaged" column instead of simply `SUM(engaged)`?
+    choices:
+      - "There's no difference — both return exactly the same number in every dataset"
+      - "SUM(engaged) would count every user who ever has an engaged event, even those who never activated, which answers a different question than cumulative funnel progression"
+      - "SUM(engaged) is invalid SQL syntax inside a CTE"
+      - "The AND chain is only needed for the very last step of the funnel, not the middle ones"
+    correct_index: 1
+    explanation: >
+      SUM(engaged) alone returns marginal reach (2,577 in this dataset) — everyone with an engaged
+      event regardless of what else happened for them. The cumulative AND chain answers "how many
+      users made it through every prior step and then engaged," which is the actual funnel question,
+      and produces a smaller, different number (1,125) here.

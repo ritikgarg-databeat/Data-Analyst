@@ -1,0 +1,21 @@
+slug: excel-conditional-formatting-use-case
+skill: excel-fundamentals
+title: When to Use Conditional Formatting
+description: You want every row in a shipment tracker to visually highlight red whenever 'Days Late' exceeds 5,
+  updating automatically as the data changes. What's the most appropriate tool?
+exercise_type: MULTIPLE_CHOICE
+difficulty: BEGINNER
+points: 5
+tags:
+- excel
+prompt: You want every row in a shipment tracker to visually highlight red whenever 'Days Late' exceeds 5, updating
+  automatically as the data changes. What's the most appropriate tool?
+correct_answer: Conditional Formatting
+explanation: Conditional Formatting applies formatting rules driven by a cell's value (or a formula), automatically
+  re-evaluating as the underlying data changes -- exactly the "highlight late shipments" use case, unlike a hand-applied
+  static fill color which won't update itself.
+choices:
+- Conditional Formatting
+- A static fill color applied by hand to each qualifying row
+- A pivot table
+- Data validation

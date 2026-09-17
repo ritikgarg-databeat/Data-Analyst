@@ -1,0 +1,70 @@
+slug: pa-sql-engagement-depth-by-channel
+lesson_slug: pa-engagement-frequency-segments
+skill: product-analytics
+dataset: saas-product
+title: Average Engagement Depth by Acquisition Channel
+description: Compute the average number of recorded events per user, segmented by acquisition channel.
+exercise_type: SQL
+difficulty: INTERMEDIATE
+points: 15
+tags: [sql, product, saas, intermediate]
+business_context: >
+  Beyond activation rate, the team wants to know whether users from different channels engage with
+  different intensity once they're in — a channel with lower activation but higher engagement-per-user
+  among those who do activate would need a different kind of investment than one that's weak on both.
+prompt: >
+  Using the `events` and `users` tables, write a query returning one row per `acquisition_channel`
+  with columns `acquisition_channel`, `n_events` (total event rows from users in that channel),
+  `n_users` (distinct users in that channel with at least one event), and `avg_events_per_user`
+  (n_events / n_users, rounded to 2 decimals). Order by `avg_events_per_user` descending.
+sql_tables: [events, users]
+sql_starter_query: |
+  -- Explore total events and users first
+  SELECT COUNT(*) FROM events;
+  SELECT COUNT(DISTINCT user_id) FROM events;
+sql_solution_query: |
+  SELECT
+    u.acquisition_channel,
+    COUNT(*) AS n_events,
+    COUNT(DISTINCT e.user_id) AS n_users,
+    ROUND(COUNT(*) * 1.0 / COUNT(DISTINCT e.user_id), 2) AS avg_events_per_user
+  FROM events e
+  JOIN users u ON u.user_id = e.user_id
+  GROUP BY u.acquisition_channel
+  ORDER BY avg_events_per_user DESC;
+sql_row_order_matters: true
+sql_numeric_tolerance: 0.01
+sql_hidden_tests:
+  - name: referral's avg_events_per_user matches an independent recomputation
+    query: |
+      SELECT 'referral' AS channel,
+             ROUND(COUNT(*) * 1.0 / COUNT(DISTINCT e.user_id), 2) AS expected_avg
+      FROM events e JOIN users u ON u.user_id = e.user_id
+      WHERE u.acquisition_channel = 'referral'
+    key_columns: 1
+hints:
+  - "Join events to users on user_id so every event row carries its user's acquisition_channel, then GROUP BY acquisition_channel."
+  - "n_events is simply COUNT(*) within each group (every event row counts, including repeats of the same event_name for the same user); n_users is COUNT(DISTINCT e.user_id) within the same group — don't accidentally use COUNT(*) for both."
+solution: >
+  ```sql
+  SELECT
+    u.acquisition_channel,
+    COUNT(*) AS n_events,
+    COUNT(DISTINCT e.user_id) AS n_users,
+    ROUND(COUNT(*) * 1.0 / COUNT(DISTINCT e.user_id), 2) AS avg_events_per_user
+  FROM events e
+  JOIN users u ON u.user_id = e.user_id
+  GROUP BY u.acquisition_channel
+  ORDER BY avg_events_per_user DESC;
+  ```
+  Run against the real data: referral 2.99, organic 2.78, content 2.61, paid_search 2.44, paid_social
+  2.34 — a real but comparatively modest spread next to activation rate's 23-point spread across the
+  same channels.
+explanation: >
+  The key distinction is between `COUNT(*)` (every event row, which is what `n_events` needs) and
+  `COUNT(DISTINCT e.user_id)` (how many unique people generated those rows, which is what `n_users`
+  needs) — using COUNT(*) for both would make `avg_events_per_user` come out as exactly 1.0 for every
+  channel, since it would just be dividing a number by itself. Once both are computed correctly per
+  channel, dividing them gives the true average engagement depth, which should be compared in
+  relative terms against other segmented metrics (like activation rate) rather than read in isolation,
+  to judge how large a gap actually is.

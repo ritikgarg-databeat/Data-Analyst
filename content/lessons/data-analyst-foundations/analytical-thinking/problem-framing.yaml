@@ -1,0 +1,67 @@
+slug: problem-framing
+module_slug: analytical-thinking
+title: Problem Framing
+description: Turning an ambiguous business ask into a specific, answerable question.
+difficulty: BEGINNER
+estimated_minutes: 10
+display_order: 1
+objectives:
+  - Identify what makes a business question ambiguous vs. answerable
+  - Reframe a vague ask into a specific, scoped question
+prerequisites: [stakeholder-communication]
+skills: [business-problem-solving]
+tags: [foundations, beginner, business-analytics]
+key_takeaways:
+  - A well-framed question names the metric, the population, the comparison baseline, and the time window.
+  - Framing is not the same as narrowing arbitrarily — a good frame stays true to the stakeholder's actual concern.
+  - Time spent framing a question well is rarely wasted; time spent analyzing the wrong question always is.
+common_mistakes:
+  - Framing a question so narrowly that the answer no longer addresses the stakeholder's real concern.
+  - Accepting the first framing offered instead of checking it against what decision the answer needs to support.
+blocks:
+  - type: heading
+    text: Why "why is X down" isn't a question you can answer
+  - type: text
+    body: >
+      "Why is engagement down?" sounds like a question, but it isn't answerable yet — it doesn't say
+      which engagement metric, for whom, compared to what, or over what window. Framing is the step
+      that turns a concern into something a query can actually resolve.
+  - type: comparison
+    title: Vague ask vs. framed question
+    columns: ["Vague", "Framed"]
+    rows:
+      - ["\"Why is engagement down?\"", "\"Did 7-day-active sessions among mobile users acquired in the last 90 days drop week-over-week in the week of Sep 1, and if so, in which segment?\""]
+      - ["\"Customers are complaining about slow support.\"", "\"Has median first-response time for tier-1 tickets increased over the last 4 weeks compared to the prior 8-week baseline?\""]
+  - type: checklist
+    title: The four things a framed question should name
+    items:
+      - The metric, with its exact definition
+      - The population or segment in scope
+      - The comparison baseline
+      - The time window
+  - type: example
+    title: From complaint to question
+    body: >
+      "Customers are complaining about slow support" becomes: "Has median first-response time for
+      tier-1 tickets increased over the last 4 weeks compared to the prior 8-week baseline, and if so,
+      is it concentrated in a specific queue or time of day?" That version names the metric (median
+      first-response time, tier-1), the comparison (last 4 weeks vs. prior 8), and leaves room to
+      segment without pre-deciding the answer.
+  - type: callout
+    variant: common_mistake
+    title: Narrowing away the real concern
+    body: >
+      Reframing "why is engagement down" as only "did daily active users drop yesterday" can produce a
+      precise but useless answer if the stakeholder's actual concern was a slower multi-week trend.
+      Check your framing against their real worry before running with it.
+  - type: question
+    prompt: A VP says "our top customers seem less engaged lately, can you look into it?" Which reframed version is best?
+    choices:
+      - "\"Are our top customers unhappy?\""
+      - "\"Among customers in the top revenue decile, has weekly product-session count declined over the trailing 6 weeks compared to the prior 6, and is the decline concentrated in a segment?\""
+      - "\"Let's pull everything we have on the top 10 customers and see what stands out.\""
+    correct_index: 1
+    explanation: >
+      The second version names the population (top revenue decile), the metric (weekly session count),
+      and the comparison window. The first is still vague, and the third is undirected — there's no
+      clear stopping point or definition of "done."

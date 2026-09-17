@@ -1,0 +1,126 @@
+slug: pa-funnel-fundamentals
+module_slug: funnels
+title: "Funnels: Rates, Absolute Loss, and Which One to Trust"
+description: >
+  Building on basic funnel conversion — the difference between an "ever completed" funnel and a
+  strictly ordered one, and why step-to-step rate and absolute user loss can tell different stories
+  from the exact same data.
+difficulty: INTERMEDIATE
+estimated_minutes: 20
+display_order: 1
+objectives:
+  - Distinguish an "ever completed" (unordered) funnel from a strictly time-ordered funnel, and know which a given dataset supports
+  - Compute both step-to-step conversion rate and absolute user loss per step, and explain when they disagree
+  - Identify the real bottleneck in a multi-step funnel using both views together
+prerequisites: [pa-user-journey-mapping, funnel-conversion]
+skills: [product-analytics, product-metrics]
+datasets: [saas-product]
+tags: [product, saas, funnel, intermediate]
+key_takeaways:
+  - An "ever completed" funnel counts a step as reached if the matching event exists at all for that user, regardless of when — that's a real, common funnel definition, but it's a different (and looser) claim than a strictly time-ordered funnel where each step must follow the previous one chronologically.
+  - Step-to-step conversion *rate* and absolute user *count* lost at each step are both real and both necessary — a step can have the worst rate while another step loses more actual people, and only looking at one hides the other.
+  - "The \"real\" bottleneck depends on what you're optimizing for: the step with the worst rate is the most inefficient one relative to who reached it; the step losing the most people in absolute terms is where a fix would recover the most users."
+common_mistakes:
+  - Assuming a funnel's step order is always enforced by timestamps, when many real event schemas (this one included) only guarantee the event exists somewhere in the data, not that it happened in order.
+  - Reporting only step-to-step percentages and never converting back to absolute headcount, which can make a step with a "fine" 54% conversion rate look less urgent than a step with a "bad" 19% rate — even when the 54% step is losing more actual users.
+blocks:
+  - type: text
+    body: >
+      The `product-metrics` module already introduced step-to-step vs. overall funnel conversion.
+      This lesson goes one level deeper on a real dataset: the saas-product `events` table records
+      exactly four event types per user — `signup`, `activated`, `engaged`, `upgraded` — and a user
+      "reaches" a step if a matching event row exists for them *at any time*. There's no guarantee in
+      this data that `activated` happened before `engaged` chronologically for every user — only that
+      both events exist. That makes this an **"ever completed" funnel**, not a strictly time-ordered
+      one, and the two are not the same claim.
+  - type: callout
+    variant: important
+    title: "\"Ever completed\" vs. strictly ordered — pick the right one on purpose"
+    body: >
+      An "ever completed" funnel asks "does this user have an `activated` event, an `engaged`
+      event, and so on?" — regardless of sequence. A strictly ordered funnel additionally requires
+      each event's timestamp to come after the previous step's, often within some time window (see
+      the `product-metrics` funnel-conversion lesson's example with a 7-day window). Neither is
+      "more correct" in general — but they can produce different numbers from the same events table,
+      so a report should always say which definition it used.
+  - type: heading
+    text: "The real numbers: cumulative funnel across all 3,000 signups"
+  - type: table
+    headers: ["Step", "Users reaching this step (cumulative)", "Step-to-step conversion", "Overall (vs. signup)"]
+    rows:
+      - ["1. Signup", "3,000", "—", "100%"]
+      - ["2. Activated", "2,074", "69.1%", "69.1%"]
+      - ["3. Engaged", "1,125", "54.2%", "37.5%"]
+      - ["4. Upgraded", "212", "18.8%", "7.1%"]
+  - type: text
+    body: >
+      Read as rates, step 3 → 4 (engaged → upgraded, 18.8%) looks like the worst step by far — under
+      a fifth of engaged users go on to upgrade, versus 69.1% and 54.2% for the earlier steps. A team
+      that stops there would naturally aim fix effort at the upgrade step. But rate isn't the whole
+      story.
+  - type: heading
+    text: The same funnel, read as absolute users lost per step
+  - type: table
+    headers: ["Step", "Users lost at this step", "As % of the step's incoming users"]
+    rows:
+      - ["Signup → Activated", "926 users (3,000 − 2,074)", "30.9% lost"]
+      - ["Activated → Engaged", "949 users (2,074 − 1,125)", "45.8% lost"]
+      - ["Engaged → Upgraded", "913 users (1,125 − 212)", "81.2% lost"]
+  - type: callout
+    variant: tip
+    title: A genuinely surprising pattern in this data
+    body: >
+      Every single step loses almost exactly the same number of real people — 926, then 949, then
+      913 — despite the step-to-step conversion *rates* looking wildly different (69%, 54%, 19%).
+      That's because each step starts from a shrinking population: losing 81% of a small group
+      (1,125 engaged users) removes about the same headcount as losing 31% of a much larger one
+      (3,000 signups). If you fixed the engaged→upgraded step *and only that step*, you'd recover
+      roughly the same number of users as fixing the signup→activated step — but the percentage
+      improvement would look far more dramatic for the later step, since it starts from a smaller
+      base.
+  - type: text
+    body: >
+      This is exactly why both views matter. Rate tells you which step is the least *efficient*
+      relative to who reached it. Absolute loss tells you which fix would recover the most actual
+      users. In this data, they're both defensible answers to "what should we fix first" — but they
+      point at the same conclusion for a different reason: every step here is worth serious
+      investment, because none of them is clearly "fine" once you look at both numbers.
+  - type: heading
+    text: Segmenting a funnel by acquisition channel
+  - type: text
+    body: >
+      The same cumulative funnel, split by `users.acquisition_channel`, shows the activation step
+      (signup → activated) is not uniform at all — this is the step worth segmenting first, since it's
+      the earliest one and touches all 3,000 users.
+  - type: table
+    headers: ["Channel", "Signups", "Activated", "Activation rate"]
+    rows:
+      - ["organic", "913", "720", "78.9%"]
+      - ["referral", "435", "340", "78.2%"]
+      - ["content", "300", "216", "72.0%"]
+      - ["paid_search", "728", "449", "61.7%"]
+      - ["paid_social", "624", "349", "55.9%"]
+  - type: callout
+    variant: warning
+    title: A single blended activation rate (69.1%) hides a 23-point spread
+    body: >
+      Reporting "69.1% activation" as one number blends a channel converting at 78.9% with one
+      converting at 55.9% — nearly a 1.4x difference. Any funnel step worth reporting overall is
+      worth segmenting by channel (and by cohort, platform, geography) before deciding where the
+      real problem is, exactly as the product-metrics module's DAU-drop checklist argued for activity
+      metrics. The next two lessons build the SQL and Python to do this segmentation directly.
+  - type: question
+    prompt: >
+      A funnel step converts at only 19% (looks terrible), while an earlier step in the same funnel
+      converts at 69% (looks fine). Which of these could still be true?
+    choices:
+      - "The 19% step is always the more urgent one to fix, since a lower rate is always worse in absolute terms"
+      - "The two steps could be losing a similar number of actual users, because the 19% step is applied to a much smaller incoming population than the 69% step"
+      - "Step-to-step rates below 50% are never meaningful and should be ignored"
+      - "This pattern can only happen if the funnel events were logged incorrectly"
+    correct_index: 1
+    explanation: >
+      A low percentage on a small base and a high percentage's complement on a large base can lose
+      similar absolute headcounts — exactly what happens in this dataset, where three very
+      different step-to-step rates (69%, 54%, 19%) all correspond to losing roughly 900-950 real
+      users. Rate and absolute loss answer different questions, and a real decision needs both.

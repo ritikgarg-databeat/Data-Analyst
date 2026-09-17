@@ -1,0 +1,96 @@
+slug: exp-experiment-design-flow
+module_slug: experiment-fundamentals
+title: The End-to-End Experiment Design Flow
+description: >
+  The six-step path every trustworthy experiment follows, from a vague business idea to a shipped
+  decision — and a map of which later lesson covers each step in depth.
+difficulty: INTERMEDIATE
+estimated_minutes: 15
+display_order: 2
+objectives:
+  - List the six steps of a well-run experiment, in order, from business problem to decision
+  - Explain why skipping the "design" steps (metric choice, sample size) before launch is the single most common cause of an untrustworthy experiment
+  - Locate which step of the flow a given real-world question belongs to
+prerequisites: [exp-what-is-an-experiment]
+skills: [experimentation, statistical-reasoning]
+datasets: [saas-product]
+tags: [experimentation, ab-testing, saas, intermediate]
+key_takeaways:
+  - Every trustworthy experiment follows the same shape — problem, hypothesis, design, run, analyze, decide — and almost every experiment failure traces back to skipping or rushing one of the first three (design-time) steps.
+  - Design happens entirely before a single user is exposed to the treatment — choosing the metric, the unit of randomization, the sample size, and the test duration are all decisions you must lock in ahead of time.
+  - The output of an experiment is a decision, not a p-value — analysis exists to inform a ship/iterate/kill call, not to be the deliverable itself.
+common_mistakes:
+  - Writing the analysis code before deciding how many users the test needs, then running the test for "however long felt right" and hoping it's enough.
+  - Treating "the test was statistically significant" as the decision, without checking whether the effect is large enough to matter and whether guardrail metrics held up.
+blocks:
+  - type: heading
+    text: The six steps
+  - type: text
+    body: >
+      A trustworthy experiment isn't just "make a change and check if a number goes up." It follows a
+      repeatable sequence, and each step exists because skipping it creates a specific, predictable way
+      for the experiment to mislead you later.
+  - type: checklist
+    title: The experiment design flow
+    items:
+      - "1. Business problem — what decision are you actually trying to make, and what would change your mind?"
+      - "2. Hypothesis — a specific, falsifiable statement of what you're changing and why you expect it to move a named metric"
+      - "3. Design — pick the primary/guardrail metrics, the unit of randomization, the minimum detectable effect, and the resulting sample size and duration, all *before* launch"
+      - "4. Run — launch the test, and resist the urge to check results before the pre-committed sample size is reached"
+      - "5. Analyze — compute the effect, its confidence interval, and check guardrails and data-quality flags (like sample ratio mismatch)"
+      - "6. Decide — ship, iterate, or kill, based on both statistical evidence and the size of the effect relative to what it costs to ship"
+  - type: example
+    title: Mapping a real question onto the flow
+    body: >
+      "Will redesigning checkout increase conversion enough to be worth the engineering cost?" is the
+      business problem. The hypothesis might be "replacing the 3-step checkout with a 1-step checkout
+      will increase checkout conversion rate, because fewer steps means fewer chances to abandon."
+      Design means deciding conversion rate is the primary metric, refund rate is a guardrail, the unit
+      of randomization is the user, and — based on a baseline conversion rate and the smallest lift worth
+      detecting — how many users and how many weeks the test needs. Only after all of that is fixed does
+      the team launch, then analyze, then decide.
+  - type: table
+    caption: Which later lesson covers each step
+    headers: ["Step", "Covered in"]
+    rows:
+      - ["Hypothesis", "Hypothesis Design module"]
+      - ["Metric choice", "Experiment Metrics module"]
+      - ["Unit of randomization", "Randomization module"]
+      - ["Sample size / duration", "Sample Size module"]
+      - ["Whether the test can even detect the effect", "Statistical Power module"]
+      - ["Analyze", "A/B Test Analysis module"]
+      - ["What goes wrong along the way", "Experiment Pitfalls module"]
+  - type: callout
+    variant: important
+    title: Design happens before anyone sees the treatment
+    body: >
+      The most common way experiments go wrong isn't bad math during analysis — it's decisions that
+      should have been made at design time (what metric, how many users, how long) instead being made
+      up during or after the test, when there's pressure to reach a conclusion. Everything in steps 1–3
+      should be written down and agreed on before step 4 begins.
+  - type: question
+    prompt: >
+      A team launches a test, checks the results after three days, sees the treatment is ahead, and
+      ships it immediately. Which step of the flow did they skip, and what's the risk?
+    choices:
+      - "They skipped 'Design' (sample size/duration) — three days is likely far short of the pre-committed sample, so the 'lead' may just be early noise"
+      - "They skipped 'Hypothesis' — the test needed a more creative idea"
+      - "Nothing was skipped — checking early and shipping fast is efficient"
+    correct_index: 0
+    explanation: >
+      Sample size and test duration are supposed to be locked in during design, based on how big an
+      effect you need to reliably detect. Stopping as soon as a result looks favorable (rather than at
+      the pre-committed sample size) is a form of peeking — early results are noisier and more likely to
+      swing in either direction, so an apparent "lead" after three days is much less trustworthy than the
+      same lead after the planned duration.
+interview_questions:
+  - question: "Walk me through how you would design an A/B test for a new feature, end to end."
+    answer: >
+      I'd start by pinning down the business problem and what decision the test needs to inform, then
+      write a specific hypothesis naming the change and the metric I expect it to move and why. Next,
+      design: choose a primary metric that's sensitive and hard to game, one or two guardrail metrics to
+      catch unintended harm, the right unit of randomization for the feature, and — using the metric's
+      baseline rate and the smallest effect worth caring about — the sample size and expected test
+      duration, all fixed before launch. Then I'd run the test for its full planned duration without
+      peeking-driven early stops, analyze the effect size, confidence interval, and guardrails together,
+      and turn that into a ship/iterate/kill recommendation rather than stopping at "it was significant."

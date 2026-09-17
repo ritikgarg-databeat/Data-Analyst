@@ -1,0 +1,35 @@
+slug: bhv-influence-analysis-changed-decision
+skill: behavioral-interviewing
+title: An Analysis That Changed a Decision
+description: Tell me about a time your analysis directly changed a business decision.
+exercise_type: INTERVIEW_RESPONSE
+difficulty: INTERMEDIATE
+points: 10
+tags:
+- behavioral
+- star-method
+- influencing
+prompt: Tell me about a time your analysis directly changed a business decision.
+hints:
+- The STAR framework (Situation, Task, Action, Result) is a useful structure, not a script -- use it to
+  make sure you cover what actually happened, in what context, what you personally did, and what came
+  of it.
+- Interviewers are listening for a specific, real example -- a vague 'sometimes this happens on my team'
+  answer is much weaker than one concrete story with real details.
+rubric:
+- criterion: Describes one specific, real situation rather than a hypothetical or a generic pattern
+  points: 25
+- criterion: Clearly states the task or goal and the person's own specific role in it
+  points: 20
+- criterion: Explains concrete actions the person personally took, not just what the team did
+  points: 30
+- criterion: States a clear, ideally measurable outcome and what was learned from it
+  points: 25
+solution: The team was about to deprecate a product feature based on low overall usage numbers. I segmented
+  usage by customer tenure and found the feature had very high adoption among customers in their first
+  30 days, and that early adoption of it correlated strongly with longer retention. I presented that specific
+  segment-level finding, and the team reversed the deprecation decision and instead invested in making
+  the feature more discoverable early on, rather than removing it.
+explanation: The strength here is a specific, surprising, segment-level finding (not just 'more data')
+  that directly contradicted the aggregate picture and gave the decision-makers a genuinely new reason
+  to reconsider.

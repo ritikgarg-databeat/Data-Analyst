@@ -1,0 +1,124 @@
+slug: the-eda-workflow
+module_slug: exploratory-data-analysis
+title: "The EDA Workflow: Why You Don't Skip Straight to Analysis"
+description: The overall exploratory data analysis flow, from business question to insight, and why skipping it produces unreliable conclusions.
+difficulty: INTERMEDIATE
+estimated_minutes: 10
+display_order: 1
+objectives:
+  - Describe the end-to-end EDA workflow, from business question to insight
+  - Explain why skipping EDA and jumping straight to analysis produces unreliable conclusions
+  - Preview what each remaining lesson in this module will cover, and how they build on each other
+prerequisites: [polars-vs-pandas-performance]
+skills: [pandas]
+datasets: [ecommerce]
+tags: [python, intermediate, real-world]
+key_takeaways:
+  - "EDA is not a pile of pandas syntax — it's a systematic sequence of questions you ask a dataset before you trust any conclusion drawn from it: what is this, is it clean, what does it look like, and does it hang together the way the business expects?"
+  - "Every step in the workflow exists to catch a specific way an analysis can go wrong — wrong types produce wrong math, unnoticed missingness silently biases an average, an unnoticed duplicate double-counts revenue, and skipped segmentation hides the real story behind a misleading overall number."
+  - "The workflow is roughly linear the first time through a new dataset, but in practice you loop back constantly — a weird distribution sends you back to check for a data quality issue, a segmentation finding sends you back to re-check missingness within that segment."
+  - "This module builds this workflow one stage at a time, using the same real ecommerce dataset throughout, so by the end you'll have practiced the whole sequence, not just isolated techniques."
+common_mistakes:
+  - "Treating EDA as optional busywork before the 'real' analysis — the real analysis is only as trustworthy as the EDA that preceded it; a beautiful chart built on unnoticed data quality problems is still wrong."
+  - "Running .describe() once, glancing at it, and moving straight to conclusions — EDA is a workflow with a dozen distinct questions, not a single command."
+  - "Doing EDA with no business question in mind, producing a pile of technically-correct observations that don't connect to any decision anyone actually needs to make."
+practical_applications:
+  - "Running a structured EDA pass on any new dataset handed to you — a CSV export, a new table in the warehouse, a vendor data feed — before building a single chart or model on top of it."
+  - "Catching a serious data quality problem (a broken pipeline, a systematic missingness pattern, a duplicated join) during EDA, before it silently corrupts a metric that goes into a stakeholder-facing report."
+interview_questions:
+  - question: "Walk me through how you'd approach a dataset you've never seen before."
+    answer: "I'd start with the business question driving the request, then inspect the data's shape, column types, and a sample of rows to sanity-check it against what I'd expect. From there: check missing values and duplicates and think about whether they're random or systematic, look at the distribution of key numeric columns, check relationships between variables I'd expect to be related, slice key metrics by relevant categorical dimensions, and look for outliers — deciding case by case whether each is an error to fix or a real extreme worth keeping. Only after that would I start forming and testing specific hypotheses tied back to the original question."
+  - question: "Why is EDA important even when you already have a specific hypothesis you want to test?"
+    answer: "Because the hypothesis test is only valid if the data underneath it is trustworthy — if there's unnoticed missingness that's systematic rather than random, an outlier skewing an average, or a duplicate inflating a count, the test's conclusion can be confidently wrong. EDA is how you earn the right to trust the numbers you're about to build a conclusion on."
+resources:
+  - title: "Pandas documentation — Exploratory data analysis with pandas"
+    url: "https://pandas.pydata.org/docs/getting_started/intro_tutorials/index.html"
+blocks:
+  - type: text
+    body: >
+      You've spent several modules learning pandas and Polars syntax — how to filter, group, join,
+      clean, and reshape data. This module is different: it's not about new syntax, it's about a
+      **workflow**. Exploratory Data Analysis (EDA) is the systematic process of getting to know a
+      dataset well enough to trust conclusions drawn from it, *before* you build a single chart, model,
+      or stakeholder-facing number on top of it.
+  - type: heading
+    text: "Why EDA is not optional"
+  - type: text
+    body: >
+      Imagine you're handed a table of orders and asked "what's our average order value?" You could
+      write `orders["value"].mean()` in five seconds. But that number is only trustworthy if you
+      already know things you haven't checked yet: Are there duplicate rows that would double-count
+      some orders? Is `value` actually numeric, or did a stray text value silently turn the whole
+      column into `object` dtype? Are there a handful of extreme test-data or fraud orders dragging the
+      average somewhere unrepresentative? Does "average" even make sense here, or is the distribution
+      so skewed that a median tells a truer story? Skipping straight to `.mean()` doesn't skip these
+      questions — it just answers them by accident, usually wrong.
+  - type: callout
+    variant: important
+    title: The core idea of this whole module
+    body: >
+      EDA exists to convert "I ran some pandas code and got a number" into "I understand this dataset
+      well enough to know what that number actually means, and how much to trust it." Every stage in
+      the workflow below exists to catch one specific, common way that conversion can silently fail.
+  - type: heading
+    text: The workflow, end to end
+  - type: text
+    body: >
+      There's no single official EDA checklist, but in practice it converges on roughly this sequence.
+      You'll rarely walk it in a strict straight line — a strange finding at step 6 sends you back to
+      recheck step 3 — but as a first pass through a new dataset, this order works well:
+  - type: table
+    headers: ["Stage", "Core question"]
+    rows:
+      - ["1. Business question", "What decision or claim is this analysis actually in service of?"]
+      - ["2. Inspect", "What tables/columns exist, and how many rows — does that match what I expect?"]
+      - ["3. Types", "Is each column the dtype it should be (numeric, datetime, categorical)?"]
+      - ["4. Missing values", "Where is data missing, and is that missingness random or systematic?"]
+      - ["5. Duplicates", "Are there repeated rows, and what would that tell me about how this data was produced?"]
+      - ["6. Distributions", "What does each key numeric column's shape look like — centered, skewed, bimodal?"]
+      - ["7. Relationships", "Which variables move together, and which of those relationships are meaningful vs. coincidental?"]
+      - ["8. Segmentation", "Does an overall metric hide very different behavior in different subgroups?"]
+      - ["9. Outliers", "Which extreme values are errors to fix, and which are real cases to keep?"]
+      - ["10. Hypotheses & insights", "What testable claim, and what business-framed recommendation, does all of this support?"]
+  - type: checklist
+    title: What this module covers, lesson by lesson
+    items:
+      - "The first-five-minutes routine on a brand-new dataset (shape, dtypes, a sanity check against business knowledge)"
+      - "The EDA-specific question behind missing values and duplicates — random vs. systematic, and what a cluster of either might reveal about the data's origin"
+      - "Reading distributions and what a shape (like right-skew) tells you about a business metric"
+      - "Correlation, and correlation vs. causation with a concrete, non-cliché business example"
+      - "Segmentation as an EDA tool — slicing a metric by a category to find where a pattern actually lives"
+      - "The judgment call behind an outlier: data error to fix, or real extreme case to keep"
+      - "Turning everything you've found into a testable hypothesis and a business-framed recommendation"
+  - type: heading
+    text: "Why skipping this produces unreliable conclusions"
+  - type: text
+    body: >
+      Every stage above maps to a specific, common failure mode when it's skipped. Missed types mean a
+      numeric column silently parsed as text produces a `TypeError` or, worse, a wrong-but-plausible
+      number. Missed missingness means an average or rate is computed only over the rows that happen to
+      have data — which is fine if that subset is representative, and silently misleading if it isn't
+      (you'll see a real example of exactly this in this dataset in an upcoming lesson). Missed
+      duplicates inflate counts and sums. Missed segmentation lets a single overall average paper over
+      two very different underlying populations. None of these failures are exotic — they're the normal
+      way "quick" analysis goes wrong.
+  - type: callout
+    variant: common_mistake
+    title: "'I'll just run .describe() and move on'"
+    body: >
+      .describe() is one useful step, not the whole workflow. It tells you about distribution shape for
+      numeric columns, but nothing about missingness patterns, duplicates, categorical relationships, or
+      segment-level differences. Treating it as a complete EDA pass is one of the most common ways
+      analysts skip straight to unreliable conclusions while feeling like they did do the EDA step.
+  - type: question
+    prompt: "Why is EDA described as something you loop back through, rather than a strict one-pass checklist?"
+    choices:
+      - "Because a finding at a later stage (like an odd distribution or a segmentation split) often reveals something that sends you back to recheck an earlier stage, like missing values or types"
+      - "Because the order of the stages doesn't actually matter at all"
+      - "Because EDA is only ever done once per company, not once per dataset"
+    correct_index: 0
+    explanation: >
+      In practice, EDA is iterative — an unexpected distribution shape might turn out to be caused by a
+      missingness pattern you didn't catch, or a segmentation split might reveal an outlier cluster you
+      need to go back and classify. The stages give you a structure to work through, not a rigid
+      one-directional pipeline.

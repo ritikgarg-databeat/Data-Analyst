@@ -1,0 +1,19 @@
+slug: biz-cac-calculation
+skill: business-metrics
+title: Computing Customer Acquisition Cost (CAC)
+description: A company spent $50,000 on sales and marketing last month and acquired 500 new customers. What is the
+  CAC?
+exercise_type: MULTIPLE_CHOICE
+difficulty: BEGINNER
+points: 5
+tags:
+- cac
+prompt: A company spent $50,000 on sales and marketing last month and acquired 500 new customers. What is the CAC?
+correct_answer: $100
+explanation: CAC = total sales & marketing spend / number of new customers acquired = $50,000 / 500 = $100 per new
+  customer -- the standard baseline cost figure compared against LTV to judge whether acquisition spend is sustainable.
+choices:
+- $100
+- $50,000
+- $500
+- It cannot be computed without revenue data

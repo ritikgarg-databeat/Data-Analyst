@@ -1,0 +1,169 @@
+slug: ecommerce-revenue-decline-investigation
+title: "Case: Why Did Revenue Growth Stall Last Quarter?"
+category: BUSINESS_ANALYTICS
+difficulty: INTERMEDIATE
+estimated_minutes: 75
+
+company_context: >
+  Meridian Retail Co. is a multi-category online retailer selling apparel, electronics, home
+  goods, and eight other product categories through three channels: its website, its mobile app,
+  and a third-party marketplace listing. Revenue has grown quickly over the past two years as the
+  company has scaled, and the finance team is now assembling the FY2025 results for the annual
+  board meeting.
+stakeholder_name: Marcus Whitfield
+stakeholder_role: Chief Financial Officer
+problem_statement: >
+  "I'm putting together the revenue story for the board deck, and one quarter last year just
+  doesn't fit the narrative. We grew nicely basically every quarter in 2024 and 2025 — except one,
+  where growth basically flatlined before picking back up again the next quarter. I don't want to
+  stand up in front of the board and say 'it was a blip, we're not sure why' — I need a real
+  explanation. Was it a specific channel? A specific part of the business? Did we lose customers,
+  or did something else happen? I don't have a theory yet, and I don't want to guess wrong in
+  front of the board."
+business_context: >
+  The board meeting is in two weeks. Finance reports revenue quarterly, split out by channel (web,
+  mobile app, marketplace), and the FY2025 deck compares each quarter to the one before it. Every
+  other quarter in the two-year history shows solid double-digit (often triple-digit, early on)
+  sequential growth. One quarter breaks that pattern. The CFO does not yet know which channel(s)
+  were involved, whether it reflects fewer customers, fewer orders, smaller orders, or something
+  else, and has not pre-judged the cause.
+objective: >
+  Identify precisely which quarter and which part of the business is responsible for the growth
+  slowdown, determine what specifically changed (traffic, conversion, order volume, or order
+  value), and give the CFO a concrete, defensible explanation to bring to the board.
+initial_information: >
+  Finance's quarterly revenue view (completed orders only) for the two-year history is available,
+  broken out by channel (web, mobile, marketplace). All quarters show strong sequential growth
+  except one, where total quarter-over-quarter growth dropped to roughly a seventh of the
+  surrounding quarters' pace. The dataset also includes order-level detail (order_items, so order
+  count and order value can both be examined), payment records, and website/app session data with
+  a conversion flag — so both "did fewer people show up / buy" and "did each purchase shrink"
+  questions can be answered from the same data, not just assumed.
+constraints:
+  - "Only the ecommerce dataset (orders, order_items, products, categories, customers, payments, sessions, marketing_campaigns) is available — no external ad-spend, competitor, or macroeconomic data."
+  - "The CFO needs a specific quarter-and-channel-level explanation, not a general statement like 'seasonality' or 'the market was soft that quarter.'"
+  - "Distinguish clearly between an absolute revenue decline and a slowdown in the rate of growth — the board will ask which one it was."
+available_datasets:
+  - ecommerce
+expected_deliverables:
+  - "A quarterly revenue trend (completed orders, by channel) that pinpoints the specific quarter where growth broke pattern"
+  - "A decomposition of that quarter's shortfall into order-count and average-order-value components for the affected channel(s)"
+  - "Evidence from session/conversion data ruling in or out a traffic or demand-side explanation"
+  - "A specific, evidence-backed explanation the CFO can present to the board, plus a monitoring recommendation going forward"
+learning_objectives:
+  - "Distinguish a deceleration in growth rate from an absolute revenue decline when reading a time series"
+  - "Decompose a revenue anomaly into channel-level and driver-level (order volume vs. order value) components"
+  - "Use session and conversion data to rule a demand-side or traffic explanation in or out before concluding it's a pricing/basket effect"
+  - "Communicate a data-backed explanation of a single anomalous period to a financial stakeholder under time pressure"
+stages:
+  - CLARIFY
+  - FRAME
+  - EXPLORE
+  - ANALYZE
+  - INSIGHTS
+  - RECOMMEND
+  - COMMUNICATE
+  - SUBMIT
+required_exercise_slugs: []
+tags:
+  - business-analytics
+  - e-commerce
+  - sql
+  - python
+  - case-study
+  - real-world
+  - intermediate
+  - root-cause
+  - finance
+skills:
+  - business-analytics
+  - exploratory-data-analysis
+  - sql-fundamentals
+  - business-metrics
+  - root-cause-analysis
+  - communication
+clarification_guidance:
+  - "Asks which specific metric declined (total revenue, a specific channel, order count, average order value) and over what exact time window, rather than accepting 'revenue declined' at face value"
+  - "Asks whether this is an absolute decline or a slowdown in the rate of growth compared to surrounding quarters"
+  - "Asks whether the pattern shows up in every channel and category or is concentrated in a subset"
+  - "Asks what data is available to distinguish a demand/traffic problem (fewer visitors, lower conversion) from a basket/pricing problem (smaller or cheaper orders)"
+rubric:
+  - category: "Problem Framing"
+    weight: 15
+    criteria:
+      - criterion: "Correctly identifies the specific quarter where sequential growth broke pattern, rather than describing the whole two-year trend as 'declining'"
+        points: 10
+      - criterion: "Explicitly distinguishes deceleration in growth rate from an absolute revenue decline"
+        points: 10
+  - category: "Analytical Approach"
+    weight: 20
+    criteria:
+      - criterion: "Breaks the affected quarter's revenue down by channel before drawing conclusions, rather than analyzing only the company-wide total"
+        points: 15
+      - criterion: "Plans to check both order volume and average order value, not just one"
+        points: 10
+  - category: "Technical Analysis"
+    weight: 25
+    is_technical: true
+    criteria:
+      - criterion: "Correctly computes quarterly (or monthly) revenue by channel from order_items and orders"
+        points: 15
+      - criterion: "Correctly computes order counts and average order value for the affected channel and quarter"
+        points: 15
+      - criterion: "Uses session/conversion data to check whether traffic or conversion changed for the affected channel and period"
+        points: 10
+  - category: "Insight Quality"
+    weight: 20
+    criteria:
+      - criterion: "Identifies that the slowdown is concentrated in one channel while others kept growing"
+        points: 10
+      - criterion: "Correctly attributes the shortfall to average-order-value compression rather than fewer orders, fewer sessions, or lower conversion"
+        points: 10
+  - category: "Recommendation"
+    weight: 20
+    criteria:
+      - criterion: "Recommends a specific, targeted next step (e.g., reviewing the mobile cart/checkout experience for that period) rather than a generic 'monitor revenue' statement"
+        points: 10
+      - criterion: "Proposes an ongoing metric (e.g., items-per-order or average order value by channel) to catch a similar pattern earlier next time"
+        points: 10
+hints:
+  - "Start with total revenue by quarter — is this really a decline, or a change in the rate of growth? Compare each quarter's growth rate to the ones around it."
+  - "Break the quarterly trend down by channel (web, mobile, marketplace). Does every channel show the same pattern in the same quarter, or does one stand out?"
+  - "For the channel and quarter that stands out, check whether order volume changed or whether average order value changed — compute both separately rather than assuming."
+  - "Before concluding it's a demand or traffic problem, check session counts and conversion rate for that channel and period — a healthy or improving conversion rate rules out a traffic explanation."
+reference_solution:
+  summary: >
+    Total company revenue never actually declined — it grew every single quarter across the
+    two-year history. But sequential growth stalled sharply in Q2 2025: total quarter-over-quarter
+    revenue growth was only +14.2% that quarter (from $725,180 in Q1 2025 to $827,918 in Q2 2025),
+    versus +91.0% the quarter before and +65.0% the quarter after — by far the slowest quarter in
+    the entire history. Breaking Q2 2025 down by channel shows the slowdown is concentrated
+    entirely in mobile: mobile channel revenue actually dipped slightly quarter-over-quarter,
+    from $282,126 to $278,487 (-1.3%), while web (+23.5%, $380,985 to $470,647) and marketplace
+    (+26.9%, $62,069 to $78,783) both kept growing normally. Mobile's dip was not a traffic or
+    demand problem: mobile completed order count actually rose slightly (158 to 166 orders, +5.1%)
+    and mobile session conversion rate improved substantially (10.9% to 16.2%). The cause was
+    average order value: mobile AOV fell from $1,785.60 to $1,677.64 (-6.0%), driven by a drop in
+    average items per order (2.97 to 2.86, about -4%) rather than discounting (mobile's discount
+    rate held steady at roughly 3% both quarters) or per-item pricing (average line value fell only
+    about 2.2%). In short: more people showed up on mobile, and a higher share of them converted,
+    but the average mobile basket carried fewer items that quarter.
+  key_insights:
+    - "Total revenue grew every quarter of the two-year history — there is no absolute decline anywhere in the data, only a sharp, real deceleration in growth rate concentrated in Q2 2025 (+14.2% QoQ vs. +91.0% and +65.0% in the surrounding quarters)."
+    - "Mobile is the only channel with a quarter-over-quarter revenue dip in the entire dataset: $282,126 to $278,487 (-1.3%) in Q2 2025, while web and marketplace grew 23.5% and 26.9% respectively that same quarter."
+    - "Mobile order count and session conversion rate both improved in Q2 2025 (orders +5.1%, conversion rate 10.9% to 16.2%), ruling out a traffic or demand-side explanation."
+    - "Mobile average order value fell 6.0% ($1,785.60 to $1,677.64), driven mainly by fewer items per order (2.97 to 2.86) rather than discounting (flat at ~3%) or per-item price changes (-2.2%) — a basket-size effect, not a pricing or traffic effect."
+  recommendation: >
+    Tell the board the Q2 2025 slowdown was isolated to the mobile channel and was a basket-size
+    effect, not a traffic, conversion, or pricing problem — mobile visits and conversion rate were
+    both healthy and improving that quarter. Recommend investigating the mobile cart and checkout
+    experience active during Q2 2025 (e.g., a cross-sell/upsell placement change, a UI change that
+    made adding multiple items harder, or a catalog/search change) as the likely mechanism, since
+    the data rules out demand and pricing but cannot itself identify the specific product or UX
+    change involved. Going forward, add items-per-order and average order value by channel to the
+    regular quarterly dashboard so a similar basket-size shift is caught within the quarter it
+    happens, rather than three quarters later while preparing board materials.
+  acceptable_alternatives:
+    - "A learner who identifies the Q2 2025 mobile AOV dip using total mobile revenue divided by order count (without separately decomposing into items-per-order vs. per-item price) and correctly rules out traffic/conversion as the cause should receive full credit for the core finding — the deeper decomposition into basket size vs. per-item price is additional rigor, not a strict requirement."
+    - "A learner who frames the finding as 'mobile revenue per session' declining (a blended metric combining conversion and AOV) rather than isolating AOV specifically is acceptable, provided they still correctly rule out conversion rate as the driver using the session data."
+version: 1

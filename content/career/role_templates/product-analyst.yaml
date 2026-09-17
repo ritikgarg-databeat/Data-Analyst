@@ -1,0 +1,32 @@
+slug: product-analyst
+title: Product Analyst
+category: PRODUCT_ANALYST
+description: >
+  Focuses on how users engage with a digital product — funnels, cohorts,
+  retention, and experimentation — partnering closely with product
+  management. A generic shape based on common postings, not any single
+  employer's exact requirements.
+core_skills:
+  - sql-fundamentals
+  - advanced-sql
+  - pandas
+  - statistics
+  - product-metrics
+  - experimentation
+  - data-visualization
+  - communication
+preferred_skills:
+  - statistical-reasoning
+  - data-interpretation
+  - root-cause-analysis
+  - product-analytics
+nice_to_have_skills:
+  - data-modeling
+  - machine-learning-fundamentals
+typical_responsibilities:
+  - Analyze funnels, cohorts, and retention curves
+  - Design and analyze A/B tests
+  - Partner with product managers on feature impact
+  - Define and track product health metrics
+  - Root-cause metric regressions
+version: 1

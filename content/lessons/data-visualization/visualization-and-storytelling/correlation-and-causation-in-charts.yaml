@@ -1,0 +1,126 @@
+slug: correlation-and-causation-in-charts
+module_slug: visualization-and-storytelling
+title: "Correlation and Causation in Charts"
+description: Why a scatter plot or correlation heatmap showing a relationship is not evidence of causation, worked through with a real relationship in this course's dataset and a second concrete business example.
+difficulty: BEGINNER
+estimated_minutes: 12
+display_order: 5
+objectives:
+  - Explain why a visible correlation in a scatter plot or heatmap never proves one variable causes another
+  - Name at least two alternative explanations for an observed correlation besides direct causation
+  - Apply this skepticism to a real correlation in this course's dataset, including a small-sample caveat
+prerequisites: [data-storytelling]
+skills: [data-visualization, business-problem-solving]
+datasets: [ecommerce]
+tags: [foundations, beginner, real-world]
+key_takeaways:
+  - "A scatter plot or correlation heatmap can only show that two variables move together. It cannot show, by itself, that one causes the other — no chart type has that power, no matter how strong or visually clean the relationship looks."
+  - "Three explanations besides direct causation account for most observed correlations: reverse causation (B actually causes A, not A causes B), a confounding third variable (C causes both A and B, making them move together with no direct link between them), and coincidence — especially likely with a small sample size."
+  - "In this course's dataset, campaign budget and resulting session count are negatively correlated (r = -0.65 across the 15 campaigns) — a real, computed number. But 15 campaigns is a small sample, and this alone doesn't prove spending more actively causes fewer sessions; budget could be allocated based on channel efficiency already known internally, timing could differ across campaigns, or this could simply be noise at this sample size."
+  - "The fix isn't to distrust every correlation — it's to name the specific alternative explanations before accepting the causal one, and to say so explicitly in whatever chart or insight you share, rather than letting a clean-looking scatter plot silently imply more than the data can support."
+common_mistakes:
+  - "Presenting a correlation chart with a causal-sounding title or caption ('X drives Y') when the underlying analysis only established that the two move together, not that one causes the other."
+  - "Treating a strong correlation coefficient as proof of causation on its own, regardless of how small the sample is or how plausible a confounding variable might be."
+  - "Ignoring reverse causation as a possibility — assuming a discovered relationship must run in the direction that first occurred to you, rather than checking whether the arrow could just as easily point the other way."
+practical_applications:
+  - "Reviewing any chart or insight that implies a causal relationship, and checking whether the underlying analysis actually supports causation or only correlation, before it goes to a stakeholder."
+  - "Proposing a specific next step (a controlled experiment, a natural experiment, a check for an obvious confounder) when a correlation is interesting enough to matter for a real decision, rather than acting on the correlation alone."
+interview_questions:
+  - question: "You find that two variables are strongly correlated in the data. How do you decide whether one causes the other?"
+    answer: "A correlation coefficient alone never answers that — it only tells me the two variables move together. Before treating it as causal, I'd think through the alternatives: could the causation run in the opposite direction? Is there a third variable that could plausibly cause both, making them move together with no direct link? Is the sample size big enough that this isn't just coincidence? If none of those alternatives hold up and there's a plausible mechanism for the causal direction I suspect, I'd still frame it as a hypothesis worth testing with a controlled comparison, like an A/B test, rather than presenting the correlation itself as proof."
+  - question: "Give an example, ideally not the classic ice-cream-and-shark-attacks one, of a correlation that isn't causal."
+    answer: "Stores that run more promotions often show higher return rates. It's tempting to conclude promotions cause returns — maybe by encouraging impulse buys people later regret. But a confound is just as plausible: promotions and returns both spike during the holiday season (gift purchases have inherently higher return rates for reasons unrelated to the promotion itself), or products that are already prone to being returned get promoted more heavily specifically to move inventory, which would mean the causal arrow runs backward from what it first looks like. The correlation is real; which explanation is actually true takes more investigation than the correlation alone provides."
+resources:
+  - title: "Tyler Vigen — Spurious Correlations"
+    url: "https://www.tylervigen.com/spurious-correlations"
+blocks:
+  - type: heading
+    text: "What a scatter plot or heatmap can and can't tell you"
+  - type: text
+    body: >
+      A scatter plot showing two numeric variables moving together, or a heatmap showing a strong
+      correlation between two columns, is one of the most persuasive-looking chart types there is — a
+      clean upward or downward trend feels like it's telling you something is causing something else. It
+      isn't. It's only telling you the two variables are *associated*. The chart itself has no way to know
+      why.
+  - type: callout
+    variant: important
+    title: "The chart shows association. You have to supply the explanation."
+    body: >
+      Nothing about a correlation coefficient or a scatter plot's shape distinguishes "A causes B" from "B
+      causes A" from "C causes both" from "this is coincidence at a small sample size." All four can
+      produce the exact same-looking chart. The chart is the easy part; ruling out the alternatives is the
+      actual analytical work.
+  - type: heading
+    text: "Three alternatives to check before you say 'causes'"
+  - type: table
+    headers: ["Alternative", "What it means", "How to start checking"]
+    rows:
+      - ["Reverse causation", "B actually causes A, not A causes B — the arrow points the opposite direction from your first guess", "Ask whether the relationship still makes sense if you flip which variable came first"]
+      - ["Confounding variable", "A third variable, C, causes both A and B independently, so they move together with no direct link between them", "Ask what else could plausibly influence both variables — timing, segment, an external event"]
+      - ["Coincidence / small sample", "With few data points, a real-looking correlation can appear from randomness alone", "Check the sample size — the fewer data points, the more skeptical to be of any single coefficient"]
+  - type: heading
+    text: "A real correlation in this course's dataset"
+  - type: text
+    body: >
+      Across this dataset's 15 marketing campaigns, campaign budget and the number of resulting sessions
+      are negatively correlated: r = -0.65. That's a genuinely strong-looking negative relationship —
+      campaigns with bigger budgets tended to produce FEWER sessions, not more, in this data.
+  - type: table
+    headers: ["Campaign (sample)", "Channel", "Budget", "Sessions"]
+    rows:
+      - ["Campaign 1", "Display", "$19,829.92", "303"]
+      - ["Campaign 12", "Social", "$2,720.38", "343"]
+      - ["Campaign 7", "Email", "$2,146.67", "318"]
+  - type: text
+    body: >
+      It's tempting to jump straight to "spending more actively hurts session volume." Resist that. With
+      only 15 campaigns, this is a small sample — a handful of unusually high- or low-performing campaigns
+      can swing a correlation coefficient a long way, and r = -0.65 across 15 points is exactly the kind of
+      result worth treating as a hypothesis, not a conclusion. A more careful read: budget might already be
+      allocated based on channel efficiency the marketing team knows about (lower-cost channels sometimes
+      naturally reach more people per dollar), campaigns could differ in timing or duration in ways that
+      aren't visible in this simple comparison, or — genuinely possible at this sample size — it's largely
+      noise.
+  - type: callout
+    variant: warning
+    title: "The honest response to this number is 'investigate further,' not 'spend less'"
+    body: >
+      A real, computed r = -0.65 is a legitimate reason to look closer at how campaign budgets get set and
+      what else differs between high- and low-budget campaigns. It is not, on its own, evidence that
+      cutting budgets would increase sessions — that causal claim would need a controlled comparison (e.g.
+      deliberately varying budget on otherwise-similar campaigns), not just this correlation.
+  - type: heading
+    text: "A second example: promotions and return rates"
+  - type: text
+    body: >
+      Suppose a retailer notices that stores running more promotions also show higher product return
+      rates. The tempting causal story: promotions encourage impulse buys that people later regret and
+      return. That might be true — but at least two other explanations fit the same data equally well.
+      Both promotions and returns could spike together during the holiday season, driven by gift-giving
+      (a confound: the season causes both, with no direct link between promotion frequency and returns
+      themselves). Or the causal arrow could run backward: products already prone to being returned might
+      get promoted more heavily specifically to move otherwise-slow inventory, meaning high returns are
+      partly causing the promotions, not the other way around.
+  - type: heading
+    text: "How to handle this in a chart or insight you share"
+  - type: checklist
+    title: "Before presenting a correlation as if it explains something"
+    items:
+      - "State the relationship as an association, not a cause, unless you have real evidence for direction (a controlled experiment, a clear time-ordering, a ruled-out confound)"
+      - "Name at least one plausible alternative explanation explicitly, rather than letting the chart imply there's only one story"
+      - "Check the sample size — flag a small-N correlation as more tentative than a large-N one"
+      - "If the relationship matters enough for a real decision, propose what it would take to actually test causation, rather than acting on the correlation alone"
+  - type: question
+    prompt: "Campaign budget and session count show r = -0.65 across this dataset's 15 campaigns. What's the most responsible way to present this finding?"
+    choices:
+      - "Report it as a real but tentative association, worth investigating further (e.g. how budgets are set, what else differs between campaigns), and explicitly note the small sample size — not as proof that spending more causes fewer sessions"
+      - "Present it directly as evidence that cutting marketing budgets will increase session volume"
+      - "Discard the finding entirely, since any correlation computed from real data that isn't obviously causal has no value"
+    correct_index: 0
+    explanation: >
+      A real, computed correlation across a small sample (15 campaigns) is worth surfacing and
+      investigating further, but it doesn't establish that budget causes the session count difference —
+      reverse causation, a confound like how budgets get allocated, or small-sample noise are all still on
+      the table, and a responsible presentation says so rather than asserting a causal story the data alone
+      can't support.

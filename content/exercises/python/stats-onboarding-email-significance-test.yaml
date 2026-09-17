@@ -1,0 +1,89 @@
+slug: stats-onboarding-email-significance-test
+lesson_slug: bridge-from-inference-to-experiments
+skill: statistics
+dataset: saas-product
+title: "The Onboarding Email Test: A Tiny, Ambiguous Effect"
+description: Run the same two-proportion test used for checkout_redesign on the onboarding_email experiment, and contrast what the result implies.
+exercise_type: PYTHON
+difficulty: INTERMEDIATE
+points: 20
+tags: [python, statistics, intermediate, experimentation, ab-testing]
+business_context: >
+  Lifecycle marketing ran a second, unrelated A/B test on a redesigned onboarding email and wants
+  the same rigorous read applied here before deciding whether to keep investing in this idea.
+prompt: >
+  Using `experiment_assignments`, filter to `experiment_id == "onboarding_email"`, then compute the
+  conversion rate for `control` and `treatment` and run a two-proportion z-test comparing them
+  (`statsmodels.stats.proportion.proportions_ztest`, treatment first). Store your answer in a
+  variable named `result`: a dict with keys `control_rate`, `treatment_rate` (each rounded to 4
+  decimals), `z_stat` (rounded to 3 decimals), and `p_value` (rounded to 4 decimals).
+python_datasets: [experiment_assignments]
+python_starter_code: |
+  # experiment_assignments is already loaded as a DataFrame.
+  # Explore it first:
+  experiment_assignments[experiment_assignments.experiment_id == "onboarding_email"].head()
+python_solution_code: |
+  from statsmodels.stats.proportion import proportions_ztest
+
+  oe = experiment_assignments[experiment_assignments.experiment_id == "onboarding_email"]
+  control = oe[oe.variant == "control"]
+  treatment = oe[oe.variant == "treatment"]
+  control_conv = int(control["converted"].sum())
+  treatment_conv = int(treatment["converted"].sum())
+  control_n = len(control)
+  treatment_n = len(treatment)
+
+  z_stat, p_value = proportions_ztest([treatment_conv, control_conv], [treatment_n, control_n])
+  result = {
+      "control_rate": round(control_conv / control_n, 4),
+      "treatment_rate": round(treatment_conv / treatment_n, 4),
+      "z_stat": round(z_stat, 3),
+      "p_value": round(p_value, 4),
+  }
+python_result_variable: result
+python_numeric_tolerance: 0.0005
+python_hidden_tests:
+  - name: "Rates match a fresh recomputation, and the effect is essentially indistinguishable from noise"
+    code: |
+      oe_check = experiment_assignments[experiment_assignments.experiment_id == "onboarding_email"]
+      control_rate_check = oe_check.loc[oe_check.variant == "control", "converted"].mean()
+      treatment_rate_check = oe_check.loc[oe_check.variant == "treatment", "converted"].mean()
+      assert abs(result["control_rate"] - round(control_rate_check, 4)) < 0.001, (
+          "control_rate doesn't match a fresh recomputation."
+      )
+      assert abs(result["treatment_rate"] - round(treatment_rate_check, 4)) < 0.001, (
+          "treatment_rate doesn't match a fresh recomputation."
+      )
+      assert result["p_value"] > 0.5, (
+          "This test's p-value should be well above 0.5 — a much weaker signal than checkout_redesign's."
+      )
+hints:
+  - "This uses the exact same approach as the checkout_redesign test — just filter to `experiment_id == 'onboarding_email'` instead."
+  - "Watch the direction of the gap here compared to checkout_redesign's — it's worth noticing whether treatment is even higher than control this time."
+solution: |
+  ```python
+  from statsmodels.stats.proportion import proportions_ztest
+
+  oe = experiment_assignments[experiment_assignments.experiment_id == "onboarding_email"]
+  control = oe[oe.variant == "control"]
+  treatment = oe[oe.variant == "treatment"]
+  control_conv = int(control["converted"].sum())
+  treatment_conv = int(treatment["converted"].sum())
+  control_n = len(control)
+  treatment_n = len(treatment)
+
+  z_stat, p_value = proportions_ztest([treatment_conv, control_conv], [treatment_n, control_n])
+  result = {
+      "control_rate": round(control_conv / control_n, 4),
+      "treatment_rate": round(treatment_conv / treatment_n, 4),
+      "z_stat": round(z_stat, 3),
+      "p_value": round(p_value, 4),
+  }
+  ```
+explanation: >
+  Control converts at 32.4% and treatment at 31.4% — treatment is actually slightly *lower*, and the
+  test returns p = 0.734, a far weaker signal than checkout_redesign's already-inconclusive p = 0.407.
+  Unlike checkout_redesign, where the effect (if real) is large enough to be worth a properly powered
+  follow-up test, this result combines statistical non-significance with a practically tiny (and
+  wrong-direction) effect size — the honest recommendation is to not invest further in this specific
+  email change, rather than to "collect more data and see."

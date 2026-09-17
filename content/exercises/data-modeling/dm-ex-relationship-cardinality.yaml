@@ -1,0 +1,24 @@
+slug: dm-ex-relationship-cardinality
+lesson_slug: dm-keys-and-relationships
+skill: dimensional-modeling
+title: "Naming the Right Relationship Type"
+description: Reading relationship direction correctly when drawing an edge in the Data Modeler between fct_orders and dim_customers.
+exercise_type: MULTIPLE_CHOICE
+difficulty: BEGINNER
+points: 10
+tags: [relationships, data-modeling]
+prompt: >
+  In the Data Modeler, you draw a relationship starting from fct_orders and ending at dim_customers, connecting
+  customer_id to customer_id. What relationship_type correctly describes this direction?
+choices:
+  - "ONE_TO_MANY, because one customer has many orders"
+  - "MANY_TO_ONE, because many orders (fct_orders rows) reference the same one customer (dim_customers row)"
+  - "MANY_TO_MANY, because both tables can have many rows"
+correct_answer: "MANY_TO_ONE, because many orders (fct_orders rows) reference the same one customer (dim_customers row)"
+hints:
+  - "Read the relationship starting from the 'from' table you actually dragged from (fct_orders), not from whichever table sounds like it should be first."
+explanation: >
+  Direction matters for which label is correct from that specific starting point: starting the edge at
+  fct_orders and ending at dim_customers describes "many orders, one customer each" — MANY_TO_ONE. Drawn the
+  other direction (dim_customers to fct_orders), the identical real-world relationship would correctly be
+  labeled ONE_TO_MANY. Both describe the same underlying fact from opposite ends.

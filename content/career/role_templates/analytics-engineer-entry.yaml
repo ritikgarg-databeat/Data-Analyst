@@ -1,0 +1,29 @@
+slug: analytics-engineer-entry
+title: Analytics Engineer (Entry)
+category: ANALYTICS_ENGINEER_ENTRY
+description: >
+  Entry-level analytics engineering — builds and tests dbt models and
+  dimensional designs so analysts have clean, reliable data to work from.
+  A generic shape based on common postings, not any single employer's
+  exact requirements.
+core_skills:
+  - sql-fundamentals
+  - advanced-sql
+  - data-modeling
+  - dimensional-modeling
+  - etl-elt
+  - dbt
+preferred_skills:
+  - data-warehousing
+  - data-quality-engineering
+  - data-engineering-fundamentals
+nice_to_have_skills:
+  - cloud-data-warehouses
+  - python-fundamentals
+typical_responsibilities:
+  - Build and test dbt models
+  - Design dimensional models for analytics
+  - Write data quality tests
+  - Document data models and lineage
+  - Support analysts with clean, modeled data
+version: 1

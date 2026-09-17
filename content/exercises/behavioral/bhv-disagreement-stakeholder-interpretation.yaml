@@ -1,0 +1,38 @@
+slug: bhv-disagreement-stakeholder-interpretation
+skill: behavioral-interviewing
+title: Disagreeing With a Stakeholder's Interpretation
+description: Tell me about a time you disagreed with how a stakeholder wanted to interpret or present
+  your data.
+exercise_type: INTERVIEW_RESPONSE
+difficulty: INTERMEDIATE
+points: 10
+tags:
+- behavioral
+- star-method
+- disagreement
+prompt: Tell me about a time you disagreed with how a stakeholder wanted to interpret or present your
+  data.
+hints:
+- The STAR framework (Situation, Task, Action, Result) is a useful structure, not a script -- use it to
+  make sure you cover what actually happened, in what context, what you personally did, and what came
+  of it.
+- Interviewers are listening for a specific, real example -- a vague 'sometimes this happens on my team'
+  answer is much weaker than one concrete story with real details.
+rubric:
+- criterion: Describes one specific, real situation rather than a hypothetical or a generic pattern
+  points: 25
+- criterion: Clearly states the task or goal and the person's own specific role in it
+  points: 20
+- criterion: Explains concrete actions the person personally took, not just what the team did
+  points: 30
+- criterion: States a clear, ideally measurable outcome and what was learned from it
+  points: 25
+solution: A stakeholder wanted to present a metric's month-over-month increase without mentioning that
+  the increase was almost entirely explained by a one-time bulk-upload event from a single enterprise
+  customer. I disagreed with presenting it as organic growth. I proposed showing both the headline number
+  and the same metric with that one customer excluded, so the audience could see the underlying organic
+  trend was actually flat. The stakeholder agreed once they saw how easily the unadjusted number could
+  be challenged if someone asked about it later.
+explanation: Rather than simply refusing to include a misleading framing, the analyst offered a version
+  that showed both numbers transparently, which protected the stakeholder from a credibility risk rather
+  than just contradicting them.

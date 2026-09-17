@@ -1,0 +1,39 @@
+slug: exp-spot-the-peeking-problem
+lesson_slug: exp-peeking-multiple-testing-underpowered-srm
+skill: data-interpretation
+dataset: saas-product
+title: "Why Did This Test 'Win' So Fast?"
+description: Diagnose a peeking problem from a description of how an analyst monitored and stopped a test.
+exercise_type: DATA_INTERPRETATION
+difficulty: INTERMEDIATE
+points: 15
+tags: [experimentation, ab-testing, statistics, real-world, intermediate]
+prompt: >
+  A team plans a checkout experiment and, based on a sample-size calculation, commits to running it for
+  4 weeks to reach the needed sample. The analyst assigned to it checks the live dashboard every morning
+  starting on day 2. On day 9, the p-value happens to dip to 0.041 for the first time, and the analyst
+  immediately stops the test and declares it a significant win, emailing the team: "Great news — the new
+  checkout is a statistically significant improvement, p = 0.041!" What's wrong with this conclusion, and
+  what should the analyst have done differently, given that a 4-week/full-sample plan already existed?
+hints:
+  - "Think about how many separate 'chances' the p-value had to dip below 0.05 purely by random fluctuation, given it was checked every day starting on day 2 through day 9 — and whether the stated p = 0.041 accounts for that."
+  - "The team already had a pre-committed plan (4 weeks). What's the risk of abandoning a pre-committed plan the moment an early look happens to look favorable?"
+solution: >
+  This is a textbook peeking problem. The reported p = 0.041 is only a valid 5%-false-positive-rate
+  statement if it came from a single look at a pre-planned sample size — but here, the analyst checked
+  the dashboard on 8 separate days (day 2 through day 9) and stopped at the very first day the p-value
+  happened to cross 0.05. Even if the checkout redesign had truly zero effect, checking repeatedly and
+  stopping at the first "significant-looking" day gives random noise many independent opportunities to
+  dip below the threshold at some point — so the real chance of a false "win" across this whole
+  monitoring process is meaningfully higher than 5%, even though the single p-value reported (0.041) looks
+  like it's under 5%. The analyst should have stuck to the pre-committed plan: either wait the full 4
+  weeks (the sample size the original design called for) before running any significance test at all, or,
+  if continuous monitoring is genuinely needed, use a sequential-testing method (e.g. an always-valid
+  p-value or a group sequential design) that's built to control the false-positive rate under repeated
+  looks — not a fixed-sample z-test checked informally every day.
+explanation: >
+  A strong answer identifies specifically *why* repeated checking inflates the false-positive rate (many
+  independent chances for noise to cross the threshold), not just that "checking early is bad practice"
+  in the abstract. It also gives a concrete fix grounded in what the team already had (the pre-committed
+  4-week plan), rather than only saying "don't peek" without an actionable alternative for teams that do
+  have a genuine need to monitor continuously (sequential testing methods).

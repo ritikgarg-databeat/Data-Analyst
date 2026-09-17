@@ -1,0 +1,23 @@
+slug: pa-north-star-vs-input-metrics
+skill: product-metrics
+title: North Star Metric vs. Input Metrics
+description: A team's North Star metric is 'weekly active collaborative documents.' Which of the following is best
+  described as an INPUT metric that drives the North Star, rather than the North Star itself?
+exercise_type: MULTIPLE_CHOICE
+difficulty: ADVANCED
+points: 5
+tags:
+- north-star-metric
+- product-analytics
+prompt: A team's North Star metric is 'weekly active collaborative documents.' Which of the following is best described
+  as an INPUT metric that drives the North Star, rather than the North Star itself?
+choices:
+- Number of documents shared with a second collaborator within 24 hours of creation
+- Total company revenue
+- Employee headcount on the product team
+- Stock price
+correct_answer: Number of documents shared with a second collaborator within 24 hours of creation
+explanation: Input metrics are the specific, actionable behaviors the team can influence that feed into the broader
+  North Star -- 'shared with a collaborator quickly' is a concrete, team-actionable input that plausibly drives
+  'weekly active collaborative documents' upward, while revenue/headcount/stock price are outcomes or unrelated
+  business metrics, not product-team-actionable inputs to this specific North Star.

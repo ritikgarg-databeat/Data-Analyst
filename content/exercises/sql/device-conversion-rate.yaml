@@ -1,0 +1,61 @@
+slug: device-conversion-rate
+skill: sql-fundamentals
+dataset: ecommerce
+title: Session-to-Conversion Rate by Device
+description: Write a query that computes the percentage of sessions that converted, broken down by device type.
+exercise_type: SQL
+difficulty: BEGINNER
+points: 15
+tags: [sql, foundations, real-world, easy]
+business_context: >
+  Product wants to know whether mobile, tablet, or desktop visitors convert at meaningfully different
+  rates, to help decide where to focus the next round of checkout-flow improvements.
+prompt: >
+  Using the `sessions` table, write a query that returns each `device` together with its conversion
+  rate as a percentage (`conversion_rate_pct`, computed as `100.0 * (number of sessions where
+  converted is true) / (total number of sessions for that device)`, rounded to 1 decimal place), sorted
+  from the highest conversion rate to the lowest.
+sql_tables: [sessions]
+sql_starter_query: |
+  -- Explore the sessions table first
+  SELECT * FROM sessions LIMIT 20;
+sql_solution_query: |
+  SELECT
+    device,
+    ROUND(100.0 * SUM(CASE WHEN converted THEN 1 ELSE 0 END) / COUNT(*), 1) AS conversion_rate_pct
+  FROM sessions
+  GROUP BY device
+  ORDER BY conversion_rate_pct DESC, device ASC;
+sql_row_order_matters: true
+sql_numeric_tolerance: 0.1
+sql_hidden_tests:
+  - name: "Device with the highest conversion rate is correct"
+    query: |
+      SELECT
+        device,
+        ROUND(100.0 * SUM(CASE WHEN converted THEN 1 ELSE 0 END) / COUNT(*), 1) AS conversion_rate_pct
+      FROM sessions
+      GROUP BY device
+      ORDER BY conversion_rate_pct DESC, device ASC
+      LIMIT 1
+    key_columns: 1
+hints:
+  - "A conversion rate is converted sessions divided by all sessions, times 100 — you need both a conditional count of converted sessions and a total count, per device."
+  - "GROUP BY device, use SUM(CASE WHEN converted THEN 1 ELSE 0 END) as the numerator and COUNT(*) as the denominator, multiply by 100.0 before dividing (not after) so the division isn't done in integers, then ROUND to 1 decimal."
+solution: |
+  ```sql
+  SELECT
+    device,
+    ROUND(100.0 * SUM(CASE WHEN converted THEN 1 ELSE 0 END) / COUNT(*), 1) AS conversion_rate_pct
+  FROM sessions
+  GROUP BY device
+  ORDER BY conversion_rate_pct DESC, device ASC;
+  ```
+explanation: >
+  A strong answer computes converted sessions with conditional aggregation (SUM(CASE WHEN converted
+  THEN 1 ELSE 0 END), or an equivalent COUNT(CASE WHEN...) form), divides by COUNT(*) for that same
+  device group, and multiplies by 100 to express the result as a percentage rather than a raw fraction.
+  A common mistake is computing the ratio correctly but forgetting the multiply-by-100 step entirely,
+  returning a technically-correct-but-wrong-scale answer like 0.156 instead of 15.6 — always sanity-check
+  whether a "rate" or "percentage" column is supposed to land between 0 and 1 or between 0 and 100 before
+  finalizing the query.

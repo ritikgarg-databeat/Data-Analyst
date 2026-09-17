@@ -1,0 +1,149 @@
+slug: resampling
+module_slug: pandas-time-series
+title: Resampling Time Series
+description: .resample() on a datetime-indexed DataFrame for calendar-aware summarization — how it differs from .groupby() — with a real monthly-revenue-from-payments example.
+content_type: READING
+difficulty: INTERMEDIATE
+estimated_minutes: 12
+display_order: 2
+objectives:
+  - Summarize a datetime-indexed DataFrame into fixed calendar periods with .resample()
+  - Use the common frequency codes ('D', 'W', 'M', 'Q') to control the period length
+  - Explain how .resample() differs from .groupby() on a manually extracted date part
+prerequisites: [datetime-in-pandas]
+skills: [pandas]
+datasets: [ecommerce]
+tags: [python, intermediate, real-world]
+key_takeaways:
+  - ".resample() groups a datetime-indexed DataFrame into fixed calendar periods (daily, weekly, monthly, quarterly...) and then aggregates within each one — it needs a datetime index, unlike .groupby()."
+  - "Common frequency codes: 'D' for calendar day, 'W' for week, 'M'/'ME' for month-end, 'Q'/'QE' for quarter-end — each defines how resample cuts up the timeline."
+  - "Resample understands calendar periods and can fill in periods with no data at all (e.g. a week with zero orders still appears in the output with a zero or NaN), which a manual .dt.month groupby does not do on its own."
+common_mistakes:
+  - "Calling .resample() on a DataFrame that doesn't have a datetime index yet — it requires the index itself to be datetime, unlike groupby which works on any column."
+  - "Using groupby(df['date'].dt.month) across multiple years and getting January and next January's data merged into one 'month 1' bucket — resample keeps calendar periods distinct across year boundaries because it operates on full timestamps, not just the extracted month number."
+  - "Forgetting that resample needs an aggregation chained onto it (.sum(), .mean(), etc.), just like groupby — resample() alone returns a lazy Resampler object."
+practical_applications:
+  - "Building a monthly revenue trend from a payments table with individual payment-level rows, ready to hand to a line chart."
+  - "Rolling up daily order volume into weekly totals for a cleaner, less noisy trend line in a report."
+interview_questions:
+  - question: "What does .resample() require that .groupby() doesn't?"
+    answer: "resample() requires the DataFrame to already have a datetime index (or you pass the datetime column explicitly via the on= parameter) — it groups by calendar time periods derived from that index, not by the value of an arbitrary column. groupby() has no such requirement and works on any column's values, whether or not they're datetime."
+  - question: "Why would grouping by df['date'].dt.month give a wrong answer for 'monthly revenue over two years' where resample('M') would not?"
+    answer: "df['date'].dt.month only extracts the month number (1-12), discarding the year — so groupby on that column merges January 2024 and January 2025 into a single 'month 1' bucket. resample('M') operates on the full timestamp and creates a distinct bucket for each calendar month in each year, correctly keeping January 2024 and January 2025 separate. This is the core practical reason to reach for resample over a manual groupby whenever the data spans more than one cycle of whatever period you're bucketing by."
+blocks:
+  - type: text
+    body: >
+      `.resample()` is groupby's specialized cousin for time series: it groups rows into **fixed
+      calendar periods** — every day, every week, every month, every quarter — and then aggregates
+      within each one. It requires a datetime index, and in exchange it understands calendars in a
+      way a plain groupby doesn't.
+  - type: heading
+    text: A real monthly-revenue example
+  - type: code
+    language: python
+    code: |2
+      import pandas as pd
+
+      payments = pd.read_csv("data/sample/ecommerce/payments.csv")
+      payments["payment_date"] = pd.to_datetime(payments["payment_date"])
+      payments = payments[payments["status"] == "success"]
+
+      payments_by_date = payments.set_index("payment_date").sort_index()
+
+      monthly_revenue = payments_by_date["amount"].resample("ME").sum().round(2)
+      monthly_revenue.head(6)
+    caption: One row per calendar month, summing amount within each
+  - type: output
+    body: |2
+      payment_date
+      2024-01-31      7016.67
+      2024-02-29     14378.93
+      2024-03-31     33317.44
+      2024-04-30     20703.96
+      2024-05-31     72699.56
+      2024-06-30     72299.06
+      Freq: ME, Name: amount, dtype: float64
+    caption: "25 total months in the full result (2024-01 through 2026-01), each a real, verified sum"
+  - type: heading
+    text: Frequency codes
+  - type: table
+    headers: ["Code", "Bucket", "Typical use"]
+    rows:
+      - ["'D'", "Calendar day", "Daily order counts or revenue"]
+      - ["'W'", "Calendar week (ends Sunday by default)", "Weekly trend, smoother than daily"]
+      - ["'ME'", "Month end (older code: 'M')", "Monthly revenue, the most common business reporting cadence"]
+      - ["'QE'", "Quarter end (older code: 'Q')", "Quarterly reporting, tied directly into period-over-period analysis later in this module"]
+  - type: code
+    language: python
+    code: |2
+      weekly_revenue = payments_by_date["amount"].resample("W").sum().round(2)
+      weekly_revenue.head(5)
+    caption: Same data, resampled to weekly buckets instead
+  - type: output
+    body: |2
+      payment_date
+      2024-01-14    3530.06
+      2024-01-21     334.93
+      2024-01-28    3151.68
+      2024-02-04       0.00
+      2024-02-11    6111.17
+      Freq: W-SUN, Name: amount, dtype: float64
+    caption: "Notice the week of 2024-02-04 — zero revenue, but resample still produced a row for it"
+  - type: heading
+    text: "resample() vs. groupby() on a manually extracted month"
+  - type: text
+    body: >
+      It's tempting to reach for `.dt.month` and a plain `groupby` instead of resample — but that
+      throws away the year, silently merging the same calendar month across every year in the data
+      into one bucket. Compare the output shape directly.
+  - type: code
+    language: python
+    code: |2
+      payments["month_number"] = payments["payment_date"].dt.month
+      by_month_number = payments.groupby("month_number")["amount"].sum().round(2)
+      by_month_number
+    caption: "groupby on .dt.month merges Jan 2024 + Jan 2025 + Jan 2026 into one 'month 1' row"
+  - type: output
+    body: |2
+      month_number
+      1      255419.35
+      2      261264.95
+      3      258207.40
+      4      270249.53
+      5      366045.77
+      6      322934.98
+      7      457102.85
+      8      489971.64
+      9      594091.02
+      10     678353.94
+      11     736946.00
+      12    1112040.72
+      Name: amount, dtype: float64
+    caption: "Only 12 rows — every year's January (2024, 2025, and the single day of 2026) got summed together"
+  - type: callout
+    variant: warning
+    title: "resample('ME') keeps years separate; groupby(.dt.month) does not"
+    body: >
+      The monthly_revenue result above has 25 distinct rows (one real calendar month each, spanning
+      Jan 2024 through Jan 2026). The by_month_number result has only 12 rows, because it threw away
+      which year each payment happened in. Whenever your data spans more than one full cycle of the
+      period you care about, resample is the operation that gives the analytically correct answer.
+  - type: callout
+    variant: tip
+    title: "resample() also fills in gaps — groupby doesn't"
+    body: >
+      If an entire week or month has zero rows, groupby simply produces no row for it — you'd have to
+      notice the gap yourself. resample knows the full calendar and creates a bucket for every period
+      in range regardless of whether any data fell into it, which is exactly what you want for a
+      trend chart that shouldn't silently skip a quiet period.
+  - type: question
+    prompt: "Payments span three full years, and you want total revenue per calendar month, keeping each year distinct (36 output rows). Which approach gives that?"
+    choices:
+      - "payments.groupby(payments['payment_date'].dt.month)['amount'].sum()"
+      - "payments.set_index('payment_date')['amount'].resample('ME').sum()"
+      - "Both give exactly the same result"
+    correct_index: 1
+    explanation: >
+      resample('ME') operates on the full timestamp and produces one bucket per real calendar month,
+      correctly keeping each year separate (36 rows for 3 years). groupby on .dt.month alone discards
+      the year, collapsing all three years' Januaries (and every other month) into just 12 rows total.

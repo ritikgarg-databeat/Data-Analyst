@@ -1,0 +1,23 @@
+slug: select-star-tradeoffs
+lesson_slug: select
+skill: sql-fundamentals
+title: The Cost of SELECT *
+description: Predict what happens to a saved query built on SELECT * when the underlying table's schema changes.
+exercise_type: MULTIPLE_CHOICE
+difficulty: BEGINNER
+points: 10
+tags: [sql, beginner]
+prompt: >
+  A dashboard's saved query runs "SELECT * FROM orders" every morning. A teammate adds a new
+  discount_code column to the orders table. What is the most likely effect on the dashboard the next
+  time the query runs?
+choices:
+  - The query keeps returning only the original columns, ignoring the new one
+  - The query's output silently gains an extra column, which can break anything downstream that expects a fixed set of columns
+  - The query fails immediately with a syntax error
+correct_answer: The query's output silently gains an extra column, which can break anything downstream that expects a fixed set of columns
+explanation: >
+  SELECT * is resolved against whatever columns the table has at the moment the query runs — it has
+  no memory of what columns existed before. A new column just appears in the result set with no
+  warning, which is exactly why explicit column lists are the safer choice for anything saved,
+  scheduled, or built on by other code, rather than one-off exploration.

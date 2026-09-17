@@ -1,0 +1,128 @@
+slug: interview-pricing-change-impact
+title: Assessing the Impact of a Recent Price Increase
+category: BUSINESS_ANALYTICS
+difficulty: ADVANCED
+estimated_minutes: 30
+company_context: An online retailer tracked via the ecommerce schema.
+stakeholder_name: Nina Ortiz
+stakeholder_role: Head of Pricing
+problem_statement: '"We raised prices 8% on our core product line six weeks ago. Revenue looks up but I need to
+  know the real story -- did we gain or lose overall?"'
+business_context: Nina needs a clear read on whether the price increase was net positive, accounting for any volume
+  loss, before deciding whether to extend it to other product lines.
+objective: Assess whether the price increase was net positive for revenue (and ideally margin), accounting for any
+  change in units sold.
+initial_information: You have access to orders, order_items, and products.
+constraints:
+- Distinguish the price increase's effect from any other concurrent change (seasonality, promotions).
+available_datasets:
+- ecommerce
+expected_deliverables:
+- A before/after comparison of units sold and revenue for the affected product line
+- An estimate of the implied price elasticity
+- A net revenue (and ideally margin) impact assessment
+- A recommendation
+learning_objectives:
+- Compute a before/after comparison correctly isolated to the affected product line
+- Reason about price elasticity from a real before/after comparison
+- Weigh revenue impact against margin impact
+stages:
+- CLARIFY
+- ANALYZE
+- INSIGHTS
+- RECOMMEND
+- SUBMIT
+tags:
+- interview
+- business-analytics
+- pricing
+- case-study
+skills:
+- business-metrics
+- statistical-reasoning
+- business-problem-solving
+clarification_guidance:
+- A good clarifying question asks whether any promotions or seasonal effects coincided with the price change window.
+- A good clarifying question asks whether the comparison should be against the same weeks last year, or the immediately
+  preceding weeks.
+rubric:
+- category: Problem Framing & Clarification
+  weight: 20
+  criteria:
+  - criterion: Asks about concurrent promotions/seasonality and the right comparison baseline
+    points: 20
+- category: Technical Analysis
+  weight: 35
+  is_technical: true
+  criteria:
+  - criterion: Correctly isolates the before/after comparison to the affected product line
+    points: 15
+  - criterion: Computes the percentage change in units sold and estimates implied elasticity
+    points: 20
+- category: Insight Quality
+  weight: 20
+  criteria:
+  - criterion: Correctly reasons about net revenue impact given both the price increase and any volume change
+    points: 20
+- category: Recommendation & Business Judgment
+  weight: 15
+  criteria:
+  - criterion: Gives a recommendation on whether to extend the price change, tied to the net impact finding
+    points: 15
+- category: Communication
+  weight: 10
+  criteria:
+  - criterion: Explains the elasticity finding and its revenue implication in plain terms
+    points: 10
+hints:
+- Compare units sold and revenue for the SAME product line before and after the price change, isolated from unrelated
+  product lines.
+- Even if revenue looks up, check whether units sold dropped enough that margin (not just revenue) tells a different
+  story.
+reference_solution:
+  summary: This dataset contains no evidence that any product's price has ever changed. order_items.unit_price is
+    IDENTICAL to products.unit_price for every one of 12,627 line items across the full January 2024-December 2025
+    order history -- a maximum absolute difference of $0.00, with zero exceptions -- meaning products.csv's single
+    unit_price field is a permanently static, current-snapshot price, and this schema has no price-history
+    mechanism at all. A literal before/after comparison of 'the 8% price increase six weeks ago' cannot be
+    performed, because there is no record anywhere of what any product's price was before, or confirmation that a
+    list price changed at all. Checking the nearest available proxy -- average discount-adjusted net price paid per
+    category, comparing the six weeks before vs. after the stated change date -- shows no clean, uniform shift
+    anywhere -- category-level average net price moved from -9.1% (Apparel) to +7.0% (Office Supplies) over that
+    window, a spread fully consistent with ordinary order-mix and discount noise (average discount rate held steady
+    at 7.5-7.7% every month from August through December 2025), not a deliberate, uniform price change. So there is
+    no product line in this data where a genuine, verifiable 8% price increase can be located, isolated, or
+    measured, and any elasticity or net-revenue-impact number attributed to 'the' price increase would be
+    fabricated, not measured.
+  key_insights:
+  - order_items.unit_price equals products.unit_price exactly for all 12,627 line items in the full two-year order
+    history -- a maximum absolute difference of $0.00 -- meaning this schema has no price-history mechanism --
+    whatever price a product carries today is the only price it has ever had in this data.
+  - Average discount rate (discount as a share of unit_price) has held steady at 7.5-7.7% for every month from
+    August through December 2025, ruling out a discounting-driven effective-price shift as an alternate explanation
+    for any recent revenue change.
+  - Category-level average net price (unit_price minus discount) in the six weeks before vs. after the stated
+    change date moves in both directions across the 10 categories, from -9.1% (Apparel) to +7.0% (Office Supplies)
+    -- a spread consistent with normal order-mix noise, not a deliberate, uniform 8% increase on any identifiable
+    core product line.
+  - Because no price change can be confirmed or isolated, no before/after units-sold comparison, elasticity
+    estimate, or net revenue impact attributable to a price increase can be computed from this data -- any such
+    figure would be invented, not measured.
+  recommendation: Before doing any further analysis, go back to Nina and confirm exactly which product or products
+    were repriced and on what date -- this data contains no trace of any price change for any product, so the core
+    product line cannot even be identified from the ecommerce schema alone, let alone its before/after impact.
+    Recommend obtaining the actual pricing/PIM system's change log or finance's price-change approval record as a
+    prerequisite for this analysis. Separately, recommend that the data pipeline start capturing price history (an
+    effective-dated price table, or a true point-in-time price snapshot per order_item) so a future price change
+    can actually be measured -- note that order_items.unit_price happening to equal today's product price is a
+    coincidence of no price ever having changed since data collection began, not evidence the system is designed to
+    preserve history.
+  acceptable_alternatives:
+  - A learner who treats the small category-level net-price swings (e.g. Office Supplies +7.0%, Beauty +5.8%) as
+    tentative, weak, unconfirmed candidates for possibly the affected line, while explicitly caveating that none
+    reach a clean, confirmed 8% and none can be verified as an actual list-price change, should receive credit for
+    appropriate hedging rather than overclaiming.
+  - A learner who pivots the entire deliverable to describing what would be needed to answer this (a price-change
+    log or effective-dated price table) rather than forcing any numeric elasticity estimate should receive full
+    credit, since fabricating an elasticity number here would be worse than transparently stating the blocker.
+version: 1

@@ -1,0 +1,21 @@
+slug: biz-operating-vs-net-margin
+skill: business-metrics
+title: Operating Margin vs. Net Margin
+description: What's the key difference between operating margin and net margin?
+exercise_type: MULTIPLE_CHOICE
+difficulty: INTERMEDIATE
+points: 5
+tags:
+- margin
+- profitability
+prompt: What's the key difference between operating margin and net margin?
+correct_answer: Operating margin excludes interest and taxes; net margin includes everything, including interest
+  expense and taxes
+explanation: Operating margin = operating income / revenue, capturing core business profitability before financing/tax
+  effects; net margin = net income / revenue, the fully loaded bottom line after interest and taxes -- two companies
+  with identical operating margins can have very different net margins due to debt load or tax situation.
+choices:
+- Operating margin excludes interest and taxes; net margin includes everything, including interest expense and taxes
+- They are always identical for any company
+- Operating margin only applies to non-profit organizations
+- Net margin ignores cost of goods sold entirely

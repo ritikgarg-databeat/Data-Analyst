@@ -1,0 +1,45 @@
+slug: correlation-causation-marketing-budget
+lesson_slug: corr-correlation-vs-causation
+skill: statistical-reasoning
+dataset: ecommerce
+title: "\"Higher Budget, Fewer Conversions\"? Interrogate This Correlation"
+description: Given a real but fragile correlation between campaign budget and conversions, decide what (if anything) it supports and why.
+exercise_type: DATA_INTERPRETATION
+difficulty: ADVANCED
+points: 15
+tags: [statistics, marketing, advanced]
+prompt: >
+  Across the ecommerce dataset's 15 marketing campaigns, budget correlates with number of
+  conversions at r = -0.33, p = 0.23. A marketing director sees this and proposes cutting all
+  campaign budgets, reasoning "our own data shows spending more actively reduces conversions."
+  Evaluate this reasoning. Is the correlation itself trustworthy at this sample size? If it were
+  trustworthy, would it necessarily mean higher spending *causes* fewer conversions? Name at least
+  one concrete alternative explanation.
+hints:
+  - "Check the correlation's own statistical significance first, given how few data points (campaigns, not sessions) it's actually based on, before evaluating what it might mean causally."
+  - "Think about what other factor could plausibly drive both a campaign's budget and its conversion count in the same historical dataset — for instance, how budgets typically get decided in the first place."
+solution: >
+  First problem — the correlation isn't even statistically trustworthy at this sample size: with
+  only 15 campaigns, r = -0.33 produces p = 0.23, well above conventional significance. This data
+  doesn't provide reliable evidence of any relationship between budget and conversions, in either
+  direction — the apparent negative slope is easily explained by noise across just 15 data points,
+  and shouldn't be treated as a real pattern at all.
+  Second problem — even setting that aside, correlation wouldn't establish causation. A concrete
+  alternative explanation: budgets are often set based on a campaign's *type* or *channel* rather
+  than assigned randomly (e.g., broad brand-awareness campaigns might receive larger budgets than
+  narrow, high-intent search campaigns that convert at a higher rate per session) — in that case, a
+  third factor (campaign type/channel) would be driving both the budget level and the conversion
+  rate, producing exactly this kind of spurious negative relationship without spending itself
+  reducing conversions at all. Reverse causation is also plausible in principle (a campaign
+  performing poorly could prompt a budget cut mid-flight), though the fragile, non-significant
+  correlation is the more immediate problem here.
+  Recommendation: this data does not support cutting campaign budgets. The director's proposal
+  should be set aside until either a larger set of campaigns is analyzed for a real relationship, or
+  a properly designed test (e.g., randomized budget changes across similar campaign types) isolates
+  the actual effect of spend on conversions.
+explanation: >
+  A strong answer catches both problems in order — statistical fragility first (the correlation
+  isn't even reliably non-zero), then the causal leap (even a real correlation wouldn't prove
+  causation) — and names a specific, plausible confounder rather than a generic "correlation isn't
+  causation" disclaimer. A weaker answer accepts the correlation at face value and jumps straight to
+  debating causation without questioning whether there's even a real pattern in 15 data points.

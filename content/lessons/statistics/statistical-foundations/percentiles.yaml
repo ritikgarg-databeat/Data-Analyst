@@ -1,0 +1,75 @@
+slug: percentiles
+module_slug: statistical-foundations
+title: Percentiles
+description: Quantiles beyond the median, and why p90/p99 thinking catches problems that averages hide.
+difficulty: BEGINNER
+estimated_minutes: 12
+display_order: 3
+objectives:
+  - Explain what a percentile represents and how it generalizes the median
+  - Apply p50/p90/p99 thinking to a latency or revenue analysis to catch tail behavior the mean hides
+prerequisites: [median]
+skills: [statistics, exploratory-data-analysis]
+tags: [statistics, beginner, real-world]
+key_takeaways:
+  - A percentile is the value below which a given percentage of the data falls — the median is just the 50th percentile.
+  - High percentiles (p90/p95/p99) catch tail behavior that both the mean and the median hide.
+  - The phrase "p99 latency" means 99% of requests were at or below that value — the remaining 1% is exactly the group worth worrying about.
+common_mistakes:
+  - Reporting only the average latency or response time and missing that a meaningful share of users are having a much worse experience in the tail.
+  - Confusing "p99" with "99% of requests are fast" — it means 99% are at or below that value, not that the value itself represents a fast experience.
+blocks:
+  - type: heading
+    text: Beyond the middle
+  - type: text
+    body: >
+      A **percentile** generalizes the idea behind the median: the p-th percentile is the value below
+      which p% of the data falls. The median is simply the 50th percentile (p50). Percentiles let you
+      describe any point in a distribution, not just the middle — which matters a lot for metrics like
+      latency, where the *worst* experience is often more important to know than the *typical* one.
+  - type: example
+    title: Why p99 catches what the mean misses
+    body: >
+      Suppose an API serves 1,000 requests: 990 of them take about 50ms, and 10 of them (a stuck
+      connection or a cold cache) take about 3,000ms. The mean latency is (990 × 50 + 10 × 3,000) /
+      1,000 = 79.5ms — that looks perfectly healthy. The median (p50) is 50ms — also healthy. But the
+      p99 sits right at the boundary of that slow group, close to 3,000ms — revealing that roughly 1 in
+      100 requests has a dramatically worse experience than the "average" number suggests.
+  - type: table
+    caption: Common percentile thresholds and how they're used
+    headers: ["Percentile", "Meaning", "Typical use"]
+    rows:
+      - ["p50 (median)", "Half of values fall below this point", "\"Typical\" experience"]
+      - ["p90", "90% of values fall below this point", "Catching moderately bad cases"]
+      - ["p95", "95% of values fall below this point", "SLA targets, monitoring dashboards"]
+      - ["p99", "99% of values fall below this point", "Worst-case / tail latency, high-value customer experience"]
+  - type: code
+    language: sql
+    code: |
+      SELECT
+        PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY latency_ms) AS p50,
+        PERCENTILE_CONT(0.9) WITHIN GROUP (ORDER BY latency_ms) AS p90,
+        PERCENTILE_CONT(0.99) WITHIN GROUP (ORDER BY latency_ms) AS p99
+      FROM request_logs;
+    caption: Computing multiple percentiles from the same underlying data in one query.
+  - type: callout
+    variant: important
+    title: Why on-call teams talk in percentiles
+    body: >
+      Reliability teams rarely say "average latency was fine." They report p95 or p99, because the
+      average can look healthy while a real subset of users — sometimes your most active or highest-value
+      ones — are having a noticeably worse experience.
+  - type: question
+    prompt: >
+      An API's average latency is 80ms, which looks healthy on a dashboard. What additional metric
+      would best reveal whether a small number of requests are much slower than the rest?
+    choices:
+      - The mode of the latency distribution
+      - The p99 latency
+      - A second measurement of the average latency, to confirm it
+    correct_index: 1
+    explanation: >
+      The p99 latency directly answers "how bad is it for the worst 1% of requests?" in the same units
+      as the original metric, which is exactly what an average can conceal. The mode (most frequent
+      value) would likely just restate the typical fast case, and re-measuring the average would give
+      the same misleading number again.

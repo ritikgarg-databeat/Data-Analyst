@@ -1,0 +1,23 @@
+slug: dw-ex-grain-claim-check
+lesson_slug: dw-declaring-grain
+skill: dimensional-modeling
+title: Does the Evidence Support the Grain Claim?
+description: Evaluate whether a specific query result is consistent with a table's documented grain.
+exercise_type: TRUE_FALSE
+difficulty: INTERMEDIATE
+points: 10
+tags: [grain, validation, star-schema, intermediate]
+prompt: >
+  A table is documented with the grain "1 row = 1 order." Running
+  `SELECT order_id, COUNT(*) FROM this_table GROUP BY order_id HAVING COUNT(*) > 1` against it
+  returns zero rows. True or False: this result is consistent with the documented grain actually
+  holding.
+choices: ["True", "False"]
+correct_answer: "True"
+explanation: >
+  A grain claim of "1 row = 1 order" specifically implies order_id is unique within the table. A
+  query that groups by order_id and filters to counts greater than one returning zero rows means no
+  order_id appears more than once — exactly what the grain claim requires. This is the same logic
+  behind dbt's automated `tests: [unique, not_null]` on fct_orders.order_id in marts.yml: it's the
+  mechanical, ongoing verification that a declared grain claim continues to hold, rather than just
+  being asserted in a comment or description and never actually checked.

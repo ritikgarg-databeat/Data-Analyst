@@ -1,0 +1,99 @@
+slug: funnel-conversion
+module_slug: product-metrics
+title: Funnel Conversion
+description: Step-by-step funnel drop-off analysis, and the dimensions to segment by when a metric like DAU drops and you need to find out where.
+difficulty: BEGINNER
+estimated_minutes: 15
+display_order: 8
+objectives:
+  - Build a step-by-step conversion funnel and distinguish step-to-step conversion from overall conversion
+  - Identify which funnel step is the real bottleneck rather than relying on the overall conversion rate alone
+  - List the standard dimensions to segment by when investigating a sudden drop in an activity metric
+prerequisites: [feature-adoption]
+skills: [product-metrics, experimentation]
+tags: [product-analytics, beginner, foundations]
+key_takeaways:
+  - A funnel's overall conversion rate tells you *that* users are being lost, but only step-to-step conversion tells you *where* — always compute both.
+  - Funnel queries need to respect time ordering and a reasonable time window per step, or a later, unrelated action can get miscounted as completing an earlier step.
+  - When an activity metric like DAU drops, the fastest way to find the cause is segmenting the drop by platform, acquisition channel, cohort/tenure, and geography — a drop concentrated in one segment points straight at a cause; a drop spread evenly across all of them usually points to something broader (an outage, a tracking bug, a global product change).
+common_mistakes:
+  - Reporting only the overall funnel conversion rate (e.g. "12% of visitors complete signup") without breaking it into step-to-step rates, which hides which single step is actually losing the most users.
+  - Writing a funnel query with no time window between steps, so a user who completes step 1 today and step 3 six months later gets counted as having "converted," inflating the funnel artificially.
+  - Investigating a DAU drop by staring at the aggregate number and guessing at causes, instead of segmenting first — segmentation usually narrows the search from "everything" to one or two concrete hypotheses within minutes.
+blocks:
+  - type: text
+    body: >
+      A funnel breaks a multi-step user journey (e.g. viewed pricing → started signup → verified email
+      → completed onboarding) into its individual steps and measures how many users make it from each
+      step to the next. The point of a funnel isn't the final overall conversion number — it's finding
+      exactly *which* step is losing the most people, since that's the step worth fixing first.
+  - type: heading
+    text: Overall vs. step-to-step conversion
+  - type: table
+    headers: ["Step", "Users reaching step", "Step-to-step conversion", "Overall conversion (vs. step 1)"]
+    rows:
+      - ["1. Viewed pricing page", "10,000", "—", "100%"]
+      - ["2. Started signup", "3,200", "32%", "32%"]
+      - ["3. Verified email", "2,880", "90%", "28.8%"]
+      - ["4. Completed onboarding", "1,150", "40%", "11.5%"]
+  - type: text
+    body: >
+      Reading only the last column ("11.5% overall conversion") tells you the funnel leaks badly
+      somewhere, but not where. The step-to-step column makes it obvious: the two real problems are
+      **step 1 → 2** (68% of visitors never start signup at all) and **step 3 → 4** (60% of verified
+      users abandon onboarding). Those are two very different problems with two very different fixes —
+      a pricing/messaging issue on the landing page, and a friction or clarity issue inside onboarding.
+  - type: code
+    language: sql
+    caption: Step counts for a signup funnel, respecting time order and a reasonable window
+    code: |
+      WITH step1 AS (
+        SELECT user_id, MIN(event_at) AS t1
+        FROM events WHERE event_type = 'viewed_pricing' GROUP BY user_id
+      ),
+      step2 AS (
+        SELECT user_id, MIN(event_at) AS t2
+        FROM events WHERE event_type = 'signup_started' GROUP BY user_id
+      ),
+      step3 AS (
+        SELECT user_id, MIN(event_at) AS t3
+        FROM events WHERE event_type = 'email_verified' GROUP BY user_id
+      )
+      SELECT
+        COUNT(DISTINCT step1.user_id)                                     AS step1_users,
+        COUNT(DISTINCT step2.user_id)                                     AS step2_users,
+        COUNT(DISTINCT step3.user_id)                                     AS step3_users
+      FROM step1
+      LEFT JOIN step2 ON step2.user_id = step1.user_id AND step2.t2 >= step1.t1
+                      AND step2.t2 < step1.t1 + INTERVAL '7 days'
+      LEFT JOIN step3 ON step3.user_id = step2.user_id AND step3.t3 >= step2.t2
+                      AND step3.t3 < step2.t2 + INTERVAL '7 days';
+  - type: heading
+    text: "DAU just dropped — where do you look first?"
+  - type: checklist
+    title: Standard segmentation dimensions for an activity-metric investigation
+    items:
+      - "Platform / OS — iOS vs. Android vs. web: an app-store outage or a bad release hits one platform only"
+      - "Acquisition channel — organic vs. paid vs. referral: a paid campaign ending or a channel getting throttled shows up as a channel-specific drop"
+      - "Cohort / tenure — new users vs. long-tenured users: a broken onboarding flow hits new signups while leaving existing users untouched"
+      - "Geography / time zone — a regional outage, a local holiday, or a market-specific launch will concentrate the drop geographically"
+      - "Version / release — comparing users on the latest app version against those on the previous one isolates a bad release quickly"
+  - type: callout
+    variant: tip
+    title: Even vs. concentrated tells you where to look next
+    body: >
+      If a DAU drop is roughly even across every segment above, suspect something global: a tracking
+      pipeline bug, an outage, or a product change that shipped to everyone. If the drop is concentrated
+      in one segment — say, entirely on Android — that segment *is* the investigation; stop looking
+      everywhere else and go find out what changed for Android users specifically.
+  - type: question
+    prompt: A funnel shows 11% overall conversion from landing page to completed signup. Which single number would most help identify where to focus fix efforts first?
+    choices:
+      - The 11% overall conversion rate, repeated for the last 6 months
+      - The step-to-step conversion rate for each individual step in the funnel
+      - The total number of visitors to the landing page
+    correct_index: 1
+    explanation: >
+      The overall conversion rate confirms that users are being lost somewhere in the funnel but gives
+      no information about which step is responsible. Step-to-step conversion rates isolate exactly
+      where the biggest drop-off happens, which is the step worth investigating and fixing first.

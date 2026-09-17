@@ -1,0 +1,114 @@
+slug: choosing-the-right-chart-type
+module_slug: visualization-and-storytelling
+title: "Choosing the Right Chart Type: A Point-and-Click Decision Framework"
+description: A decision framework for matching a business question to a chart type using variable types alone — category vs. metric, date vs. metric, two numerics, one distribution — and how this platform's own Chart Builder applies exactly this logic to recommend a chart automatically.
+difficulty: BEGINNER
+estimated_minutes: 11
+display_order: 1
+objectives:
+  - Match a pair of variable types (categorical, numeric, datetime) to the chart type built to compare them
+  - State when a part-of-whole chart (pie/donut) is defensible and when it should be capped or avoided
+  - Explain how this platform's Chart Builder recommends a chart type from the variables you pick, and why
+skills: [data-visualization]
+datasets: [ecommerce]
+tags: [foundations, beginner]
+key_takeaways:
+  - "The decision that matters most in visualization has nothing to do with any tool: what TYPES of variables are you comparing? Category vs. metric routes to a bar chart. Date vs. metric routes to a line chart. Two numerics route to a scatter plot. One numeric's distribution routes to a histogram. Distribution split by category routes to a box plot. Two categoricals routes to a heatmap."
+  - "A whole-to-part share (pie or donut) is the one chart type that needs a capped category count to stay readable — past 6-7 slices it becomes genuinely hard to compare, which is exactly why this platform's own chart mistake-detector specifically warns on pie/donut charts with more than 7 categories."
+  - "This platform's Chart Builder doesn't guess — its recommendation engine applies exactly this framework mechanically: pick an X variable and a Y variable (or just one), and it infers each one's type and returns both a recommended chart type and a one-sentence reason, the same reasoning this lesson walks through by hand."
+  - "The framework is tool-agnostic on purpose — whether you're pointing and clicking in a chart builder, writing matplotlib, or sketching on a whiteboard, 'what am I actually comparing' comes before any charting syntax or interface."
+common_mistakes:
+  - "Picking a chart type because it's visually appealing or familiar, rather than because it matches the types of variables actually being compared."
+  - "Reaching for a pie chart as a default for any part-of-whole question, when a sorted bar chart communicates the same ranking more accurately once there are more than 2-3 categories."
+  - "Using a line chart to connect values along an axis that isn't actually sequential (e.g. connecting bars for unrelated categories) — a line implies continuity between points, which only makes sense for something like time or a genuinely ordered scale."
+practical_applications:
+  - "Running through 'what types of variables am I comparing' as the first step before opening any chart builder or charting library, for every new visualization request."
+  - "Pushing back on a stakeholder's specific chart-type request (frequently a pie chart with too many slices) by proposing the type that actually matches the underlying comparison."
+interview_questions:
+  - question: "How do you decide which chart type to use for a given question?"
+    answer: "I start from the types of variables involved, not the data itself or which chart looks most polished. A category compared against a metric is a bar chart. A date compared against a metric is a line chart. Two numeric variables is a scatter plot. The distribution of one numeric variable is a histogram; that same distribution split by category is a box plot. Two categorical variables is a heatmap. A whole-to-part share is usually still a bar chart — a pie chart only if it's a simple 2-3 category split. The chart type follows mechanically from the variable types, which is also exactly how a modern point-and-click chart builder's recommendation engine decides."
+resources:
+  - title: "Data Visualization Society — Chart type guidance"
+    url: "https://www.data-to-viz.com/"
+blocks:
+  - type: heading
+    text: "The question that comes before any chart-building tool"
+  - type: text
+    body: >
+      This platform's Python curriculum already covers matplotlib, seaborn, and plotly syntax in depth.
+      This module is deliberately different — it's about the decision that has to happen before any syntax,
+      and the platform's own point-and-click **Chart Builder**, which lets you pick variables and get a
+      chart without writing a single line of code. Whichever way you end up building a chart, the same
+      first question applies: **what types of variables am I actually comparing?**
+  - type: heading
+    text: "The decision framework"
+  - type: table
+    headers: ["X variable type", "Y variable type", "Recommended chart", "Why"]
+    rows:
+      - ["Datetime", "Numeric", "Line chart", "A date on the X axis against a numeric Y axis shows change over time best as a connected line"]
+      - ["Categorical", "Numeric", "Bar chart", "A category on the X axis against a numeric Y axis compares groups best as bars against a shared baseline"]
+      - ["Numeric", "Numeric", "Scatter plot", "Two numeric variables are best compared as points, to reveal a relationship or its absence"]
+      - ["Categorical", "Categorical", "Heatmap", "Two categorical variables are best cross-tabulated as a grid of counts, shaded by intensity"]
+      - ["Numeric", "(none — one variable)", "Histogram", "A single numeric variable's distribution is best shown as bucketed bars"]
+      - ["Categorical", "(none — one variable)", "Bar chart", "A single categorical variable's frequency is best shown as a bar chart of counts"]
+  - type: text
+    body: >
+      Two variations worth calling out on their own: distribution of a numeric variable **split by
+      category** (comparing order value across customer segments, say) is a box plot's job, not a
+      histogram's — a histogram shows one distribution, a box plot compares several side by side.
+      Whole-to-part share (what fraction of revenue does each category represent) is covered separately
+      below, because it's the one case where the "obvious" chart type is usually the wrong choice.
+  - type: heading
+    text: "How this platform's Chart Builder applies the exact same logic"
+  - type: text
+    body: >
+      Pick an X variable and optionally a Y variable in the Chart Builder, and its recommendation engine
+      looks at each one's type — exactly the numeric/categorical/datetime classification from the Dataset
+      Fundamentals module — and returns a suggested chart type plus a one-sentence explanation. Choose a
+      datetime column and a numeric column, and it recommends a line chart with the reason "a date on the X
+      axis against a numeric Y axis shows change over time best." Choose two categorical columns, and it
+      recommends a heatmap. This isn't a separate skill from the framework above — it's the same table,
+      applied mechanically and instantly by the tool.
+  - type: callout
+    variant: tip
+    title: "The recommendation is a starting point, not a rule"
+    body: >
+      The Chart Builder's suggestion is exactly that — a suggestion, with its reasoning shown so you can
+      evaluate whether it's actually right for your specific question. You can always override it. The
+      value of understanding the framework yourself is knowing when a well-reasoned override makes sense,
+      not just accepting whatever's recommended.
+  - type: heading
+    text: "Why pie charts specifically need a closer look"
+  - type: text
+    body: >
+      A whole-to-part question ("what share of revenue does each channel represent") feels like it should
+      be a pie chart. It usually shouldn't be. Human perception is measurably better at comparing the
+      length of bars, aligned to a shared baseline, than at comparing the angle or area of pie slices —
+      which have no shared baseline at all.
+  - type: comparison
+    title: "The same part-of-whole data, two ways"
+    columns: ["", "Pie / donut chart", "Sorted bar chart"]
+    rows:
+      - ["Ranking categories by size", "Hard once slices are close in size or there are more than a handful", "Immediate — bars sorted top to bottom or left to right"]
+      - ["Scales to more categories", "Falls apart past 6-7 slices — labels overlap, slices become slivers", "Scales gracefully, just gets taller or wider"]
+      - ["When it's defensible", "A single, simple 2-3 category split where 'roughly this fraction' is the whole point", "Almost always — rarely worse than a pie, even for 2 categories"]
+  - type: callout
+    variant: warning
+    title: "This platform's own mistake-detector enforces the 7-slice line"
+    body: >
+      Build a pie or donut chart with more than 7 categories in the Chart Builder, and its deterministic
+      mistake-detector flags it directly: past 6-7 slices, pie charts become hard to read, with a suggestion
+      to use a bar chart instead. This isn't a stylistic opinion baked into the tool — it's the same
+      perceptual limit covered in this lesson, enforced automatically as you build.
+  - type: question
+    prompt: "You want to compare total revenue across the three order channels (web, mobile, marketplace) in this course's ecommerce dataset. Using the decision framework, what chart type fits, and why?"
+    choices:
+      - "A bar chart — channel is categorical and revenue is numeric, which is exactly the categorical-vs-numeric pairing the framework routes to a bar chart, sorted by revenue rather than alphabetically"
+      - "A line chart, since revenue is a business metric and line charts are the default choice for any metric"
+      - "A pie chart, since there are only three categories and a share-of-total framing always calls for one"
+    correct_index: 0
+    explanation: >
+      channel (categorical) against revenue (numeric) is squarely the categorical-vs-numeric case the
+      framework routes to a bar chart — there's no time axis for a line chart to make sense, and with only
+      three categories a sorted bar chart is still the easier comparison than a pie, even though three
+      slices would technically be within the pie chart's defensible range.

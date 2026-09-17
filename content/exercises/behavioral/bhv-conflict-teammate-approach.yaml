@@ -1,0 +1,37 @@
+slug: bhv-conflict-teammate-approach
+skill: behavioral-interviewing
+title: Conflict Over Analytical Approach
+description: Describe a conflict you had with a teammate over how to approach an analysis, and how it
+  was resolved.
+exercise_type: INTERVIEW_RESPONSE
+difficulty: INTERMEDIATE
+points: 10
+tags:
+- behavioral
+- star-method
+- conflict
+prompt: Describe a conflict you had with a teammate over how to approach an analysis, and how it was resolved.
+hints:
+- The STAR framework (Situation, Task, Action, Result) is a useful structure, not a script -- use it to
+  make sure you cover what actually happened, in what context, what you personally did, and what came
+  of it.
+- Interviewers are listening for a specific, real example -- a vague 'sometimes this happens on my team'
+  answer is much weaker than one concrete story with real details.
+rubric:
+- criterion: Describes one specific, real situation rather than a hypothetical or a generic pattern
+  points: 25
+- criterion: Clearly states the task or goal and the person's own specific role in it
+  points: 20
+- criterion: Explains concrete actions the person personally took, not just what the team did
+  points: 30
+- criterion: States a clear, ideally measurable outcome and what was learned from it
+  points: 25
+solution: A fellow analyst and I disagreed about how to measure retention for a subscription product --
+  I wanted to use a rolling 28-day window, they wanted calendar-month cohorts. We went back and forth
+  for a while without making progress, so I proposed we each compute our version on the same underlying
+  data and compare where they diverged. It turned out calendar-month cohorts made January look artificially
+  bad purely because it's a short month, which the rolling window didn't do. We agreed to use the rolling
+  window going forward and documented why, so the next person wouldn't reopen the same debate.
+explanation: The resolution mechanism -- testing both approaches against real data rather than continuing
+  to argue in the abstract -- is the strongest part of this answer, showing a bias toward empirical resolution
+  over who has the stronger opinion.

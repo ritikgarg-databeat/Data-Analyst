@@ -1,0 +1,146 @@
+slug: ecommerce-channel-attribution-confusion
+title: "Which Channel Actually Drives Revenue? (Ask Three People, Get Three Answers)"
+category: MARKETING_ANALYTICS
+difficulty: ADVANCED
+estimated_minutes: 100
+
+company_context: >
+  Bramwell & Co. is an online retailer that sells through its website and mobile app and also
+  lists products on a third-party marketplace. It also runs paid marketing campaigns across
+  display, social, email, and search, and logs site visits as sessions, some of which are tied to
+  a specific campaign.
+stakeholder_name: "Priyanka Shah"
+stakeholder_role: "VP Marketing"
+problem_statement: >
+  "I need your help before I walk into the exec review, because right now I have three different
+  people telling me three different things about which channel drives the most revenue, and I
+  can't tell who's right — or whether they're even answering the same question. Can you dig into
+  this and just tell me, clearly, which channel actually drives the most revenue? I need one
+  answer I can stand behind in that room, and I need to understand why everyone's been getting
+  different numbers in the first place."
+business_context: >
+  Priyanka needs to present a single, defensible view of channel performance to leadership next
+  week. Different people on her team have shown her conflicting "top channel" numbers recently, and
+  she suspects — but hasn't confirmed — that people might not even be measuring the same thing when
+  they say "channel."
+objective: >
+  Determine why leadership keeps hearing conflicting answers about which channel drives the most
+  revenue, and produce one clear, defensible view Priyanka can present at the exec review —
+  including an honest account of what the data can and cannot reliably attribute.
+initial_information: >
+  You have access to the full e-commerce schema: orders (which includes a channel field), order_items,
+  products, categories, customers, payments, sessions (which includes a marketing_campaign_id field,
+  nullable), and marketing_campaigns (which includes its own channel field). Both orders and
+  marketing_campaigns have a column literally named "channel."
+constraints:
+  - "There is no direct foreign key linking sessions/marketing_campaigns to orders — the only shared field between them is customer_id, and there is no session_id or order_id on the other side."
+  - "orders.channel and marketing_campaigns.channel are both literally called 'channel' but are not verified to represent the same concept — this needs to be established, not assumed."
+  - "Priyanka needs one clear, defensible answer to bring to the exec review, along with an explanation of why the conflicting numbers happened."
+available_datasets: ["ecommerce"]
+expected_deliverables:
+  - "A clear identification of the two distinct 'channel' concepts present in the schema and what each one actually represents"
+  - "Revenue and/or performance computed under each channel definition separately"
+  - "An honest assessment of whether and how the two channel concepts can be reliably connected to each other"
+  - "A specific recommendation for which 'channel' answer Priyanka should present, and how to explain the discrepancy to leadership"
+learning_objectives:
+  - "Recognize when two fields sharing a name represent genuinely different business concepts, rather than assuming they're interchangeable"
+  - "Compute revenue/performance correctly under each distinct metric definition"
+  - "Assess whether a reliable join exists between two tables before using it to make a claim, rather than forcing an approximate join and presenting it as precise"
+  - "Communicate a metric-definition ambiguity to a stakeholder clearly, rather than picking one number silently"
+stages: [CLARIFY, FRAME, EXPLORE, ANALYZE, VALIDATE, INSIGHTS, RECOMMEND, COMMUNICATE, SUBMIT]
+required_exercise_slugs: []
+tags: [e-commerce, marketing, business-analytics, root-cause, case-study, real-world, advanced]
+skills: [metric-definition, exploratory-data-analysis, data-interpretation, root-cause-analysis, communication]
+
+clarification_guidance:
+  - "A good clarifying question asks Priyanka directly which 'channel' she means — the platform where the order was placed (web/mobile/marketplace) or the marketing/acquisition source that brought the visitor in (display/social/email/search)."
+  - "A good clarifying question asks whether the three conflicting numbers she's seen came from people using the same table/field, or possibly different ones entirely — before assuming it's a computation error."
+  - "A good clarifying question asks whether there is a reliable way to connect a customer's marketing-attributed session to the specific order it led to, or whether that link is approximate at best."
+  - "A good clarifying question asks what decision the exec review actually needs to make (e.g., where to shift marketing budget vs. which storefront to invest in), since that determines which 'channel' answer is actually relevant."
+rubric:
+  - category: "Problem Framing & Clarification"
+    weight: 20
+    criteria:
+      - criterion: "Identifies that orders.channel and marketing_campaigns.channel are two distinct concepts (order fulfillment platform vs. paid acquisition source) before computing anything"
+        points: 12
+      - criterion: "Recognizes that there is no reliable join key directly linking sessions/campaigns to orders, and treats that as something to verify rather than assume"
+        points: 8
+  - category: "Technical Analysis"
+    weight: 30
+    is_technical: true
+    criteria:
+      - criterion: "Correctly computes completed-order revenue by orders.channel (web/mobile/marketplace)"
+        points: 10
+      - criterion: "Correctly computes session volume and conversion rate by marketing_campaigns.channel (display/social/email/search)"
+        points: 10
+      - criterion: "Attempts and honestly evaluates any approximate join between the two (e.g., via customer_id and order-timing proximity), reporting how much of the data it actually covers"
+        points: 10
+  - category: "Insight Quality"
+    weight: 20
+    criteria:
+      - criterion: "Correctly explains that the 'top channel' answer differs depending on which channel definition and which metric (volume, conversion rate, or revenue) is used"
+        points: 10
+      - criterion: "Quantifies how unreliable or partial any attempted cross-table revenue attribution is (e.g., what share of relevant sessions could actually be matched to an order at all)"
+        points: 10
+  - category: "Recommendation & Business Judgment"
+    weight: 20
+    criteria:
+      - criterion: "Gives a specific recommendation for which channel view is most defensible to present, tied to what decision the exec review is actually trying to make"
+        points: 12
+      - criterion: "Recommends a concrete fix or process change (e.g., renaming fields, tracking an actual session-to-order link) to prevent the same confusion from recurring"
+        points: 8
+  - category: "Communication"
+    weight: 10
+    criteria:
+      - criterion: "Clearly explains, in plain terms Priyanka could repeat to leadership, why three people got three different 'top channel' answers"
+        points: 10
+hints:
+  - "Before running any numbers, look closely at where the word 'channel' actually appears in the schema — it shows up in more than one table, and there's no guarantee those columns mean the same thing."
+  - "Compute revenue by orders.channel first, on its own — that's a clean, direct calculation. Then separately look at what 'channel' means over in marketing_campaigns and sessions, and notice the values themselves look nothing alike (web/mobile/marketplace vs. display/social/email/search)."
+  - "If you're tempted to connect a session's marketing channel to an order's revenue, check what fields the two tables actually share — there's no direct link, only a shared customer and rough timing, so any such join is an approximation. Try it, but measure how much of the data it actually manages to match before trusting the result."
+  - "Once you've computed 'top channel' a few different ways (by orders.channel revenue, by campaign-channel session volume, by campaign-channel conversion rate), lay the answers side by side — that comparison itself is most of what Priyanka needs to hear."
+reference_solution:
+  summary: >
+    The conflicting answers exist because "channel" refers to two unrelated concepts in this
+    schema, and no reliable join connects them. orders.channel describes the platform a completed
+    transaction went through (web/mobile/marketplace): of $4,734,705.70 in total completed revenue,
+    web accounts for 55.1% ($2,610,114.44 across 1,890 orders), mobile 35.3% ($1,673,305 across
+    1,199 orders), and marketplace 9.5% ($451,286 across 352 orders) — web is clearly the top
+    channel under this definition. marketing_campaigns.channel (joined via sessions) instead
+    describes the paid acquisition source that brought a visitor to the site (display, social,
+    email, search) and has nothing to do with where they ultimately transacted: display has the
+    most attributed sessions (1,880), social close behind (1,654), then email (980) and search
+    (316) — but search actually has the best conversion rate (15.51%), ahead of social (14.63%),
+    display (14.41%), and email (13.06%). So "top channel" is already ambiguous even within the
+    marketing-channel definition alone, depending on whether volume or conversion rate is asked
+    for. Critically, there is no order_id or session_id field connecting sessions/campaigns to
+    orders — the only shared key is customer_id, with no exact transaction link. Attempting an
+    approximate join (matching a converted, campaign-attributed session to the same customer's
+    nearest completed order within 7 days) only successfully matches 80 of the 690 eligible
+    converted-and-attributed sessions (about 11.6%) — meaning any campaign-channel "revenue"
+    number built this way rests on a small, likely unrepresentative sample. Within that limited
+    sample, social channel accounts for the largest share of proxy-matched revenue (43.1%),
+    ahead of display (27.5%), email (22.5%), and search (6.9%) — a fourth possible "top channel"
+    answer, and the least trustworthy of them all.
+  key_insights:
+    - "orders.channel (web/mobile/marketplace) and marketing_campaigns.channel (display/social/email/search) are two entirely different dimensions — one describes the storefront/platform a transaction occurred on, the other describes the paid acquisition source of a site visit — and nothing in the schema equates them."
+    - "Under orders.channel, web is the clear revenue leader (55.1% of $4,734,705.70 in completed revenue), unrelated to any marketing spend question."
+    - "Under marketing_campaigns.channel, 'top channel' itself depends on the metric: display leads on session volume (1,880), but search converts best (15.51%) — two different, both-valid 'winners.'"
+    - "There is no reliable session-to-order join (no shared order_id/session_id, only customer_id and rough timing); an approximate 7-day proximity match only covers about 11.6% of eligible converted sessions (80 of 690), so any campaign-channel 'revenue' figure built this way is a rough, small-sample estimate, not a precise attribution."
+  recommendation: >
+    Recommend that Priyanka present two separate, clearly labeled answers rather than a single
+    number: (1) by order/fulfillment channel, web drives the most revenue (55.1% of completed
+    revenue); (2) by paid marketing/acquisition channel, display drives the most session volume
+    while search converts most efficiently — and any dollar-revenue claim tied to marketing channel
+    should be presented as a rough estimate at best, given that only ~11.6% of relevant sessions
+    could even be approximately matched to an order. The immediate fix for the exec review is to
+    explicitly name both definitions and state which decision each one supports (storefront
+    investment vs. marketing budget allocation). The longer-term fix is a process/data
+    recommendation: rename one of the two "channel" fields to avoid the naming collision (e.g.,
+    order_channel vs. acquisition_channel) and, if revenue-by-marketing-channel is genuinely needed
+    going forward, add a real join key (e.g., an order_id or session_id reference) so it can be
+    computed precisely instead of approximated.
+  acceptable_alternatives:
+    - "A recommendation that leads with the marketing-channel view (since that's usually what 'which channel drives revenue' means in a marketing budget conversation) as long as it explicitly flags the order-channel view as a separate, non-comparable number rather than omitting it."
+    - "A recommendation to invest in better attribution instrumentation (e.g., a marketing_campaign_id or session_id captured directly on the order) before making channel-level marketing-budget decisions, given the current ~11.6% match rate is too thin to act on with confidence."
+version: 1

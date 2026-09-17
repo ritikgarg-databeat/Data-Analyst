@@ -1,0 +1,99 @@
+slug: orchestration-with-airflow
+module_slug: orchestration-streaming-and-distributed-processing
+title: "Orchestration: What Airflow Is Actually For"
+description: >-
+  What an orchestrator does that a scheduled script doesn't, Airflow's
+  core vocabulary, and how its DAG relates to — and differs from — the
+  model-level DAG dbt builds automatically from ref() calls.
+difficulty: INTERMEDIATE
+estimated_minutes: 25
+display_order: 1
+prerequisites: [mds-landscape-overview]
+soft_prerequisites: [dbt-dag-and-running-models]
+objectives:
+  - Explain what an orchestrator does that a plain scheduled (cron) job doesn't — dependency-aware sequencing across systems, retries, alerting, and a visual run history.
+  - Describe Airflow's core vocabulary (DAG, task, operator, schedule, sensor) at a recognize-level.
+  - Explain how Airflow's DAG concept relates to, and differs from, the model-level DAG dbt builds automatically from ref()/source() calls.
+skills: [data-pipelines, modern-data-stack]
+tags: [orchestration, airflow, pipelines, modern-data-stack, intermediate]
+key_takeaways:
+  - "A plain scheduled job fires at a time with no awareness of whether anything upstream actually finished; an orchestrator like Airflow sequences dependent steps across potentially different systems, retries failed ones, alerts on failure, and keeps a visual history of every run — that's the specific gap it fills."
+  - "Airflow's core vocabulary — DAG, task, operator, schedule, sensor — describes a workflow of arbitrary jobs (run a script, call an API, run a dbt command, send a Slack alert), not specifically SQL models."
+  - "dbt's own DAG (modules 2-4) only knows about dbt models and their ref()/source() edges — it has no idea an ingestion step even exists. In a real stack, Airflow commonly wraps a single dbt build invocation as one task inside a larger DAG that also includes the ingestion step before it and a BI-refresh or alerting step after it: two DAGs, at two different levels of granularity, working together."
+common_mistakes:
+  - "Confusing Airflow's DAG with dbt's DAG because both are called 'a DAG' — Airflow's nodes are arbitrary jobs across arbitrary systems; dbt's nodes are specifically SQL models connected by ref()/source(). A single Airflow task very often is 'run the entire dbt DAG,' collapsed into one box from Airflow's point of view."
+  - "Assuming an orchestrator is only about scheduling time — the scheduling part is the easy part a cron job already does; the differentiating value is dependency awareness, retries, and failure visibility across a chain of steps that might span several different tools and systems."
+interview_questions:
+  - question: "A pipeline needs to: 1) wait for an overnight extract file to land, 2) run this repo's dbt project, 3) refresh a BI tool's cached extract, 4) alert the team in Slack if any step fails. Why would a team reach for Airflow instead of four separate cron jobs?"
+    answer: >
+      Four independent cron jobs have no awareness of each other — if step 1 (the extract) runs late or
+      fails, steps 2-4 would still fire on their own schedules against incomplete or missing data, with no
+      automatic way to stop that from happening or to notify anyone. An orchestrator expresses this
+      explicitly as a dependency chain: step 2 only starts once step 1 is confirmed complete (often via a
+      sensor waiting on the file), a failure at any step can automatically skip or retry downstream steps
+      and trigger the Slack alert, and the whole chain's run history is visible in one place instead of
+      scattered across four unrelated cron logs.
+blocks:
+  - type: heading
+    text: "What an orchestrator adds that a scheduled script doesn't"
+  - type: text
+    body: >
+      A cron job (or any bare scheduled script) fires at a fixed time with zero awareness of anything else
+      — it doesn't know or care whether a step it logically depends on actually finished, succeeded, or
+      even ran at all. An orchestrator like Airflow exists specifically to coordinate chains of dependent
+      steps, often across entirely different systems: wait for an upstream file or job to actually
+      complete, run the next step only once that's confirmed, retry a step that failed transiently, alert
+      a team the moment something breaks, and keep a browsable, visual history of every run so a failure
+      from three nights ago is still inspectable today.
+  - type: heading
+    text: "Airflow's core vocabulary"
+  - type: table
+    headers: ["Term", "What it means"]
+    rows:
+      - ["DAG", "A workflow defined as a set of tasks and the dependencies between them — same underlying concept name as dbt's DAG, but describing arbitrary jobs, not specifically SQL models"]
+      - ["Task", "One unit of work inside a DAG — e.g. 'run this script,' 'call this API,' 'run dbt build'"]
+      - ["Operator", "A reusable template for a task, e.g. a BashOperator (run a shell command), a PythonOperator (run a Python function), or a dbt-specific operator that wraps a dbt command"]
+      - ["Schedule", "Cron-like timing that determines when a DAG's run is triggered — e.g. daily at 3am"]
+      - ["Sensor", "A task that waits for a condition to become true (e.g. 'a file has landed in a bucket') before letting the DAG proceed"]
+  - type: heading
+    text: "Two DAGs, two levels of granularity"
+  - type: text
+    body: >
+      This domain's earlier modules covered dbt's own DAG in depth: a graph of SQL models connected purely
+      by `ref()`/`source()` calls, with dbt itself figuring out the correct build order. Airflow's DAG is a
+      different, coarser-grained thing — its nodes are arbitrary jobs across potentially unrelated systems,
+      and it has no visibility at all into what happens *inside* any one of them. In a real production
+      stack, it's extremely common for a single Airflow task to simply be "run `dbt build`" — from
+      Airflow's point of view, the entire dbt project (every staging, intermediate, and marts model, in
+      whatever order dbt determines) collapses into one box, sitting between an ingestion task before it
+      and a BI-refresh or alerting task after it.
+  - type: table
+    headers: ["", "dbt's DAG", "Airflow's DAG"]
+    rows:
+      - ["Nodes are...", "Individual SQL models", "Arbitrary jobs (scripts, API calls, whole dbt runs, notifications)"]
+      - ["Edges come from...", "ref()/source() calls inside model SQL", "Dependencies explicitly declared between tasks"]
+      - ["Typical scope", "Inside one transformation project", "Across an entire pipeline, potentially spanning many systems"]
+      - ["A 'run dbt build' step looks like...", "The whole DAG, executed in dependency order", "A single task/box, opaque from the outside"]
+  - type: callout
+    variant: tip
+    title: "Why this platform's dbt Lab doesn't include an orchestrator"
+    body: >
+      The dbt Lab's Run/Test/Build/Compile buttons let you trigger this exact project's transformation
+      step directly, on demand — which is exactly the one task a production Airflow DAG would normally
+      schedule automatically. Standing up a real local Airflow instance would add real operational
+      complexity (a scheduler, a metadata database, worker processes) without teaching anything about the
+      transformation logic itself that clicking those buttons doesn't already teach — which is why
+      orchestration stays conceptual in this platform by design.
+  - type: question
+    prompt: "In a stack where Airflow triggers a nightly 'run dbt build' task, what does Airflow itself actually know about the internal order dbt builds stg_orders, int_order_items_priced, and fct_orders in?"
+    choices:
+      - "Airflow reads dbt's manifest.json and re-derives the same model-level ordering itself"
+      - "Nothing — from Airflow's point of view, 'run dbt build' is a single task, and dbt manages its own internal model ordering completely on its own"
+      - "Airflow requires the DAG author to manually list every model in the correct dependency order"
+      - "Airflow and dbt share one unified DAG definition file that both tools read"
+    correct_index: 1
+    explanation: >
+      Airflow's DAG operates one level up from dbt's — a task that runs `dbt build` is opaque to Airflow;
+      Airflow only knows whether that task, as a whole, succeeded or failed. dbt handles all of the
+      model-level ordering entirely on its own, invisible to Airflow, exactly as it would if you ran `dbt
+      build` by hand from a terminal.

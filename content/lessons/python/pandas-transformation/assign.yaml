@@ -1,0 +1,122 @@
+slug: assign
+module_slug: pandas-transformation
+title: Creating New Columns with assign
+description: "Creating columns with df['new'] = ..., the chainable .assign() method, and computing a new column from other columns already in the DataFrame."
+difficulty: INTERMEDIATE
+estimated_minutes: 10
+display_order: 1
+objectives:
+  - "Create a new column from existing ones using df['new'] = ..."
+  - Use .assign() to create columns as part of a method chain
+  - Compute a derived business metric (margin) from two existing columns
+prerequisites: [inconsistent-categories]
+skills: [pandas]
+datasets: [ecommerce]
+tags: [python, intermediate, real-world]
+key_takeaways:
+  - "df['new_col'] = some_expression is the direct way to add a column — the expression is usually built from other columns in the same DataFrame, computed element-wise across every row at once."
+  - ".assign(new_col=expression) does the same thing but returns a new DataFrame instead of mutating in place, which lets it slot into a chain of method calls (.assign(...).sort_values(...).head())."
+  - "Inside .assign(), use a lambda that takes the DataFrame (lambda d: d['a'] - d['b']) rather than referencing the original DataFrame by name — that's what lets multiple .assign() calls chain together, each one seeing the columns added by the one before it."
+common_mistakes:
+  - "Referencing the DataFrame's original variable name inside a chained .assign() call instead of the lambda's parameter — this breaks the chain, because a later step in the chain needs to see the columns created by an earlier step, and the original variable doesn't have them yet."
+  - "Forgetting that df['new'] = ... mutates df in place, while .assign() returns a new object — mixing the two styles in the same script can lead to confusion about which DataFrame actually has the new column."
+blocks:
+  - type: text
+    body: >
+      Most real analysis involves computing something that isn't in the raw data — a margin, a
+      percentage, a flag. This lesson covers the two ways to add that computed value as a new column:
+      direct assignment, and the more chainable `.assign()`.
+  - type: heading
+    text: "Direct assignment: df['new'] = ..."
+  - type: code
+    language: python
+    code: |
+      import pandas as pd
+
+      products = pd.read_csv("data/sample/ecommerce/products.csv")
+
+      products["margin"] = products["unit_price"] - products["cost"]
+      print(products[["product_name", "unit_price", "cost", "margin"]].head(3))
+    caption: "A new column, computed element-wise from two existing ones — no loop required"
+  - type: output
+    body: |
+               product_name  unit_price    cost  margin
+               0       Pro Desk Lamp      321.10  180.08  141.02
+               1     Compact Blender      332.83  141.07  191.76
+               2  Essential Backpack      341.27  182.53  158.74
+  - type: text
+    body: >
+      `products['unit_price'] - products['cost']` subtracts the two Series value by value, matched up by
+      index — the same vectorized behavior you've seen with every other arithmetic operation on a
+      column. The result is assigned back into `products` as a brand-new column named `margin`.
+  - type: heading
+    text: ".assign() — the chainable version"
+  - type: code
+    language: python
+    code: |
+      products2 = pd.read_csv("data/sample/ecommerce/products.csv")
+
+      result = products2.assign(
+          margin=products2["unit_price"] - products2["cost"],
+          margin_pct=lambda d: d["margin"] / d["unit_price"],
+      )
+      print(result[["product_name", "unit_price", "cost", "margin", "margin_pct"]].head(3))
+    caption: "Two columns added in one call — margin_pct's lambda can already see the margin column defined earlier in the same call"
+  - type: output
+    body: |
+               product_name  unit_price    cost  margin  margin_pct
+               0       Pro Desk Lamp      321.10  180.08  141.02    0.439178
+               1     Compact Blender      332.83  141.07  191.76    0.576150
+               2  Essential Backpack      341.27  182.53  158.74    0.465145
+  - type: callout
+    variant: important
+    title: ".assign() returns a NEW DataFrame — it doesn't modify products2"
+    body: >
+      Unlike products['margin'] = ..., .assign() never mutates the original DataFrame. It returns a new
+      one with the additional column(s), which you have to capture (here, into result). This is exactly
+      what makes it safe to use in the middle of a chain of method calls without side effects piling up.
+  - type: heading
+    text: Chaining multiple .assign() calls together
+  - type: code
+    language: python
+    code: |
+      products3 = pd.read_csv("data/sample/ecommerce/products.csv")
+
+      chained = (
+          products3
+          .assign(margin=lambda d: d["unit_price"] - d["cost"])
+          .assign(margin_pct=lambda d: (d["margin"] / d["unit_price"]).round(3))
+      )
+      print(chained[["product_name", "margin", "margin_pct"]].head(3))
+    caption: "Each lambda receives d — the DataFrame as it exists at THAT point in the chain, including columns added by earlier steps"
+  - type: output
+    body: |
+               product_name  margin  margin_pct
+               0       Pro Desk Lamp  141.02       0.439
+               1     Compact Blender  191.76       0.576
+               2  Essential Backpack  158.74       0.465
+  - type: callout
+    variant: common_mistake
+    title: "Use the lambda's parameter, not the original variable name, inside a chain"
+    body: >
+      The second .assign() call above references d['margin'] — the margin column that the FIRST .assign()
+      call just created — not products3['margin'], which doesn't exist. If you'd written lambda d:
+      products3['unit_price'] - products3['cost'] instead, it would still work for that one step, but it
+      breaks the whole point of chaining: each step needs to see what the steps before it produced, and
+      only the lambda's own parameter reflects that.
+  - type: table
+    headers: ["Approach", "Mutates original?", "Chainable?"]
+    rows:
+      - ["df['new'] = expr", "Yes, in place", "No — it's a statement, not an expression you can chain onto"]
+      - [".assign(new=expr)", "No — returns a new DataFrame", "Yes — designed to be strung together with other methods"]
+  - type: question
+    prompt: "Inside a chain like df.assign(a=...).assign(b=lambda d: d['a'] * 2), what does d refer to in the second .assign()?"
+    choices:
+      - "The DataFrame as it exists after the first .assign() ran, including the new column 'a'"
+      - "The original df, before either .assign() call"
+      - "A copy of only the columns created so far, excluding the original columns"
+    correct_index: 0
+    explanation: >
+      Each step in a chain hands its result to the next step. The lambda in the second .assign() receives
+      the full DataFrame as it exists at that point — original columns plus everything added earlier in
+      the chain, including 'a'.

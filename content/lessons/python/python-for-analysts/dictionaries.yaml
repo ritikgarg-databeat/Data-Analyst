@@ -1,0 +1,111 @@
+slug: dictionaries
+module_slug: python-for-analysts
+title: Dictionaries
+description: Key-value pairs with dict, common dictionary methods, and when to reach for a dict instead of a list.
+difficulty: BEGINNER
+estimated_minutes: 13
+display_order: 7
+objectives:
+  - Create dictionaries and access, add, and update values by key
+  - Use common dictionary methods (.get, .keys, .values, .items) to work with key-value data
+  - Decide when a dictionary is the better fit for data than a list
+prerequisites: [lists]
+skills: [python-fundamentals]
+tags: [python, beginner, foundations]
+key_takeaways:
+  - "A dictionary maps keys to values — think of it as a single row of a table, where column names are keys, or a lookup table keyed by ID."
+  - ".get(key, default) safely handles a missing key without crashing; direct bracket access (dict[key]) raises a KeyError if the key isn't present."
+  - "Reach for a dict when data is naturally labeled (a row with named fields, a lookup by ID) — reach for a list when data is naturally ordered and unlabeled (a column of values)."
+common_mistakes:
+  - "Using square-bracket access (customer['email']) on a key that might not exist, causing a KeyError that crashes the script — .get('email') returns None instead, and lets you handle the missing case explicitly."
+  - "Assuming a dictionary is ordered the way you typed it for logic purposes — Python dicts do preserve insertion order since 3.7, but relying on position instead of keys is usually a sign a list would fit better."
+  - "Storing related data in parallel lists (ids = [...], names = [...]) instead of a list of dictionaries — the parallel lists can silently drift out of sync if one gets updated without the other."
+blocks:
+  - type: text
+    body: >
+      A **dictionary** maps keys to values — the everyday analogy is a single row of a table, where
+      each column name is a key and its value for that row is the value. Where a list is about
+      *position* (the first thing, the third thing), a dictionary is about *labels* (the customer's
+      email, the order's status).
+  - type: heading
+    text: Creating and accessing a dictionary
+  - type: code
+    language: python
+    code: |
+      customer = {
+          "id": 4821,
+          "name": "Acme Corp",
+          "segment": "enterprise",
+          "is_active": True,
+      }
+
+      customer["name"]       # "Acme Corp"
+      customer["segment"]    # "enterprise"
+
+      # Adding or updating a key is the same syntax
+      customer["last_order_date"] = "2026-08-15"
+      customer["segment"] = "mid_market"   # overwrites the existing value
+    caption: Curly braces, key:value pairs, bracket access
+  - type: callout
+    variant: warning
+    title: Missing keys raise KeyError
+    body: >
+      `customer["phone"]` raises a `KeyError` if "phone" isn't a key in the dictionary — it does not
+      return `None` or an empty string. This matters constantly with real-world data, where not every
+      record has every field populated.
+  - type: heading
+    text: ".get() — the safe way to read a possibly-missing key"
+  - type: code
+    language: python
+    code: |
+      customer.get("phone")              # None — no error, key doesn't exist
+      customer.get("phone", "unknown")   # "unknown" — a custom default instead of None
+      customer.get("name", "unknown")    # "Acme Corp" — returns the real value when the key exists
+    caption: ".get(key, default) never raises — it returns default (or None) instead"
+  - type: heading
+    text: Common dictionary methods
+  - type: table
+    headers: ["Method", "What it returns", "Typical use"]
+    rows:
+      - [".get(key, default)", "The value, or default if the key is missing", "Safely reading optional fields"]
+      - [".keys()", "All the keys in the dictionary", "Checking what fields a record has"]
+      - [".values()", "All the values in the dictionary", "Scanning values without caring about keys"]
+      - [".items()", "key, value pairs together — used to loop over both", "for key, value in customer.items():"]
+      - ["key in dict", "True/False — checks if a key exists", '"phone" in customer']
+  - type: example
+    title: Looping over a dictionary
+    body: >
+      `.items()` is the standard way to loop over both keys and values at once — useful for printing a
+      record, or transforming every value in a dictionary.
+    code: |
+      for field, value in customer.items():
+          print(f"{field}: {value}")
+
+      # id: 4821
+      # name: Acme Corp
+      # segment: mid_market
+      # is_active: True
+      # last_order_date: 2026-08-15
+    language: python
+  - type: heading
+    text: dict vs. list — when to use which
+  - type: comparison
+    title: When a dict beats a list, and vice versa
+    columns: ["Situation", "Better fit", "Why"]
+    rows:
+      - ["A single customer's fields (name, email, segment)", "dict", "Fields are labeled, not ordered — you want them by name"]
+      - ["A column of order totals to sum or sort", "list", "Values are naturally ordered and unlabeled"]
+      - ["Looking up a customer's plan by customer_id", "dict (keyed by customer_id)", "You want fast lookup by a unique key, not a scan"]
+      - ["A table of many rows, each with named fields", "list of dicts", "Ordered collection (list) of labeled records (dict) — the standard shape for row-like data in Python"]
+  - type: question
+    prompt: "You have order = {'id': 501, 'total': 89.99}. What does order.get('discount_code', 'NONE') return?"
+    choices:
+      - "A KeyError, because 'discount_code' is not in order"
+      - "None, because the key is missing"
+      - "'NONE', because .get() falls back to the provided default when the key is missing"
+    correct_index: 2
+    explanation: >
+      .get(key, default) never raises an error for a missing key — it returns the second argument as a
+      fallback when the key isn't found. Here 'discount_code' isn't in order, so .get() returns the
+      supplied default, the string 'NONE', instead of None (which is only what .get() returns when no
+      default is given at all).

@@ -1,0 +1,128 @@
+slug: reading-files
+module_slug: pandas-dataframes-fundamentals
+title: Reading Files into pandas
+description: Loading real data into a DataFrame with pd.read_csv() and its sibling readers, plus the read_csv parameters analysts reach for constantly.
+difficulty: BEGINNER
+estimated_minutes: 12
+display_order: 3
+objectives:
+  - Load a CSV file into a DataFrame with pd.read_csv()
+  - Use parse_dates, dtype, usecols, and nrows to control how a file is read
+  - Know when to reach for read_parquet(), read_excel(), or read_json() instead
+prerequisites: [dataframes]
+skills: [pandas]
+datasets: [ecommerce]
+tags: [python, beginner, foundations]
+key_takeaways:
+  - "pd.read_csv('path/to/file.csv') is the single most-used line of code in pandas — it turns a file on disk into a DataFrame in one call."
+  - "read_csv doesn't guess dates or dtypes unless you tell it to — parse_dates, dtype, usecols, and nrows are how you shape the load itself instead of fixing the DataFrame afterward."
+  - "read_parquet, read_excel, and read_json follow the exact same pattern as read_csv (a path in, a DataFrame out) — once you know one reader, you basically know all of them."
+common_mistakes:
+  - "Reading a file, then immediately converting a date column with pd.to_datetime() as a separate step — when parse_dates=[...] on the read_csv call itself does it in one pass and is one less thing to remember."
+  - "Loading an entire multi-gigabyte file with default settings when only three columns and the first 1,000 rows are actually needed — usecols and nrows exist specifically to avoid this."
+  - "Forgetting that read_csv() runs relative to wherever the Python process is running, not relative to the script file — a relative path that works from the repo root can fail from a different working directory."
+blocks:
+  - type: text
+    body: >
+      Every dataset you've worked with in this course so far lived inside a script or an exercise. Real
+      analysis starts from a file — most commonly a CSV. Pandas' file readers all follow the same shape:
+      a path goes in, a DataFrame comes out.
+  - type: heading
+    text: pd.read_csv()
+  - type: code
+    language: python
+    code: |
+      import pandas as pd
+
+      orders = pd.read_csv("data/sample/ecommerce/orders.csv")
+      print(orders.dtypes)
+    caption: Reading orders.csv with every default setting
+  - type: output
+    body: |
+      order_id       int64
+      customer_id    int64
+      order_date       str
+      status           str
+      channel          str
+      dtype: object
+  - type: text
+    body: >
+      Notice `order_date` came in as text (`str`), not a date — `read_csv` has no way to know a column of
+      strings is meant to be a date unless you tell it. That's exactly what `parse_dates` is for.
+  - type: heading
+    text: The parameters analysts actually use
+  - type: code
+    language: python
+    code: |
+      orders = pd.read_csv(
+          "data/sample/ecommerce/orders.csv",
+          usecols=["order_id", "order_date", "status"],
+          parse_dates=["order_date"],
+          dtype={"status": "category"},
+          nrows=5,
+      )
+      print(orders)
+      print(orders.dtypes)
+    caption: Combining four common read_csv parameters
+  - type: output
+    body: |
+         order_id order_date     status
+         0         1 2025-10-18  completed
+         1         2 2025-12-16  completed
+         2         3 2025-09-29  completed
+         3         4 2024-12-23  cancelled
+         4         5 2025-04-30  completed
+
+         order_id               int64
+         order_date    datetime64[us]
+         status              category
+         dtype: object
+  - type: table
+    headers: ["Parameter", "What it does", "Why it's worth using"]
+    rows:
+      - ["parse_dates=['col', ...]", "Parses the listed columns straight into datetime values", "Skips a separate pd.to_datetime() step after loading"]
+      - ["dtype={'col': 'type'}", "Forces a column to a specific dtype on load", "Saves memory (e.g. 'category' for a low-cardinality text column) and catches type surprises early"]
+      - ["usecols=['col', ...]", "Only reads the listed columns", "Faster and lighter on memory for wide files where you only need a few columns"]
+      - ["nrows=N", "Only reads the first N rows", "Great for a quick peek at a huge file before committing to loading all of it"]
+  - type: callout
+    variant: tip
+    title: parse_dates now, not to_datetime later
+    body: >
+      It's tempting to load a file plainly and fix the date column afterward with pd.to_datetime(). Doing
+      it via parse_dates instead means the DataFrame is correctly typed the moment it exists — one fewer
+      line of code, and one fewer place to forget the fix when you copy the loading code into a new
+      script.
+  - type: heading
+    text: The other readers follow the same pattern
+  - type: text
+    body: >
+      CSV isn't the only format you'll meet. Parquet is common for larger analytical datasets (it's
+      compressed and stores each column's type), Excel workbooks show up constantly in business contexts,
+      and JSON is the standard for API responses and nested/semi-structured data. All three readers take a
+      path and hand back a DataFrame, just like read_csv.
+  - type: code
+    language: python
+    code: |
+      products_pq = pd.read_parquet("products.parquet")
+      report_xl = pd.read_excel("quarterly_report.xlsx", sheet_name="Orders")
+      events_js = pd.read_json("events.json")
+    caption: Same shape, different file formats — no output shown, these are reference calls
+  - type: comparison
+    title: Choosing a reader
+    columns: ["Format", "Typical source", "Notes"]
+    rows:
+      - ["CSV", "Exports, data dumps, most sample datasets", "Plain text, no type information — you supply it via dtype/parse_dates"]
+      - ["Parquet", "Data warehouses, larger analytical files", "Compressed, columnar, and stores dtypes — usually loads faster and smaller than the equivalent CSV"]
+      - ["Excel (.xlsx)", "Business teams, manually maintained reports", "Slower to read; sheet_name picks a specific tab"]
+      - ["JSON", "APIs, logs, nested/semi-structured data", "May need pd.json_normalize() first if the structure is deeply nested"]
+  - type: question
+    prompt: "You only need the order_id and status columns from a 2GB CSV, and just want to peek at the first 100 rows. Which read_csv call is best?"
+    choices:
+      - "pd.read_csv(path, usecols=['order_id', 'status'], nrows=100)"
+      - "pd.read_csv(path).head(100)[['order_id', 'status']]"
+      - "pd.read_csv(path, parse_dates=['order_id', 'status'])"
+    correct_index: 0
+    explanation: >
+      usecols and nrows both limit what read_csv actually loads from disk, so the file is read once,
+      efficiently. The second option loads the entire 2GB file into memory first and only trims it down
+      afterward — functionally similar output, but far more wasteful.

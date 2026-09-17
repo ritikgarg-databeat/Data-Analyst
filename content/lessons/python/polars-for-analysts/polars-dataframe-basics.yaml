@@ -1,0 +1,153 @@
+slug: polars-dataframe-basics
+module_slug: polars-for-analysts
+title: "Polars: A Different Kind of DataFrame"
+description: What Polars is, why it exists alongside pandas, and the first visible differences when you create a Polars DataFrame.
+difficulty: INTERMEDIATE
+estimated_minutes: 10
+display_order: 1
+objectives:
+  - Explain what Polars is and why it was built (performance, multi-threading, stricter typing)
+  - Create a pl.DataFrame and read its shape, schema, and contents
+  - Identify the most immediate API difference from pandas — Polars has no row index
+prerequisites: [memory-optimization]
+skills: [pandas]
+datasets: [ecommerce]
+tags: [python, intermediate, real-world]
+key_takeaways:
+  - "Polars is a DataFrame library written in Rust, with a Python API. It is multi-threaded by default and uses Apache Arrow's columnar memory model, which is a large part of why it's faster than pandas on the same hardware."
+  - "A pl.DataFrame has no row index. There is no .loc, no .iloc-by-label, no index alignment on arithmetic — every row is just row N of the underlying arrays, referenced by position only."
+  - "Polars enforces column types more strictly than pandas. A column is one Arrow-backed dtype, and operations that would silently upcast or produce object dtype in pandas are more likely to raise an explicit error in Polars — which is a feature, not a bug, once you're used to it."
+  - "You are not replacing pandas by learning Polars — you're adding a second tool for the specific case where pandas' single-threaded, eager, index-carrying design becomes a bottleneck."
+common_mistakes:
+  - "Trying to use df.loc[...] or df['col'] = df['other_col'] + df2['other_col'] and expecting pandas-style index alignment — Polars has no index to align on, so this kind of code either errors or behaves differently than you'd expect."
+  - "Assuming Polars is just 'pandas but faster' and expecting every pandas method to have a same-named Polars equivalent — some do (.head(), .describe()), many don't (.group_by() instead of .groupby(), no .apply() as a first resort), and a few pandas idioms (chained indexing, in-place mutation) don't really exist in Polars at all."
+  - "Reaching for Polars on a dataset that comfortably fits in memory and runs fine in pandas already, just because it's newer — the module this lesson opens with will give you a framework for that decision, but the short version is: don't switch until pandas is actually the bottleneck."
+practical_applications:
+  - "Swapping the DataFrame engine under an existing pandas pipeline when a nightly job that reads gigabytes of order history starts taking too long to finish before the first analyst logs in."
+  - "Reaching for Polars by default on a brand-new analytics pipeline where the data volume is known upfront to be large, rather than starting in pandas and migrating later."
+interview_questions:
+  - question: "What is Polars, and why would a team consider it alongside pandas?"
+    answer: "Polars is a DataFrame library with a Rust core and a Python API, built on Apache Arrow's columnar memory format. It's multi-threaded by default (pandas is single-threaded), has a lazy execution mode that lets it optimize an entire query plan before running it, and enforces stricter column typing. Teams reach for it when pandas' single-threaded, eager execution becomes a real bottleneck on larger data — not as a wholesale replacement for pandas' huge ecosystem."
+  - question: "Does a Polars DataFrame have a row index like pandas?"
+    answer: "No. Polars has no index concept at all — no .loc, no index alignment on arithmetic between two DataFrames. Every row is addressed only by its ordinal position. This removes an entire category of pandas bugs (misaligned indices after a filter or merge) but also means you lose the label-based lookups that .loc gives you."
+resources:
+  - title: "Polars User Guide — Getting Started"
+    url: "https://docs.pola.rs/user-guide/getting-started/"
+blocks:
+  - type: text
+    body: >
+      Every module up to this point has used **pandas** — the default DataFrame library in Python,
+      and still the one most job postings and most existing codebases expect. This module introduces
+      **Polars**, a newer DataFrame library that solves a real problem pandas has: pandas was designed
+      in 2008, runs on a single CPU core for most operations, and executes each line of code the moment
+      it's called. Polars was designed from scratch around a different set of answers to those same
+      three constraints.
+  - type: heading
+    text: What Polars actually is
+  - type: text
+    body: >
+      Polars' core engine is written in **Rust**, not Python, and exposed to you through a Python
+      library that feels similar to pandas on the surface but is a genuinely different implementation
+      underneath. Three design decisions matter most for you as an analyst:
+  - type: table
+    headers: ["Design decision", "What it means in practice"]
+    rows:
+      - ["Multi-threaded by default", "A single .group_by().agg() call automatically splits work across every CPU core available — pandas' equivalent .groupby().agg() runs on one core unless you bring in a separate parallelization library."]
+      - ["Built on Apache Arrow", "Data is stored column-by-column in a standardized, cross-language memory format. This is also why Polars can move data to/from Parquet and other tools with almost no conversion cost."]
+      - ["Lazy execution available", "You can build up a full query plan (filter, select, aggregate) and let Polars' query optimizer rewrite it — pushing filters earlier, reading only needed columns — before running anything. The next lesson covers this in depth."]
+      - ["Stricter typing", "A column has exactly one Arrow dtype. Mixing types in a column, or comparing incompatible types, is far more likely to raise an explicit error than to silently produce a murky object dtype the way pandas sometimes does."]
+  - type: callout
+    variant: important
+    title: This module will stay small on purpose
+    body: >
+      Polars has a large API of its own, and you could spend as much time on it as you spent on all of
+      pandas. That is not the goal here. The goal is *modern analytical awareness* — enough that you can
+      read Polars code, write a straightforward pipeline in it, and recognize when it's the better tool
+      for a job. Every lesson in this module will keep relating back to the pandas equivalent you already
+      know, rather than teaching Polars as if pandas didn't exist.
+  - type: heading
+    text: Creating a Polars DataFrame
+  - type: code
+    language: python
+    code: |
+      import polars as pl
+
+      orders = pl.read_csv("data/sample/ecommerce/orders.csv")
+
+      print(orders.shape)
+      print(orders.head(3))
+    caption: Reading the same orders.csv you've used throughout the Pandas modules, this time with Polars
+  - type: output
+    body: |
+      (4205, 5)
+      shape: (3, 5)
+      ┌──────────┬─────────────┬────────────┬───────────┬─────────┐
+      │ order_id ┆ customer_id ┆ order_date ┆ status    ┆ channel │
+      │ ---      ┆ ---         ┆ ---        ┆ ---       ┆ ---     │
+      │ i64      ┆ i64         ┆ str        ┆ str       ┆ str     │
+      ╞══════════╪═════════════╪════════════╪═══════════╪═════════╡
+      │ 1        ┆ 1           ┆ 2025-10-18 ┆ completed ┆ mobile  │
+      │ 2        ┆ 1           ┆ 2025-12-16 ┆ completed ┆ web     │
+      │ 3        ┆ 2           ┆ 2025-09-29 ┆ completed ┆ web     │
+      └──────────┴─────────────┴────────────┴───────────┴─────────┘
+    caption: Real output — 4,205 orders, 5 columns
+  - type: text
+    body: >
+      Notice the printed table itself: every row is labeled only by its position in the box-drawing
+      output, and there's no leftmost "index" column at all. That's not a display quirk — it reflects a
+      real structural difference from pandas, covered next.
+  - type: heading
+    text: "The biggest immediate difference: no index"
+  - type: text
+    body: >
+      A pandas `DataFrame` always carries a row index — by default `0, 1, 2, ...`, but it can be set to
+      a column, a date range, anything. That index is used for `.loc[]` lookups, and pandas uses it to
+      **align** rows when you combine two DataFrames or Series. Polars has none of this. Every
+      `pl.DataFrame` is just a set of equal-length columns; rows are referenced purely by their ordinal
+      position.
+  - type: comparison
+    title: "pandas index vs. Polars — the same idea, gone in Polars"
+    columns: ["Concept", "pandas", "Polars"]
+    rows:
+      - ["Row index", "orders.index (RangeIndex by default, or any column you set with .set_index())", "Does not exist — no equivalent at all"]
+      - ["Label-based row access", "orders.loc[3]", "Not applicable — use .filter() or row position with orders.row(3)"]
+      - ["Alignment on arithmetic", "df['a'] + df2['a'] aligns by index, can silently introduce NaN on mismatch", "No alignment concept — columns combine purely by position; row counts must match"]
+      - ["Setting an index", "orders.set_index('order_id')", "Not applicable — order_id just stays a normal column"]
+  - type: callout
+    variant: tip
+    title: Why this is a deliberate design choice, not a missing feature
+    body: >
+      Index alignment is one of the most common sources of subtle pandas bugs — filter two DataFrames
+      differently, then try to combine them, and you can get silently misaligned rows or unexpected
+      `NaN`s. Polars sidesteps the entire bug category by not having an index to misalign. The tradeoff
+      is that you lose `.loc[]`-style label lookups — in Polars, you filter by a column's *value*, not
+      by an index label, which turns out to be what you're doing most of the time in real analysis
+      anyway.
+  - type: example
+    title: "The same task, pandas vs. Polars"
+    body: >
+      Both snippets do the same thing — read the orders table and look at the first three completed
+      orders. Notice the pandas version implicitly carries a 0/1/2 index column in its output; the
+      Polars version has no such column, ever.
+    language: python
+    code: |
+      # pandas
+      import pandas as pd
+      orders_pd = pd.read_csv("data/sample/ecommerce/orders.csv")
+      orders_pd[orders_pd["status"] == "completed"].head(3)
+
+      # Polars
+      import polars as pl
+      orders_pl = pl.read_csv("data/sample/ecommerce/orders.csv")
+      orders_pl.filter(pl.col("status") == "completed").head(3)
+  - type: question
+    prompt: "Which of these pandas features has no direct equivalent in Polars, by design?"
+    choices:
+      - ".loc[]-style label-based row access via a row index"
+      - "Reading a CSV file into a DataFrame"
+      - "Filtering rows based on a column's value"
+    correct_index: 0
+    explanation: >
+      Polars DataFrames have no row index at all, so there's nothing for .loc[] to look up by label.
+      Reading CSVs and filtering by column value both exist in Polars — they're just spelled
+      pl.read_csv() and .filter(pl.col(...)) instead.

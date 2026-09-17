@@ -1,0 +1,46 @@
+slug: ex-customers-segment-check
+skill: dbt
+dataset: ecommerce
+title: "dbt Exercise: Standardize, Filter, Then Test"
+description: Standardize a customer attribute, filter to one segment, and lock both down with a real accepted_values test.
+exercise_type: DBT
+difficulty: BEGINNER
+points: 10
+tags: [dbt, tests, data-quality, real-execution]
+business_context: >
+  An account-management dashboard is scoped to business customers only — consumer accounts shouldn't
+  appear at all. The check needs to actually catch a leftover consumer row, not just assume the filter
+  was written correctly.
+prompt: >
+  Write a dbt model named `ex_customer_segment_check` that selects `customer_id` and a standardized
+  `customer_segment` (trimmed and lowercased) from the raw `customers` source, keeping only business
+  customers. The attached test only allows `business` as a value — a leftover `consumer` row will fail
+  it for real.
+hints:
+  - "trim(lower(customer_segment)) — the same transformation stg_customers.sql already applies — then filter on the standardized value."
+  - "Select from {{ source('raw', 'customers') }}."
+dbt_model_name: ex_customer_segment_check
+dbt_starter_sql: |
+  select
+      customer_id,
+      customer_segment -- TODO: standardize this, then keep only business customers
+  from {{ source('raw', 'customers') }}
+dbt_schema_yml: |
+  columns:
+    - name: customer_id
+      tests: [unique, not_null]
+    - name: customer_segment
+      tests:
+        - accepted_values:
+            arguments:
+              values: ["business"]
+solution: |
+  select
+      customer_id,
+      trim(lower(customer_segment)) as customer_segment
+  from {{ source('raw', 'customers') }}
+  where trim(lower(customer_segment)) = 'business'
+explanation: >
+  The real customers data has both segments (1,065 `consumer` rows and 435 `business` rows) — a
+  version that forgets the filter leaves plenty of real `consumer` rows in the output, and since only
+  `business` is an accepted value, the test genuinely fails rather than passing by coincidence.

@@ -1,0 +1,127 @@
+slug: saas-onboarding-funnel-dropoff
+title: "Case: Where Is the Onboarding Funnel Actually Leaking?"
+category: PRODUCT_ANALYTICS
+difficulty: BEGINNER
+estimated_minutes: 60
+
+company_context: >
+  A B2B SaaS company logs a per-user event stream covering the new-user journey: `signup` (account
+  created), `engaged` (a usage/return-visit signal that can fire more than once per user),
+  `activated` (a one-time "reached core value" milestone), and `upgraded` (converted to a paid
+  plan). Product management reviews the upgrade rate monthly as a top-line growth metric.
+stakeholder_name: Marcus Webb
+stakeholder_role: Product Manager
+problem_statement: >
+  "Our upgrade rate seems low. Out of everyone who signs up, only a small slice ever ends up on a
+  paid plan, and leadership keeps asking why. I don't have a strong theory yet — it could be
+  we're losing people right at the start before they ever really try the product, or it could be
+  something further along. Before we go spend a quarter building a new onboarding checklist or
+  redesigning the first-run experience, I want an actual funnel: where, specifically, are we
+  losing the most people, in relative terms?"
+business_context: >
+  The team has never formally built out the signup-to-upgrade funnel with real numbers — the
+  "upgrade rate seems low" concern so far is based on a single top-line percentage, not a
+  stage-by-stage breakdown.
+objective: >
+  Build the real signup-to-upgrade funnel from the event data, identify where the biggest relative
+  drop-off actually occurs, and recommend where the team should focus improvement efforts first.
+initial_information: >
+  You have `events.csv` (user_id, signup_date, event_name, event_timestamp) with four event types:
+  signup, engaged, activated, upgraded. You also have `users.csv` with signup_date and
+  acquisition_channel/country if you want to segment further.
+constraints:
+  - "Build the funnel from the raw event log yourself — no pre-built funnel report exists yet."
+  - "Marcus wants a specific stage identified as the biggest opportunity, not a list of 'everything could be improved a little.'"
+available_datasets: [saas-product]
+expected_deliverables:
+  - "A funnel showing, out of all signups, what share of unique users ever reached each of the engaged, activated, and upgraded milestones"
+  - "An explicit identification of which stage-to-stage transition has the largest relative drop-off"
+  - "A note on how the events were counted (unique users per milestone, not raw event rows) and why that distinction matters here"
+  - "A specific recommendation for where the team should focus first"
+learning_objectives:
+  - "Build a funnel from raw event-level data using unique users per stage rather than event-row counts"
+  - "Correctly identify the largest relative drop-off point in a multi-stage funnel"
+  - "Recognize that a repeatable event (one that can fire multiple times per user) needs different handling than a one-time milestone event when building a funnel"
+  - "Turn a funnel breakdown into a specific, prioritized recommendation"
+stages: [CLARIFY, FRAME, EXPLORE, ANALYZE, INSIGHTS, RECOMMEND, SUBMIT]
+required_exercise_slugs: []
+tags: [product-analytics, saas, funnel, beginner, foundations]
+skills: [sql-fundamentals, pandas, product-metrics, exploratory-data-analysis, data-interpretation]
+
+clarification_guidance:
+  - "What counts as a 'stage' here — is 'engaged' necessarily a required step before 'activated', or could it be something users do repeatedly at any point?"
+  - "Should the funnel be measured in unique users per milestone, or would counting raw event rows work just as well?"
+  - "Is Marcus asking about the whole historical population of signups, or a specific recent time window?"
+  - "Is there a specific stage he already suspects (e.g. early drop-off) that's driving the concern, or is this fully open?"
+
+rubric:
+  - category: "Problem Framing & Clarification"
+    weight: 10
+    criteria:
+      - criterion: "Asks at least one clarifying question about how funnel stages should be defined/counted before building the funnel"
+        points: 10
+  - category: "Technical Analysis"
+    weight: 35
+    is_technical: true
+    criteria:
+      - criterion: "Correctly computes unique-user counts (not raw event-row counts) for each of signup, engaged, activated, and upgraded"
+        points: 20
+      - criterion: "Correctly computes the signup -> activated -> upgraded conversion rates (69.1% and roughly 10% respectively) and identifies activated -> upgraded as the largest relative drop"
+        points: 15
+  - category: "Insight Quality"
+    weight: 25
+    criteria:
+      - criterion: "Explicitly states that roughly 90% of users who successfully activate never upgrade, and frames this as the single largest opportunity in the funnel"
+        points: 15
+      - criterion: "Notices and explains that 'engaged' behaves as a repeatable, non-gating event rather than a strict one-time step users must pass through before activation"
+        points: 10
+  - category: "Recommendation & Communication"
+    weight: 20
+    criteria:
+      - criterion: "Gives Marcus a direct answer naming one specific stage as the priority, not a diffuse 'improve everything' response"
+        points: 10
+      - criterion: "Recommends a concrete type of intervention appropriate to the activated -> upgrade transition (e.g. upgrade prompts, paywall timing, value-realization nudges) rather than a generic top-of-funnel fix"
+        points: 10
+  - category: "Rigor & Caveats"
+    weight: 10
+    criteria:
+      - criterion: "Notes at least one real limitation of the analysis (e.g. this shows correlation/where drop-off happens but not why, or that 'engaged' needs a clearer product definition before being used as a lifecycle stage)"
+        points: 10
+
+hints:
+  - "Count DISTINCT users who ever triggered each event type, not the number of event rows — some event types in this log can fire more than once for the same user."
+  - "Check whether every 'activated' user also has an 'engaged' event, and whether it happens before or after activation. The sequence might not be what you assumed."
+  - "Once you have unique-user counts, compute two things: each stage's share of all signups, and each stage's conversion rate relative to the stage right before it. They tell different stories."
+  - "Compare the size of the drop from signup to activation against the drop from activation to upgrade — one of these is dramatically larger than the other."
+
+reference_solution:
+  summary: >
+    Built on unique users (not event rows), the real milestone reach-rates out of 3,000 signups are:
+    activated 2,074 (69.1%), ever-engaged 1,125 (37.5%), and upgraded 212 (7.1%). Critically,
+    "engaged" is not a prerequisite gate before "activated" for most users — checking event
+    timestamps shows activation happens before a user's first engaged event 86% of the time, and
+    949 of the 2,074 activated users never have an engaged event at all. "Engaged" behaves as a
+    repeatable, post-activation usage signal (it fires anywhere from 1 to 15 times for users who
+    have it) rather than a one-time funnel step. The meaningful sequential funnel is therefore
+    signup -> activated -> upgraded: 3,000 -> 2,074 (69.1% retained) -> 212 (only 10.2% of activated
+    users, i.e. 212/2,074, go on to upgrade). The drop from activated to upgraded — roughly 90% of
+    activated users never upgrade — is far larger in relative terms than the drop from signup to
+    activation (30.9% lost).
+  key_insights:
+    - "69.1% of signups (2,074/3,000) reach activation; only 7.1% (212/3,000) ever upgrade."
+    - "The activated -> upgraded transition is the single biggest relative drop-off in the funnel: only 10.2% of activated users (212/2,074) ever convert to paid, versus 69.1% retention from signup to activation."
+    - "'Engaged' is a repeatable event that mostly occurs after activation (86% of the time), not a required funnel gate before it — treating it as an early funnel stage misrepresents the data. Notably, 100% of users who ever upgraded also have an engaged event, and ever-engaged activated users upgrade at roughly double the rate of activated users overall (18.8% of the 1,125 ever-engaged users upgraded, vs 10.2% of all 2,074 activated users) — suggesting post-activation engagement is itself linked to upgrading."
+  recommendation: >
+    Tell Marcus the biggest lever is not top-of-funnel signup or early engagement — it's the
+    activated-to-upgrade transition, where about 90% of users who successfully reach core product
+    value never convert to paid. Recommend the team prioritize upgrade-path interventions for
+    already-activated users: in-app upgrade prompts triggered by usage milestones, clearer paywall
+    timing, or highlighting paid-only value once a user is activated — rather than investing first
+    in earlier-funnel fixes like onboarding checklists, since the data shows early-funnel retention
+    (69.1% to activation) is already comparatively strong. A secondary opportunity worth flagging:
+    since post-activation "engagement" correlates with roughly double the upgrade rate, driving more
+    activated users to actually re-engage after activation could be a second lever worth testing.
+  acceptable_alternatives:
+    - "Recommending the team first clarify and re-instrument what 'engaged' is actually meant to measure (since its current behavior as a repeatable, non-gating event makes it hard to use as a lifecycle stage), before building further funnel reporting on top of it."
+    - "Proposing a controlled test (e.g. an in-app upgrade nudge shown to activated-but-not-upgraded users) to validate the activated->upgraded opportunity causally, rather than acting on the correlational funnel breakdown alone."
+version: 1

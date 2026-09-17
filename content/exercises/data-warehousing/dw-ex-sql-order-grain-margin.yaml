@@ -1,0 +1,99 @@
+slug: dw-ex-sql-order-grain-margin
+lesson_slug: dw-declaring-grain
+skill: dimensional-modeling
+dataset: ecommerce
+title: Build fct_orders' Revenue and Margin Measures Yourself
+description: Recreate the per-order gross revenue and gross margin measures fct_orders exposes, directly from order_items and products.
+exercise_type: SQL
+difficulty: INTERMEDIATE
+points: 20
+tags: [grain, star-schema, fact-table, aggregation]
+business_context: >
+  fct_orders is built at the grain "1 row = 1 order," with gross_revenue and gross_margin as its core
+  measures. Before trusting a fact table's measures, it's worth being able to derive them yourself
+  directly from the source-level tables, to confirm you understand exactly what's being summed and
+  at what grain.
+prompt: >
+  Using `order_items` and `products`, write a query that returns, for every order: `order_id`,
+  `item_count` (number of order_item rows for that order), `gross_revenue` (SUM of
+  `quantity * unit_price - discount` across that order's lines, rounded to 2 decimals), and
+  `gross_margin` (gross_revenue minus SUM of `quantity * cost` across that order's lines, rounded to
+  2 decimals). Order the result by `order_id` ascending.
+sql_tables: [order_items, products]
+sql_starter_query: |
+  -- Explore the two tables you'll need first
+  SELECT * FROM order_items LIMIT 20;
+  SELECT * FROM products LIMIT 20;
+sql_solution_query: |
+  WITH line AS (
+    SELECT
+      oi.order_id,
+      oi.quantity,
+      (oi.quantity * oi.unit_price) - oi.discount AS line_revenue,
+      p.cost AS unit_cost
+    FROM order_items oi
+    JOIN products p ON oi.product_id = p.product_id
+  )
+  SELECT
+    order_id,
+    COUNT(*) AS item_count,
+    ROUND(SUM(line_revenue), 2) AS gross_revenue,
+    ROUND(SUM(line_revenue - quantity * unit_cost), 2) AS gross_margin
+  FROM line
+  GROUP BY order_id
+  ORDER BY order_id;
+sql_row_order_matters: true
+sql_numeric_tolerance: 0.01
+sql_hidden_tests:
+  - name: "Order 42's gross_margin is correct"
+    query: |
+      WITH line AS (
+        SELECT
+          oi.order_id,
+          oi.quantity,
+          (oi.quantity * oi.unit_price) - oi.discount AS line_revenue,
+          p.cost AS unit_cost
+        FROM order_items oi
+        JOIN products p ON oi.product_id = p.product_id
+      )
+      SELECT
+        order_id,
+        ROUND(SUM(line_revenue - quantity * unit_cost), 2) AS gross_margin
+      FROM line
+      WHERE order_id = 42
+      GROUP BY order_id
+    key_columns: 1
+hints:
+  - "Each order line's revenue is quantity * unit_price minus the flat discount amount for that line — note that `discount` here is a dollar amount already subtracted from the line total, not a fraction like 0.10, so the formula is (quantity * unit_price) - discount, not quantity * unit_price * (1 - discount)."
+  - "Join order_items to products to bring in each product's cost, compute line-level revenue and cost first (in a CTE), then GROUP BY order_id and SUM both up — gross_margin is gross_revenue minus the summed line-level cost, not a per-line margin averaged."
+solution: >
+  ```sql
+  WITH line AS (
+    SELECT
+      oi.order_id,
+      oi.quantity,
+      (oi.quantity * oi.unit_price) - oi.discount AS line_revenue,
+      p.cost AS unit_cost
+    FROM order_items oi
+    JOIN products p ON oi.product_id = p.product_id
+  )
+  SELECT
+    order_id,
+    COUNT(*) AS item_count,
+    ROUND(SUM(line_revenue), 2) AS gross_revenue,
+    ROUND(SUM(line_revenue - quantity * unit_cost), 2) AS gross_margin
+  FROM line
+  GROUP BY order_id
+  ORDER BY order_id;
+  ```
+  Order 1 (a single-line order) returns item_count=1, gross_revenue=75.89, gross_margin=38.50. Order
+  42 (a three-line order) returns item_count=3, gross_revenue=1464.21, gross_margin=669.24.
+explanation: >
+  A strong answer computes line-level revenue and cost first, using the correct discount formula
+  (`quantity * unit_price - discount`, since discount is a flat dollar amount here rather than a
+  fraction), then aggregates up to the order grain with a single GROUP BY — never averaging or
+  computing margin at the line level and then re-aggregating margin percentages, which would produce
+  a different (and wrong) number than gross_margin summed directly. A common mistake is treating
+  `discount` as a 0-1 fraction and computing `unit_price * (1 - discount)`, which silently produces
+  wildly negative "revenue" for any line where discount happens to exceed 1 — worth noticing as a
+  sign the assumed formula is wrong, not that the data is broken.

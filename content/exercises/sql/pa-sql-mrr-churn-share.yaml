@@ -1,0 +1,64 @@
+slug: pa-sql-mrr-churn-share
+lesson_slug: pa-churn-definitions
+skill: product-analytics
+dataset: saas-product
+title: MRR Churn Share
+description: Compute the share of total contracted MRR that sits on now-churned subscriptions, alongside the raw active and churned MRR totals.
+exercise_type: SQL
+difficulty: INTERMEDIATE
+points: 15
+tags: [sql, product, saas, churn, finance, intermediate]
+business_context: >
+  Finance wants revenue-weighted churn, not just an account count, since losing one $299/month
+  enterprise account represents far more lost revenue than losing one $29/month starter account.
+prompt: >
+  Using the `subscriptions` table (columns include `mrr` and `status`, where status is `active` or
+  `churned`), write a query returning exactly one row with three columns: `active_mrr` (sum of `mrr`
+  for active subscriptions), `churned_mrr` (sum of `mrr` for churned subscriptions), and
+  `churned_mrr_share` (churned_mrr divided by the sum of both active_mrr and churned_mrr, rounded to
+  4 decimals).
+sql_tables: [subscriptions]
+sql_starter_query: |
+  -- Explore MRR by status first
+  SELECT status, COUNT(*), SUM(mrr) FROM subscriptions GROUP BY 1;
+sql_solution_query: |
+  SELECT
+    SUM(CASE WHEN status = 'active'  THEN mrr ELSE 0 END) AS active_mrr,
+    SUM(CASE WHEN status = 'churned' THEN mrr ELSE 0 END) AS churned_mrr,
+    ROUND(
+      SUM(CASE WHEN status = 'churned' THEN mrr ELSE 0 END) * 1.0 / SUM(mrr), 4
+    ) AS churned_mrr_share
+  FROM subscriptions;
+sql_row_order_matters: false
+sql_numeric_tolerance: 0.01
+sql_hidden_tests:
+  - name: churned_mrr_share matches an independent recomputation via separate subqueries
+    query: |
+      SELECT 1 AS marker, ROUND(
+        (SELECT SUM(mrr) FROM subscriptions WHERE status='churned') * 1.0 /
+        ((SELECT SUM(mrr) FROM subscriptions WHERE status='active') + (SELECT SUM(mrr) FROM subscriptions WHERE status='churned')), 4
+      ) AS expected_share
+    key_columns: 1
+hints:
+  - "SUM(mrr) across the whole table equals active_mrr + churned_mrr, so the denominator for churned_mrr_share can be written as SUM(mrr) directly rather than re-adding the two conditional sums."
+  - "Use conditional aggregation (SUM(CASE WHEN status = '...' THEN mrr ELSE 0 END)) to compute active_mrr and churned_mrr in the same pass over the table, rather than two separate queries."
+solution: >
+  ```sql
+  SELECT
+    SUM(CASE WHEN status = 'active'  THEN mrr ELSE 0 END) AS active_mrr,
+    SUM(CASE WHEN status = 'churned' THEN mrr ELSE 0 END) AS churned_mrr,
+    ROUND(
+      SUM(CASE WHEN status = 'churned' THEN mrr ELSE 0 END) * 1.0 / SUM(mrr), 4
+    ) AS churned_mrr_share
+  FROM subscriptions;
+  ```
+  Run against the real data: active_mrr=$11,600, churned_mrr=$6,538, churned_mrr_share=0.3605 (36.05%)
+  — notably higher than the 33.96% logo (account-count) churn rate, because churn is concentrated
+  somewhat more heavily on the highest-priced enterprise tier.
+explanation: >
+  `SUM(mrr)` over the entire table already equals `active_mrr + churned_mrr` (every row is one or the
+  other), so the cleanest denominator is simply `SUM(mrr)` rather than manually re-summing both
+  conditional totals. A common mistake is computing `churned_mrr_share` as `churned_mrr /
+  active_mrr` instead of `churned_mrr / (active_mrr + churned_mrr)` — dividing by only the active
+  base produces a number that doesn't represent "share of total contracted revenue," which is what
+  the business question actually asks for.

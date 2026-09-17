@@ -1,0 +1,121 @@
+slug: scalar-subqueries
+module_slug: sql-subqueries-ctes
+title: Scalar Subqueries
+description: Nesting a query inside another so it produces a single value you can use inline in SELECT or WHERE.
+difficulty: INTERMEDIATE
+estimated_minutes: 10
+display_order: 1
+objectives:
+  - Define what makes a subquery "scalar" and where it's legal to use one
+  - Write a scalar subquery in SELECT to attach a summary value to every row
+  - Write a scalar subquery in WHERE to filter rows against a computed benchmark
+  - Explain what happens if a scalar subquery's assumption of a single row is violated
+prerequisites: [join-pitfalls]
+skills: [advanced-sql]
+datasets: [ecommerce]
+tags: [sql, intermediate]
+key_takeaways:
+  - A scalar subquery is a query nested inside another query that must return exactly one column and at most one row — its result is used as if it were a single literal value.
+  - Scalar subqueries can appear almost anywhere a literal value could go, most commonly in SELECT (to attach a summary alongside detail rows) or WHERE (to filter against a computed benchmark).
+  - Unlike a JOIN, a scalar subquery in SELECT doesn't multiply or filter the outer rows — it just computes one number and repeats it on every output row.
+common_mistakes:
+  - Writing a subquery in SELECT or WHERE that can return more than one row — the database has no way to collapse multiple rows into "the" value, so it raises an error at runtime instead of silently picking one.
+  - Assuming a scalar subquery is recomputed differently per row — a non-correlated scalar subquery (like an overall average) runs once and the same single value is reused for every outer row.
+practical_applications:
+  - Flagging line items, products, or transactions that are above or below an overall benchmark, without a separate reporting step.
+  - Attaching a single "as of today" or "company-wide" figure to every row of a detail report for context.
+blocks:
+  - type: heading
+    text: A query that produces exactly one value
+  - type: text
+    body: >
+      Every query so far has produced a result set — rows and columns. A subquery is just a query
+      written inside another query, and a **scalar subquery** is the simplest kind: one that's
+      guaranteed to return a single column and, at most, a single row. Because it collapses down to
+      one value, SQL lets you drop it in almost anywhere a plain number or string could go — most
+      usefully inside SELECT or WHERE.
+  - type: code
+    language: sql
+    caption: Attaching the overall average price to every product row
+    code: |
+      SELECT
+        product_name,
+        unit_price,
+        (SELECT AVG(unit_price) FROM products) AS avg_price
+      FROM products
+      ORDER BY product_id
+      LIMIT 5;
+  - type: output
+    caption: The scalar subquery's single result (238.07) is repeated on every row
+    body: |
+      product_name          | unit_price | avg_price
+      ----------------------+------------+----------
+      Pro Desk Lamp         |     321.10 |    238.07
+      Compact Blender       |     332.83 |    238.07
+      Essential Backpack    |     341.27 |    238.07
+      Compact Board Game    |     273.69 |    238.07
+      Compact Water Bottle  |     415.34 |    238.07
+  - type: text
+    body: >
+      Notice what did *not* happen: the products table wasn't filtered, grouped, or joined against
+      anything. The subquery `(SELECT AVG(unit_price) FROM products)` runs once, produces one number,
+      and SQL treats that number exactly like a literal — pasting it into every output row next to
+      that row's own unit_price. This is different from a JOIN, which would need a matching table on
+      the other side and could add or remove rows depending on how many matches it finds.
+  - type: heading
+    text: Using a scalar subquery as a filter
+  - type: text
+    body: >
+      The same idea works in WHERE: instead of hard-coding a threshold like `WHERE unit_price > 250`,
+      compute the threshold with a subquery so the query stays correct even as the data changes.
+  - type: code
+    language: sql
+    caption: Products priced above the store-wide average
+    code: |
+      SELECT product_name, unit_price
+      FROM products
+      WHERE unit_price > (SELECT AVG(unit_price) FROM products)
+      ORDER BY unit_price DESC;
+  - type: text
+    body: >
+      Here the subquery still returns one number (the average across all 150 products), and WHERE
+      compares every product's unit_price against that single benchmark. This pattern — "compare
+      each row to some aggregate over the whole table" — is one of the most common reasons to reach
+      for a subquery instead of a second query and some manual arithmetic.
+  - type: callout
+    variant: important
+    title: What if the subquery returns more than one row?
+    body: >
+      A scalar subquery's contract is "one row, one column." If you write `WHERE unit_price =
+      (SELECT unit_price FROM products WHERE category_id = 3)` and category 3 has more than one
+      product, the database can't silently choose one — most engines (including DuckDB, Postgres,
+      and SQL Server) raise a runtime error like "more than one row returned by a subquery used as
+      an expression." If you actually want to compare against a *set* of values rather than a single
+      one, that's a job for IN or EXISTS, which the next lesson covers.
+  - type: example
+    title: A scalar subquery with a filtered aggregate
+    body: >
+      The subquery doesn't have to be a bare AVG(*) — it can filter, join, or aggregate however it
+      needs to, as long as the final result is one row and one column. Here, the benchmark is the
+      average price of only the *active* products, computed once and compared against every product
+      (active or not).
+    code: |
+      SELECT product_name, is_active, unit_price
+      FROM products
+      WHERE unit_price > (
+        SELECT AVG(unit_price) FROM products WHERE is_active = true
+      )
+      ORDER BY unit_price DESC
+      LIMIT 5;
+    language: sql
+  - type: question
+    prompt: "A query includes: SELECT order_id, (SELECT customer_id FROM orders WHERE status = 'pending') AS x FROM orders. There are 127 pending orders. What happens when this runs?"
+    choices:
+      - It returns 127 rows for every order, one per pending customer_id
+      - It runs successfully and returns the first pending customer_id it finds
+      - "It raises a runtime error, because the subquery returns 127 rows but a scalar subquery must return at most one"
+    correct_index: 2
+    explanation: >
+      A scalar subquery used in SELECT must resolve to a single value. Since there are 127 pending
+      orders, `(SELECT customer_id FROM orders WHERE status = 'pending')` returns 127 rows — violating
+      the one-row contract — so the database raises an error rather than guessing which row to use.

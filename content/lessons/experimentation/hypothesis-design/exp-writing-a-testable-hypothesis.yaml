@@ -1,0 +1,96 @@
+slug: exp-writing-a-testable-hypothesis
+module_slug: hypothesis-design
+title: Writing a Testable Hypothesis
+description: >
+  Turning a vague idea ("let's try a new onboarding email") into a specific, falsifiable hypothesis that
+  names the change, the metric, the direction, and the reason — before any code is written.
+difficulty: INTERMEDIATE
+estimated_minutes: 20
+display_order: 1
+objectives:
+  - Write a hypothesis that names the specific change, the metric it should move, the expected direction, and the underlying reasoning
+  - Distinguish a testable hypothesis from a vague goal ("improve engagement")
+  - Explain why a hypothesis needs a stated reason, not just a predicted direction
+prerequisites: [exp-experiment-design-flow]
+skills: [experimentation, statistical-reasoning]
+datasets: [saas-product]
+tags: [experimentation, ab-testing, saas, intermediate]
+key_takeaways:
+  - "A testable hypothesis has four parts: the specific change, the metric it should affect, the expected direction, and the mechanism (why you believe it)."
+  - "\"We want to improve engagement\" is a goal, not a hypothesis — it doesn't name a change, a specific metric, or a reason, so it can't be falsified or even properly tested."
+  - Stating the mechanism up front (why you expect the effect) is what lets you interpret a null result usefully — you learn something different if the mechanism was wrong than if the change simply wasn't big enough to matter.
+common_mistakes:
+  - Writing a hypothesis around a solution ("add a progress bar") without stating which metric it should move and why, which makes it impossible to know what "success" even looks like before the test starts.
+  - Picking the metric *after* seeing the results, so whichever metric happened to move favorably becomes "the one that mattered" (this is a specific form of the "multiple testing" pitfall, covered later).
+blocks:
+  - type: heading
+    text: From idea to hypothesis
+  - type: text
+    body: >
+      "Let's redesign checkout" and "let's send a better onboarding email" are ideas, not hypotheses. A
+      hypothesis is a specific, falsifiable sentence with four parts — **change**, **metric**,
+      **direction**, and **mechanism** — written down before the test launches: "Replacing the 3-step
+      checkout with a 1-step checkout (change) will increase checkout conversion rate (metric and
+      direction) because each additional step is a chance for a user to abandon (mechanism)."
+  - type: formula
+    expression: "Hypothesis = Change + Metric + Direction + Mechanism"
+    description: >
+      All four parts matter: without "change" it's not testable, without "metric + direction" you can't
+      grade the result, and without "mechanism" a null result teaches you nothing about what to try next.
+  - type: example
+    title: "Two real hypotheses from the saas-product experiments"
+    body: >
+      "Replacing the multi-step checkout with a simplified one-step flow (change) will increase checkout
+      conversion rate (metric, direction: up) because fewer required steps means fewer opportunities for
+      a user to abandon before paying (mechanism)." And: "Sending a second onboarding email three days
+      after signup (change) will increase the signup-to-paid conversion rate (metric, direction: up)
+      because users who haven't converted by day 3 may simply have forgotten the product exists
+      (mechanism)." Both name a specific change, a specific metric with a direction, and a reason —
+      which is what makes each one gradable once results come in.
+  - type: table
+    caption: Vague goal vs. testable hypothesis
+    headers: ["Vague goal", "Testable hypothesis"]
+    rows:
+      - ["\"Improve engagement\"", "\"Adding a weekly usage-summary email will increase week-2 login rate, because reminding inactive users what they built will pull some of them back\""]
+      - ["\"Make checkout better\"", "\"Reducing checkout from 3 steps to 1 will increase checkout conversion rate, because each step is a chance to abandon\""]
+      - ["\"Try a new onboarding flow\"", "\"Adding a second onboarding email at day 3 will increase signup-to-paid conversion, because non-converters by day 3 may have simply forgotten the product\""]
+  - type: callout
+    variant: tip
+    title: A good hypothesis lets a null result teach you something
+    body: >
+      If "add a progress bar" doesn't move conversion, you learn very little — you don't know if
+      progress bars don't matter, or if users never even noticed it. If "replace the 3-step checkout
+      with 1-step, because steps cause abandonment" doesn't move conversion, you've learned something
+      real: either step count isn't actually a meaningful source of abandonment, or something about the
+      new flow introduced a new friction point that canceled out the benefit — either way, worth digging
+      into, and a specific enough hypothesis tells you where to look.
+  - type: callout
+    variant: common_mistake
+    title: Don't pick the metric after seeing the data
+    body: >
+      If checkout conversion doesn't move but "time on page" happens to be up, resist the urge to
+      declare "time on page" the real success metric after the fact. The primary metric is part of the
+      hypothesis, decided before launch — choosing it retroactively from whichever number looks good is
+      a form of p-hacking, covered in the Experiment Pitfalls module.
+  - type: question
+    prompt: >
+      Which of these is a properly testable hypothesis, as opposed to a vague goal?
+    choices:
+      - "\"We should improve the mobile app.\""
+      - "\"Adding a one-tap reorder button to the order history page will increase the repeat-purchase rate, because the current multi-step reorder flow causes people to give up.\""
+      - "\"Let's try something new with notifications and see what happens.\""
+    correct_index: 1
+    explanation: >
+      The second option names the specific change (a one-tap reorder button), the metric and direction
+      (repeat-purchase rate, up), and the mechanism (the current flow causes abandonment). The other two
+      don't specify a change, a metric, or a reason, so there's no way to know in advance what a "win"
+      would even look like.
+interview_questions:
+  - question: "What makes a hypothesis 'testable,' and why does the reasoning behind it matter as much as the prediction?"
+    answer: >
+      A testable hypothesis names a specific change, the metric it's expected to move, the direction of
+      that movement, and the mechanism — why the change should produce that effect. The mechanism
+      matters because it's what makes a null result informative: if the reasoning was "fewer steps means
+      fewer chances to abandon" and conversion doesn't move, you've learned that step count wasn't
+      actually the bottleneck, which points you toward a different fix. Without a stated mechanism, a
+      null result just tells you "that didn't work," with no direction for what to try next.

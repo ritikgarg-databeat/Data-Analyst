@@ -1,0 +1,78 @@
+slug: excel-sumif-monthly-revenue
+skill: excel-fundamentals
+title: Monthly Revenue Summary with SUMIF
+description: The `Transactions` sheet lists `Month` (A) and `Amount` (B) for 6 transactions. On `Summary`, fill
+  in `B2`, `B3`, and `B4` with a SUMIF formula (referencing the month name already in that row's column A) totalling
+  `Transactions!B2:B7`.
+exercise_type: EXCEL
+difficulty: BEGINNER
+points: 10
+tags:
+- excel
+- sumifs
+business_context: Finance wants total revenue broken out by month from a flat transaction log, without a pivot table.
+prompt: The `Transactions` sheet lists `Month` (A) and `Amount` (B) for 6 transactions. On `Summary`, fill in `B2`,
+  `B3`, and `B4` with a SUMIF formula (referencing the month name already in that row's column A) totalling `Transactions!B2:B7`.
+excel_starter_sheets:
+- name: Transactions
+  cells:
+    A1: Month
+    B1: Amount
+    A2: Jan
+    B2: '100'
+    A3: Jan
+    B3: '150'
+    A4: Feb
+    B4: '200'
+    A5: Feb
+    B5: '50'
+    A6: Mar
+    B6: '300'
+    A7: Mar
+    B7: '100'
+- name: Summary
+  cells:
+    A1: Month
+    B1: Total
+    A2: Jan
+    A3: Feb
+    A4: Mar
+excel_solution_sheets:
+- name: Transactions
+  cells:
+    A1: Month
+    B1: Amount
+    A2: Jan
+    B2: '100'
+    A3: Jan
+    B3: '150'
+    A4: Feb
+    B4: '200'
+    A5: Feb
+    B5: '50'
+    A6: Mar
+    B6: '300'
+    A7: Mar
+    B7: '100'
+- name: Summary
+  cells:
+    A1: Month
+    B1: Total
+    A2: Jan
+    A3: Feb
+    A4: Mar
+    B2: =SUMIF(Transactions!A2:A7,A2,Transactions!B2:B7)
+    B3: =SUMIF(Transactions!A2:A7,A3,Transactions!B2:B7)
+    B4: =SUMIF(Transactions!A2:A7,A4,Transactions!B2:B7)
+excel_check_cells:
+- Summary!B2
+- Summary!B3
+- Summary!B4
+hints:
+- Reference the criteria from the cell already in that row (A2/A3/A4) rather than retyping "Jan"/"Feb"/"Mar" into
+  each formula, so the same formula pattern works down the column.
+- 'Jan: 100+150=250. Feb: 200+50=250. Mar: 300+100=400.'
+solution: '`=SUMIF(Transactions!A2:A7,A2,Transactions!B2:B7)` -- 250 for Jan, 250 for Feb, 400 for Mar.'
+explanation: Each formula sums `Transactions!B2:B7` only where the matching `Transactions!A2:A7` cell equals that
+  row's own month label -- referencing `A2`/`A3`/`A4` (rather than a hardcoded literal) means the exact same formula
+  pattern, copied down, produces the correct total for whichever month is in that row.

@@ -1,0 +1,176 @@
+slug: heatmaps
+module_slug: visualization-with-python
+title: "Heatmaps: Correlation Matrices and Two-Dimensional Density"
+description: sns.heatmap for correlation matrices and for two-categorical-dimension counts via pivot_table/crosstab, and why colormap choice (sequential vs. diverging) isn't a cosmetic detail.
+difficulty: BEGINNER
+estimated_minutes: 11
+display_order: 7
+objectives:
+  - Build a correlation matrix heatmap with sns.heatmap and read its cell colors and annotated values together
+  - Build a two-categorical-dimension heatmap from a pd.crosstab or pivot_table result
+  - Choose between a sequential and a diverging colormap based on whether zero is a meaningful midpoint in the data
+prerequisites: [box-plots]
+skills: [data-visualization]
+datasets: [ecommerce]
+tags: [python, beginner, foundations]
+key_takeaways:
+  - "A heatmap answers 'how does a value vary across two categorical (or category-like) dimensions at once' — a correlation matrix (variable x variable) and a crosstab of counts (category x category) are the two most common shapes of that question, and sns.heatmap draws both the same way: color plus, usually, an annotated number in every cell."
+  - "Colormap choice is a correctness question, not a style question. A correlation matrix has a meaningful zero (no relationship) with real positive and negative values on either side of it, so it needs a diverging colormap (like coolwarm, centered at zero) where color hue signals direction, not just intensity. A crosstab of counts has no negative values and no meaningful zero-centered midpoint, so it needs a sequential colormap (like Blues), where color intensity alone signals magnitude."
+  - "Using a sequential colormap on a correlation matrix makes a weak positive correlation (0.09) and a strong negative one look like they're on the same end of the scale, when they mean opposite things — that's a real misreading risk, not just an aesthetic one."
+  - "Always annotate heatmap cells with the actual number (annot=True) unless the grid is too large to fit them — color alone lets a viewer rank 'more vs. less' but is genuinely bad at conveying precise values."
+common_mistakes:
+  - "Defaulting to a single colormap for every heatmap, regardless of whether the underlying values have a meaningful zero midpoint — this is the single most common heatmap mistake and it actively distorts how the values read."
+  - "Skipping annot=True on a heatmap small enough to hold readable numbers, forcing the viewer to guess exact values from color intensity alone."
+  - "Building a correlation heatmap on a large, messy set of columns without inspecting the actual numbers first — a heatmap makes it easy to eyeball 'this looks correlated' on a coincidental relationship that a quick corr() table would have shown as weak."
+practical_applications:
+  - "Screening a new dataset's numeric columns for strong relationships (worth investigating further) versus weak or spurious-looking ones, before building any model or deeper analysis on top of them."
+  - "Visualizing how two categorical fields interact — order status by channel, device by conversion — as counts or rates in one compact grid instead of a long text table."
+  - "Picking colormap direction and type correctly before a chart goes into a stakeholder deck, since a wrongly-chosen colormap is one of the faster ways to have a chart quietly misread."
+interview_questions:
+  - question: "When would you use a heatmap instead of a table of numbers to show the same data?"
+    answer: "When the point is to let someone spot patterns — the strongest relationships in a correlation matrix, or where counts concentrate in a two-category crosstab — faster than reading a table row by row would allow. Color lets the eye scan for 'darkest cells' or 'reddest cells' almost instantly, which is exactly what a table of numbers, however precise, doesn't offer. I'd still annotate the cells with the actual numbers where the grid is small enough, so the chart keeps the table's precision and adds the pattern-spotting benefit on top, rather than trading one for the other."
+  - question: "Why does colormap choice matter for a heatmap, beyond just looking nice?"
+    answer: "It changes how correctly the chart can be read. A diverging colormap (two colors meeting at a neutral midpoint, usually white or gray at zero) is the right choice whenever the data has a meaningful zero — like a correlation matrix, where positive and negative values mean genuinely opposite things and need to look visually opposite. A sequential colormap (one color ramping from light to dark) is right when there's no meaningful zero midpoint — like a count of orders in a crosstab, where more is just more. Using a sequential colormap on correlation data, for example, can make a strong negative correlation and a weak positive one land on similar-looking shades, actively hiding the direction of the relationship."
+resources:
+  - title: "Seaborn documentation — heatmap()"
+    url: "https://seaborn.pydata.org/generated/seaborn.heatmap.html"
+  - title: "Matplotlib documentation — choosing colormaps"
+    url: "https://matplotlib.org/stable/users/explain/colors/colormaps.html"
+blocks:
+  - type: text
+    body: >
+      A heatmap answers a question the previous five lessons haven't: **how does a value vary across two
+      categorical (or category-like) dimensions at once?** That covers two genuinely different but common
+      cases — a correlation matrix, where both dimensions are the same list of numeric variables, and a
+      crosstab of counts or rates, where both dimensions are real categorical fields.
+  - type: heading
+    text: "Case 1: a correlation matrix"
+  - type: code
+    language: python
+    code: |
+      import pandas as pd
+      import seaborn as sns
+      import matplotlib.pyplot as plt
+
+      order_items = pd.read_csv("data/sample/ecommerce/order_items.csv")
+      order_items["line_revenue"] = (
+          (order_items["unit_price"] - order_items["discount"]) * order_items["quantity"]
+      )
+
+      order_features = order_items.groupby("order_id").agg(
+          total_quantity=("quantity", "sum"),
+          order_value=("line_revenue", "sum"),
+          n_items=("order_item_id", "count"),
+          avg_discount=("discount", "mean"),
+          avg_unit_price=("unit_price", "mean"),
+      )
+      corr = order_features.corr()
+      print(corr.round(2))
+    caption: Five order-level features, correlated against each other — 4,205 orders
+  - type: output
+    body: |
+      total_quantity  order_value  n_items  avg_discount  avg_unit_price
+      total_quantity            1.00         0.83     0.88         -0.02           -0.01
+      order_value               0.83         1.00     0.73          0.09            0.41
+      n_items                   0.88         0.73     1.00         -0.02           -0.00
+      avg_discount              -0.02         0.09    -0.02         1.00            0.41
+      avg_unit_price             -0.01         0.41    -0.00        0.41            1.00
+    caption: "Real correlation matrix — total_quantity and n_items correlate strongly (0.88); avg_discount barely relates to total_quantity (-0.02)"
+  - type: code
+    language: python
+    code: |
+      fig, ax = plt.subplots(figsize=(7, 6))
+      sns.heatmap(corr, annot=True, fmt=".2f", cmap="coolwarm", center=0, vmin=-1, vmax=1, ax=ax)
+      ax.set_title("Correlation matrix: order-level features")
+    caption: "coolwarm, centered at 0 — a diverging colormap, because 0 (no relationship) is a meaningful midpoint"
+  - type: text
+    body: >
+      With `center=0`, coolwarm renders positive correlations in warm red tones and negative ones in cool
+      blue tones, with white right at zero — so the strong 0.88 (total_quantity vs. n_items) reads as
+      deep red, the near-zero -0.02 (avg_discount vs. total_quantity) reads as essentially white, and any
+      genuinely negative relationship in the data would read as blue. Direction and strength are both
+      encoded by color at once.
+  - type: heading
+    text: "Case 2: two categorical dimensions, via crosstab"
+  - type: code
+    language: python
+    code: |
+      orders = pd.read_csv("data/sample/ecommerce/orders.csv")
+      counts = pd.crosstab(orders["channel"], orders["status"])
+      print(counts)
+    caption: "Order status counts by channel — a genuine two-categorical-dimension table"
+  - type: output
+    body: |
+      status       cancelled  completed  pending  refunded
+      channel
+      marketplace         38        352        8        19
+      mobile              146       1199       48       101
+      web                 195       1890       71       138
+    caption: Real counts, straight from pd.crosstab
+  - type: code
+    language: python
+    code: |
+      fig, ax = plt.subplots(figsize=(7, 4))
+      sns.heatmap(counts, annot=True, fmt="d", cmap="Blues", ax=ax)
+      ax.set_title("Order status by channel (count)")
+    caption: "Blues, a sequential colormap — there's no meaningful zero midpoint here, just 'more orders' vs. 'fewer'"
+  - type: callout
+    variant: important
+    title: "Why coolwarm was right for the correlation matrix and wrong here"
+    body: >
+      The crosstab has no negative numbers and no meaningful "zero-centered" comparison — a cell with 38
+      orders isn't the negative version of a cell with 1,890 orders the way a -0.4 correlation is the
+      inverse of a +0.4 one. A sequential colormap like Blues, where darker just means "more," matches
+      what the data actually represents. Using a diverging colormap here would imply a direction (above
+      vs. below a midpoint) that doesn't exist in count data.
+  - type: heading
+    text: "Same crosstab, as row percentages instead of raw counts"
+  - type: code
+    language: python
+    code: |
+      row_pct = pd.crosstab(orders["channel"], orders["status"], normalize="index") * 100
+
+      fig, ax = plt.subplots(figsize=(7, 4))
+      sns.heatmap(row_pct, annot=True, fmt=".1f", cmap="Blues", ax=ax)
+      ax.set_title("Order status by channel (% of that channel's orders)")
+    caption: "normalize='index' turns raw counts into within-channel percentages — often the more honest comparison"
+  - type: output
+    body: |
+      status       cancelled  completed  pending  refunded
+      channel
+      marketplace        9.1       84.4      1.9       4.6
+      mobile              9.8       80.3      3.2       6.8
+      web                 8.5       82.4      3.1       6.0
+    caption: "Real output — as percentages, the three channels look far more similar than the raw counts suggested"
+  - type: callout
+    variant: common_mistake
+    title: "Raw counts can hide (or fake) a pattern that percentages correct"
+    body: >
+      Web has by far the most cancelled orders in raw count (195, versus 38 for marketplace) — but that's
+      mostly because web has far more total orders. As a percentage of each channel's own volume, the
+      cancellation rate is actually very close across all three channels (8.5%-9.8%). A heatmap of raw
+      counts across groups of very different sizes can visually exaggerate differences that percentages
+      reveal are much smaller — the same axis-honesty issue the Bar Charts lesson raised about truncated
+      y-axes, in a different shape.
+  - type: heading
+    text: "Colormap choice, summarized"
+  - type: comparison
+    title: "Sequential vs. diverging"
+    columns: ["", "Sequential (e.g. Blues, viridis)", "Diverging (e.g. coolwarm, RdBu)"]
+    rows:
+      - ["Best for", "Data with no meaningful zero — counts, rates, magnitudes", "Data with a meaningful zero midpoint — correlations, differences, changes"]
+      - ["What color encodes", "Magnitude only (lighter = less, darker = more)", "Both direction (hue) and magnitude (intensity) around a center point"]
+      - ["Example from this lesson", "Order status counts by channel", "The order-features correlation matrix"]
+      - ["Common mistake", "Using it on signed data — hides which values are positive vs. negative", "Using it on unsigned data — implies a direction that doesn't exist"]
+  - type: question
+    prompt: "You're building a heatmap of a correlation matrix that includes both positive and negative correlations. Why would a sequential colormap (like plain Blues) be a poor choice here?"
+    choices:
+      - "A sequential colormap only encodes magnitude through color intensity, so a strong negative correlation and a strong positive one of similar magnitude could look nearly identical, hiding the direction of the relationship"
+      - "Sequential colormaps can't be rendered by sns.heatmap at all"
+      - "It's not actually a problem — colormap choice on a heatmap is purely a stylistic decision"
+    correct_index: 0
+    explanation: >
+      A sequential colormap ramps one color from light to dark based on magnitude alone, with no way to
+      distinguish a positive value from a negative one of similar size — exactly the failure mode that
+      makes a diverging colormap, centered at zero, the correct choice for correlation data, where
+      direction (positive vs. negative) is as important as strength.

@@ -1,0 +1,117 @@
+slug: de-ingestion-patterns
+module_slug: sources-and-ingestion
+title: "Ingestion Patterns: Full Load, Incremental Load, and CDC"
+description: The three common patterns for actually pulling data in — reloading everything, pulling only what changed, and capturing changes as they happen — and the tradeoffs each one makes.
+difficulty: BEGINNER
+estimated_minutes: 25
+display_order: 2
+objectives:
+  - Distinguish full load from incremental load, and state the tradeoff each one makes
+  - Explain what change data capture (CDC) is and why it exists as a third option
+  - Choose an appropriate ingestion pattern for a given table's size and update frequency
+prerequisites: [de-data-sources]
+skills: [data-engineering-fundamentals, data-pipelines]
+datasets: [ecommerce]
+tags: [data-engineering, ingestion, batch-processing, beginner]
+key_takeaways:
+  - "A full load re-extracts an entire source table every run — simple and self-healing, but wasteful and slow once a table gets large."
+  - "An incremental load extracts only rows that are new or changed since the last run (usually via an updated-at timestamp or an incrementing ID) — fast and cheap, but only as correct as the column it relies on to detect change."
+  - "Change data capture (CDC) reads a database's own transaction log to stream every insert/update/delete as it happens, avoiding the need to guess which rows changed — powerful, but more operationally complex to set up than either load pattern."
+common_mistakes:
+  - "Choosing incremental load based on an `updated_at` column that isn't reliably set on every write — if even a few writes skip updating that column, those changed rows silently never get re-extracted."
+  - "Defaulting every ingestion to full load \"to be safe\" on a table that's grown to tens of millions of rows, turning what should be a five-minute pipeline step into an hours-long bottleneck that delays everything downstream."
+interview_questions:
+  - question: "When would you choose a full load over an incremental load, even knowing incremental is generally more efficient?"
+    answer: >
+      Full loads are the right (or only reasonable) choice when the table is small enough that
+      re-extracting it entirely is cheap regardless of frequency, when there's no reliable way to
+      detect what changed (no updated-at column, no append-only guarantee), or when correctness
+      matters more than efficiency — such as periodically re-syncing a dimension table to guarantee
+      it hasn't drifted from source, even if incremental loads normally keep it current.
+blocks:
+  - type: heading
+    text: "The core question: reload everything, or just what changed?"
+  - type: text
+    body: >
+      Every ingestion job has to answer the same question every time it runs: does it pull the
+      entire source table again, or does it figure out what's new or changed since last time and
+      pull only that? The two answers are **full load** and **incremental load**, and a third
+      pattern, **change data capture (CDC)**, sidesteps the question entirely by reading a
+      database's changes directly off its transaction log.
+  - type: table
+    headers: ["Pattern", "What it does", "Best for", "Main risk"]
+    rows:
+      - ["Full load", "Re-extracts the entire source table every run", "Small tables, or tables with no reliable change-tracking column", "Gets slower and more expensive as the table grows"]
+      - ["Incremental load", "Extracts only rows new or changed since the last run", "Large, append-heavy or update-tracked tables", "Only as correct as the column used to detect change"]
+      - ["Change data capture (CDC)", "Streams every insert/update/delete off the database's transaction log", "High-volume tables needing near-real-time freshness", "More operationally complex to set up and maintain"]
+  - type: example
+    title: "Loading `orders` three different ways"
+    body: >
+      Picture ingesting the `ecommerce` dataset's `orders` table nightly. A **full load** truncates
+      the staging copy and re-pulls all 4,205 rows every night — simple, and it self-heals if
+      something got corrupted, but every row moves across the network every night even though only
+      a few hundred are actually new. An **incremental load** instead runs something like
+      `WHERE order_date >= '<last successful run's watermark>'`, pulling only orders placed since the
+      last run — far cheaper, but it depends entirely on `order_date` (or an `updated_at` column, if
+      the source has one) being trustworthy and always set. **CDC** would instead tap the source
+      database's replication log directly, capturing every insert to `orders` (and any update to an
+      existing order's `status`, such as a cancellation) as it happens, without ever running a bulk
+      `SELECT` against the source table at all.
+  - type: code
+    language: sql
+    code: |
+      -- Conceptual incremental extract: pull only orders placed since the last
+      -- successful run's high-water mark, rather than the whole table.
+      SELECT order_id, customer_id, order_date, status, channel
+      FROM source_orders
+      WHERE order_date > :last_successful_run_watermark
+      ORDER BY order_date;
+    caption: "An incremental extract narrows the WHERE clause instead of scanning the whole source table — the classic incremental-load shape."
+  - type: heading
+    text: Why incremental load isn't automatically the right answer
+  - type: text
+    body: >
+      Incremental load's efficiency comes with a fragile dependency: it only extracts what it can
+      detect as "changed," using whatever column the pipeline was told to trust. If a source
+      system's `updated_at` column isn't reliably touched on every write (a common real-world gap —
+      some update paths in an application forget to bump it), incremental load will quietly and
+      permanently miss those rows. Nothing errors; the pipeline just runs "successfully" every night
+      while slowly drifting further from the true source data. This is exactly the kind of failure
+      an analyst is well-positioned to notice first — a metric that looks slightly, persistently off
+      versus a source system's own report is a common early symptom.
+  - type: callout
+    variant: common_mistake
+    title: "Incremental load is a bet on a column you didn't design"
+    body: >
+      Choosing incremental load means trusting some upstream column (`updated_at`, an incrementing
+      ID, an append-only guarantee) to faithfully mark every change. That column was almost
+      certainly designed for the application's own purposes, not for downstream ingestion — so it's
+      worth explicitly verifying it actually gets set on every relevant write path before relying on
+      it, rather than assuming a column named `updated_at` does what its name implies.
+  - type: heading
+    text: Where change data capture fits
+  - type: text
+    body: >
+      CDC exists for cases where even incremental load's periodic pulls aren't good enough — either
+      because the table is too large and high-traffic to repeatedly query even incrementally, or
+      because downstream consumers need to react to changes in near-real-time rather than waiting
+      for the next scheduled run. Instead of asking the source table "what changed since I last
+      asked," CDC listens directly to the stream of changes the database is already recording
+      internally for its own replication purposes. It's more powerful, but also meaningfully more
+      complex to set up and operate than either load pattern — a tool reached for when the simpler
+      patterns' tradeoffs stop being acceptable, not a default starting point.
+  - type: question
+    prompt: >
+      A `customers` table has 1,500 rows and gains only a handful of new signups per day. Which
+      ingestion pattern is the most reasonable default choice?
+    choices:
+      - "Change data capture — any table of customer data deserves real-time capture"
+      - "Full load — at this size, re-extracting the whole table every run is cheap, and it avoids depending on a possibly-unreliable change-tracking column"
+      - "Incremental load — it is always strictly better than full load regardless of table size"
+    correct_index: 1
+    explanation: >
+      At 1,500 rows, a full load costs almost nothing to re-run and completely sidesteps the risk of
+      an incremental load silently missing rows due to an unreliable change-tracking column. CDC
+      would be substantial operational overhead for a table this small and slow-changing.
+      Incremental load becomes attractive once table size or change volume grows large enough that
+      re-extracting everything is genuinely expensive — not as a universal default.

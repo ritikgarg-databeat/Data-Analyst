@@ -1,0 +1,25 @@
+slug: stickiness-ratio-interpretation
+lesson_slug: wau
+skill: product-metrics
+title: Interpreting a Stickiness Ratio
+description: Multiple-choice check on correctly interpreting a DAU/WAU stickiness ratio in context, rather than against an unrelated benchmark.
+exercise_type: MULTIPLE_CHOICE
+difficulty: BEGINNER
+points: 10
+tags: [product-analytics, beginner]
+prompt: >
+  A B2B expense-reporting tool — used mainly when employees submit expenses, typically a few times a
+  month — has a DAU/WAU stickiness ratio of 18%. A teammate says this "proves the product has an
+  engagement problem" because it's far below a typical messaging app's 60% stickiness. What is the
+  strongest response to that claim?
+choices:
+  - "Agree — any stickiness ratio below 50% signals an engagement problem that needs to be fixed"
+  - "Disagree — stickiness should be judged against the product's natural use cadence, and an expense tool used a few times a month would be expected to have a low ratio even if it is working well"
+  - "Disagree — stickiness ratios are meaningless and should never be used for any product"
+correct_answer: "Disagree — stickiness should be judged against the product's natural use cadence, and an expense tool used a few times a month would be expected to have a low ratio even if it is working well"
+explanation: >
+  Stickiness (DAU/WAU) reflects how often a product's typical use case calls for someone to open it —
+  it is not a universal health score. A messaging app is naturally a many-times-daily habit; an expense
+  tool is naturally an occasional task. Judging the expense tool against a messaging app's benchmark
+  compares two products with fundamentally different natural cadences. The right comparison is the
+  tool's own trend over time, or its ratio against similarly-cadenced products, not an unrelated app.

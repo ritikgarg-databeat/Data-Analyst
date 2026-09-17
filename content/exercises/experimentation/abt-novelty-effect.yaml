@@ -1,0 +1,23 @@
+slug: abt-novelty-effect
+skill: experimentation
+title: The Novelty Effect
+description: A redesigned homepage shows a strong engagement lift in its first week, but the lift shrinks close
+  to zero by week four. What's the most likely explanation?
+exercise_type: MULTIPLE_CHOICE
+difficulty: INTERMEDIATE
+points: 5
+tags:
+- ab-testing
+- experiment-design
+prompt: A redesigned homepage shows a strong engagement lift in its first week, but the lift shrinks close to zero
+  by week four. What's the most likely explanation?
+correct_answer: A novelty effect -- users engage more with anything new at first, independent of whether it's actually
+  better
+explanation: 'A novelty effect is a well-known experimentation pitfall: any noticeable change draws extra attention/exploration
+  initially, which fades as users habituate -- this is exactly why experiments meant to measure a lasting effect
+  should run long enough to see whether the lift persists past the first week or two.'
+choices:
+- A novelty effect -- users engage more with anything new at first, independent of whether it's actually better
+- The experiment must have a coding bug
+- The sample size dropped over time
+- This pattern proves the redesign was a failure from the start

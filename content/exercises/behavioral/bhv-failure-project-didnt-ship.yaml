@@ -1,0 +1,35 @@
+slug: bhv-failure-project-didnt-ship
+skill: behavioral-interviewing
+title: A Project That Didn't Ship
+description: Describe a project that failed or didn't ship. What was your role and what would you do differently?
+exercise_type: INTERVIEW_RESPONSE
+difficulty: INTERMEDIATE
+points: 10
+tags:
+- behavioral
+- star-method
+- failure
+prompt: Describe a project that failed or didn't ship. What was your role and what would you do differently?
+hints:
+- The STAR framework (Situation, Task, Action, Result) is a useful structure, not a script -- use it to
+  make sure you cover what actually happened, in what context, what you personally did, and what came
+  of it.
+- Interviewers are listening for a specific, real example -- a vague 'sometimes this happens on my team'
+  answer is much weaker than one concrete story with real details.
+rubric:
+- criterion: Describes one specific, real situation rather than a hypothetical or a generic pattern
+  points: 25
+- criterion: Clearly states the task or goal and the person's own specific role in it
+  points: 20
+- criterion: Explains concrete actions the person personally took, not just what the team did
+  points: 30
+- criterion: States a clear, ideally measurable outcome and what was learned from it
+  points: 25
+solution: I spent several weeks building a churn-prediction model that was accurate but never got adopted,
+  because I hadn't involved the customer success team who would actually need to act on its output. By
+  the time I presented it, they had concerns about how alerts would fit into their existing workflow that
+  would have been easy to address earlier but were costly to retrofit. If I did it again, I'd involve
+  the eventual users of the model from the first week, even informally, rather than treating it as a purely
+  technical build.
+explanation: The answer identifies a specific, actionable lesson (involve end users earlier) rather than
+  a technical failure, which shows the analyst reflecting on process, not just output quality.

@@ -1,0 +1,71 @@
+slug: median
+module_slug: statistical-foundations
+title: Median
+description: A robust measure of central tendency, and when to reach for it instead of the mean.
+difficulty: BEGINNER
+estimated_minutes: 8
+display_order: 2
+objectives:
+  - Calculate the median of a dataset and explain why it resists distortion by outliers
+  - Decide when to prefer the median over the mean for a given dataset
+prerequisites: [mean]
+skills: [statistics]
+tags: [statistics, beginner, foundations]
+key_takeaways:
+  - The median is the middle value of sorted data, so one extreme point can't drag it away from where most of the data actually sits.
+  - Skewed real-world metrics (income, home prices, order values, latency) are usually better summarized by the median than the mean.
+  - The median only uses the rank of values, not their magnitude — that's exactly why it's robust, and exactly why it can't be used for some downstream math (like variance).
+common_mistakes:
+  - Reporting the mean for a right-skewed metric and calling it "typical" when the median would represent the data more honestly.
+  - Assuming the median is always the "better" statistic — for roughly symmetric data with no outliers, mean and median tell nearly the same story, and the mean carries more information for further calculations.
+blocks:
+  - type: heading
+    text: A measure that ignores extremes
+  - type: text
+    body: >
+      The **median** is the middle value of a dataset once it's sorted. If there's an odd number of
+      values, it's the exact middle one. If there's an even number, it's the average of the two middle
+      values. Unlike the mean, the median doesn't care *how far* the extreme values are from the
+      center — only that they're above or below it.
+  - type: example
+    title: The same five orders, sorted
+    body: >
+      Take the order totals from the mean lesson: $18, $22, $25, $30, $900. Sorted, they're already in
+      that order, and the middle (3rd of 5) value is $25. The median order value is **$25** — much
+      closer to what four of the five orders actually looked like than the mean of $199. If that $900
+      order had instead been $9,000, the median would still be $25; only the mean would move.
+  - type: comparison
+    title: Mean vs. median
+    columns: ["", "Mean", "Median"]
+    rows:
+      - ["Definition", "Sum of values divided by count", "Middle value once sorted"]
+      - ["Sensitivity to outliers", "High — every value, including extremes, pulls on it", "Low — only a value's rank matters, not its size"]
+      - ["Best used when", "Distribution is roughly symmetric", "Distribution is skewed (income, order value, home prices)"]
+  - type: code
+    language: sql
+    code: |
+      SELECT
+        PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY order_total) AS median_order_total
+      FROM orders;
+    caption: Most SQL dialects (Postgres, Snowflake, BigQuery) compute the median as the 50th percentile.
+  - type: callout
+    variant: tip
+    title: "A familiar real-world example"
+    body: >
+      "Median household income" is reported instead of "mean household income" for exactly this
+      reason: a handful of very high earners would pull the mean well above what a typical household
+      actually earns. The median describes the household in the middle of the distribution.
+  - type: question
+    prompt: >
+      A company reports "average employee salary: $95,000," but most employees actually earn between
+      $60,000 and $70,000. Which single statistic would most clearly reveal this discrepancy?
+    choices:
+      - The mean, recalculated a second time
+      - The median
+      - The count of employees
+    correct_index: 1
+    explanation: >
+      A small number of very high executive salaries can pull the mean well above what most employees
+      earn, while the median — the middle salary — stays close to where most employees actually sit.
+      Recalculating the mean again would produce the same misleading number; the count of employees
+      says nothing about the shape of pay.

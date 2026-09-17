@@ -1,0 +1,136 @@
+slug: choosing-the-right-visualization
+module_slug: visualization-with-python
+title: "Choosing the Right Visualization for the Question"
+description: A decision framework for matching a business question to a chart type — before you write a single line of matplotlib, seaborn, or plotly.
+difficulty: BEGINNER
+estimated_minutes: 10
+display_order: 1
+objectives:
+  - Match a business question's shape to the chart type built to answer it
+  - Explain why pie charts are usually a poor choice for part-of-whole comparisons
+  - Use "what am I actually showing" as the first question before "which library/syntax do I use"
+prerequisites: [forming-hypotheses-and-insights]
+skills: [data-visualization]
+datasets: [ecommerce]
+tags: [python, beginner, foundations]
+key_takeaways:
+  - "Every chart type is built to answer one shape of question well. The first decision in any visualization is never 'which library' or 'which colors' — it's 'what kind of comparison am I actually making.'"
+  - "Comparison over time is a line chart's job. Comparison across categories is a bar chart's job. A relationship between two numbers is a scatter plot's job. The distribution of one variable is a histogram or box plot's job. Part-of-whole is best shown as a bar chart in most cases, not a pie chart."
+  - "Pie charts fail specifically because the human eye is bad at comparing angles and areas precisely — a bar chart showing the same part-of-whole data lets a viewer make an accurate comparison at a glance, which a pie chart rarely does once there are more than 2-3 slices."
+  - "This module's remaining 8 lessons go deep on the syntax and pitfalls of each chart type below — this lesson is the map you'll come back to before starting any of them."
+common_mistakes:
+  - "Picking a chart type because it 'looks good' or because it's the first one you remember the syntax for, rather than because it matches the shape of the comparison you're making."
+  - "Defaulting to a pie chart for any part-of-whole question, when a sorted bar chart almost always communicates the same information more accurately and just as quickly."
+  - "Using a line chart to connect points that aren't actually sequential or continuous (e.g. connecting bars representing unrelated categories) — covered in depth in the line charts lesson, but it starts with picking the wrong chart type for the question in the first place."
+practical_applications:
+  - "Running through this framework — what comparison am I making? — as a first step before opening any charting library, for every new visualization request."
+  - "Pushing back on a stakeholder request for a specific chart type (frequently a pie chart) by proposing the chart type that actually matches the comparison being asked for."
+interview_questions:
+  - question: "How do you decide which chart type to use for a given dataset or question?"
+    answer: "I start from the shape of the comparison, not the data itself: is it change over time (line chart), comparison across categories (bar chart), a relationship between two numeric variables (scatter plot), the distribution of one variable (histogram or box plot), or part of a whole (usually a bar chart, rarely a pie chart)? The chart type follows from that question, not from which chart I'm most comfortable coding or which one looks most impressive."
+  - question: "Why are pie charts usually considered a poor choice, and when (if ever) would you use one?"
+    answer: "Human perception is much better at comparing the length or position of bars than the angle or area of pie slices — once there are more than 2-3 categories, or the values are close to each other, a pie chart makes it genuinely hard to tell which slice is bigger without reading the labels, defeating the purpose of a chart. A sorted horizontal bar chart shows the same part-of-whole data and lets viewers make accurate comparisons instantly. A pie chart can be defensible for a single, simple two-category split (e.g. 60/40) where the point is 'roughly this fraction,' but even then a bar is rarely worse."
+resources:
+  - title: "Data Visualization Society — Chart type guidance"
+    url: "https://www.data-to-viz.com/"
+blocks:
+  - type: text
+    body: >
+      Before this module gets into matplotlib and seaborn syntax, it's worth being explicit about the
+      one decision that matters more than any code you'll write: **what kind of comparison does this
+      chart need to make?** Every remaining lesson in this module covers one chart type in depth — this
+      lesson is the map that tells you which one to reach for, and it's the theme running through
+      everything that follows: choosing the right visualization for the business question, not just
+      producing a technically correct chart.
+  - type: heading
+    text: "The decision framework"
+  - type: table
+    headers: ["What you're showing", "Best chart type", "Covered in"]
+    rows:
+      - ["Comparison over time (a trend)", "Line chart", "Line Charts, Time Series Visualization"]
+      - ["Comparison across categories", "Bar chart (sorted meaningfully, not alphabetically)", "Bar Charts"]
+      - ["Relationship between two numeric variables", "Scatter plot", "Scatter Plots"]
+      - ["Distribution of one variable", "Histogram (one group) or box plot (comparing groups)", "Histograms and Distributions, Box Plots"]
+      - ["Part-of-whole", "Bar chart in most cases — pie charts are usually a poor choice", "This lesson, below"]
+      - ["Composition over time (parts of a whole, changing)", "Stacked area chart or stacked bar chart", "Time Series Visualization"]
+      - ["Two categorical dimensions, one numeric value (density/intensity)", "Heatmap", "Heatmaps"]
+  - type: callout
+    variant: important
+    title: "Ask this question first, every time"
+    body: >
+      "What am I actually comparing?" comes before "which library do I use" and long before "what colors
+      should this be." A technically well-executed chart that answers the wrong comparison — a line
+      chart connecting unrelated categories, a pie chart with nine slices — is still a bad chart, no
+      matter how clean the code behind it is.
+  - type: heading
+    text: "Why pie charts specifically deserve a closer look"
+  - type: text
+    body: >
+      Pie charts are worth calling out on their own, because they're one of the most commonly *requested*
+      chart types and one of the most commonly *wrong* choices. The problem isn't aesthetic — it's
+      perceptual. Human vision is measurably better at comparing the length of bars (a single dimension,
+      aligned to a common baseline) than at comparing the angle or area of pie slices (two dimensions, no
+      shared baseline). The result: a bar chart lets someone rank five categories correctly in a glance;
+      a pie chart with the same five categories often requires reading the percentage labels to be sure.
+  - type: comparison
+    title: "The same part-of-whole data, two ways"
+    columns: ["", "Pie chart", "Sorted bar chart"]
+    rows:
+      - ["Ranking categories by size", "Hard once slices are close in size or there are more than 3-4", "Immediate — bars are sorted top to bottom or left to right"]
+      - ["Comparing two specific categories precisely", "Requires reading labels", "Direct visual comparison of bar length"]
+      - ["Scales to more categories", "Falls apart past 5-6 slices — labels overlap, slices become slivers", "Scales gracefully — just gets taller/wider"]
+      - ["When it's defensible", "A single, simple 2-category split where 'roughly this fraction' is the whole point", "Almost always — rarely worse than a pie, even for 2 categories"]
+  - type: callout
+    variant: common_mistake
+    title: "'The stakeholder asked for a pie chart'"
+    body: >
+      This happens constantly, and it's worth pushing back on gently: show the sorted bar chart version
+      alongside (or instead of) the pie chart, and let the improved readability make the case. Most
+      requests for a pie chart are really requests to see "how do these parts compare" — which a bar
+      chart answers better, not worse.
+  - type: heading
+    text: "A worked framework check, using this course's data"
+  - type: code
+    language: python
+    code: |
+      import pandas as pd
+
+      orders = pd.read_csv("data/sample/ecommerce/orders.csv")
+      order_items = pd.read_csv("data/sample/ecommerce/order_items.csv")
+      order_items["line_revenue"] = (
+          (order_items["unit_price"] - order_items["discount"]) * order_items["quantity"]
+      )
+      order_value = order_items.groupby("order_id")["line_revenue"].sum().rename("order_value")
+      orders = orders.merge(order_value, on="order_id", how="left")
+      completed = orders[orders["status"] == "completed"]
+
+      revenue_by_channel = completed.groupby("channel")["order_value"].sum().sort_values(ascending=False)
+      print(revenue_by_channel.round(2))
+    caption: "The kind of question this framework routes to a bar chart: comparison across categories"
+  - type: output
+    body: |
+      channel
+      web            3204469.02
+      mobile         2032897.82
+      marketplace     565261.31
+      Name: order_value, dtype: float64
+    caption: Real output
+  - type: text
+    body: >
+      This is a comparison across three categories (channel) — squarely a bar chart's job, per the
+      framework above, not a line chart (there's no time axis) and not a scatter plot (there's no second
+      numeric variable). The Bar Charts lesson, next, picks up exactly this data and builds it out —
+      including sorting it meaningfully rather than alphabetically, which the sort above has already
+      set up.
+  - type: question
+    prompt: "A stakeholder wants to see how the revenue mix across three sales channels (web, mobile, marketplace) has looked historically, and asks for a pie chart. What would you suggest instead, and why?"
+    choices:
+      - "A sorted bar chart — it lets viewers accurately compare and rank the three channels' revenue at a glance, which a pie chart makes harder once there's more than a couple of slices"
+      - "A pie chart is the correct choice here and shouldn't be changed"
+      - "A scatter plot, since it shows more precise numeric detail than either a pie or bar chart"
+    correct_index: 0
+    explanation: >
+      This is a part-of-whole / categorical comparison — exactly the case where a sorted bar chart
+      communicates the ranking and relative size of each channel's revenue more accurately than a pie
+      chart, which relies on the eye comparing angles and areas rather than bar lengths against a shared
+      baseline.

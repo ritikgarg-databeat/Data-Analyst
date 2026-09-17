@@ -1,0 +1,99 @@
+slug: exp-required-sample-size-for-mde
+lesson_slug: exp-sample-size-calculator-walkthrough
+skill: experimentation
+dataset: saas-product
+title: How Many Users Would This Test Actually Need?
+description: Compute the required per-group sample size to reliably detect a 10% relative lift over checkout_redesign's real baseline conversion rate.
+exercise_type: PYTHON
+difficulty: ADVANCED
+points: 20
+tags: [python, statistics, experimentation, ab-testing, saas, advanced]
+business_context: >
+  Before greenlighting an extension of the checkout redesign test, the experimentation team wants a
+  concrete number: how many users per group would actually be needed to reliably confirm (or rule out)
+  a 10% relative improvement in conversion, given today's real baseline rate?
+prompt: >
+  Using `experiment_assignments`, compute checkout_redesign's real control conversion rate as the
+  baseline. Using `statsmodels.stats.proportion.proportion_effectsize` and
+  `statsmodels.stats.power.NormalIndPower`, compute the minimum sample size needed **per group** to
+  detect, with 80% power at a two-sided alpha of 0.05, an effect at least as large as a 10% relative
+  lift over that baseline (i.e. a target rate of `baseline * 1.10`). Store your answer in a variable
+  named `result`: an integer, the required sample size per group, rounded **up** to the nearest whole
+  number.
+python_datasets: [experiment_assignments]
+python_starter_code: |
+  import numpy as np
+  from statsmodels.stats.proportion import proportion_effectsize
+  from statsmodels.stats.power import NormalIndPower
+
+  # experiment_assignments is already loaded as a DataFrame.
+  co = experiment_assignments[experiment_assignments["experiment_id"] == "checkout_redesign"]
+  control = co[co["variant"] == "control"]
+  baseline_rate = control["converted"].mean()
+  baseline_rate
+python_solution_code: |
+  import numpy as np
+  from statsmodels.stats.proportion import proportion_effectsize
+  from statsmodels.stats.power import NormalIndPower
+
+  co = experiment_assignments[experiment_assignments["experiment_id"] == "checkout_redesign"]
+  control = co[co["variant"] == "control"]
+  baseline_rate = control["converted"].mean()
+  target_rate = baseline_rate * 1.10
+
+  effect_size = proportion_effectsize(target_rate, baseline_rate)
+  n_per_group = NormalIndPower().solve_power(
+      effect_size=effect_size, alpha=0.05, power=0.80, ratio=1, alternative="two-sided"
+  )
+  result = int(np.ceil(n_per_group))
+python_result_variable: result
+python_numeric_tolerance: 2
+python_hidden_tests:
+  - name: "Required sample size matches a live recomputation"
+    code: |
+      import numpy as np
+      from statsmodels.stats.proportion import proportion_effectsize
+      from statsmodels.stats.power import NormalIndPower
+
+      co = experiment_assignments[experiment_assignments["experiment_id"] == "checkout_redesign"]
+      control = co[co["variant"] == "control"]
+      baseline_rate = control["converted"].mean()
+      target_rate = baseline_rate * 1.10
+      effect_size = proportion_effectsize(target_rate, baseline_rate)
+      n_expected = NormalIndPower().solve_power(
+          effect_size=effect_size, alpha=0.05, power=0.80, ratio=1, alternative="two-sided"
+      )
+      assert abs(result - np.ceil(n_expected)) <= 2, f"Expected roughly {int(np.ceil(n_expected))}, got {result}"
+  - name: "Required sample size should be far larger than the real test's actual 1,000 users per group"
+    code: |
+      assert result > 5000, (
+          "checkout_redesign's real observed effect is small relative to its variance — detecting a "
+          "10% relative lift over an ~11.3% baseline should require well over 5,000 users per group."
+      )
+hints:
+  - "`proportion_effectsize(prop2, prop1)` from statsmodels converts two raw proportions into Cohen's h effect size, which is what `NormalIndPower` expects — pass the target rate as the first argument and the baseline as the second."
+  - "`NormalIndPower().solve_power(effect_size=..., alpha=0.05, power=0.80, ratio=1, alternative='two-sided')` solves for the missing `nobs1` when you don't pass it — that's the per-group sample size."
+solution: |
+  ```python
+  import numpy as np
+  from statsmodels.stats.proportion import proportion_effectsize
+  from statsmodels.stats.power import NormalIndPower
+
+  co = experiment_assignments[experiment_assignments["experiment_id"] == "checkout_redesign"]
+  control = co[co["variant"] == "control"]
+  baseline_rate = control["converted"].mean()
+  target_rate = baseline_rate * 1.10
+
+  effect_size = proportion_effectsize(target_rate, baseline_rate)
+  n_per_group = NormalIndPower().solve_power(
+      effect_size=effect_size, alpha=0.05, power=0.80, ratio=1, alternative="two-sided"
+  )
+  result = int(np.ceil(n_per_group))
+  ```
+explanation: >
+  checkout_redesign's real control conversion rate is 11.3% (113/1,000). Targeting a 10% relative lift
+  means detecting a move to about 12.43%. Plugging that effect size into a standard two-proportion power
+  calculation at alpha=0.05 (two-sided) and 80% power gives a required sample size of about 12,849 users
+  per group — nearly 13 times the 1,000 users per group the real test actually ran with. That gap is
+  exactly why the real test's p-value (~0.41) came back non-significant despite showing a promising
+  direction: the study never had enough data to reliably detect an effect this size in the first place.

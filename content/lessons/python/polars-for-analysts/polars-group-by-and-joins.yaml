@@ -1,0 +1,181 @@
+slug: polars-group-by-and-joins
+module_slug: polars-for-analysts
+title: ".group_by().agg() and .join(): Aggregating and Combining Data"
+description: Polars' group_by (note the underscore) and join — the same concepts as pandas groupby and merge, worked through against the real ecommerce data.
+difficulty: INTERMEDIATE
+estimated_minutes: 12
+display_order: 4
+objectives:
+  - Aggregate a Polars DataFrame with .group_by().agg(), including multiple aggregations at once
+  - Combine two Polars DataFrames with .join(), specifying the join key and join type
+  - Build a multi-table Polars pipeline against the ecommerce data equivalent to a pandas groupby + merge pipeline
+prerequisites: [polars-select-and-filter]
+skills: [pandas]
+datasets: [ecommerce]
+tags: [python, intermediate, real-world]
+key_takeaways:
+  - "Polars spells grouping .group_by() — with an underscore — not pandas' .groupby(). It's a small spelling difference that trips up almost everyone switching between the two libraries at first."
+  - ".agg() takes a list of expressions, so you compute several aggregations (sum, mean, count) in one call, each with its own .alias() to name the output column — there's no separate .rename() step needed afterward."
+  - ".join() replaces pandas' .merge() — the concepts (on, how='left'/'inner'/'outer') carry over directly, just as a method on the DataFrame rather than a top-level pd.merge() function."
+common_mistakes:
+  - "Typing .groupby() out of pandas muscle memory — Polars will raise an AttributeError, since the method is named .group_by() with an underscore."
+  - "Forgetting pl.len() (or an aggregation like .count()) needs its own .alias() inside .agg() — without one, Polars auto-names the output column something like 'len', which is easy to misread as a bug rather than the default name."
+  - "Joining on a key that has a different dtype in each DataFrame (e.g. one table's customer_id is read as a string, the other's as an integer) — Polars' stricter typing will raise a clear error here rather than silently producing zero matches the way a looser join might."
+practical_applications:
+  - "Computing revenue by customer segment by joining orders to customers and order_items to orders, then aggregating — the same shape of pipeline you'd build in pandas with .merge() and .groupby(), just with Polars syntax and, on larger data, meaningfully less wall-clock time."
+  - "Building a daily or weekly rollup table (order count, total revenue, average order value) as a scheduled step in a larger pipeline, where the group_by().agg() pattern is the core of the transformation."
+interview_questions:
+  - question: "What's the Polars equivalent of pandas' df.groupby('col').agg({'x': 'sum', 'y': 'mean'})?"
+    answer: "df.group_by('col').agg([pl.col('x').sum().alias('x'), pl.col('y').mean().alias('y')]) — note the underscore in group_by, and that each aggregation is its own expression built from pl.col(...), typically given an explicit .alias() rather than relying on pandas' dictionary-based aggregation spec."
+  - question: "How does a Polars .join() compare to pandas' .merge()?"
+    answer: "They do the same job — combining two DataFrames on a shared key — with the same join types (inner, left, outer/full, etc.) available. The main difference is that Polars exposes it as a DataFrame method, df1.join(df2, on='key', how='left'), rather than pandas' top-level pd.merge(df1, df2, on='key', how='left') function (pandas also has a .merge() DataFrame method, which is closer in shape to Polars' .join())."
+resources:
+  - title: "Polars User Guide — Aggregation"
+    url: "https://docs.pola.rs/user-guide/expressions/aggregation/"
+  - title: "Polars User Guide — Joins"
+    url: "https://docs.pola.rs/user-guide/transformations/joins/"
+blocks:
+  - type: text
+    body: >
+      The two workhorse operations of almost any real analysis — "summarize by group" and "combine two
+      tables" — exist in Polars too, and the concepts map directly onto what you already know from
+      pandas' `.groupby()` and `.merge()`. The syntax differs in a few specific, memorable ways.
+  - type: heading
+    text: ".group_by() — with an underscore"
+  - type: callout
+    variant: warning
+    title: The single most common typo when switching from pandas
+    body: >
+      pandas: `.groupby()`. Polars: `.group_by()`. That's it — that's the whole trap. Muscle memory
+      from pandas will make you type `.groupby()` in Polars code constantly at first; it raises an
+      `AttributeError` rather than silently doing the wrong thing, so at least you'll notice quickly.
+  - type: code
+    language: python
+    code: |
+      import polars as pl
+
+      oi = pl.read_csv("data/sample/ecommerce/order_items.csv")
+
+      oi = oi.with_columns(
+          ((pl.col("unit_price") - pl.col("discount")) * pl.col("quantity")).alias("line_revenue")
+      )
+
+      top_products = (
+          oi.group_by("product_id")
+          .agg(
+              pl.col("line_revenue").sum().alias("total_revenue"),
+              pl.len().alias("n_lines"),
+          )
+          .sort("total_revenue", descending=True)
+      )
+      print(top_products.head(5))
+    caption: "Computing per-line revenue, then aggregating by product — .with_columns() adds a column, much like pandas' assignment"
+  - type: output
+    body: |
+      shape: (5, 3)
+      ┌────────────┬───────────────┬─────────┐
+      │ product_id ┆ total_revenue ┆ n_lines │
+      │ ---        ┆ ---           ┆ ---     │
+      │ i64        ┆ f64           ┆ u32     │
+      ╞════════════╪═══════════════╪═════════╡
+      │ 21         ┆ 113198.92     ┆ 106     │
+      │ 86         ┆ 112413.79     ┆ 106     │
+      │ 119        ┆ 110366.44     ┆ 105     │
+      │ 96         ┆ 108033.48     ┆ 93      │
+      │ 56         ┆ 105519.85     ┆ 106     │
+      └────────────┴───────────────┴─────────┘
+    caption: Real output — product 21 leads with $113,198.92 in total line revenue
+  - type: text
+    body: >
+      Every aggregation you pass to `.agg()` is its own expression, and `pl.len()` (the row-count
+      equivalent of pandas' `.size()`) needs an explicit `.alias()` if you want a readable output
+      column name rather than the default.
+  - type: heading
+    text: ".join() — the same concepts as pandas .merge()"
+  - type: code
+    language: python
+    code: |
+      customers = pl.read_csv("data/sample/ecommerce/customers.csv")
+      orders = pl.read_csv("data/sample/ecommerce/orders.csv")
+
+      order_totals = (
+          oi.group_by("order_id")
+          .agg(pl.col("line_revenue").sum().alias("order_value"))
+      )
+
+      completed = (
+          orders.filter(pl.col("status") == "completed")
+          .join(order_totals, on="order_id", how="left")
+          .join(customers.select(["customer_id", "customer_segment"]), on="customer_id", how="left")
+      )
+      print(completed.head(3))
+    caption: "Joining order totals onto orders, then joining customer segment onto that — chained .join() calls"
+  - type: output
+    body: |
+      shape: (3, 7)
+      ┌──────────┬─────────────┬────────────┬───────────┬─────────┬─────────────┬───────────────────┐
+      │ order_id ┆ customer_id ┆ order_date ┆ status    ┆ channel ┆ order_value ┆ customer_segment  │
+      │ ---      ┆ ---         ┆ ---        ┆ ---       ┆ ---     ┆ ---         ┆ ---               │
+      │ i64      ┆ i64         ┆ str        ┆ str       ┆ str     ┆ f64         ┆ str               │
+      ╞══════════╪═════════════╪════════════╪═══════════╪═════════╪═════════════╪═══════════════════╡
+      │ 1        ┆ 1           ┆ 2025-10-18 ┆ completed ┆ mobile  ┆ 75.89       ┆ business          │
+      │ 2        ┆ 1           ┆ 2025-12-16 ┆ completed ┆ web     ┆ 1414.56     ┆ business          │
+      │ 3        ┆ 2           ┆ 2025-09-29 ┆ completed ┆ web     ┆ 1616.94     ┆ business          │
+      └──────────┴─────────────┴────────────┴───────────┴─────────┴─────────────┴───────────────────┘
+    caption: Real output
+  - type: heading
+    text: "Full worked example: average order value by customer segment"
+  - type: code
+    language: python
+    code: |
+      result = (
+          completed.group_by("customer_segment")
+          .agg(
+              pl.col("order_value").mean().alias("avg_order_value"),
+              pl.col("order_value").sum().alias("total_revenue"),
+              pl.len().alias("n_orders"),
+          )
+          .sort("customer_segment")
+      )
+      print(result)
+    caption: One group_by + three aggregations, on the joined result
+  - type: output
+    body: |
+      shape: (2, 4)
+      ┌───────────────────┬──────────────────┬───────────────┬──────────┐
+      │ customer_segment  ┆ avg_order_value  ┆ total_revenue ┆ n_orders │
+      │ ---               ┆ ---              ┆ ---           ┆ ---      │
+      │ str                ┆ f64              ┆ f64           ┆ u32     │
+      ╞═══════════════════╪══════════════════╪═══════════════╪══════════╡
+      │ business           ┆ 1659.80          ┆ 1696300.0     ┆ 1022     │
+      │ consumer           ┆ 1697.53          ┆ 4106300.0     ┆ 2419     │
+      └───────────────────┴──────────────────┴───────────────┴──────────┘
+    caption: "Real output (rounded for readability) — consumer orders are both more numerous and slightly higher-value on average here"
+  - type: heading
+    text: The direct pandas comparison
+  - type: comparison
+    title: "The same 3-step pipeline, pandas vs. Polars"
+    columns: ["Step", "pandas", "Polars"]
+    rows:
+      - ["Group and sum", "oi.groupby('order_id')['line_revenue'].sum()", 'oi.group_by("order_id").agg(pl.col("line_revenue").sum())']
+      - ["Multiple aggregations", "oi.groupby('product_id').agg(total=('line_revenue','sum'), n=('line_revenue','size'))", 'oi.group_by("product_id").agg(pl.col("line_revenue").sum().alias("total"), pl.len().alias("n"))']
+      - ["Join two tables", "orders.merge(customers, on='customer_id', how='left')", 'orders.join(customers, on="customer_id", how="left")']
+      - ["Join key spelling", "on= (top-level pd.merge or .merge() method)", "on= (always a .join() DataFrame method)"]
+  - type: callout
+    variant: tip
+    title: Chaining group_by().agg() results straight into a join
+    body: >
+      Because .group_by().agg() returns a DataFrame (or LazyFrame), you can build an aggregate table
+      and immediately .join() it back onto a wider table in one expression, exactly as the worked
+      example above joins order_totals onto orders. This chains just as naturally as it does in
+      pandas with .merge() after a .groupby().agg().reset_index().
+  - type: question
+    prompt: "In Polars, what is the correct method name for grouping rows before aggregating?"
+    choices:
+      - ".group_by()"
+      - ".groupby()"
+      - ".group()"
+    correct_index: 0
+    explanation: >
+      Polars uses .group_by() with an underscore — the single most common spelling trip-up for anyone
+      coming from pandas' .groupby(). Typing the pandas spelling in Polars raises an AttributeError.

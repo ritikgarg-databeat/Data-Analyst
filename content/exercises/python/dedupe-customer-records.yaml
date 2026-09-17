@@ -1,0 +1,80 @@
+slug: dedupe-customer-records
+lesson_slug: duplicates
+skill: data-cleaning
+dataset: ecommerce
+title: Keep Only the Most Recent Customer Record
+description: Deduplicate customer records that were updated more than once, keeping only each customer's most recent version.
+exercise_type: PYTHON
+difficulty: INTERMEDIATE
+points: 20
+tags: [python, intermediate, real-world]
+business_context: >
+  A sync job that pulls customer records from the CRM ran twice on the same day for a couple of
+  customers whose profiles changed mid-day, leaving two rows for the same customer_id in the export
+  — the ops team only wants each customer's latest version before loading this into the warehouse.
+prompt: >
+  Given a DataFrame `df` of 5 customer records where `customer_id` 1 and `customer_id` 2 each
+  appear twice (identical except for their `updated_at` timestamp) and `customer_id` 3 appears
+  once, keep only the most recently updated row for each customer. Store your answer in a variable
+  named `result`: a DataFrame with exactly one row per unique `customer_id`, keeping the row with
+  the latest `updated_at` value for any customer that had duplicates.
+python_datasets: []
+python_starter_code: |
+  df = pd.DataFrame({
+      "customer_id": [1, 1, 2, 2, 3],
+      "email": ["ana@example.com", "ana@example.com", "ben@example.com", "ben@example.com", "cleo@example.com"],
+      "updated_at": ["2024-01-01", "2024-03-15", "2024-02-01", "2024-02-20", "2024-01-10"],
+  })
+  df["updated_at"] = pd.to_datetime(df["updated_at"])
+
+  # customer_id 1 and 2 each have two rows (a stale one and a more recent one).
+  # Keep only the most recently updated row per customer_id and store it in `result`.
+python_solution_code: |
+  df = pd.DataFrame({
+      "customer_id": [1, 1, 2, 2, 3],
+      "email": ["ana@example.com", "ana@example.com", "ben@example.com", "ben@example.com", "cleo@example.com"],
+      "updated_at": ["2024-01-01", "2024-03-15", "2024-02-01", "2024-02-20", "2024-01-10"],
+  })
+  df["updated_at"] = pd.to_datetime(df["updated_at"])
+  result = (
+      df.sort_values("updated_at")
+      .drop_duplicates(subset="customer_id", keep="last")
+      .reset_index(drop=True)
+  )
+python_result_variable: result
+python_row_order_matters: false
+python_numeric_tolerance: 0.000001
+python_hidden_tests:
+  - name: "Exactly one row per customer_id"
+    code: |
+      assert len(result) == 3, f"Expected 3 rows (one per unique customer_id), got {len(result)}"
+      assert result["customer_id"].is_unique, "customer_id should be unique in the deduplicated result."
+  - name: "The kept row for customer 1 is the most recent one"
+    code: |
+      kept = result.loc[result["customer_id"] == 1, "updated_at"].iloc[0]
+      assert kept == pd.Timestamp("2024-03-15"), f"Expected the later 2024-03-15 record to be kept for customer 1, got {kept}"
+hints:
+  - "Sorting isn't strictly required, but it makes 'most recent' explicit: if you sort by updated_at ascending first, the last occurrence of each customer_id in the sorted order is automatically its most recent record."
+  - "df.sort_values('updated_at').drop_duplicates(subset='customer_id', keep='last') sorts oldest-to-newest, then keeps only the last (i.e. most recent) row it sees for each customer_id."
+solution: |
+  ```python
+  df = pd.DataFrame({
+      "customer_id": [1, 1, 2, 2, 3],
+      "email": ["ana@example.com", "ana@example.com", "ben@example.com", "ben@example.com", "cleo@example.com"],
+      "updated_at": ["2024-01-01", "2024-03-15", "2024-02-01", "2024-02-20", "2024-01-10"],
+  })
+  df["updated_at"] = pd.to_datetime(df["updated_at"])
+  result = (
+      df.sort_values("updated_at")
+      .drop_duplicates(subset="customer_id", keep="last")
+      .reset_index(drop=True)
+  )
+  ```
+explanation: >
+  A strong answer sorts by the timestamp column first so that "keep the last occurrence" and "keep
+  the most recent record" mean the same thing, then deduplicates on the business key
+  (`customer_id`) rather than on every column — deduplicating on every column would only catch exact
+  duplicate rows, not two different snapshots of the same customer. A common mistake is calling
+  `drop_duplicates(subset="customer_id")` without sorting first (or without `keep="last"`), which
+  silently keeps whichever row happens to appear first in the original data — the stale one, in this
+  case — rather than the most recently updated one.

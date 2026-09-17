@@ -1,0 +1,167 @@
+slug: outliers-in-pandas
+module_slug: pandas-data-cleaning
+title: Outliers
+description: "Detecting outliers with the IQR method and a z-score threshold, and treating the decision to cap, remove, or flag them as a judgment call, not a mechanical rule."
+difficulty: BEGINNER
+estimated_minutes: 13
+display_order: 6
+objectives:
+  - Detect outliers using the IQR (quantile) method and a z-score threshold
+  - "Compare capping, removing, and flagging as three different responses to an outlier"
+  - Recognize that deciding what to do with an outlier depends on the business question, not a fixed formula
+prerequisites: [date-parsing]
+skills: [pandas]
+datasets: [ecommerce]
+tags: [python, beginner, real-world]
+key_takeaways:
+  - "The IQR method flags a value as an outlier if it falls more than 1.5x the interquartile range (Q3 minus Q1) below Q1 or above Q3 — it's a rule of thumb that adapts to each column's own spread, not a fixed threshold."
+  - "A z-score measures how many standard deviations a value is from the mean; |z| > 3 is a common cutoff, but it assumes something close to a normal distribution, which real business data (revenue, payments) often isn't."
+  - "Detecting an outlier and deciding what to do with it are two separate steps — cap it (clip extreme values to a boundary), remove it, or flag it and keep it, depending entirely on whether the extreme value is an error or a real, important data point."
+  - "A $6,370 payment isn't automatically wrong just because it's statistically unusual — it might be your single biggest customer having a great month. Treating 'unusual' as synonymous with 'wrong' is the single most common mistake in outlier handling."
+common_mistakes:
+  - "Dropping every statistical outlier automatically, without checking whether the value represents a real, legitimate event (a bulk order, a VIP customer) rather than a data error."
+  - "Applying the IQR or z-score formula mechanically and reporting the result as 'the' outliers, instead of treating the threshold (1.5x IQR, |z| > 3, or any other) as a starting point to inspect, not a final answer."
+  - "Removing outliers before understanding what they represent, then being unable to explain to a stakeholder why a legitimately large transaction is missing from a report."
+blocks:
+  - type: text
+    body: >
+      An outlier is a value that sits unusually far from the rest of a column's distribution. Detecting
+      one is mechanical — the two methods below are both a few lines of pandas. Deciding what to *do*
+      about it is not, and that judgment call is really the point of this lesson.
+  - type: heading
+    text: Real payment amounts
+  - type: code
+    language: python
+    code: |
+      import pandas as pd
+
+      payments = pd.read_csv("data/sample/ecommerce/payments.csv")
+      print(payments["amount"].describe())
+    caption: 3,699 real payments — note the gap between the 75th percentile and the max
+  - type: output
+    body: |
+      count    3699.000000
+      mean     1689.148554
+      std      1076.537066
+      min         9.450000
+      25%       840.115000
+      50%      1571.010000
+      75%      2368.515000
+      max      6370.390000
+      Name: amount, dtype: float64
+  - type: heading
+    text: "Method 1: IQR (interquartile range)"
+  - type: code
+    language: python
+    code: |
+      q1 = payments["amount"].quantile(0.25)
+      q3 = payments["amount"].quantile(0.75)
+      iqr = q3 - q1
+
+      lower = q1 - 1.5 * iqr
+      upper = q3 + 1.5 * iqr
+      print(f"Q1={q1:.2f}  Q3={q3:.2f}  IQR={iqr:.2f}  lower={lower:.2f}  upper={upper:.2f}")
+
+      outliers = payments[(payments["amount"] < lower) | (payments["amount"] > upper)]
+      print(len(outliers))
+    caption: "1.5x the IQR beyond Q1/Q3 is the classic rule of thumb (it's also the rule behind a boxplot's whiskers)"
+  - type: output
+    body: |
+      Q1=840.12  Q3=2368.51  IQR=1528.40  lower=-1452.48  upper=4661.11
+      41
+  - type: text
+    body: >
+      The lower bound came out negative (-1452.48), which makes sense — payment amounts can't actually go
+      below $9.45 (the real minimum), so nothing gets flagged on the low end. All 41 flagged rows are
+      unusually *large* payments, above $4,661.11.
+  - type: code
+    language: python
+    code: |
+      print(outliers[["payment_id", "order_id", "amount"]].sort_values("amount", ascending=False).head(5))
+    caption: The five largest flagged payments
+  - type: output
+    body: |
+            payment_id  order_id   amount
+            1016        1017      1166  6370.39
+            210          211       242  6172.92
+            1245        1246      1437  5941.12
+            3417        3418      3891  5789.28
+            3423        3424      3897  5664.75
+  - type: heading
+    text: "Method 2: z-score"
+  - type: code
+    language: python
+    code: |
+      mean = payments["amount"].mean()
+      std = payments["amount"].std()
+      z = (payments["amount"] - mean) / std
+
+      print((z.abs() > 3).sum())
+    caption: "z-score = (value - mean) / std — how many standard deviations away from average a value is"
+  - type: output
+    body: |
+      21
+  - type: callout
+    variant: important
+    title: The two methods don't agree, and that's expected
+    body: >
+      IQR flagged 41 payments; z-score with |z| > 3 flagged only 21. Neither is "more correct" in the
+      abstract — IQR is based on percentiles and doesn't assume any particular distribution shape;
+      z-score assumes something close to a normal (bell-curve) distribution, which right-skewed data like
+      payment amounts (a long tail of large transactions, a hard floor near zero) doesn't cleanly follow.
+      Picking a method means understanding which assumption fits your data, not defaulting to whichever
+      one is more familiar.
+  - type: heading
+    text: "Three responses: cap, remove, or flag"
+  - type: code
+    language: python
+    code: |
+      # Cap: clip extreme values down to the boundary, keep every row
+      capped = payments["amount"].clip(upper=upper)
+      print(capped.describe())
+  - type: output
+    body: |
+      count    3699.000000
+      mean     1684.149055
+      std      1060.550814
+      min         9.450000
+      25%       840.115000
+      50%      1571.010000
+      75%      2368.515000
+      max      4661.115000
+      Name: amount, dtype: float64
+  - type: code
+    language: python
+    code: |
+      # Flag: keep every value untouched, add a column marking what's unusual
+      flagged = payments.copy()
+      flagged["is_outlier"] = flagged["amount"] > upper
+      print(flagged["is_outlier"].sum())
+  - type: output
+    body: |
+      41
+  - type: table
+    headers: ["Response", "What it does", "When it fits"]
+    rows:
+      - ["Cap (clip)", "Extreme values are pulled in to a boundary; every row stays", "You want to limit an outlier's influence on a downstream average/model without losing the row entirely"]
+      - ["Remove", "Rows with extreme values are dropped", "You've confirmed the value is a genuine error (a data-entry typo, a duplicate, a broken sensor)"]
+      - ["Flag and keep", "Original value untouched; a new column marks it as unusual", "You want analysts to see and consciously account for the value, not have it silently altered or hidden"]
+  - type: callout
+    variant: interview_tip
+    title: "This is a judgment call — say so"
+    body: >
+      In an interview or a real analysis, resist the urge to state an outlier threshold as if it were a
+      law of nature. The strongest answer explains the trade-off: "I'd flag payments above $4,661 using
+      IQR, but before removing any of them I'd check whether they're legitimate large orders or likely
+      errors — a $6,370 payment could easily be a real bulk purchase, not a data quality problem."
+  - type: question
+    prompt: "The IQR method flags 41 payments as outliers, all of them unusually large. What should you do next?"
+    choices:
+      - "Investigate what those 41 payments actually represent before deciding to cap, remove, or flag them"
+      - "Automatically remove all 41 rows, since they fall outside the statistical threshold"
+      - "Automatically cap all 41 values at the upper bound, since capping is always the safest option"
+    correct_index: 0
+    explanation: >
+      Flagging with IQR (or z-score) identifies candidates for review — it doesn't tell you whether
+      they're errors or legitimate extreme values. The right next step is always to look at what's
+      actually driving the flagged rows before choosing how to treat them.

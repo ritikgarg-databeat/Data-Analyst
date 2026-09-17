@@ -1,0 +1,108 @@
+slug: de-data-quality-dimensions
+module_slug: data-quality-fundamentals
+title: The Five Data Quality Dimensions
+description: Completeness, uniqueness, validity, consistency, and freshness — a concrete vocabulary for naming exactly what's wrong with a dataset, grounded in the ecommerce tables.
+difficulty: INTERMEDIATE
+estimated_minutes: 25
+display_order: 1
+objectives:
+  - Define each of the five data quality dimensions and give a concrete example from the ecommerce dataset
+  - Distinguish a validity problem from a consistency problem when both can look like "the data is wrong"
+  - Translate a vague complaint like "the data looks off" into a specific, checkable data quality dimension
+prerequisites: [de-foundations-what-is-data-engineering]
+skills: [data-quality-engineering]
+datasets: [ecommerce]
+tags: [data-quality, data-engineering, validation, intermediate]
+key_takeaways:
+  - "Completeness asks whether required values are actually present (no unexpected NULLs); uniqueness asks whether something meant to be one-of-a-kind actually is (no duplicate `order_id`s)."
+  - "Validity asks whether a value is in the shape or range it's supposed to be (a `discount` should behave consistently as either a fraction or a percentage — not sometimes look like one and sometimes the other); consistency asks whether the same fact agrees with itself across different places it's recorded."
+  - "Freshness asks whether data is as current as it's supposed to be — a table that stops updating and no one notices is one of the most common and most silent data quality failures."
+  - "Naming which of these five dimensions is broken turns a vague \"the data looks wrong\" into something specific enough to actually investigate and fix."
+common_mistakes:
+  - "Treating every data problem as the same generic \"bad data,\" instead of identifying whether it's a completeness, uniqueness, validity, consistency, or freshness issue — each has a different root cause and a different fix."
+  - "Assuming a validity check (\"is this value in the right shape or range?\") also guarantees consistency (\"does this value agree with the same fact recorded elsewhere?\") — a value can be perfectly valid in isolation and still disagree with another system's version of the same fact."
+interview_questions:
+  - question: "A dashboard shows a country field with values \"US\", \"USA\", and \"United States\" all referring to the same country. Which data quality dimension does this violate, and how would you fix it going forward?"
+    answer: >
+      This is a consistency problem (the same real-world fact is represented multiple different
+      ways), not strictly a validity problem — each individual value might be a perfectly
+      well-formed string. The fix is standardizing to one canonical representation during
+      ingestion or transformation (a lookup/mapping table from any known variant to one standard
+      code), plus a validity check afterward (an accepted_values-style test) to catch any new,
+      unmapped variant that shows up later.
+blocks:
+  - type: heading
+    text: Naming the problem precisely
+  - type: text
+    body: >
+      "The data looks wrong" is a starting point, not a diagnosis. Five specific dimensions cover
+      almost everything that can actually be wrong with a dataset, and naming which one you're
+      looking at is usually the fastest route to actually fixing it.
+  - type: table
+    headers: ["Dimension", "The question it asks", "Example failure"]
+    rows:
+      - ["Completeness", "Are required values actually present?", "A chunk of `orders` rows land with `customer_id` set to NULL after an upstream schema change"]
+      - ["Uniqueness", "Is something meant to be one-of-a-kind actually unique?", "A retried API call inserts the same `order_id` twice"]
+      - ["Validity", "Is a value in the expected shape, type, or range?", "A `discount` value of 140 shows up in a column that's supposed to represent a percentage between 0 and 100"]
+      - ["Consistency", "Does the same fact agree with itself everywhere it's recorded?", "A customer's country is `\"US\"` in one table and `\"United States\"` in another"]
+      - ["Freshness", "Is the data as current as it's supposed to be?", "The `orders` table hasn't received a new row in three days, but the pipeline reports \"success\" every night"]
+  - type: example
+    title: "A real validity gotcha hiding in plain sight"
+    body: >
+      The `ecommerce` dataset's `order_items` table has a `discount` column. It's tempting to assume
+      a column named "discount" is a fraction between 0 and 1 (multiply by `unit_price` as
+      `1 - discount`) — but if the actual values in this column run from 0 up to nearly 100 (a
+      percentage, not a fraction), that assumption silently produces wildly wrong revenue figures:
+      a discount of 40 treated as a fraction would mean "subtract 4,000% of the price," turning a
+      real, positive sale into a large negative number. This is exactly a **validity** question —
+      not "is the column populated" (completeness) or "does it match another system" (consistency),
+      but "is this value in the range and shape I'm assuming it is." Before trusting any numeric
+      column's meaning, it's worth actually checking its `MIN`/`MAX` rather than assuming from the
+      name.
+  - type: code
+    language: sql
+    code: |
+      -- A quick validity sanity check: does this column's actual range match
+      -- what its name implies? Run before trusting any assumption about scale.
+      SELECT MIN(discount) AS min_discount, MAX(discount) AS max_discount
+      FROM order_items;
+      -- If this returns something like (0.0, 99.96), "discount" is a percentage
+      -- (0-100), not a fraction (0-1) — and every downstream formula needs to
+      -- divide by 100 accordingly.
+    caption: "A one-line validity check that would have caught the discount-scale assumption before it reached a report."
+  - type: heading
+    text: Validity vs. consistency — a common mix-up
+  - type: text
+    body: >
+      These two dimensions are easy to blur together because both can produce a value that "looks
+      wrong." The distinguishing question is: wrong compared to *what*? A validity check compares a
+      value against a rule about itself — its own expected range, type, or allowed set (a `status`
+      column should only ever contain a fixed list of strings). A consistency check compares a value
+      against *another representation of the same fact*, often in a different table or system (does
+      a customer's total order count computed from `orders` match the count shown in an external
+      CRM export?). A value can pass a validity check completely and still be inconsistent with
+      another system's record of the same underlying fact.
+  - type: callout
+    variant: common_mistake
+    title: "Freshness failures are quiet by design"
+    body: >
+      A pipeline that fails loudly gets fixed quickly. A pipeline that succeeds every night but
+      stops receiving new source data (a partner stopped sending files, an API credential silently
+      expired) can report "success" for days while every downstream table quietly goes stale. This
+      is why freshness needs its own explicit check — like "has this table received a new row in
+      the last N hours" — rather than being inferred from a pipeline's own success/failure status.
+  - type: question
+    prompt: >
+      A `payments` table shows a `payment_method` value of `"Credit_Card "` (with inconsistent
+      casing, an underscore, and a trailing space) alongside cleanly formatted values like
+      `"credit_card"` and `"paypal"`. Which data quality dimension does this most directly violate?
+    choices:
+      - "Freshness — the payment record is stale"
+      - "Validity — the value doesn't conform to the expected clean format/allowed set for this column"
+      - "Uniqueness — this payment record is a duplicate"
+    correct_index: 1
+    explanation: >
+      This is a validity issue: the value doesn't match the expected shape (clean, consistently
+      cased, no stray whitespace) for a categorical column, even though it's clearly meant to
+      represent the same real value as "credit_card." An accepted_values-style check against a
+      fixed set of allowed, standardized values would catch this immediately.

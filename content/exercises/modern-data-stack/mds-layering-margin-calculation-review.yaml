@@ -1,0 +1,75 @@
+slug: mds-layering-margin-calculation-review
+lesson_slug: dbt-models-refs-and-sources
+skill: data-pipelines
+dataset: ecommerce
+title: "Case: Which Layer Should Own an Order Margin Calculation?"
+description: Review a proposed transformation design (computing gross margin percentage directly inside a staging model) and recommend the correct layer for it, with reasoning grounded in staging/intermediate/mart layering principles.
+exercise_type: BUSINESS_REASONING
+difficulty: INTERMEDIATE
+points: 20
+tags: [data-engineering, architecture, grain, real-world, case-study, intermediate]
+business_context: >
+  A stakeholder has asked for a new metric on the orders dashboard: each order's gross margin percentage
+  (gross margin as a percent of gross revenue), which requires joining order line items to product cost
+  data that lives in a completely separate source table. An engineer on the team proposes the fastest
+  path to ship it: add the join and the percentage calculation directly inside the model that currently
+  does nothing but rename and clean the orders table's own columns, one-to-one, straight from the raw
+  orders source, with no joins at all today.
+
+  You've been asked to review this design before it's merged into the transformation pipeline.
+stakeholder: "Team lead reviewing a pull request before merge"
+constraints:
+  - "The pipeline already follows a staging -> intermediate -> marts layering convention, with staging models kept one-to-one with a single raw source and no cross-source joins."
+  - "Gross margin percentage is very likely to be needed by more than just the orders dashboard — a products/category margin report has already been requested informally by another team."
+prompt: >
+  Should the gross margin percentage calculation (joining order line items to product cost, then computing
+  margin as a percent of revenue) live inside the existing single-source staging model, or somewhere else
+  in the pipeline? Recommend a specific layer for this logic and justify it, including what breaks about
+  the proposed design and what the cost would be of leaving it as proposed.
+expected_deliverables:
+  - "A clear recommendation of which layer (staging, intermediate, or marts) should own the join-and-calculate logic, not just a rejection of the proposed design"
+  - "An explanation of what property of a staging model the proposed design would violate"
+  - "A concrete account of the downstream cost of leaving the logic in staging, grounded in the fact that a second consumer (a margin report) is already expected"
+hints:
+  - "A staging model's whole job is to standardize exactly one raw source, one-to-one — ask what happens to that contract the moment a second source table's data gets joined in."
+  - "This platform's real dbt project already draws this exact line: compare how int_order_items_priced.sql (a join across stg_order_items and stg_products) differs from stg_orders.sql (a single-source rename/clean)."
+rubric:
+  - criterion: "Identifies that a staging model is meant to be one-to-one with a single raw source and free of cross-source joins, and explains that joining in product cost data breaks that contract"
+    points: 6
+  - criterion: "Recommends a specific correct layer (an intermediate model, mirroring this project's real int_order_items_priced.sql, which joins stg_order_items to stg_products) rather than leaving the logic in staging or only vaguely gesturing at 'somewhere else'"
+    points: 7
+  - criterion: "Grounds the recommendation in the downstream cost of the proposed design: since a second consumer (a margin report) is already expected, duplicating the join-and-calculate logic into each new consuming model would risk drift if the calculation ever needs to change, versus writing it once in a shared intermediate model"
+    points: 7
+solution: >
+  This logic should not live in the staging model — it belongs in an intermediate model, the same layer
+  this project's own real int_order_items_priced.sql occupies for an almost identical calculation (joining
+  order line items to product cost to compute line-level margin).
+
+  What breaks about the proposed design: a staging model's contract is to be a thin, one-to-one
+  standardization of exactly one raw source — renaming and cleaning columns, with no joins across other
+  sources. Adding a join to product cost data inside the orders staging model breaks that contract in two
+  ways: the model stops being one-to-one with its source (a join can change its row count/grain if not
+  handled carefully), and it now silently depends on the products source too, even though nothing about
+  its name, its folder, or its position in the staging layer signals that dependency to the next person who
+  reads it.
+
+  Where it should live instead: an intermediate model — mirroring int_order_items_priced.sql exactly —
+  that joins stg_order_items to stg_products, computes line-level cost and margin, and leaves the
+  percentage-of-revenue calculation (a null-safe percentage, exactly the kind of thing this project's real
+  pct_of macro exists for) to be applied wherever it's actually consumed, whether that's the orders mart or
+  a future products/category margin mart.
+
+  The cost of leaving it in staging: the business context already names a second, informally-requested
+  consumer — a products/category margin report — that would need this exact same join-and-calculate logic.
+  If it's embedded inside the orders staging model, that second report either has to duplicate the same
+  join and calculation from scratch (risking the two diverging the next time the margin formula changes,
+  e.g. to account for shipping cost) or awkwardly depend on the orders staging model for logic that has
+  nothing conceptually to do with orders. Placing it once in a shared intermediate model means both the
+  orders mart and a future margin report can reference the same, single, tested calculation.
+explanation: >
+  A strong answer does more than say "don't put it in staging" — it names the correct layer (intermediate,
+  not marts, since this is reusable enrichment logic multiple marts would want, not a final BI-facing
+  table) and ties the recommendation to a concrete, already-signaled downstream cost (the informally
+  requested margin report) rather than an abstract "best practice" appeal. A weaker answer stops at
+  "staging models shouldn't have joins" without saying where the logic should actually go, or invents a
+  cost that isn't grounded in the scenario's own details.

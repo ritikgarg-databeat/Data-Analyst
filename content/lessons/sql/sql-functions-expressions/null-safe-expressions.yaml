@@ -1,0 +1,111 @@
+slug: null-safe-expressions
+module_slug: sql-functions-expressions
+title: Null-Safe Expressions
+description: COALESCE for defaults, NULLIF for guarding against bad values, and CAST for explicit type conversion.
+difficulty: BEGINNER
+estimated_minutes: 10
+display_order: 5
+objectives:
+  - Substitute a fallback value for NULL with COALESCE, choosing among more than two alternatives if needed
+  - Use NULLIF to turn a specific value into NULL, most commonly to guard a division against a zero denominator
+  - Convert a value from one type to another explicitly with CAST, and explain why that's sometimes required
+prerequisites: [advanced-case-expressions]
+skills: [sql-fundamentals]
+datasets: [ecommerce]
+tags: [sql, beginner]
+key_takeaways:
+  - "COALESCE(expr1, expr2, ..., exprN) returns the first argument that isn't NULL, checked left to right — it can take more than two arguments, unlike a plain fallback that only handles one case."
+  - "NULLIF(a, b) returns NULL if a equals b, otherwise it returns a. Its most common use is defensive: NULLIF(denominator, 0) turns a zero denominator into NULL before a division, so the division returns NULL instead of erroring."
+  - CAST(value AS type) explicitly converts a value's type. It matters most when a value's stored type doesn't match what an operation expects, or when a query needs to control exactly how a value is compared or displayed.
+common_mistakes:
+  - "Using COALESCE to \"fix\" a NULL that resulted from an unmatched LEFT JOIN, without first asking whether the NULL is actually meaningful (e.g. \"this customer placed no orders\") — sometimes the right fix is to keep the NULL, not paper over it with a default."
+  - "Forgetting that NULLIF's comparison is exact — NULLIF(status, 'Cancelled') does nothing to a row where status is the differently-cased 'cancelled', because the two strings aren't equal as far as NULLIF is concerned."
+blocks:
+  - type: heading
+    text: COALESCE with more than one fallback
+  - type: text
+    body: >
+      sql-fundamentals introduced COALESCE(column, default) with a single fallback. COALESCE actually
+      accepts any number of arguments and returns the first one that isn't NULL, checked in order —
+      useful when there's a preferred value, a secondary source, and only then a hardcoded default.
+  - type: code
+    language: sql
+    caption: Preferring a campaign's channel, falling back to 'organic' for direct traffic
+    code: |
+      SELECT
+        s.session_id,
+        s.marketing_campaign_id,
+        mc.channel,
+        COALESCE(mc.channel, 'organic') AS attributed_channel
+      FROM sessions s
+      LEFT JOIN marketing_campaigns mc ON mc.campaign_id = s.marketing_campaign_id
+      LIMIT 5;
+  - type: text
+    body: >
+      Here, a session with no marketing_campaign_id never matches a row in marketing_campaigns, so the
+      LEFT JOIN leaves mc.channel as NULL for it — that's a real, meaningful NULL (this visit came from
+      organic or direct traffic, not a tracked campaign). COALESCE turns that NULL into the label
+      'organic' for reporting, without losing the underlying distinction: the raw mc.channel column
+      is still there, NULL, right next to it.
+  - type: heading
+    text: NULLIF for guarding against a specific value
+  - type: text
+    body: >
+      NULLIF works in the opposite direction: NULLIF(a, b) compares a to b, and if they're equal it
+      returns NULL instead of a. If they're not equal, it just returns a unchanged. The single most
+      common use is guarding a division: dividing by zero is an error in SQL, but dividing by NULL
+      just produces NULL — a huge difference in whether a query keeps running.
+  - type: example
+    title: Average dollars per line item, safe against an order with zero items
+    body: >
+      COUNT(oi.order_item_id) is the number of line items on a payment's order. If that count were
+      ever 0, dividing by it directly would error. Wrapping it in NULLIF(..., 0) converts a zero count
+      into NULL first, so the division safely returns NULL for that row instead of failing the whole
+      query.
+    code: |
+      SELECT
+        p.payment_id,
+        p.amount,
+        COUNT(oi.order_item_id) AS item_count,
+        p.amount / NULLIF(COUNT(oi.order_item_id), 0) AS amount_per_item
+      FROM payments p
+      JOIN order_items oi ON oi.order_id = p.order_id
+      GROUP BY p.payment_id, p.amount
+      LIMIT 5;
+    language: sql
+  - type: callout
+    variant: tip
+    title: COALESCE and NULLIF are mirror images
+    body: >
+      COALESCE turns NULL into something else. NULLIF turns something else into NULL. Once that
+      pairing clicks, it's easy to reach for the right one — "I have a NULL I want to replace" is
+      COALESCE, "I have a specific value I want treated as missing" is NULLIF.
+  - type: heading
+    text: CAST for explicit type conversion
+  - type: text
+    body: >
+      CAST(value AS type) converts value to the target type explicitly. Some conversions SQL will do
+      automatically (an integer used somewhere a decimal is expected), but others need to be spelled
+      out — turning a date into text for concatenation, parsing a numeric string, or making sure a
+      whole-number column is treated as a decimal before dividing so the result isn't truncated by an
+      integer-only division rule some databases apply.
+  - type: code
+    language: sql
+    caption: Casting a date to text so it can be concatenated
+    code: |
+      SELECT
+        order_id,
+        'Order placed on ' || CAST(order_date AS VARCHAR) AS order_summary
+      FROM orders
+      LIMIT 5;
+  - type: question
+    prompt: "A report computes total_revenue / NULLIF(order_count, 0) AS avg_order_value. For a category with order_count = 0, what does avg_order_value come back as?"
+    choices:
+      - "An error, because dividing by zero is never allowed"
+      - "0, because SQL treats an empty division as zero"
+      - "NULL, because NULLIF converted the 0 denominator to NULL before the division ran"
+    correct_index: 2
+    explanation: >
+      NULLIF(order_count, 0) checks order_count against 0; when they match, it returns NULL instead
+      of 0. The division then runs as total_revenue / NULL, which evaluates to NULL rather than
+      raising a divide-by-zero error — exactly the point of wrapping the denominator this way.

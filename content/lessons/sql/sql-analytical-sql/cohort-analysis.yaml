@@ -1,0 +1,135 @@
+slug: cohort-analysis
+module_slug: sql-analytical-sql
+title: Cohort Analysis
+description: Grouping customers by the month they signed up, then measuring how their behavior evolves over time since that signup — the foundation of retention and lifecycle analysis.
+difficulty: ADVANCED
+estimated_minutes: 14
+display_order: 1
+objectives:
+  - Define a cohort and explain why grouping by signup period reveals patterns that grouping by calendar month hides
+  - Compute a "months since signup" offset for every event tied to a customer
+  - Build a cohort table showing activity per cohort per months-since-signup bucket
+prerequisites: [combining-windows-with-aggregates]
+skills: [advanced-sql]
+datasets: [ecommerce]
+tags: [sql, advanced, business-analytics]
+key_takeaways:
+  - "A cohort is a group of customers who share a starting event — most commonly the calendar month they signed up. Cohort analysis compares cohorts on equal footing: month 3 for a January cohort vs. month 3 for a June cohort, not calendar month vs. calendar month."
+  - "The core technique is a date-diff between an event's date and the customer's cohort date, bucketed to whole months (or weeks) — that's what turns a raw order_date into an aligned 'months since signup' axis."
+  - "Cohort tables are usually built in two layers: first assign every customer to a cohort, then join that assignment onto whatever behavior you're measuring (orders, sessions, logins) and aggregate."
+common_mistakes:
+  - "Grouping by calendar month instead of months since signup — that answers 'how busy was March?' not 'how does a cohort's behavior change as it ages,' which is the whole point of cohort analysis."
+  - "Using DATE_DIFF on raw dates instead of truncating both dates to the start of the month first — a signup on Jan 31 and an order on Feb 1 is only 1 day apart but should count as 1 month since signup, not 0."
+practical_applications:
+  - "Answering 'do customers who signed up during our big Q4 promotion behave differently 6 months later than customers who signed up organically?'"
+  - "Feeding a retention curve or LTV curve, both of which are just a cohort table viewed a different way."
+blocks:
+  - type: heading
+    text: Comparing cohorts on the same timeline
+  - type: text
+    body: >
+      Every customer in the `customers` table has a `signup_date`. If you want to know "are customers
+      sticking around and buying again," comparing calendar months doesn't work well — a customer who
+      signed up in January has had 11 more months to order by December than a customer who signed up
+      in November. **Cohort analysis** fixes this by putting every customer on the same relative
+      timeline: instead of "what happened in March," it asks "what happened N months after this
+      customer signed up," for every customer, regardless of when they actually signed up.
+  - type: text
+    body: >
+      A cohort is just a group of customers who share a signup period — usually the calendar month.
+      Once every customer has a cohort, any later event (an order, a login, a support ticket) can be
+      re-expressed as "months since this customer's cohort started," and cohorts become directly
+      comparable to each other on that shared axis.
+  - type: code
+    language: sql
+    caption: Step 1 — assign every customer to a signup-month cohort
+    code: |
+      SELECT
+        customer_id,
+        DATE_TRUNC('month', signup_date) AS cohort_month
+      FROM customers;
+  - type: text
+    body: >
+      `DATE_TRUNC('month', signup_date)` rounds every signup date down to the first of its month, so a
+      customer who signed up on 2024-01-31 and one who signed up on 2024-01-03 land in the same
+      `2024-01-01` cohort. That truncation matters just as much on the event side — an order needs to
+      be truncated to its month too, before comparing it against the cohort month.
+  - type: code
+    language: sql
+    caption: Step 2 — join orders to cohorts and compute months since signup
+    code: |
+      WITH cohorts AS (
+        SELECT customer_id, DATE_TRUNC('month', signup_date) AS cohort_month
+        FROM customers
+      ),
+      cohort_orders AS (
+        SELECT
+          o.customer_id,
+          c.cohort_month,
+          DATE_DIFF('month', c.cohort_month, DATE_TRUNC('month', o.order_date)) AS months_since_signup
+        FROM orders o
+        JOIN cohorts c ON o.customer_id = c.customer_id
+        WHERE o.status = 'completed'
+      )
+      SELECT
+        cohort_month,
+        months_since_signup,
+        COUNT(DISTINCT customer_id) AS active_customers
+      FROM cohort_orders
+      GROUP BY cohort_month, months_since_signup
+      ORDER BY cohort_month, months_since_signup;
+  - type: output
+    caption: One row per (cohort, months-since-signup) pair — a "cohort table" in long form
+    body: |
+      cohort_month | months_since_signup | active_customers
+      -------------+----------------------+------------------
+      2024-01-01   |                    0 |                3
+      2024-01-01   |                    1 |                4
+      2024-01-01   |                    2 |                7
+      2024-01-01   |                    3 |                1
+      2024-01-01   |                    4 |                7
+      ...
+  - type: text
+    body: >
+      `DATE_DIFF('month', c.cohort_month, DATE_TRUNC('month', o.order_date))` counts whole months
+      between the cohort's start and each order's month. Month 0 means "ordered in their signup
+      month," month 1 means "ordered exactly one calendar month after signing up," and so on. Every
+      cohort now has its own month-0, month-1, month-2, ... row, and those are directly comparable
+      across cohorts because they're measured relative to each cohort's own start, not the calendar.
+  - type: callout
+    variant: tip
+    title: Pivoting long to wide
+    body: >
+      The output above is in "long" format — one row per cohort per month offset. Spreadsheet-style
+      cohort tables (cohort down the rows, months-since-signup across the columns) are a pivot of this
+      exact same data. Some databases support `PIVOT`; when they don't, this long format is what you'd
+      hand to a BI tool or a pandas `.pivot()` to render the classic triangular cohort grid.
+  - type: example
+    title: Cohort size alongside cohort activity
+    body: >
+      It's useful to know how big each cohort started out, so activity counts can later be turned into
+      rates (that's exactly what the next lesson, retention curves, does). Cohort size is just a count
+      of customers per cohort_month, computed once and joined in wherever it's needed.
+    code: |
+      SELECT
+        DATE_TRUNC('month', signup_date) AS cohort_month,
+        COUNT(*) AS cohort_size
+      FROM customers
+      GROUP BY cohort_month
+      ORDER BY cohort_month;
+    language: sql
+  - type: question
+    prompt: >
+      A customer signed up on 2024-03-28. They placed an order on 2024-04-02. Using
+      DATE_DIFF('month', DATE_TRUNC('month', signup_date), DATE_TRUNC('month', order_date)),
+      what months_since_signup value does that order get?
+    choices:
+      - "0, because only 5 days actually passed"
+      - "1, because the order's month (April) is one calendar month after the cohort's month (March)"
+      - "It errors, because the signup and order are in different months"
+    correct_index: 1
+    explanation: >
+      Both dates are truncated to the first of their month before comparing, so March 28 becomes
+      2024-03-01 and April 2 becomes 2024-04-01. DATE_DIFF('month', ...) between those two truncated
+      dates is 1, regardless of how many actual days elapsed — cohort analysis measures in whole
+      months-since-cohort-start, not elapsed days.

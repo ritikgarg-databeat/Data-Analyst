@@ -1,0 +1,86 @@
+slug: conditional-aggregation
+module_slug: sql-aggregation
+title: Conditional Aggregation
+description: "The SUM(CASE WHEN ... THEN 1 ELSE 0 END) pattern for turning row values into pivot-style columns."
+difficulty: BEGINNER
+estimated_minutes: 12
+display_order: 6
+objectives:
+  - Combine CASE with SUM to count or total rows matching a condition, within a single aggregate pass
+  - Use the pattern to turn one column's values into several side-by-side summary columns
+  - Explain why this pattern is more efficient than running several separate filtered queries
+prerequisites: [avg]
+skills: [sql-fundamentals, advanced-sql]
+datasets: [orders-sample]
+tags: [sql, beginner]
+key_takeaways:
+  - "SUM(CASE WHEN condition THEN 1 ELSE 0 END) counts how many rows in a group satisfy a condition — a conditional COUNT."
+  - The same pattern with a column instead of 1 (SUM(CASE WHEN condition THEN amount ELSE 0 END)) totals only the rows matching that condition.
+  - This "pivot" pattern computes several conditional metrics in one pass over the data, instead of running one query per condition and stitching the results together.
+common_mistakes:
+  - "Using ELSE NULL instead of ELSE 0 inside a SUM(CASE ...) pattern — SUM ignores NULLs, so this actually still works, but it silently breaks the equivalent pattern with AVG, where the denominator would exclude the non-matching rows instead of counting them as 0."
+  - Writing a separate query per status value (one for completed, one for cancelled, one for refunded) when a single conditional aggregation query returns all of them side by side from one pass over the table.
+blocks:
+  - type: heading
+    text: Turning CASE into a counting or summing tool
+  - type: text
+    body: >
+      CASE (covered earlier) returns a value per row. Wrap it in SUM, and that per-row value gets
+      added up per group — which means CASE can be used to conditionally count or total rows within
+      an aggregate, entirely inside a single GROUP BY query.
+  - type: code
+    language: sql
+    caption: How many completed vs. cancelled orders, per customer
+    code: |
+      SELECT
+        customer_id,
+        SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) AS completed_orders,
+        SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) AS cancelled_orders
+      FROM orders
+      GROUP BY customer_id;
+  - type: text
+    body: >
+      Read the pattern as: for each row, the CASE returns 1 if the condition matches and 0 otherwise;
+      SUM then adds up all those 1s and 0s per group, which is mathematically the same as counting
+      only the rows where the condition was true. It's a conditional COUNT built out of CASE and SUM.
+  - type: example
+    title: "The same pattern with amounts instead of 1s"
+    body: >
+      Swap the "THEN 1" for "THEN order_total" and the pattern totals amounts instead of counting
+      rows — still only for the rows matching each condition, still all computed in one pass over the
+      table rather than one query per status.
+    code: |
+      SELECT
+        customer_id,
+        SUM(CASE WHEN status = 'completed' THEN order_total ELSE 0 END) AS completed_revenue,
+        SUM(CASE WHEN status = 'refunded'  THEN order_total ELSE 0 END) AS refunded_amount
+      FROM orders
+      GROUP BY customer_id;
+    language: sql
+  - type: text
+    body: >
+      Why does this beat running one query per condition? Without conditional aggregation, answering
+      "how many completed vs. cancelled orders per
+      customer" would take two separate GROUP BY queries — one filtered to completed, one to
+      cancelled — and then a manual join or side-by-side comparison of the results. Conditional
+      aggregation computes both numbers from the same single pass over the data, in one query, with
+      the results already aligned by customer_id.
+  - type: table
+    headers: ["customer_id", "completed_orders", "cancelled_orders"]
+    rows:
+      - ["C1", "2", "1"]
+      - ["C2", "1", "0"]
+      - ["C3", "1", "0"]
+  - type: question
+    prompt: "Why is ELSE 0 (not ELSE NULL) the standard choice inside SUM(CASE WHEN condition THEN 1 ELSE 0 END)?"
+    choices:
+      - "It makes no difference — SUM ignores both NULL and 0 identically"
+      - "ELSE 0 is required syntactically; CASE cannot end without an ELSE branch"
+      - "Using 0 makes the pattern safe to reuse with AVG later, where NULL rows would be excluded from the denominator instead of counted as non-matches"
+    correct_index: 2
+    explanation: >
+      For SUM specifically, ELSE 0 and ELSE NULL happen to produce the same total, since SUM ignores
+      NULLs anyway. But the same CASE pattern is often reused inside AVG to compute a conditional
+      rate (e.g. "what fraction of orders are completed") — and there, ELSE NULL would silently
+      shrink AVG's denominator to only the matching rows, giving the wrong rate. ELSE 0 keeps every
+      row in the denominator, which is almost always the intended behavior.

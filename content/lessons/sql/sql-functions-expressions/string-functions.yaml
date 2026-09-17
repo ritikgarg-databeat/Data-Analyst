@@ -1,0 +1,104 @@
+slug: string-functions
+module_slug: sql-functions-expressions
+title: String Functions
+description: Combining and dissecting text with CONCAT, UPPER/LOWER/TRIM, SUBSTRING, and LENGTH.
+difficulty: BEGINNER
+estimated_minutes: 12
+display_order: 1
+objectives:
+  - Combine columns into one string with CONCAT or the || operator, and explain how each handles NULL differently
+  - Pull a piece out of a string by position with SUBSTRING, and locate that position dynamically with POSITION
+  - Clean up inconsistent text with TRIM, and use LENGTH to reason about or validate string size
+prerequisites: [basic-functions]
+skills: [sql-fundamentals]
+datasets: [ecommerce]
+tags: [sql, beginner]
+key_takeaways:
+  - CONCAT and the || operator both join strings, but they disagree on NULL — CONCAT treats a NULL argument as an empty string, while || returns NULL if any single input is NULL.
+  - "SUBSTRING(string, start, length) extracts by position. When the piece you want doesn't start at a fixed position (like the domain after an email's @), find that position first with POSITION rather than hardcoding a number."
+  - TRIM removes leading/trailing whitespace (or other characters), which matters most for data that was typed by hand or imported from an external system.
+common_mistakes:
+  - "Building a full name with first_name || ' ' || last_name and getting NULL for every customer whose middle field is missing — one NULL input poisons the whole || expression. CONCAT avoids this by treating NULL as ''."
+  - "Hardcoding SUBSTRING(email, 1, 10) to grab an email domain — it happens to work for one row and breaks for the next because the position of '@' isn't the same length for every email. Compute the position with POSITION('@' IN email) instead of guessing a fixed offset."
+blocks:
+  - type: heading
+    text: Combining text with CONCAT and ||
+  - type: text
+    body: >
+      basic-functions covered UPPER, LOWER, and EXTRACT — functions that transform a single value.
+      This lesson adds a second category: functions that combine or slice up text. The most common
+      one is joining several columns into one string, which SQL offers two ways to do: the CONCAT
+      function, or the || (double-pipe) operator.
+  - type: code
+    language: sql
+    caption: Two ways to build a full name
+    code: |
+      SELECT
+        customer_id,
+        CONCAT(first_name, ' ', last_name) AS full_name_concat,
+        first_name || ' ' || last_name AS full_name_pipe
+      FROM customers
+      LIMIT 5;
+  - type: callout
+    variant: warning
+    title: CONCAT and || treat NULL differently
+    body: >
+      They look interchangeable until a NULL shows up. CONCAT('a', NULL, 'b') returns 'ab' — it
+      silently treats the NULL as an empty string. 'a' || NULL || 'b' returns NULL — a single NULL
+      input poisons the entire expression. If any column you're joining can be missing (a customer
+      with no last_name on file, for example), that difference decides whether the whole row's output
+      quietly disappears or just loses one piece.
+  - type: heading
+    text: Extracting part of a string
+  - type: text
+    body: >
+      SUBSTRING(string, start, length) pulls out a fixed-size chunk of text starting at a given
+      character position (SQL string positions start at 1, not 0). That works fine when every value
+      has the same shape — the first 4 characters of a product code, say. It breaks down when the
+      part you want starts at a different position in every row, which is exactly the situation with
+      an email address: the domain starts right after the '@', and '@' isn't in the same place for
+      every email.
+  - type: example
+    title: Extracting an email domain dynamically
+    body: >
+      POSITION('@' IN email) returns the character position of '@' for that specific row. Adding 1 to
+      it gives the starting position of the domain, and SUBSTRING with no length argument takes
+      everything from that position to the end of the string. Because POSITION is computed per row,
+      this works no matter how long the part before the '@' is.
+    code: |
+      SELECT
+        customer_id,
+        email,
+        LOWER(SUBSTRING(email, POSITION('@' IN email) + 1)) AS email_domain
+      FROM customers
+      LIMIT 5;
+    language: sql
+  - type: text
+    body: >
+      LENGTH(string) counts characters, which shows up constantly as a sanity check — flagging
+      product names that got truncated on import, or emails suspiciously shorter than any real
+      address should be. TRIM(string) strips leading and trailing whitespace (and, with an optional
+      second argument, other characters), which is the standard fix for text that came from a form,
+      a spreadsheet, or a copy-paste — sources that reliably introduce stray spaces that break exact
+      equality comparisons.
+  - type: table
+    headers: ["Function", "What it does", "Example"]
+    rows:
+      - ["CONCAT(a, b, ...)", "Joins strings; NULL args become ''", "CONCAT(first_name, ' ', last_name)"]
+      - ["a || b", "Joins strings; any NULL makes the result NULL", "first_name || ' ' || last_name"]
+      - ["SUBSTRING(s, start, len)", "Extracts len characters starting at position start", "SUBSTRING(product_name, 1, 4)"]
+      - ["POSITION(sub IN s)", "Finds the character position of sub within s", "POSITION('@' IN email)"]
+      - ["LENGTH(s)", "Counts characters in s", "LENGTH(email)"]
+      - ["TRIM(s)", "Removes leading/trailing whitespace", "TRIM('  Mia  ')"]
+  - type: question
+    prompt: "A table has some rows where middle_name is NULL. A query builds full_name AS first_name || ' ' || middle_name || ' ' || last_name. What happens to full_name for those rows?"
+    choices:
+      - "It becomes 'first_name  last_name' with a double space where middle_name would go"
+      - "It becomes NULL, because || returns NULL if any single input is NULL"
+      - "It raises an error, because you can't concatenate a NULL"
+    correct_index: 1
+    explanation: >
+      The || operator propagates NULL: if any one of the concatenated values is NULL, the entire
+      result is NULL, not just the missing piece. Swapping in CONCAT instead would return
+      'first_name  last_name' (NULL treated as ''), which is usually the intended behavior for
+      building a display name from optional fields.

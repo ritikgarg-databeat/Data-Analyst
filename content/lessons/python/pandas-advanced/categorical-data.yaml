@@ -1,0 +1,182 @@
+slug: categorical-data
+module_slug: pandas-advanced
+title: Categorical Data
+description: Converting low-cardinality columns to category dtype with .astype('category') for real memory savings, and ordered categories for things like a customer tier.
+content_type: READING
+difficulty: ADVANCED
+estimated_minutes: 12
+display_order: 2
+objectives:
+  - Convert a column with a small, fixed set of values to category dtype and verify the memory savings
+  - Explain why category dtype saves memory on low-cardinality text columns specifically
+  - Create an ordered categorical for values with a natural rank, like a customer tier
+prerequisites: [multiindex]
+skills: [pandas]
+datasets: [ecommerce]
+tags: [python, advanced, real-world]
+key_takeaways:
+  - "category dtype stores each unique value once and represents every row as a small integer code pointing at it — the fewer distinct values relative to row count, the bigger the memory win, since repeated strings stop being stored repeatedly."
+  - "The .astype('category') conversion on orders' status and channel columns (4 and 3 unique values respectively, across 4,205 rows) cut this DataFrame's memory footprint by 43.5% in a real, measured comparison — object/string columns are the ones with the most to gain."
+  - "Ordered categories (categories=[...], ordered=True) let pandas understand rank — bronze < silver < gold — which makes comparisons (df['tier'] > 'bronze') and sorting behave the way you'd expect for something like a size or a tier, instead of alphabetically."
+common_mistakes:
+  - "Converting a high-cardinality column (like a unique ID or a free-text field) to category, expecting the same savings — with as many unique values as rows, category dtype adds overhead instead of saving memory, since it has almost nothing to deduplicate."
+  - "Creating a categorical without ordered=True for values that do have a natural order (like a tier or a size), then being surprised that sorting or comparison operators don't respect that order — categories are unordered (nominal) by default."
+  - "Assuming category dtype is always the right call — it's specifically a low-cardinality-text optimization; it doesn't help (and can hurt) for numeric columns or high-cardinality text."
+practical_applications:
+  - "Converting status/channel/segment-style columns to category dtype in a large DataFrame before loading it into memory-constrained environments or before repeated groupby operations, which also run faster on categorical keys."
+  - "Building a customer tier column (bronze/silver/gold) from a revenue threshold as an ordered categorical, so it sorts and compares correctly in reports."
+interview_questions:
+  - question: "Why does converting a column to category dtype save memory, and for which kinds of columns does it help the most?"
+    answer: "category dtype stores each unique value exactly once in a lookup table, and represents every row as a small integer code referencing that table, instead of storing the full string repeatedly on every row. It helps the most on low-cardinality text columns — few distinct values relative to the number of rows — since that's where the most repetition (and therefore the most to deduplicate) exists. A column with as many unique values as rows gains little to nothing, since there's almost no repetition to exploit."
+  - question: "What does ordered=True do for a categorical column, and give a real example of when you'd want it?"
+    answer: "It tells pandas the categories have a meaningful rank, not just a fixed set of labels — so comparisons (>, <) and sorting follow that rank instead of alphabetical order. A customer tier derived from revenue (bronze/silver/gold) is a good example: without ordered=True, 'gold' > 'bronze' would either error or fall back to alphabetical comparison (where 'gold' actually is alphabetically first), neither of which reflects the real business meaning. With categories=['bronze','silver','gold'], ordered=True, comparisons and sorts correctly follow the intended rank."
+blocks:
+  - type: text
+    body: >
+      **`category` dtype** is built for exactly one situation: a column with a **small, fixed set of
+      repeated values** relative to the number of rows — status, channel, segment, device type. For
+      that shape of data, converting from the default object (string) dtype can meaningfully shrink
+      a DataFrame's memory footprint, with no loss of information.
+  - type: heading
+    text: How category dtype actually saves memory
+  - type: text
+    body: >
+      As plain object dtype, pandas stores the full string on every single row — "completed" repeated
+      3,441 times takes roughly 3,441 times the memory of storing "completed" once. As category dtype,
+      pandas stores each unique value once in a small lookup table, and represents every row as a
+      compact integer code pointing at that table instead.
+  - type: heading
+    text: "A real, measured before/after"
+  - type: code
+    language: python
+    code: |2
+      import pandas as pd
+
+      orders = pd.read_csv("data/sample/ecommerce/orders.csv")
+
+      orders["status"].nunique(), orders["channel"].nunique(), len(orders)
+    caption: "4 distinct statuses and 3 distinct channels, spread across 4,205 rows — exactly the shape category dtype is built for"
+  - type: output
+    body: "(4, 3, 4205)"
+  - type: code
+    language: python
+    code: |2
+      before = orders.memory_usage(deep=True)
+      before
+    caption: Memory usage per column, before conversion
+  - type: output
+    body: |2
+      Index            132
+      order_id       33640
+      customer_id    33640
+      order_date     75690
+      status         70973
+      channel        54073
+      dtype: int64
+  - type: code
+    language: python
+    code: |2
+      orders_cat = orders.copy()
+      orders_cat["status"] = orders_cat["status"].astype("category")
+      orders_cat["channel"] = orders_cat["channel"].astype("category")
+
+      after = orders_cat.memory_usage(deep=True)
+      after
+    caption: Same two columns, converted to category
+  - type: output
+    body: |2
+      Index            132
+      order_id       33640
+      customer_id    33640
+      order_date     75690
+      status          4271
+      channel         4250
+      dtype: int64
+  - type: code
+    language: python
+    code: |2
+      before.sum(), after.sum(), round((1 - after.sum() / before.sum()) * 100, 1)
+    caption: Total DataFrame memory, before vs. after, and the percent reduction
+  - type: output
+    body: "(268148, 151623, 43.5)"
+  - type: callout
+    variant: important
+    title: "43.5% smaller — a real, verified number on this exact dataset"
+    body: >
+      status alone shrank from 70,973 bytes to 4,271 bytes (a ~94% cut on that column) and channel
+      from 54,073 to 4,250 — because each column now stores only 4 (or 3) unique strings plus a small
+      integer code per row, instead of the full string repeated thousands of times.
+  - type: heading
+    text: "Ordered categories — when values have a natural rank"
+  - type: text
+    body: >
+      By default, categories have no inherent order — pandas just knows the fixed set of allowed
+      values. Pass `ordered=True` (with `categories=[...]` given in rank order) when the values
+      genuinely do have a meaningful sequence, like a size (S/M/L) or a tier — so that comparisons and
+      sorting behave the way you'd actually expect.
+  - type: example
+    title: "Deriving an ordered customer tier from revenue"
+    body: >
+      Bucketing each customer's total revenue into bronze/silver/gold with pd.cut(), then marking the
+      result ordered, lets tier comparisons work correctly — 'gold' really does compare as greater
+      than 'bronze', not just alphabetically.
+    code: |2
+      payments = pd.read_csv("data/sample/ecommerce/payments.csv")
+      payments = payments[payments["status"] == "success"]
+
+      revenue_per_customer = (
+          orders.merge(payments[["order_id", "amount"]], on="order_id")
+          .groupby("customer_id")["amount"].sum()
+      )
+
+      tier = pd.cut(
+          revenue_per_customer,
+          bins=[0, 2000, 6000, float("inf")],
+          labels=["bronze", "silver", "gold"],
+          ordered=True,
+      )
+
+      tier.value_counts()
+    language: python
+  - type: output
+    body: |2
+      amount
+      silver    576
+      bronze    395
+      gold      290
+      Name: count, dtype: int64
+  - type: code
+    language: python
+    code: |2
+      tier.cat.ordered           # True
+      tier.cat.categories        # Index(['bronze', 'silver', 'gold'], dtype='object')
+
+      sample = pd.Series(["silver", "gold", "bronze"], dtype=tier.dtype)
+      sample > "bronze"
+    caption: With ordered=True, comparisons respect bronze < silver < gold — not alphabetical order
+  - type: output
+    body: |2
+      0     True
+      1     True
+      2    False
+      dtype: bool
+  - type: callout
+    variant: warning
+    title: Don't reach for category on high-cardinality columns
+    body: >
+      A column with (nearly) as many unique values as rows — a customer_id, an email, a free-text
+      field — has almost nothing to deduplicate. Converting it to category adds the overhead of the
+      lookup table without meaningfully shrinking anything, and can occasionally end up larger than
+      the plain object column. This optimization is specifically for low-cardinality text.
+  - type: question
+    prompt: "Which column is the best candidate for converting to category dtype to save memory?"
+    choices:
+      - "customer_email — a unique value on almost every row"
+      - "order_status — only 4 distinct values, repeated across thousands of rows"
+      - "order_id — a unique integer identifier for every row"
+    correct_index: 1
+    explanation: >
+      category dtype saves memory by storing each unique value once and referencing it with a small
+      integer code — that only pays off when there's real repetition to exploit. order_status, with
+      only 4 distinct values spread across thousands of rows, is exactly that shape. customer_email
+      and order_id are both close to fully unique, so there's little to nothing to deduplicate.

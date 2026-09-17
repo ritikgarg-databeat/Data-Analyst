@@ -1,0 +1,124 @@
+slug: exp-reading-p-values-and-confidence-intervals
+module_slug: ab-test-analysis
+title: Reading a P-Value and a Confidence Interval, Correctly
+description: >
+  What a p-value actually means (and the two things it doesn't mean), reading a confidence interval for
+  the difference between two groups, computed for real on both saas-product experiments.
+difficulty: ADVANCED
+estimated_minutes: 25
+display_order: 1
+objectives:
+  - State the correct definition of a p-value, and name two common misinterpretations to avoid
+  - Compute a two-proportion z-test and a confidence interval for the difference, using Python
+  - Read a confidence interval that crosses zero as "consistent with no effect," not "proof of no effect"
+prerequisites: [exp-power-tradeoffs-alpha-beta-n]
+skills: [experimentation, statistical-reasoning]
+datasets: [saas-product]
+tags: [experimentation, ab-testing, saas, advanced]
+key_takeaways:
+  - "A p-value is the probability of seeing a difference at least this large, *if there were truly no effect* — it is not the probability the null hypothesis is true, and not the probability the effect is real."
+  - A 95% confidence interval for the difference between two groups is a range of plausible values for the true effect; if it includes zero, the data is consistent with 'no difference' among other possibilities.
+  - Both real experiments in the saas-product dataset come back statistically inconclusive (p > 0.05) — for very different underlying reasons, which the rest of this domain unpacks.
+common_mistakes:
+  - Reading "p = 0.04" as "there's a 4% chance the null hypothesis is true" — a p-value is computed assuming the null is true, so it can't also be the probability that assumption is correct.
+  - Treating a confidence interval that includes zero as proof the true effect is exactly zero, rather than as one of many values the interval says are plausible.
+blocks:
+  - type: heading
+    text: What a p-value actually says
+  - type: text
+    body: >
+      A p-value answers a specific, narrow question: **if there were truly no difference between control
+      and treatment, how likely would it be to see a difference at least this large, just from random
+      sampling noise?** A small p-value means "this result would be surprising if nothing were really
+      going on" — which is evidence against "nothing is going on," but it is not the probability that
+      nothing is going on, and it is not the probability that the effect is real. Those are common,
+      understandable, and incorrect readings of the same number.
+  - type: code
+    language: python
+    code: |
+      from statsmodels.stats.proportion import proportions_ztest
+
+      # checkout_redesign: real observed counts
+      count = [125, 113]   # conversions: [treatment, control]
+      nobs = [1000, 1000]  # users: [treatment, control]
+
+      z_stat, p_value = proportions_ztest(count, nobs)
+      print(round(z_stat, 3), round(p_value, 4))  # -> 0.829 0.4073
+    caption: >
+      checkout_redesign's real two-proportion z-test: z ≈ 0.83, p ≈ 0.41 — not below the conventional
+      0.05 threshold, despite treatment converting at 12.5% vs. control's 11.3%.
+  - type: heading
+    text: Confidence intervals — a range of plausible effects
+    level: 3
+  - type: text
+    body: >
+      A 95% confidence interval for the *difference* in conversion rates gives a range: if you repeated
+      this exact experiment design many times, about 95% of the intervals constructed this way would
+      contain the true difference. In practice, it's read as "a range of effect sizes the data is
+      consistent with." If that range includes zero, "no real difference" is one of the values the data
+      can't rule out — but it isn't the only one either.
+  - type: code
+    language: python
+    code: |
+      import numpy as np
+
+      p_control, p_treatment = 0.113, 0.125
+      n_control, n_treatment = 1000, 1000
+
+      diff = p_treatment - p_control
+      se = np.sqrt(p_control * (1 - p_control) / n_control + p_treatment * (1 - p_treatment) / n_treatment)
+      ci_low, ci_high = diff - 1.96 * se, diff + 1.96 * se
+      print(round(diff, 4), round(ci_low, 4), round(ci_high, 4))  # -> 0.012 -0.0164 0.0404
+    caption: >
+      checkout_redesign's real 95% CI for the difference: [-1.64 points, +4.04 points]. It spans from
+      "treatment is slightly worse" to "treatment is meaningfully better," and includes zero — the data
+      can't yet rule out "no real difference," but it also can't rule out a genuinely large positive
+      effect.
+  - type: table
+    caption: Both real saas-product experiments, side by side
+    headers: ["Experiment", "Control rate", "Treatment rate", "z", "p-value", "95% CI for the difference"]
+    rows:
+      - ["checkout_redesign", "11.3% (113/1,000)", "12.5% (125/1,000)", "0.83", "0.41", "[-1.6pp, +4.0pp]"]
+      - ["onboarding_email", "32.4% (162/500)", "31.4% (157/500)", "-0.34", "0.73", "[-6.8pp, +4.8pp]"]
+  - type: callout
+    variant: important
+    title: Both come back "not significant" — but that's not the same story twice
+    body: >
+      Neither p-value is below 0.05. But checkout_redesign's point estimate is a sizeable, directionally
+      hypothesized lift with a wide interval that leans positive (a likely underpowered test, per the
+      Statistical Power module) — while onboarding_email's point estimate is essentially flat, even
+      slightly negative, with an interval centered near zero (more consistent with a genuinely null
+      effect). "Not significant" is the start of the story, not the end of it — the next lesson covers
+      how to read the rest of it.
+  - type: callout
+    variant: common_mistake
+    title: "\"p = 0.41\" does not mean \"41% chance the effect is real\""
+    body: >
+      It's tempting to read a p-value as a direct probability that the effect exists. It isn't — it's
+      the probability of seeing data this extreme (or more) under the assumption that there's no effect
+      at all. Whether the effect is "real" depends on the p-value, the effect size, the confidence
+      interval, and the test's power, taken together — not on the p-value alone.
+  - type: question
+    prompt: >
+      A test returns p = 0.03 for its primary metric. Which statement is the correct interpretation?
+    choices:
+      - "There's a 3% chance the treatment has no real effect"
+      - "If there were truly no difference between control and treatment, there'd be about a 3% chance of seeing a difference at least this large from random sampling noise alone — which is below the conventional 5% threshold, so the result is called statistically significant"
+      - "There's a 97% chance the treatment causes the observed effect"
+    correct_index: 1
+    explanation: >
+      A p-value is always computed under the assumption that the null hypothesis (no effect) is true —
+      it describes how surprising the observed data would be under that assumption, not the probability
+      that the assumption itself is true or false. "p = 0.03" means data this extreme would be
+      uncommon (about 3% likely) if nothing were really going on, which is evidence against "nothing is
+      going on" — phrased carefully, not as a direct probability on the hypothesis.
+interview_questions:
+  - question: "How would you explain what a p-value of 0.04 means to a non-technical stakeholder, without giving a misleading answer?"
+    answer: >
+      I'd say something like: "If our change truly had no effect at all, there'd only be about a 4%
+      chance of seeing a gap this large between the two groups just from random noise. That's below the
+      5% bar we set in advance, so we're calling this a statistically significant result." I'd avoid
+      saying "there's a 4% chance the change doesn't work" or "a 96% chance it does" — those reverse what
+      the p-value is actually conditioning on. I'd also pair the p-value with the confidence interval and
+      the effect size, since "significant" alone doesn't say whether the effect is big enough to matter
+      for the business.

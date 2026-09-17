@@ -1,0 +1,128 @@
+slug: biz-py-ltv-by-first-touch-channel
+lesson_slug: biz-roas-and-ltv-cac-ratio
+skill: pandas
+dataset: ecommerce
+title: Customer LTV by First-Touch Acquisition Channel
+description: Attribute each customer to the channel of their earliest converting session (first-touch attribution), then compute average lifetime revenue per channel.
+exercise_type: PYTHON
+difficulty: ADVANCED
+points: 25
+tags: [python, business-analytics, advanced, marketing, e-commerce]
+business_context: >
+  Marketing wants customer value attributed using first-touch logic — crediting whichever channel
+  a customer converted through *first* — as an alternative lens to a simpler "any converting
+  session counts" attribution, to see whether the two methods tell a consistent story.
+prompt: >
+  Using `sessions`, `marketing_campaigns`, `orders`, and `order_items`, attribute each customer to
+  the channel of their *earliest* converting session that has both a non-null `customer_id` and a
+  non-null `marketing_campaign_id` (first-touch attribution — one channel per customer, from
+  their earliest such session by `session_start`). Then compute each channel's average customer
+  lifetime revenue, where lifetime revenue is the sum of `quantity * (unit_price - discount)`
+  across all of that customer's completed orders (0 if they have none). Store your answer in a
+  variable named `result`: a DataFrame with columns `channel`, `n_customers`, and `avg_ltv`
+  (rounded to 2 decimal places), sorted in descending order by `avg_ltv`.
+python_datasets: [sessions, marketing_campaigns, orders, order_items]
+python_starter_code: |
+  # sessions, marketing_campaigns, orders, and order_items are already loaded as DataFrames.
+  # Explore them first:
+  sessions.head()
+python_solution_code: |
+  conv = sessions[
+      (sessions["converted"] == True)
+      & sessions["customer_id"].notna()
+      & sessions["marketing_campaign_id"].notna()
+  ].copy()
+  conv["session_start"] = pd.to_datetime(conv["session_start"])
+  conv = conv.merge(
+      marketing_campaigns[["campaign_id", "channel"]],
+      left_on="marketing_campaign_id", right_on="campaign_id",
+  )
+  conv = conv.sort_values("session_start")
+  first_touch = conv.drop_duplicates(subset="customer_id", keep="first")[["customer_id", "channel"]]
+
+  completed = orders[orders["status"] == "completed"].merge(order_items, on="order_id")
+  completed["line_revenue"] = completed["quantity"] * (completed["unit_price"] - completed["discount"])
+  customer_ltv = (
+      completed.groupby("customer_id")["line_revenue"].sum()
+      .reset_index().rename(columns={"line_revenue": "lifetime_revenue"})
+  )
+
+  merged = first_touch.merge(customer_ltv, on="customer_id", how="left")
+  merged["lifetime_revenue"] = merged["lifetime_revenue"].fillna(0.0)
+
+  grp = merged.groupby("channel").agg(
+      n_customers=("customer_id", "count"), avg_ltv=("lifetime_revenue", "mean")
+  ).reset_index()
+  grp["avg_ltv"] = grp["avg_ltv"].round(2)
+  result = grp.sort_values("avg_ltv", ascending=False).reset_index(drop=True)
+python_result_variable: result
+python_row_order_matters: true
+python_numeric_tolerance: 0.05
+python_hidden_tests:
+  - name: "n_customers sums to the count of distinct first-touch-attributed customers"
+    code: |
+      conv2 = sessions[
+          (sessions["converted"] == True)
+          & sessions["customer_id"].notna()
+          & sessions["marketing_campaign_id"].notna()
+      ].copy()
+      conv2["session_start"] = pd.to_datetime(conv2["session_start"])
+      conv2 = conv2.merge(
+          marketing_campaigns[["campaign_id", "channel"]],
+          left_on="marketing_campaign_id", right_on="campaign_id",
+      )
+      expected_customers = conv2["customer_id"].nunique()
+      assert result["n_customers"].sum() == expected_customers, (
+          f"Expected n_customers to sum to {expected_customers} distinct attributed customers, "
+          f"got {result['n_customers'].sum()}"
+      )
+  - name: "display channel's avg_ltv matches a live recomputation"
+    code: |
+      display_row = result[result["channel"] == "display"].iloc[0]
+      assert abs(display_row["avg_ltv"] - 3446.52) < 1.0, (
+          f"Expected display's avg_ltv to be close to 3446.52, got {display_row['avg_ltv']}"
+      )
+hints:
+  - "First-touch attribution means: for each customer, keep only their single earliest qualifying converting session. Sort by session_start, then use drop_duplicates(subset='customer_id', keep='first') to keep exactly one row per customer."
+  - "A customer who converted via an attributed session but never has a completed order should still count in that channel's average at $0 lifetime revenue, not be silently dropped — use a left merge and .fillna(0.0), not an inner merge."
+solution: |
+  ```python
+  conv = sessions[
+      (sessions["converted"] == True)
+      & sessions["customer_id"].notna()
+      & sessions["marketing_campaign_id"].notna()
+  ].copy()
+  conv["session_start"] = pd.to_datetime(conv["session_start"])
+  conv = conv.merge(
+      marketing_campaigns[["campaign_id", "channel"]],
+      left_on="marketing_campaign_id", right_on="campaign_id",
+  )
+  conv = conv.sort_values("session_start")
+  first_touch = conv.drop_duplicates(subset="customer_id", keep="first")[["customer_id", "channel"]]
+
+  completed = orders[orders["status"] == "completed"].merge(order_items, on="order_id")
+  completed["line_revenue"] = completed["quantity"] * (completed["unit_price"] - completed["discount"])
+  customer_ltv = (
+      completed.groupby("customer_id")["line_revenue"].sum()
+      .reset_index().rename(columns={"line_revenue": "lifetime_revenue"})
+  )
+
+  merged = first_touch.merge(customer_ltv, on="customer_id", how="left")
+  merged["lifetime_revenue"] = merged["lifetime_revenue"].fillna(0.0)
+
+  grp = merged.groupby("channel").agg(
+      n_customers=("customer_id", "count"), avg_ltv=("lifetime_revenue", "mean")
+  ).reset_index()
+  grp["avg_ltv"] = grp["avg_ltv"].round(2)
+  result = grp.sort_values("avg_ltv", ascending=False).reset_index(drop=True)
+  ```
+explanation: >
+  First-touch attribution requires picking exactly one row per customer, which is why sorting by
+  `session_start` before `drop_duplicates(keep="first")` matters — without the sort, "first" would mean
+  "first in whatever row order the DataFrame happens to be in," not first chronologically. The `how="left"`
+  merge against `customer_ltv`, followed by `.fillna(0.0)`, is what correctly keeps customers who converted
+  but never generated a completed order in the average at $0 rather than dropping them — an inner merge
+  here would silently exclude them and inflate every channel's average LTV by only averaging over
+  customers who happened to also buy something. A common mistake is forgetting the `customer_id.notna()`
+  and `marketing_campaign_id.notna()` filters up front, which would otherwise try to attribute organic
+  (non-campaign) sessions to a channel that doesn't exist for them.

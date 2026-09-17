@@ -1,0 +1,22 @@
+slug: null-equality-check
+lesson_slug: null-handling
+skill: sql-fundamentals
+title: Does "= NULL" Ever Match?
+description: Test whether an equality comparison against NULL can ever correctly find missing values.
+exercise_type: TRUE_FALSE
+difficulty: BEGINNER
+points: 10
+tags: [sql, beginner]
+prompt: >
+  True or False: The condition "WHERE order_total = NULL" correctly returns every row where
+  order_total has not been set.
+choices:
+  - "True"
+  - "False"
+correct_answer: "False"
+explanation: >
+  NULL represents an unknown value, and any comparison involving NULL — including "= NULL" — evaluates
+  to unknown rather than true, even when the column being compared genuinely is NULL. A WHERE clause
+  only keeps rows where the condition is true, so "= NULL" returns zero rows every single time,
+  regardless of how many NULLs actually exist. "WHERE order_total IS NULL" is the correct, and only
+  correct, way to test for a missing value.

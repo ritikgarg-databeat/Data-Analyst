@@ -1,0 +1,56 @@
+slug: ex-order-items-relationship
+skill: dbt
+dataset: ecommerce
+title: "dbt Exercise: Referential Integrity with relationships"
+description: Build a model and prove referential integrity for real with dbt's relationships test.
+exercise_type: DBT
+difficulty: INTERMEDIATE
+points: 15
+tags: [dbt, tests, relationships, real-execution]
+business_context: >
+  A reporting bug once slipped through because an order line referenced a `product_id` that had been
+  deleted from the products table — the join silently dropped the row instead of raising an error.
+  A `relationships` test catches exactly this, automatically, on every run.
+prompt: >
+  Write a dbt model named `ex_order_items_check` that selects `order_item_id`, `order_id`, and
+  `product_id` from `{{ ref('stg_order_items') }}`. The attached tests require every `product_id` to
+  actually exist in `stg_products`, and every `order_id` to actually exist in `stg_orders` — both
+  checked for real against the live data, not simulated.
+hints:
+  - "This is a straight passthrough select of three columns — no transformation needed, just the right ref()."
+  - "Reference the upstream model with {{ ref('stg_order_items') }}."
+dbt_model_name: ex_order_items_check
+dbt_starter_sql: |
+  select
+      order_item_id
+      -- TODO: also select order_id and product_id
+  from {{ ref('stg_order_items') }}
+dbt_schema_yml: |
+  columns:
+    - name: order_item_id
+      tests: [unique, not_null]
+    - name: order_id
+      tests:
+        - not_null
+        - relationships:
+            arguments:
+              to: ref('stg_orders')
+              field: order_id
+    - name: product_id
+      tests:
+        - not_null
+        - relationships:
+            arguments:
+              to: ref('stg_products')
+              field: product_id
+solution: |
+  select
+      order_item_id,
+      order_id,
+      product_id
+  from {{ ref('stg_order_items') }}
+explanation: >
+  Nothing needed to be transformed here — the point of this exercise is that the `relationships`
+  tests are doing real, meaningful work underneath a trivially simple model: every one of the real
+  order_items rows genuinely does reference a real order and a real product, and the tests confirm
+  that by actually checking, not by assuming it.

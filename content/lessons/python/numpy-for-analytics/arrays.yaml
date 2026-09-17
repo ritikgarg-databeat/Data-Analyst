@@ -1,0 +1,95 @@
+slug: arrays
+module_slug: numpy-for-analytics
+title: Creating NumPy Arrays
+description: The ndarray, NumPy's core data structure, created with np.array, np.zeros, and np.arange — and why it's faster and leaner than a Python list for numerical work.
+difficulty: BEGINNER
+estimated_minutes: 10
+display_order: 1
+objectives:
+  - Create NumPy arrays with np.array, np.zeros, and np.arange
+  - Explain, conceptually, why NumPy arrays are faster and more memory-efficient than Python lists for numerical work
+prerequisites: [file-handling]
+skills: [pandas]
+datasets: []
+tags: [python, beginner, foundations]
+key_takeaways:
+  - "NumPy's core data structure is the ndarray — an n-dimensional array where every element shares the same data type, unlike a Python list, which can freely mix types."
+  - "np.array() builds an array from existing data (like a list); np.zeros() and np.arange() generate one from scratch — all three are the standard starting points."
+  - "Arrays are faster and more memory-efficient than lists for numerical work because every element is the same fixed-size type, stored contiguously in memory — NumPy can operate on that block directly instead of following pointers to scattered Python objects."
+common_mistakes:
+  - "Mixing types in an array constructor and being surprised when NumPy silently upcasts everything — np.array([1, 2, 3.5]) makes every element a float, including the integers, since a single array can only hold one dtype."
+  - "Assuming np.zeros(5) creates integers — by default it creates floats (0.0, 0.0, ...); pass a dtype explicitly (np.zeros(5, dtype=int)) if integers are what you need."
+  - "Treating a NumPy array like a Python list for adding/removing elements — arrays are fixed-size once created; growing one means creating a new array (e.g. with np.append), which is far less efficient than a list's .append()."
+blocks:
+  - type: text
+    body: >
+      **NumPy** (imported by convention as `np`) is the numerical foundation nearly every data-analysis
+      library in Python is built on — including pandas itself. Its core data structure is the
+      **ndarray** ("n-dimensional array"), usually just called an array. Where a Python list can hold
+      anything — strings, numbers, other lists, all mixed together — a NumPy array holds a single,
+      fixed data type across every element, arranged in a compact grid.
+  - type: heading
+    text: "np.array() — building an array from existing data"
+  - type: code
+    language: python
+    code: |
+      import numpy as np
+
+      prices = np.array([10, 20, 30, 40])
+      print(prices)         # [10 20 30 40]
+      print(prices.dtype)   # int64 — every element shares this one data type
+    caption: "np.array() converts a list (or similar) into an ndarray, inferring a shared dtype"
+  - type: heading
+    text: "np.zeros() and np.arange() — generating arrays from scratch"
+  - type: code
+    language: python
+    code: |
+      np.zeros(5)          # array([0., 0., 0., 0., 0.])  — 5 zeros, float64 by default
+      np.arange(0, 10, 2)  # array([0, 2, 4, 6, 8])        — like Python's range(), but returns an array
+    caption: "np.zeros(n) is a common way to pre-allocate an array; np.arange(start, stop, step) mirrors range()"
+  - type: callout
+    variant: tip
+    title: np.zeros defaults to float
+    body: >
+      np.zeros(5) produces [0., 0., 0., 0., 0.] — floats, not integers, unless you pass dtype=int
+      explicitly. This trips people up because Python's own 0 is an int by default; NumPy's default
+      numeric type is float64.
+  - type: heading
+    text: Why arrays beat lists for numerical work
+  - type: text
+    body: >
+      A Python list is really a list of *pointers* to separate Python objects scattered around memory —
+      flexible, but with real overhead for every single element. A NumPy array stores its data as one
+      contiguous block of a single, fixed-size type. That difference is what makes arrays both leaner in
+      memory and much faster to compute over: NumPy can operate on that block directly using optimized,
+      low-level code, instead of looping through Python objects one at a time and re-checking each
+      one's type as it goes.
+  - type: table
+    headers: ["", "Python list", "NumPy array"]
+    rows:
+      - ["Element types", "Can mix freely (int, str, float, ...) in one list", "Every element shares one fixed dtype"]
+      - ["Memory layout", "Pointers to scattered Python objects", "One contiguous block of raw values"]
+      - ["Resizing", "Grows/shrinks freely with .append()/.remove()", "Fixed size — 'growing' means creating a new array"]
+      - ["Numeric operations", "Elementwise math needs a loop or comprehension", "Vectorized — operate on the whole array at once (next lesson)"]
+  - type: example
+    title: "A list forces per-element overhead an array avoids"
+    body: >
+      This list mixes types freely, which is exactly the flexibility that costs memory and speed at
+      scale — each element is a full, separately-typed Python object. The array below it, by contrast,
+      commits to one shared dtype up front.
+    code: |
+      mixed_list = [1, "two", 3.0, True]   # a Python list happily mixes types
+      numeric_array = np.array([1, 2, 3, 4])   # a NumPy array commits to one dtype: int64
+    language: python
+  - type: question
+    prompt: "What does np.array([1, 2, 3.5]).dtype return, and why?"
+    choices:
+      - "int64 — NumPy keeps the majority type"
+      - "float64 — every element is upcast to a shared type, so the integers become floats too"
+      - "object — NumPy stores mixed types as generic Python objects"
+    correct_index: 1
+    explanation: >
+      An ndarray can only hold one dtype for all its elements. When you mix ints and a float in the same
+      np.array() call, NumPy upcasts everything to the more general type — here, float64 — so 1 and 2
+      become 1.0 and 2.0 internally, not because they were rounded, but because the whole array needs a
+      single consistent element type.

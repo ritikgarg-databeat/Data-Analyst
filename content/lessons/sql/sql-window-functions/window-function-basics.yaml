@@ -1,0 +1,125 @@
+slug: window-function-basics
+module_slug: sql-window-functions
+title: Window Function Basics
+description: The OVER() clause, PARTITION BY, and ORDER BY within a window — computing values across related rows without collapsing them away.
+difficulty: ADVANCED
+estimated_minutes: 12
+display_order: 1
+objectives:
+  - Explain what the OVER() clause does and how it differs fundamentally from GROUP BY
+  - Use PARTITION BY to compute a value separately within each group, without losing individual rows
+  - Add ORDER BY inside OVER() and explain how it changes what a window function sees
+prerequisites: [recursive-ctes]
+skills: [advanced-sql]
+datasets: [ecommerce]
+tags: [sql, advanced]
+key_takeaways:
+  - "A window function is written as function() OVER (...) and computes a value across a set of related rows — its 'window' — without collapsing those rows into one, unlike GROUP BY."
+  - PARTITION BY inside OVER() defines which rows count as related for that computation, exactly like a GROUP BY grouping column would — except every original row survives in the output.
+  - Adding ORDER BY inside OVER() changes the window from "all rows in the partition" to "rows up to and including this one, in that order" for many functions — the mechanics of exactly how are covered in the frames lesson later in this module.
+common_mistakes:
+  - "Expecting a window function to reduce the row count the way GROUP BY does — window functions always return exactly as many rows as the input, just with an extra computed column attached."
+  - "Writing OVER() with no PARTITION BY when a per-group value was intended — an empty OVER() treats the entire result set as a single window, computing one value shared by every row rather than one value per group."
+blocks:
+  - type: heading
+    text: A window is not a group
+  - type: text
+    body: >
+      GROUP BY answers "one row per group" questions by collapsing rows together. Window functions
+      answer a different kind of question: "for this row, compute something using a set of *related*
+      rows — but keep every row in the output." The syntax that makes this possible is the `OVER()`
+      clause, and it's the single feature this entire module is about.
+  - type: code
+    language: sql
+    caption: How many orders has each customer placed — without losing any order rows
+    code: |
+      SELECT
+        customer_id,
+        order_id,
+        order_date,
+        COUNT(*) OVER (PARTITION BY customer_id) AS customer_order_count
+      FROM orders
+      WHERE customer_id IN (1, 2)
+      ORDER BY customer_id, order_date;
+  - type: output
+    body: |
+      customer_id | order_id | order_date | customer_order_count
+      -------------+----------+------------+-----------------------
+                 1 |        1 | 2025-10-18 |                     2
+                 1 |        2 | 2025-12-16 |                     2
+                 2 |        4 | 2024-12-23 |                     3
+                 2 |        5 | 2025-04-30 |                     3
+                 2 |        3 | 2025-09-29 |                     3
+  - type: text
+    body: >
+      Every order row for customers 1 and 2 is still here — five rows in, five rows out. Compare that
+      to `SELECT customer_id, COUNT(*) FROM orders GROUP BY customer_id`, which would collapse this
+      down to just two rows (one per customer) and throw away order_id and order_date entirely. The
+      window function instead attaches the *group-level* count (2, or 3) onto every individual order
+      row, so you can see both the detail and the summary side by side.
+  - type: heading
+    text: PARTITION BY — defining what "related" means
+  - type: text
+    body: >
+      `PARTITION BY customer_id` inside `OVER()` tells the window function to treat rows sharing the
+      same customer_id as one window — conceptually the same grouping logic GROUP BY uses, just
+      without the collapsing. Leave `PARTITION BY` out entirely, and the *whole result set* becomes
+      one single window.
+  - type: code
+    language: sql
+    caption: "No PARTITION BY — one window covering every row"
+    code: |
+      SELECT
+        customer_id,
+        order_id,
+        COUNT(*) OVER () AS total_orders_overall
+      FROM orders
+      WHERE customer_id IN (1, 2);
+      -- total_orders_overall is 5 on every one of the 5 rows — the count across ALL of them combined
+  - type: heading
+    text: ORDER BY inside OVER()
+  - type: text
+    body: >
+      `OVER()` can also take its own `ORDER BY`, independent of any ORDER BY on the outer query. For
+      some window functions (like COUNT and AVG, used with the default frame), adding ORDER BY
+      changes the window from "every row in the partition" to "rows from the start of the partition
+      up through the current row, in that order" — which is the foundation for running totals,
+      covered in the next lesson.
+  - type: code
+    language: sql
+    caption: "Same COUNT, but now cumulative in order_date order instead of a flat per-customer total"
+    code: |
+      SELECT
+        customer_id,
+        order_id,
+        order_date,
+        COUNT(*) OVER (PARTITION BY customer_id ORDER BY order_date) AS orders_so_far
+      FROM orders
+      WHERE customer_id = 2
+      ORDER BY order_date;
+  - type: output
+    caption: "orders_so_far grows as order_date advances — 1, then 2, then 3 — instead of showing 3 on every row"
+    body: |
+      customer_id | order_id | order_date | orders_so_far
+      -------------+----------+------------+---------------
+                 2 |        4 | 2024-12-23 |             1
+                 2 |        5 | 2025-04-30 |             2
+                 2 |        3 | 2025-09-29 |             3
+  - type: comparison
+    title: "GROUP BY vs. a window function"
+    columns: ["", "GROUP BY", "Window function (OVER)"]
+    rows:
+      - ["Rows in output", "One per group — original rows collapse", "Same as input — every row survives"]
+      - ["Can show detail and a group summary together?", "No — detail columns are lost", "Yes — that's the whole point"]
+      - ["Grouping keyword", "GROUP BY column", "PARTITION BY column, inside OVER()"]
+  - type: question
+    prompt: "A query runs COUNT(*) OVER (PARTITION BY customer_id) FROM orders against a table of 4,205 order rows. How many rows does the query return?"
+    choices:
+      - "One row per distinct customer_id, same as GROUP BY would"
+      - "4,205 rows — the same number as the input, since window functions don't collapse rows"
+      - It depends on how many customers placed more than one order
+    correct_index: 1
+    explanation: >
+      Window functions never reduce the row count. Every one of the 4,205 order rows is returned,
+      each annotated with that row's customer's total order count computed via PARTITION BY — the
+      opposite of what GROUP BY would do with the same grouping column.

@@ -1,0 +1,82 @@
+slug: select
+module_slug: sql-fundamentals
+title: SELECT
+description: How to choose which columns come back from a query, use SELECT * for exploration, and rename output columns with AS.
+difficulty: BEGINNER
+estimated_minutes: 8
+display_order: 1
+objectives:
+  - Write a SELECT statement that returns a specific set of columns in a specific order
+  - Explain the tradeoffs of SELECT * versus naming columns explicitly
+  - Rename a column in the result set using AS
+skills: [sql-fundamentals]
+datasets: [orders-sample]
+tags: [sql, beginner, foundations]
+key_takeaways:
+  - SELECT controls which columns come back and in what order — it does not filter rows or change the underlying table.
+  - SELECT * is fast for exploration but fragile in saved queries, views, or dashboards because it silently reacts to schema changes.
+  - AS renames a column only in the result set; the table's real column name is untouched.
+common_mistakes:
+  - Shipping SELECT * in a saved report or dashboard query, so it silently gains, loses, or reorders columns whenever the underlying table changes.
+  - Assuming an alias created with AS is available to other columns in the same SELECT list (it isn't — aliases are only usable in later clauses like ORDER BY).
+blocks:
+  - type: heading
+    text: Choosing your columns
+  - type: text
+    body: >
+      Every query starts with SELECT, and SELECT does exactly one job: it decides which columns
+      come back, and in what order. It does not decide which *rows* come back — that's WHERE's job,
+      covered in the next lesson. Using the `orders-sample` dataset (order_id, customer_id,
+      order_date, status, order_total), if you only care about who ordered what and for how much,
+      you list exactly those columns.
+  - type: code
+    language: sql
+    caption: Returning three specific columns, in a chosen order
+    code: |
+      SELECT order_id, customer_id, order_total
+      FROM orders
+      WHERE status = 'completed';
+  - type: callout
+    variant: tip
+    title: SELECT * — the shorthand for "everything"
+    body: >
+      `SELECT * FROM orders` returns every column the table has, in the table's own column order.
+      It's the right tool when you're exploring an unfamiliar table interactively and want to see
+      what's there before deciding what you need. It's the wrong tool once a query is going to be
+      saved, scheduled, or embedded in an application — see the comparison below.
+  - type: comparison
+    title: "SELECT * vs. an explicit column list"
+    columns: ["", "SELECT *", "Explicit column list"]
+    rows:
+      - ["What you get", "Every column that exists right now", "Exactly the columns you named, always"]
+      - ["Behavior when the table changes", "Silently changes too — a new column just appears in every result", "Stays stable — a new upstream column has no effect"]
+      - ["Readability", "Reader has to know the table to know what's returned", "Reader can see the shape of the result at a glance"]
+      - ["Best used for", "Ad hoc exploration of an unfamiliar table", "Anything saved, scheduled, or built on by other code"]
+  - type: heading
+    text: Renaming columns with AS
+  - type: example
+    title: Making output columns readable with AS
+    body: >
+      Raw column names are often written for storage, not for people — `order_total` is fine, but a
+      computed expression like `order_total * 0.08` has no name at all until you give it one. AS lets
+      you attach a clean, purpose-built name to any column or expression in the SELECT list. That
+      alias only exists in the result set; it never touches the real table.
+    code: |
+      SELECT
+        customer_id AS customer,
+        order_total AS total_amount,
+        order_total * 0.08 AS estimated_tax
+      FROM orders
+      WHERE status = 'completed';
+    language: sql
+  - type: question
+    prompt: A dashboard's saved query uses SELECT * FROM orders. A teammate adds a new discount_code column to the orders table. What happens to the dashboard the next time it runs?
+    choices:
+      - The query fails with a syntax error because the column list no longer matches
+      - The query keeps returning only the original columns, ignoring the new one
+      - The query silently starts returning discount_code too, which can break anything downstream expecting a fixed set of columns
+    correct_index: 2
+    explanation: >
+      SELECT * is resolved against the table's current columns every time the query runs. It has no
+      memory of what columns existed before, so a new column just shows up — no error, no warning.
+      That's exactly why explicit column lists are safer for anything other than one-off exploration.

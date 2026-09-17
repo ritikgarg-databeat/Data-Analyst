@@ -1,0 +1,25 @@
+slug: stat-experimental-design-confound
+skill: statistical-reasoning
+title: Identifying a Confound in Experimental Design
+description: A team compares conversion between a NEW checkout flow (launched last month, so only shown to visitors
+  from the last month) and the OLD flow (measured from six months ago). What is the main design flaw?
+exercise_type: MULTIPLE_CHOICE
+difficulty: ADVANCED
+points: 5
+tags:
+- statistics
+- experiment-design
+prompt: A team compares conversion between a NEW checkout flow (launched last month, so only shown to visitors from
+  the last month) and the OLD flow (measured from six months ago). What is the main design flaw?
+choices:
+- Time is confounded with flow version -- any seasonal or macro change between the two periods could explain the
+  difference, not the flow itself
+- The sample size is definitely too small
+- Comparing two different time periods is always statistically invalid regardless of context
+- There is no flaw as long as both periods have enough visitors
+correct_answer: Time is confounded with flow version -- any seasonal or macro change between the two periods could
+  explain the difference, not the flow itself
+explanation: Comparing two DIFFERENT TIME PERIODS instead of running both flows concurrently on randomly-split traffic
+  means flow version is completely confounded with whatever else changed over those six months (season, marketing
+  mix, traffic quality, competitor actions) -- a true A/B test needs both variants running at the same time on randomly
+  assigned users specifically to rule this out.

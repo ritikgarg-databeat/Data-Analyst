@@ -1,0 +1,114 @@
+slug: biz-gross-contribution-net-margin
+module_slug: financial-analytics
+title: "Gross Margin, Contribution Margin, and Net Margin: Three Different Questions About Profit"
+description: How three commonly confused margin metrics differ in what costs they subtract, and why a business can look profitable on one and unprofitable on another in the same quarter.
+difficulty: INTERMEDIATE
+estimated_minutes: 15
+display_order: 1
+objectives:
+  - Define gross margin, contribution margin, and net margin and state exactly which costs each one subtracts
+  - Compute all three margins for the same business and explain why they differ
+  - Identify which margin is the right one to reference for a specific business decision
+skills: [business-analytics, business-metrics, metric-definition]
+datasets: [ecommerce]
+tags: [business-analytics, finance, intermediate, e-commerce]
+key_takeaways:
+  - "Gross margin subtracts only direct cost of goods sold (COGS); contribution margin also subtracts variable costs that scale with volume (shipping, payment fees, variable marketing); net margin subtracts everything, including fixed costs (rent, salaries, software)."
+  - The three margins nest inside each other by definition — net margin is always less than or equal to contribution margin, which is always less than or equal to gross margin, for the same business and period.
+  - A business can have a healthy gross margin and a healthy contribution margin while still posting a negative net margin, if fixed costs are large relative to current volume — this is normal for an early-stage or investing-for-growth business, not necessarily a red flag on its own.
+common_mistakes:
+  - Using gross margin to answer a question that actually needs contribution margin — e.g. "is this specific promotion profitable?" needs variable costs like shipping and processing fees included, which gross margin ignores.
+  - Treating a negative net margin as proof a business model doesn't work, without checking whether gross and contribution margin are healthy — which would mean the issue is scale (not enough volume yet) rather than the model itself.
+blocks:
+  - type: heading
+    text: Three margins, three different sets of costs subtracted
+  - type: text
+    body: >
+      "What's our margin?" is an underspecified question — there are (at least) three commonly used
+      answers, and they measure genuinely different things by design, each one subtracting a wider set of
+      costs than the last.
+  - type: formula
+    expression: "Gross Margin = (Revenue − COGS) / Revenue          Contribution Margin = (Revenue − COGS − Variable Costs) / Revenue          Net Margin = (Revenue − COGS − Variable Costs − Fixed Costs) / Revenue"
+    description: >
+      Each formula is the previous one with one more category of cost subtracted. COGS is the direct cost
+      of the product itself. Variable costs scale with volume but aren't part of the product (shipping,
+      payment processing fees, sales commissions). Fixed costs don't scale with volume at all (rent,
+      salaries, core software licenses) — they exist whether the business sells one unit or one million.
+  - type: example
+    title: Gross margin, computed on real order data
+    body: >
+      Across this platform's ecommerce dataset, completed orders generated $5,802,628.15 in net revenue
+      against $3,289,716.21 in cost of goods sold — a gross profit of $2,512,911.94, or a 43.3% gross
+      margin. This number reflects only the direct cost of the products themselves; it says nothing yet
+      about shipping costs, payment processing fees, or the fixed cost of running the business.
+    code: |
+      SELECT
+        ROUND(SUM(i.quantity * (i.unit_price - i.discount)), 2) AS net_revenue,
+        ROUND(SUM(i.quantity * p.cost), 2) AS cogs,
+        ROUND(
+          100.0 * (SUM(i.quantity * (i.unit_price - i.discount)) - SUM(i.quantity * p.cost))
+          / SUM(i.quantity * (i.unit_price - i.discount)), 1
+        ) AS gross_margin_pct
+      FROM order_items i
+      JOIN products p USING (product_id)
+      JOIN orders o USING (order_id)
+      WHERE o.status = 'completed';
+    language: sql
+  - type: heading
+    text: From gross margin down to net margin — a hand-built walkthrough
+    level: 3
+  - type: text
+    body: >
+      This platform's sample data doesn't include shipping cost, payment processing fees, or company-wide
+      fixed costs, so the rest of this walkthrough uses realistic, hand-built figures on top of the real
+      43.3% gross margin above, to show exactly how contribution and net margin subtract further from it.
+  - type: table
+    headers: ["Line item", "Amount", "Running margin"]
+    rows:
+      - ["Net revenue", "$5,802,628", "—"]
+      - ["− Cost of goods sold", "$3,289,716", "Gross margin: 43.3%"]
+      - ["− Payment processing fees (~2.5% of revenue)", "$145,066", "—"]
+      - ["− Shipping & fulfillment (variable, ~8% of revenue)", "$464,210", "Contribution margin: 32.7%"]
+      - ["− Fixed costs (salaries, rent, software, ~$1.6M/quarter)", "$1,600,000", "Net margin: 5.1%"]
+    caption: "Illustrative walkthrough combining this platform's real gross-margin figures with realistic hand-built variable and fixed cost assumptions to show how each margin narrows."
+  - type: callout
+    variant: important
+    title: Each margin answers a different business question
+    body: >
+      Gross margin answers "is the product itself priced above what it costs to make or source?" Contribution
+      margin answers "does selling one more unit, including all the costs that scale with it, still make
+      money?" — the right number for judging whether to run a promotion or accept a bulk discount request.
+      Net margin answers "is the whole business, as currently sized, profitable?" — the right number for
+      judging overall company health, but the wrong one for a single pricing or volume decision, since it's
+      diluted by fixed costs that don't change based on that one decision.
+  - type: callout
+    variant: common_mistake
+    title: A negative net margin doesn't mean the model is broken
+    body: >
+      In the walkthrough above, net margin is a thin 5.1% — but gross margin (43.3%) and contribution
+      margin (32.7%) are both healthy. If fixed costs were even modestly higher, net margin could easily go
+      negative while gross and contribution margin stayed exactly the same. That specific pattern — healthy
+      unit-level margins, weak or negative net margin — usually points to a scale problem (not enough
+      volume yet to cover fixed costs) rather than a broken pricing or cost structure.
+  - type: checklist
+    title: Before quoting a "margin" number, confirm
+    items:
+      - Which of the three margins is actually being reported, and that it's labeled explicitly (not just "margin")
+      - Whether the business question at hand needs a per-unit answer (gross/contribution) or a whole-company answer (net)
+      - Whether a weak net margin is being wrongly used as evidence against a business model that actually has healthy unit economics
+  - type: question
+    prompt: >
+      A company reports a healthy 40% gross margin and a healthy 30% contribution margin, but a -5% net
+      margin. Which conclusion is best supported by these three numbers together?
+    choices:
+      - "The company's core product pricing and variable cost structure are broken, since it's losing money."
+      - "The product and its unit-level economics look healthy; the loss is most likely explained by fixed costs that current sales volume isn't yet large enough to cover."
+      - "These three numbers can't logically coexist, so at least one must be a calculation error."
+    correct_index: 1
+    explanation: >
+      Because each margin subtracts progressively more cost categories, a healthy gross margin and
+      contribution margin alongside a negative net margin is a completely coherent (and common) pattern —
+      it isolates the loss to the fixed-cost layer specifically. That's a scale problem (revenue hasn't
+      grown enough yet to cover fixed costs) rather than evidence the underlying product or variable cost
+      structure is unsound, which is exactly why looking at only net margin, without the other two, would
+      have led to the wrong diagnosis.

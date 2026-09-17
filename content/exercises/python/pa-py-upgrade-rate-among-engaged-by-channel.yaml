@@ -1,0 +1,113 @@
+slug: pa-py-upgrade-rate-among-engaged-by-channel
+lesson_slug: pa-feature-adoption-decision
+skill: pandas
+dataset: saas-product
+title: Upgrade Rate Among Engaged Users, by Channel, in pandas
+description: For each acquisition channel, compute what fraction of cumulatively-engaged users go on to upgrade, using pandas.
+exercise_type: PYTHON
+difficulty: ADVANCED
+points: 20
+tags: [python, product, saas, funnel, advanced]
+business_context: >
+  Monetization wants the engaged-to-upgraded step-conversion breakdown by channel reproduced in
+  pandas, to check whether the SQL version's finding (paid_social converts best at this step despite
+  activating worst) holds up independently.
+prompt: >
+  Using the `events` and `users` DataFrames, build a per-user flag table for all four funnel steps,
+  merge in each user's `acquisition_channel`, and compute, per channel, `engaged_count` (users
+  cumulatively reaching signup, activated, AND engaged) and `upgraded_count` (of those, users who
+  also reached upgraded). Store a DataFrame in a variable named `result` with columns
+  `acquisition_channel`, `engaged_count`, `upgraded_count`, and `upgrade_rate_among_engaged`
+  (upgraded_count / engaged_count, rounded to 4 decimals), sorted descending by
+  `upgrade_rate_among_engaged`.
+python_datasets: [events, users]
+python_starter_code: |
+  # events and users are already loaded as DataFrames.
+  events["event_name"].unique()
+python_solution_code: |
+  flags = events.pivot_table(
+      index="user_id", columns="event_name", values="event_timestamp", aggfunc="count"
+  ).notna()
+  for step in ["signup", "activated", "engaged", "upgraded"]:
+      if step not in flags.columns:
+          flags[step] = False
+  flags = flags[["signup", "activated", "engaged", "upgraded"]]
+
+  merged = flags.merge(users[["user_id", "acquisition_channel"]], left_index=True, right_on="user_id")
+
+  rows = []
+  for channel, d in merged.groupby("acquisition_channel"):
+      engaged_mask = d["signup"] & d["activated"] & d["engaged"]
+      upgraded_mask = engaged_mask & d["upgraded"]
+      engaged_count = int(engaged_mask.sum())
+      upgraded_count = int(upgraded_mask.sum())
+      rows.append({
+          "acquisition_channel": channel,
+          "engaged_count": engaged_count,
+          "upgraded_count": upgraded_count,
+          "upgrade_rate_among_engaged": round(upgraded_count / engaged_count, 4),
+      })
+
+  result = pd.DataFrame(rows).sort_values("upgrade_rate_among_engaged", ascending=False).reset_index(drop=True)
+python_result_variable: result
+python_row_order_matters: true
+python_numeric_tolerance: 0.001
+python_hidden_tests:
+  - name: paid_social ranks first (highest upgrade_rate_among_engaged)
+    code: |
+      assert result.iloc[0]["acquisition_channel"] == "paid_social", (
+          "paid_social should have the highest upgrade_rate_among_engaged of any channel in this data."
+      )
+  - name: content channel's upgrade_rate_among_engaged matches an independent recomputation
+    code: |
+      content_users = users.loc[users["acquisition_channel"] == "content", "user_id"]
+      content_events = events[events["user_id"].isin(content_users)]
+      per_user = content_events.pivot_table(
+          index="user_id", columns="event_name", values="event_timestamp", aggfunc="count"
+      ).notna()
+      for step in ["signup", "activated", "engaged", "upgraded"]:
+          if step not in per_user.columns:
+              per_user[step] = False
+      eng_mask = per_user["signup"] & per_user["activated"] & per_user["engaged"]
+      upg_mask = eng_mask & per_user["upgraded"]
+      independent_rate = round(int(upg_mask.sum()) / int(eng_mask.sum()), 4)
+      row = result[result["acquisition_channel"] == "content"].iloc[0]
+      assert abs(row["upgrade_rate_among_engaged"] - independent_rate) < 0.001, (
+          f"Expected content's upgrade_rate_among_engaged to be close to {independent_rate}, "
+          f"got {row['upgrade_rate_among_engaged']}."
+      )
+hints:
+  - "This reuses the same per-user flag table as the overall funnel exercise — merge it to users[['user_id', 'acquisition_channel']] with left_index=True, right_on='user_id', then groupby('acquisition_channel')."
+  - "Within each channel group, engaged_count is the cumulative count through the engaged step (signup & activated & engaged), and upgrade_rate_among_engaged divides the fully-cumulative upgraded count by that engaged_count — not by the channel's total signups."
+solution: |
+  ```python
+  flags = events.pivot_table(
+      index="user_id", columns="event_name", values="event_timestamp", aggfunc="count"
+  ).notna()
+  for step in ["signup", "activated", "engaged", "upgraded"]:
+      if step not in flags.columns:
+          flags[step] = False
+  flags = flags[["signup", "activated", "engaged", "upgraded"]]
+  merged = flags.merge(users[["user_id", "acquisition_channel"]], left_index=True, right_on="user_id")
+  rows = []
+  for channel, d in merged.groupby("acquisition_channel"):
+      engaged_mask = d["signup"] & d["activated"] & d["engaged"]
+      upgraded_mask = engaged_mask & d["upgraded"]
+      rows.append({
+          "acquisition_channel": channel,
+          "engaged_count": int(engaged_mask.sum()),
+          "upgraded_count": int(upgraded_mask.sum()),
+          "upgrade_rate_among_engaged": round(int(upgraded_mask.sum()) / int(engaged_mask.sum()), 4),
+      })
+  result = pd.DataFrame(rows).sort_values("upgrade_rate_among_engaged", ascending=False).reset_index(drop=True)
+  ```
+  Run against the real data: paid_social 20.43% (highest), organic 19.28%, referral 19.15%,
+  paid_search 17.89%, content 16.38% (lowest).
+explanation: >
+  The denominator (`engaged_count`) has to be the cumulative engaged count for that channel, not the
+  channel's total signups — dividing by total signups instead would compute overall upgrade rate (a
+  different, already-known metric), not this step's specific conversion rate. The finding worth
+  double-checking once the code runs correctly: paid_social — the channel with the worst activation
+  rate (55.9%) — actually has the *best* upgrade rate among its engaged users (20.43%), confirming
+  in pandas the same pattern already found in SQL: paid_social's real weakness is at the top of the
+  funnel, not in monetizing the engaged users it does produce.

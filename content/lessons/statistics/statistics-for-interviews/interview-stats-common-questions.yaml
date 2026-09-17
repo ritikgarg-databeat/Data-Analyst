@@ -1,0 +1,120 @@
+slug: interview-stats-common-questions
+module_slug: statistics-for-interviews
+title: Statistics Interview Questions, Rapid Review
+description: The handful of statistics questions that come up over and over in analyst interviews, with the crisp, correct answer to each — a condensed review of this whole domain, interview-paced.
+difficulty: ADVANCED
+estimated_minutes: 20
+display_order: 1
+objectives:
+  - Give a concise, correct answer to each of the most frequently asked statistics interview questions covered in this domain.
+  - Identify the specific wrong-but-tempting answer interviewers are listening for you to avoid on each question.
+skills: [statistics, statistical-reasoning, data-interpretation]
+tags: [statistics, advanced, interview]
+prerequisites: [bridge-from-inference-to-experiments, corr-interpreting-regression-coefficients]
+key_takeaways:
+  - "Most statistics interview questions aren't testing whether you can compute a number — they're testing whether you can state precisely what that number does and doesn't mean, in one or two clean sentences."
+  - "The most commonly mis-stated concepts, in order of how often they come up: p-values, confidence intervals, statistical vs. practical significance, and correlation vs. causation — all covered in depth earlier in this domain."
+  - Practicing the crisp, one-paragraph version of each answer out loud is worth more than re-deriving the formulas — interviewers are almost always listening for correct interpretation, not a derivation.
+common_mistakes:
+  - Launching into a full formula derivation when asked an interpretation question ("what does a p-value mean") instead of giving the precise one-sentence definition an interviewer is actually listening for.
+  - Giving a technically-correct-sounding answer that quietly repeats one of the classic misinterpretations (e.g., "95% probability the true value is in this interval") without realizing it's the wrong version.
+interview_questions:
+  - question: "What is a p-value, in one sentence?"
+    answer: >
+      The probability of observing data at least as extreme as what you got, assuming the null
+      hypothesis is true — not the probability that the null hypothesis itself is true.
+  - question: "What does a 95% confidence interval actually mean?"
+    answer: >
+      If you repeated the sampling and interval-construction procedure many times, about 95% of the
+      resulting intervals would contain the true population value — it is not a 95% probability that
+      the true value lies in this one specific interval.
+  - question: "What's the difference between statistical significance and practical significance?"
+    answer: >
+      Statistical significance asks whether an effect is distinguishable from zero/chance given the
+      data. Practical significance asks whether the effect is large enough to matter for the business
+      decision at hand. A large enough sample can make a practically trivial effect statistically
+      significant, and a promising, practically large effect can fail to reach statistical
+      significance if the sample is too small (underpowered).
+  - question: "Why isn't correlation causation?"
+    answer: >
+      A correlation can arise from the outcome causing the predictor (reverse causation), a third
+      variable driving both, one variable being mechanically derived from the other, or pure chance
+      in a small sample — establishing causation requires ruling these out, typically via a
+      randomized experiment or a design (like the one in the Experimentation domain) that isolates
+      the variable of interest.
+  - question: "What's the difference between Type I and Type II error?"
+    answer: >
+      Type I error is a false positive — rejecting a true null hypothesis (concluding an effect
+      exists when it doesn't). Type II error is a false negative — failing to reject a false null
+      hypothesis (missing a real effect). They trade off against each other for a fixed sample size;
+      only more data reduces both simultaneously.
+  - question: "Why does the Central Limit Theorem matter for real, non-normal business data?"
+    answer: >
+      It guarantees that the sampling distribution of a sample mean (or proportion) approaches
+      normal as sample size grows, regardless of the shape of the underlying raw data — which is why
+      confidence intervals and z/t-tests still work on skewed real-world metrics like order value or
+      payment amount, as long as the sample is reasonably large.
+blocks:
+  - type: heading
+    text: How to use this lesson
+  - type: text
+    body: >
+      This is a condensed, interview-paced review of the whole Statistics domain — not new content.
+      Each item below states the question the way an interviewer is likely to ask it, the crisp
+      correct answer, and the specific wrong-but-tempting answer to avoid. Treat the `blocks` below
+      as a rehearsal script, and the `interview_questions` list on this lesson (visible in the
+      sidebar) as flashcard-style practice for six more of the most common questions.
+  - type: heading
+    text: "Rapid review: the five questions that come up constantly"
+  - type: comparison
+    title: "P-values: correct vs. tempting-but-wrong"
+    columns: ["Correct answer", "Tempting wrong answer"]
+    rows:
+      - ["Probability of data this extreme or more, assuming H0 is true", "Probability that H0 is true"]
+  - type: comparison
+    title: "Confidence intervals: correct vs. tempting-but-wrong"
+    columns: ["Correct answer", "Tempting wrong answer"]
+    rows:
+      - ["95% of intervals built this way, across repeated sampling, would contain the true value", "95% probability the true value is in this specific interval"]
+  - type: comparison
+    title: "Statistical vs. practical significance: correct vs. tempting-but-wrong"
+    columns: ["Correct answer", "Tempting wrong answer"]
+    rows:
+      - ["Two separate questions: is it real, and is it big enough to matter", "A significant result is automatically worth acting on"]
+  - type: comparison
+    title: "A non-significant result: correct vs. tempting-but-wrong"
+    columns: ["Correct answer", "Tempting wrong answer"]
+    rows:
+      - ["May mean no effect, or may mean the test was underpowered to detect a real one — check power before concluding either", "Proves there is no effect"]
+  - type: example
+    title: A worked interview answer, using this domain's own verified numbers
+    body: >
+      "Our checkout_redesign test showed control at 11.3% and treatment at 12.5% conversion, from
+      1,000 users per arm, with p = 0.407 — not significant. Rather than concluding the redesign
+      doesn't work, I'd check statistical power: detecting a 10%→12.5% lift at 80% power needs
+      roughly 2,500 users per arm, and at 1,000 per arm this test only had about 43% power. So this
+      result is genuinely ambiguous — I'd recommend extending the test to the properly calculated
+      sample size rather than shelving the idea." That answer demonstrates the full chain: reading
+      the numbers, correctly interpreting the p-value, and connecting it to power — exactly what
+      separates a strong statistics interview answer from a shaky one.
+  - type: callout
+    variant: interview_tip
+    title: Lead with the one-sentence definition, then the nuance
+    body: >
+      When asked "what does X mean," give the precise one-sentence definition first, then add the
+      common misconception you're deliberately avoiding. This signals you know the material well
+      enough to state it correctly *and* know exactly where people go wrong — a stronger signal than
+      a long, hedge-everything answer.
+  - type: question
+    prompt: >
+      An interviewer asks, "if a p-value is 0.02, is there a 2% chance the null hypothesis is true?"
+      What's the strongest response?
+    choices:
+      - "Yes, that's exactly what a p-value of 0.02 means"
+      - "No — a p-value of 0.02 means that if the null hypothesis were true, data this extreme (or more) would occur about 2% of the time; it says nothing directly about the probability that the null hypothesis itself is true"
+      - "It depends on the sample size used to compute the p-value"
+    correct_index: 1
+    explanation: >
+      This is the single most common p-value misinterpretation, and correctly identifying and
+      correcting it — rather than agreeing — is exactly what this kind of interview question is
+      testing for.

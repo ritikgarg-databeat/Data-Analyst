@@ -1,0 +1,24 @@
+slug: pa-cohort-vs-snapshot-analysis
+skill: product-metrics
+title: Cohort Analysis vs. a Point-in-Time Snapshot
+description: Why would an analyst prefer a cohort retention analysis over a single point-in-time 'percent of users
+  active today' snapshot when evaluating a recent product change?
+exercise_type: MULTIPLE_CHOICE
+difficulty: INTERMEDIATE
+points: 5
+tags:
+- cohort
+- product-analytics
+prompt: Why would an analyst prefer a cohort retention analysis over a single point-in-time 'percent of users active
+  today' snapshot when evaluating a recent product change?
+correct_answer: A cohort view separates users by when they joined, isolating whether the change affected NEW users
+  differently than existing ones, which a single snapshot blends together
+explanation: A single snapshot mixes long-tenured loyal users together with brand-new ones, which can mask whether
+  a recent change actually improved outcomes for the NEW cohort it was meant to affect -- cohorting by join date/exposure
+  period isolates that comparison cleanly.
+choices:
+- A cohort view separates users by when they joined, isolating whether the change affected NEW users differently
+  than existing ones, which a single snapshot blends together
+- A snapshot is always more accurate than a cohort view
+- Cohort analysis and snapshots always produce identical conclusions
+- Snapshots require larger sample sizes than cohort analyses

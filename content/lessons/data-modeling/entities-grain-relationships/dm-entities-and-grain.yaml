@@ -1,0 +1,89 @@
+slug: dm-entities-and-grain
+module_slug: entities-grain-relationships
+title: "Entities & Grain"
+description: Naming the real-world thing a table represents, and stating precisely what one row of it means — the single most load-bearing sentence in any data model.
+difficulty: BEGINNER
+estimated_minutes: 18
+display_order: 1
+objectives:
+  - Define "entity" and "grain," and state the grain of any table in the ecommerce dataset in one precise sentence.
+  - Explain why a table's grain determines what you can safely COUNT or SUM from it, using two ecommerce tables at genuinely different grains.
+skills: [data-modeling, dimensional-modeling]
+datasets: [ecommerce]
+tags: [data-modeling, grain, beginner, foundations]
+prerequisites: [dm-oltp-vs-analytical-modeling]
+key_takeaways:
+  - "An entity is the real-world thing or event a table represents (a customer, an order, a payment). Grain is the precise, one-sentence statement of what a single row of that table means — and it's the single most load-bearing sentence in any data model."
+  - "Grain can always be rolled up to something coarser by aggregating (order lines -> orders -> customers), but never un-rolled to something finer. Once you've summed away the product-line detail, it's gone for good."
+  - "If you can't state a table's grain in one sentence, you don't yet know what a row of it means — and that's exactly the gap the previous lesson's fan-out example fell into: nobody had stated 'orders is 1 row = 1 order, order_items is 1 row = 1 product line' before joining them."
+common_mistakes:
+  - "Stating grain vaguely (\"order data\") instead of precisely (\"1 row = 1 order\") — vague grain hides exactly the ambiguity that makes a fan-out join possible in the first place."
+  - "Confusing 'entity' with 'table.' order_items represents its own entity (an order line) but it also exists to resolve a relationship — which products appeared on which orders — a dual role covered as a bridge table in the next module."
+blocks:
+  - type: heading
+    text: Two questions, asked of every table
+  - type: text
+    body: >
+      Before you write a single query against a table, two questions need real answers. **What entity does
+      this represent?** — the real-world thing or event, like "a customer" or "a payment." And **what does one
+      row mean?** — the grain, stated precisely enough that you could hand it to someone else and they'd know
+      exactly what they're allowed to count or sum.
+  - type: table
+    caption: "The real, stated grain of every table in the ecommerce dataset (as registered in this platform's SQL Lab)"
+    headers: ["Table", "Entity", "Grain (1 row = ...)"]
+    rows:
+      - ["customers", "A customer", "1 customer"]
+      - ["categories", "A product category", "1 product category"]
+      - ["products", "A product", "1 product"]
+      - ["orders", "An order", "1 order"]
+      - ["order_items", "A line within an order", "1 product line within an order"]
+      - ["payments", "A payment transaction", "1 payment transaction for an order"]
+      - ["marketing_campaigns", "A marketing campaign", "1 marketing campaign"]
+      - ["sessions", "A website/app session", "1 website/app session"]
+  - type: text
+    body: >
+      Notice how specific each one is. Not "order info" but "1 row = 1 order." Not "line item stuff" but
+      "1 row = 1 product line within an order." That specificity is the entire point — it's precise enough that
+      you can check it: if `orders` is really 1 row = 1 order, then `order_id` should never repeat, and you can
+      verify that directly (`SELECT order_id, COUNT(*) FROM orders GROUP BY 1 HAVING COUNT(*) > 1` should return
+      nothing — and on the real data, it does return nothing).
+  - type: heading
+    text: Grain determines what's safe to compute
+  - type: text
+    body: >
+      `orders` (1 row = 1 order) and `order_items` (1 row = 1 product line within an order) are genuinely
+      different grains, even though every order_item row "belongs to" exactly one order. That's exactly why the
+      fan-out from the previous lesson happened: `COUNT(order_id)` is a perfectly safe thing to compute directly
+      against `orders` (grain matches the question — "how many orders"), but the instant you join to
+      `order_items` first, you're now standing at the *order-line* grain, and `COUNT(order_id)` from there
+      answers a different question ("how many order lines") whether you meant to ask it or not.
+  - type: example
+    title: "Rolling up is safe; un-rolling isn't"
+    body: >
+      You can always aggregate order_items (fine grain) up to the orders grain — `SUM(quantity * unit_price -
+      discount) GROUP BY order_id` gives you a correct per-order revenue figure, one row per order, exactly
+      matching the orders table's own grain. That's what this project's real `fct_orders` mart does. But you
+      cannot go the other direction: once you have only order-level `gross_revenue`, there is no query that
+      recovers which specific products made up that total — that detail was aggregated away on purpose, and
+      recovering it requires going back to `order_items` directly.
+  - type: callout
+    variant: common_mistake
+    title: "\"Order data\" is not a grain"
+    body: >
+      A grain statement has to be falsifiable. "This table has order data" tells you nothing about whether
+      order_id repeats, whether it's safe to COUNT rows, or what a duplicate would even mean. "1 row = 1 order"
+      does all three: it tells you order_id should be unique, that COUNT(*) answers "how many orders," and that
+      any duplicate order_id is a genuine grain violation worth investigating.
+  - type: question
+    prompt: >
+      You need "average number of distinct products purchased per order." Which table should you query, and why?
+    choices:
+      - "orders — it's the table about orders, so it should have everything related to an order"
+      - "order_items — its grain (1 row = 1 product line within an order) is the only one fine enough to count distinct products per order; orders alone has no product information at all"
+      - "Either table works equally well since they both relate to the same orders"
+    correct_index: 1
+    explanation: >
+      The question is fundamentally about product-line detail, which only exists at order_items' grain. orders
+      (1 row = 1 order) doesn't carry product information at all — you'd need `SELECT order_id,
+      COUNT(DISTINCT product_id) FROM order_items GROUP BY order_id` and then average that, precisely because
+      the question can't be answered from a grain coarser than order_items.

@@ -1,0 +1,105 @@
+slug: pa-sql-upgrade-rate-among-engaged-by-channel
+lesson_slug: pa-feature-adoption-decision
+skill: advanced-sql
+dataset: saas-product
+title: Upgrade Rate Among Engaged Users, by Channel
+description: For each acquisition channel, compute what fraction of cumulatively-engaged users go on to upgrade.
+exercise_type: SQL
+difficulty: ADVANCED
+points: 20
+tags: [sql, product, saas, funnel, advanced]
+business_context: >
+  Monetization wants to know whether the engaged-to-upgraded step of the funnel (the weakest step
+  overall, at 18.8%) is uniformly weak across channels or concentrated in specific ones, since that
+  determines whether a monetization fix should be channel-specific or product-wide.
+prompt: >
+  Using the `events` and `users` tables, write a query returning one row per `acquisition_channel`
+  with columns `acquisition_channel`, `engaged_count` (users from that channel who cumulatively
+  reached signup, activated, AND engaged), `upgraded_count` (of those, users who also reached
+  upgraded), and `upgrade_rate_among_engaged` (upgraded_count / engaged_count, rounded to 4
+  decimals). Order by `upgrade_rate_among_engaged` descending.
+sql_tables: [events, users]
+sql_starter_query: |
+  -- Explore acquisition channels first
+  SELECT DISTINCT acquisition_channel FROM users;
+sql_solution_query: |
+  WITH reached AS (
+    SELECT
+      e.user_id,
+      u.acquisition_channel,
+      MAX(CASE WHEN event_name = 'signup'    THEN 1 ELSE 0 END) AS signup,
+      MAX(CASE WHEN event_name = 'activated'  THEN 1 ELSE 0 END) AS activated,
+      MAX(CASE WHEN event_name = 'engaged'    THEN 1 ELSE 0 END) AS engaged,
+      MAX(CASE WHEN event_name = 'upgraded'   THEN 1 ELSE 0 END) AS upgraded
+    FROM events e
+    JOIN users u ON u.user_id = e.user_id
+    GROUP BY e.user_id, u.acquisition_channel
+  )
+  SELECT
+    acquisition_channel,
+    SUM(CASE WHEN signup=1 AND activated=1 AND engaged=1 THEN 1 END) AS engaged_count,
+    SUM(CASE WHEN signup=1 AND activated=1 AND engaged=1 AND upgraded=1 THEN 1 END) AS upgraded_count,
+    ROUND(
+      SUM(CASE WHEN signup=1 AND activated=1 AND engaged=1 AND upgraded=1 THEN 1 END)::DOUBLE
+      / SUM(CASE WHEN signup=1 AND activated=1 AND engaged=1 THEN 1 END), 4
+    ) AS upgrade_rate_among_engaged
+  FROM reached
+  GROUP BY acquisition_channel
+  ORDER BY upgrade_rate_among_engaged DESC;
+sql_row_order_matters: true
+sql_numeric_tolerance: 0.001
+sql_hidden_tests:
+  - name: content channel's upgrade_rate_among_engaged matches an independent recomputation
+    query: |
+      WITH reached AS (
+        SELECT e.user_id,
+          MAX(CASE WHEN event_name='signup' THEN 1 ELSE 0 END) AS signup,
+          MAX(CASE WHEN event_name='activated' THEN 1 ELSE 0 END) AS activated,
+          MAX(CASE WHEN event_name='engaged' THEN 1 ELSE 0 END) AS engaged,
+          MAX(CASE WHEN event_name='upgraded' THEN 1 ELSE 0 END) AS upgraded
+        FROM events e JOIN users u ON u.user_id=e.user_id
+        WHERE u.acquisition_channel = 'content'
+        GROUP BY e.user_id
+      )
+      SELECT 'content' AS channel, ROUND(
+        SUM(CASE WHEN signup=1 AND activated=1 AND engaged=1 AND upgraded=1 THEN 1 END)::DOUBLE /
+        SUM(CASE WHEN signup=1 AND activated=1 AND engaged=1 THEN 1 END), 4
+      ) AS expected_rate
+      FROM reached
+    key_columns: 1
+hints:
+  - "This is the same cumulative-flag pattern as the overall funnel query, with acquisition_channel added to the GROUP BY — build all four step flags (signup, activated, engaged, upgraded) per user, keeping the channel attached."
+  - "engaged_count is the cumulative count through the engaged step (signup=1 AND activated=1 AND engaged=1); upgrade_rate_among_engaged divides the fully-cumulative upgraded count by that engaged_count, not by the channel's total signups."
+solution: >
+  ```sql
+  WITH reached AS (
+    SELECT
+      e.user_id, u.acquisition_channel,
+      MAX(CASE WHEN event_name = 'signup'    THEN 1 ELSE 0 END) AS signup,
+      MAX(CASE WHEN event_name = 'activated'  THEN 1 ELSE 0 END) AS activated,
+      MAX(CASE WHEN event_name = 'engaged'    THEN 1 ELSE 0 END) AS engaged,
+      MAX(CASE WHEN event_name = 'upgraded'   THEN 1 ELSE 0 END) AS upgraded
+    FROM events e JOIN users u ON u.user_id = e.user_id
+    GROUP BY e.user_id, u.acquisition_channel
+  )
+  SELECT
+    acquisition_channel,
+    SUM(CASE WHEN signup=1 AND activated=1 AND engaged=1 THEN 1 END) AS engaged_count,
+    SUM(CASE WHEN signup=1 AND activated=1 AND engaged=1 AND upgraded=1 THEN 1 END) AS upgraded_count,
+    ROUND(SUM(CASE WHEN signup=1 AND activated=1 AND engaged=1 AND upgraded=1 THEN 1 END)::DOUBLE
+          / SUM(CASE WHEN signup=1 AND activated=1 AND engaged=1 THEN 1 END), 4) AS upgrade_rate_among_engaged
+  FROM reached
+  GROUP BY acquisition_channel
+  ORDER BY upgrade_rate_among_engaged DESC;
+  ```
+  Run against the real data: paid_social 20.43% (highest), organic 19.28%, referral 19.15%, paid_search
+  17.89%, content 16.38% (lowest) — a real but modest spread, notably narrower than paid_social's
+  ranking on activation rate (worst of all five channels there, best of all five here).
+explanation: >
+  The denominator matters most here: `upgrade_rate_among_engaged` divides by `engaged_count` (the
+  cumulative count of users who made it through signup, activated, AND engaged), not by the channel's
+  total signups. Dividing by total signups instead would actually compute overall upgrade rate (a
+  different, already-known metric), not the specific step-conversion rate this exercise asks for. The
+  surprising finding worth noting once the query runs correctly: paid_social ranks worst on activation
+  rate but *best* on this step, meaning its weakness is concentrated at the top of the funnel, not in
+  monetizing the users who do make it all the way to being engaged.

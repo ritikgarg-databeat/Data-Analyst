@@ -1,0 +1,111 @@
+slug: de-what-is-a-pipeline
+module_slug: pipelines-and-orchestration
+title: "From Steps to a Pipeline: Dependencies and DAGs"
+description: How individual extract/transform steps become a single, dependency-aware pipeline — and why that dependency structure is drawn as a DAG.
+difficulty: INTERMEDIATE
+estimated_minutes: 22
+display_order: 1
+objectives:
+  - Explain why pipeline steps must run in dependency order rather than all at once or in an arbitrary order
+  - Define a DAG (directed acyclic graph) and explain why "acyclic" specifically matters for a pipeline
+  - Trace a concrete dependency chain through the ecommerce dataset's tables
+prerequisites: [de-foundations-what-is-data-engineering]
+skills: [data-pipelines]
+datasets: [ecommerce]
+tags: [pipelines, orchestration, data-engineering, intermediate]
+key_takeaways:
+  - "A pipeline is a set of individual steps (extract, transform, load) wired together with explicit dependencies — a later step can only start once the specific earlier steps it needs have finished successfully."
+  - "That dependency structure is a DAG — a Directed Acyclic Graph: directed because dependencies point one way (B depends on A, not the reverse), and acyclic because a cycle (A depends on B depends on A) would mean neither step could ever legally run first."
+  - "Getting the dependency order wrong doesn't usually cause a loud crash — it causes a step to quietly run against incomplete or stale data, producing a result that looks fine but is wrong."
+common_mistakes:
+  - "Assuming pipeline steps can just all run \"at the same time\" for speed — a transformation step that reads from a table before its own upstream load step has finished will silently process incomplete data, not fail loudly."
+  - "Confusing the order steps are *written* in a script with the order they actually need to *depend* on each other — a DAG expresses real dependencies, which isn't always obvious from a project's file or folder layout."
+interview_questions:
+  - question: "Why is a pipeline's dependency structure specifically required to be acyclic (no cycles)?"
+    answer: >
+      A cycle would mean step A depends on step B finishing, while step B also depends on step A
+      finishing — there's no valid starting point, since neither can run first. A DAG's
+      acyclic property guarantees there's always at least one step with no unmet dependencies to
+      start with, and that the whole graph can be resolved into a valid, finishable run order.
+      Real pipelines occasionally *look* cyclic at a glance (two models seem to reference each
+      other) — that's actually a modeling bug to fix, not a valid pipeline shape.
+blocks:
+  - type: heading
+    text: One step becomes many, wired together
+  - type: text
+    body: >
+      A single extract-transform-load job is easy to reason about on its own. Real analytics work
+      needs dozens of these steps chained together — extract `orders`, extract `payments`, join and
+      clean them into a staging table, aggregate into a daily revenue mart, refresh a dashboard.
+      A **pipeline** is that whole set of steps, wired together with explicit dependency rules
+      about which steps must finish before which other steps are allowed to start.
+  - type: example
+    title: "A dependency chain through the ecommerce tables"
+    body: >
+      Consider building a daily revenue-by-channel report from the `ecommerce` dataset. The chain
+      of dependencies might look like: extract raw `orders` and `payments` → (both must finish) →
+      build a staging model joining orders to their payments → (staging must finish) → build a
+      daily aggregate grouping revenue by `channel` and `order_date` → (aggregate must finish) →
+      refresh the dashboard. The aggregate step is *useless* to run before the staging join
+      finishes — it would be aggregating over incomplete or missing data — so the dependency isn't
+      just a nice-to-have, it's a correctness requirement.
+  - type: heading
+    text: Why this is drawn as a DAG
+  - type: text
+    body: >
+      This dependency structure is almost universally drawn and reasoned about as a **DAG** —
+      a **D**irected **A**cyclic **G**raph. *Directed* means each dependency has a one-way
+      arrow: the aggregate step depends on the staging step, not the other way around. *Acyclic*
+      means there are no loops in that dependency chain — nothing can depend, even indirectly, on
+      itself. This isn't just terminology; it's what guarantees the pipeline has a valid order to
+      run in at all. If two steps genuinely depended on each other in both directions, there would
+      be no legal starting point — neither could run first.
+  - type: code
+    language: python
+    code: |
+      # A conceptual DAG, expressed the way an orchestration tool like Airflow
+      # would see it: each step lists the step(s) it depends on.
+      pipeline = {
+          "extract_orders": [],
+          "extract_payments": [],
+          "stg_orders_payments": ["extract_orders", "extract_payments"],
+          "daily_revenue_by_channel": ["stg_orders_payments"],
+          "refresh_dashboard": ["daily_revenue_by_channel"],
+      }
+      # An orchestrator resolves this into a valid run order — here, both
+      # extract steps first (in either order, or in parallel), then the
+      # staging step, then the aggregate, then the refresh — never the reverse.
+    caption: "This is conceptual, illustrative pseudocode — not a runnable Airflow DAG file — showing how dependencies are declared rather than hard-coded as a fixed sequence."
+  - type: callout
+    variant: common_mistake
+    title: "Wrong dependency order rarely fails loudly"
+    body: >
+      If the daily aggregate step runs before the staging join has actually finished, it typically
+      doesn't crash — it just reads whatever rows happen to exist in the staging table at that
+      moment, which might be zero rows, or yesterday's leftover data. The dashboard then shows a
+      number that's simply wrong, with no error anywhere in the logs. This is exactly why
+      dependency-aware orchestration (not just running scripts in a guessed order) matters — it's a
+      correctness guarantee, not just a convenience.
+  - type: heading
+    text: You don't need to build the DAG yourself to reason about it
+  - type: text
+    body: >
+      As an analyst, you're unlikely to be the one wiring up a production DAG in an orchestration
+      tool. But being able to look at one — or ask "what does this table actually depend on?" — is
+      exactly the kind of pipeline literacy this domain is trying to build. If a number looks wrong,
+      knowing that it's three steps downstream of a raw `orders` extract, and that any one of those
+      three steps could be the culprit, turns "the dashboard is broken" into "let me check whether
+      the staging step ran successfully today" — a much faster path to an actual answer.
+  - type: question
+    prompt: >
+      Why can't a pipeline's dependency graph legally contain a cycle (step A depends on step B,
+      which itself depends on step A)?
+    choices:
+      - "Cycles are allowed and simply run twice"
+      - "There would be no valid step to run first — each step is waiting on the other, so neither can ever start"
+      - "Cycles only cause a performance slowdown, not a correctness problem"
+    correct_index: 1
+    explanation: >
+      A cycle removes any legal starting point: A can't run until B finishes, and B can't run until
+      A finishes. This is exactly why the graph must be acyclic — it guarantees at least one step
+      has no unmet dependencies and the whole pipeline can be resolved into a valid run order.

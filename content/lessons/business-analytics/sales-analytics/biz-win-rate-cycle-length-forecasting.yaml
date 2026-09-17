@@ -1,0 +1,97 @@
+slug: biz-win-rate-cycle-length-forecasting
+module_slug: sales-analytics
+title: "Win Rate, Sales Cycle Length, and Why the Denominator Decides the Story"
+description: How win rate is defined ambiguously in practice, how sales cycle length is measured, and how the two combine into a simple sales forecast.
+difficulty: INTERMEDIATE
+estimated_minutes: 13
+display_order: 2
+objectives:
+  - Identify the two common, conflicting definitions of win rate and when each is appropriate
+  - Compute average sales cycle length and explain what it's used for
+  - Combine win rate, average deal size, and cycle length into a simple forecasting model
+prerequisites: [biz-sales-pipeline-and-funnel-metrics]
+skills: [business-analytics, business-metrics, metric-definition]
+tags: [business-analytics, intermediate, funnel]
+key_takeaways:
+  - "Win rate has two common, genuinely different definitions — (closed won) / (closed won + closed lost), which excludes still-open deals, versus (closed won) / (all deals that entered the pipeline), which counts open deals as losses until proven otherwise — and they can disagree by a wide margin."
+  - "Sales cycle length = average number of days from a deal's creation to its close (won or lost) — a rising average cycle length is an early-warning sign worth investigating before it shows up in a missed revenue number."
+  - A simple sales forecast multiplies pipeline value by an expected (stage- or historically-weighted) win rate, and uses average cycle length to estimate *when* that revenue is likely to land, not just whether it will.
+common_mistakes:
+  - Reporting a single win rate without specifying which denominator was used, letting the same underlying pipeline produce two very different-looking "win rates" depending on who calculated it.
+  - Forecasting revenue timing using an overall average cycle length that blends deal sizes or segments with very different actual cycle lengths (e.g. enterprise deals taking far longer than small-business deals).
+blocks:
+  - type: heading
+    text: "\"Win rate\" is a trap disguised as a simple metric"
+  - type: text
+    body: >
+      Ask two people on the same sales team for "our win rate" and it's entirely possible to get two
+      different, both-defensible numbers. The disagreement almost always comes down to the denominator.
+  - type: comparison
+    title: Two Common Win Rate Definitions
+    columns: ["Definition", "Formula", "When it's used"]
+    rows:
+      - ["Closed-only win rate", "Closed Won / (Closed Won + Closed Lost)", "Measuring how well the team closes deals once a final decision is reached — excludes deals still in progress"]
+      - ["All-deals win rate", "Closed Won / All deals that ever entered the pipeline", "Measuring overall pipeline efficiency, including deals that are still open (counted as not-yet-won)"]
+  - type: example
+    title: The same 500 deals, two win rates
+    body: >
+      A team logged 500 deals this quarter: 140 closed won, 210 closed lost, and 150 are still open (in
+      some active stage). The closed-only win rate is 140 / (140 + 210) = 40.0% — a healthy-looking number
+      that only considers deals with a final outcome. The all-deals win rate is 140 / 500 = 28.0% — a much
+      lower number that treats every still-open deal as, for now, not a win. Neither number is wrong; they
+      answer different questions, and reporting one without saying which is a common source of confusion
+      between sales and finance teams building a forecast off the same underlying data.
+  - type: callout
+    variant: common_mistake
+    title: A win rate without its denominator stated is unusable
+    body: >
+      "Our win rate is 40%" and "our win rate is 28%" can both be true descriptions of the identical 500
+      deals above. Before comparing win rate across two time periods, two reps, or two segments, confirm
+      both were computed with the same denominator — otherwise an apparent improvement (or decline) might
+      be nothing more than a shift in how many deals happened to still be open at measurement time.
+  - type: heading
+    text: Sales cycle length — the clock, not just the outcome
+    level: 3
+  - type: formula
+    expression: "Average Sales Cycle Length = AVG(Close Date − Create Date) across closed deals (won and lost)"
+    description: >
+      Measured only on deals that have actually closed (either way) — an open deal doesn't have a cycle
+      length yet, only an "age so far," which is a related but different thing to track.
+  - type: example
+    title: A lengthening cycle is an early-warning signal
+    body: >
+      Suppose this same team's average sales cycle length was 45 days last quarter and 58 days this
+      quarter — a 29% increase. Total deal count and win rate might look unchanged so far, but a longer
+      cycle means revenue that would have landed this quarter is now more likely to land next quarter
+      instead — a forecasting risk that shows up in cycle length well before it shows up as a missed
+      number, if anyone's tracking it.
+  - type: heading
+    text: Putting the pieces into a simple forecast
+    level: 3
+  - type: formula
+    expression: "Forecasted Revenue ≈ Open Pipeline Value × Expected Win Rate (by stage)          Forecasted Timing ≈ Deal Age + Remaining Expected Cycle Time"
+    description: >
+      A simple forecast combines value (pipeline dollars), probability (win rate, ideally weighted by
+      stage or historical performance of similar deals), and time (cycle length) — using only one of the
+      three answers only part of "how much, and when."
+  - type: checklist
+    title: Before reporting win rate or a sales forecast, confirm
+    items:
+      - Which win rate denominator was used, and that it's stated explicitly alongside the number
+      - Whether cycle length is segmented by deal size or type, since a blended average can hide very different realities across segments
+      - Whether the forecast accounts for both value and timing, not just whether a deal is expected to close at all
+  - type: question
+    prompt: >
+      Sales reports a 40% win rate this quarter, up from 28% last quarter — presented as a big improvement.
+      What should an analyst check first before accepting that framing?
+    choices:
+      - "Whether the exact same win-rate definition (same denominator) was used in both quarters — an apparent jump can come purely from a shift in how many deals were still open when each number was calculated."
+      - "Nothing — any quarter-over-quarter increase in a reported win rate should be taken at face value."
+      - "Whether the sales team used a new CRM color scheme this quarter."
+    correct_index: 0
+    explanation: >
+      Because win rate has (at least) two legitimate, differently-scoped definitions, a reported increase
+      could reflect real improvement in closing ability, or it could simply reflect a different mix of
+      open-versus-closed deals at the two measurement points — for instance, if last quarter's number was
+      an all-deals rate and this quarter's is a closed-only rate. Confirming a consistent, stated
+      denominator across both periods is the first check before treating the change as a genuine trend.

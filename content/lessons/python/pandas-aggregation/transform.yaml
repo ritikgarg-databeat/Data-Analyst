@@ -1,0 +1,115 @@
+slug: transform
+module_slug: pandas-aggregation
+title: Group Transform
+description: Using .groupby(...).transform() to broadcast a group-level result back onto every original row — the key difference from .agg(), which collapses groups.
+content_type: READING
+difficulty: INTERMEDIATE
+estimated_minutes: 12
+display_order: 3
+objectives:
+  - Explain how .transform() differs from .agg() in terms of output shape
+  - Use .transform() to broadcast a group statistic (like a group total) back onto every row
+  - Build a "percent of group total" column, a common real-world transform pattern
+prerequisites: [agg]
+skills: [pandas]
+datasets: [ecommerce]
+tags: [python, intermediate, real-world]
+key_takeaways:
+  - ".agg() collapses each group down to one summary row; .transform() keeps the original number of rows and broadcasts a group-level result back onto every row that belongs to that group."
+  - "A classic use case is computing a group total with .transform('sum') and dividing each row's value by it, to get a 'percent of group total' column without a separate merge step."
+  - "Because .transform() returns something the same shape as the input, you can assign its result directly to a new column: df['new_col'] = df.groupby('key')['col'].transform('sum')."
+common_mistakes:
+  - "Reaching for .agg() then trying to merge the result back onto the original DataFrame to add a group-level column — .transform() does this in a single step, with no merge needed."
+  - "Expecting .transform() to change the number of rows — it always returns a result aligned to the original DataFrame's index, one value per input row."
+  - "Passing a function to .transform() that doesn't return either a single aggregated value (broadcast to the whole group) or a same-length result — anything else raises an error."
+practical_applications:
+  - "Adding a 'percent of order total' column to a line-items table for a revenue breakdown chart."
+  - "Flagging rows above or below their group's average (e.g. order lines priced above the average line price for that order) without a separate merge."
+  - "Filling missing values with a group-specific statistic, e.g. df['price'].fillna(df.groupby('category')['price'].transform('median'))."
+interview_questions:
+  - question: "What's the difference between .groupby('key')['col'].agg('sum') and .groupby('key')['col'].transform('sum')?"
+    answer: ".agg('sum') collapses the DataFrame down to one row per group, with the summed value. .transform('sum') keeps every original row, but replaces each row's value with the sum for the group it belongs to — so a group's total appears repeated on every row of that group. Same underlying calculation, different output shape: agg() summarizes, transform() broadcasts."
+  - question: "How would you add a column showing each row's revenue as a percentage of its order's total revenue?"
+    answer: "Compute the order-level total with transform, then divide: df['order_total'] = df.groupby('order_id')['revenue'].transform('sum'); df['pct_of_order'] = df['revenue'] / df['order_total'] * 100. Because transform() returns a value aligned to every original row, no merge is needed to bring the group total back down to row level."
+blocks:
+  - type: text
+    body: >
+      `.agg()` summarizes each group into a single row — it **collapses** the data. Sometimes what
+      you actually want is the opposite: keep every original row, but attach a group-level statistic
+      to each one. That's exactly what **`.transform()`** does.
+  - type: heading
+    text: Same shape in, same shape out
+  - type: text
+    body: >
+      `.groupby(key)[col].transform(func)` computes `func` once per group, just like `.agg()` would —
+      but instead of returning one row per group, it broadcasts that result back across every row that
+      belongs to the group, returning something the exact same length as the original column.
+  - type: code
+    language: python
+    code: |2
+      import pandas as pd
+
+      orders = pd.read_csv("data/sample/ecommerce/orders.csv")
+      items = pd.read_csv("data/sample/ecommerce/order_items.csv")
+      items["line_revenue"] = (items["unit_price"] - items["discount"]) * items["quantity"]
+
+      merged = orders.merge(items, on="order_id")
+
+      merged.shape                                              # (12627, 8)
+      merged.groupby("order_id")["line_revenue"].sum().shape    # (4205,)   <- agg() collapses
+      merged.groupby("order_id")["line_revenue"].transform("sum").shape  # (12627,) <- transform() doesn't
+    caption: "agg() collapses 12,627 rows down to 4,205 (one per order); transform() stays at 12,627"
+  - type: heading
+    text: 'Classic use case: percent of group total'
+    level: 2
+  - type: text
+    body: >
+      Because `.transform()` returns a value aligned to every original row, it's the natural tool for
+      "add a column back onto every row showing how it compares to its group." The most common version
+      of this is a **percent of group total** column — here, what share of each order's revenue each
+      line item accounts for.
+  - type: example
+    title: "Order 3 has four line items — what share of the order does each one represent?"
+    body: >
+      transform('sum') computes each order's total revenue and repeats it on every line item row for
+      that order. Dividing each row's own revenue by that broadcast total gives a percent-of-order
+      column with no merge required.
+    code: |2
+      merged["order_total"] = merged.groupby("order_id")["line_revenue"].transform("sum")
+      merged["pct_of_order"] = (merged["line_revenue"] / merged["order_total"] * 100).round(1)
+
+      merged.loc[merged["order_id"] == 3, ["order_id", "product_id", "quantity", "line_revenue", "order_total", "pct_of_order"]]
+    language: python
+  - type: output
+    body: |2
+         order_id  product_id  quantity  line_revenue  order_total  pct_of_order
+      2         3          97         3        966.03      3005.27          32.1
+      3         3         146         2        859.90      3005.27          28.6
+      4         3          94         2        829.32      3005.27          27.6
+      5         3          15         1        350.02      3005.27          11.6
+    caption: "order_total (3005.27) is identical on every row for order 3 — that's the broadcast in action"
+  - type: callout
+    variant: tip
+    title: "transform() vs. agg() + merge"
+    body: >
+      Before .transform() existed as a habit, the equivalent pattern was: aggregate with .agg(), then
+      .merge() the summary back onto the original DataFrame on the group key. .transform() does both
+      steps at once and is the idiomatic way to write this today.
+  - type: callout
+    variant: common_mistake
+    title: transform() doesn't change row count
+    body: >
+      If you find yourself trying to .merge() the result of .transform() back onto your original
+      DataFrame "to line it back up," stop — .transform() is already aligned to the original index.
+      Just assign it directly: df['new_col'] = df.groupby('key')['col'].transform('sum').
+  - type: question
+    prompt: "A DataFrame has 500 rows across 50 groups. What is the length of df.groupby('group')['value'].transform('mean')?"
+    choices:
+      - "50 — one row per group, like .agg() would produce"
+      - "500 — the same length as the original DataFrame"
+      - "It depends on how many unique values are in the value column"
+    correct_index: 1
+    explanation: >
+      .transform() always returns a result the same length as the input — 500 rows in, 500 values
+      out — with each row holding its group's mean, repeated across every member of that group. Only
+      .agg() collapses down to one row per group.

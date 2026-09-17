@@ -1,0 +1,106 @@
+slug: marketing-performance-analytics
+title: Marketing Performance Analytics
+category: MARKETING_ANALYTICS
+business_context: >
+  You've been brought in to support the marketing team at an online retailer that runs paid campaigns
+  across several channels. Marketing has campaign spend and start/end dates for each campaign, and
+  the website logs a session for every visitor with the campaign that brought them in — but nobody
+  has connected campaign spend, session behavior, and actual downstream orders into a single view of
+  what's working. The CMO wants to know, before the next budget cycle, which channels and campaigns
+  are actually paying for themselves and where budget should move.
+objective: >
+  Analyze marketing campaign performance end to end: connect marketing_campaigns and sessions to
+  downstream orders, measure attribution and conversion by channel and campaign, evaluate
+  cost-efficiency (spend vs. revenue generated), and recommend how the marketing budget should be
+  reallocated across channels, backed by a marketing-performance dashboard.
+requirements:
+  - "A data-discovery summary of how sessions, marketing_campaigns, and orders relate, including how session-to-order attribution works and any sessions or orders that can't be attributed to a campaign"
+  - "A channel-level and campaign-level conversion analysis (session-to-order conversion rate) across all campaigns"
+  - "A cost-efficiency analysis comparing each campaign's budget to the revenue attributable to it (e.g. return on ad spend or cost per acquired order)"
+  - "A time-based view of campaign performance relative to each campaign's start/end window"
+  - "A marketing-performance dashboard with at least 4 charts covering conversion, spend efficiency, and channel comparison"
+  - "A written budget-reallocation recommendation identifying which channels/campaigns to invest in further and which to cut or fix"
+suggested_datasets:
+  - ecommerce
+milestones:
+  - title: Understand the Business
+    description: Understand the marketing team's channel mix, campaign structure, and what decision the CMO needs the analysis to support.
+  - title: Data Discovery
+    description: Profile marketing_campaigns, sessions, and orders, and map out exactly how a session gets attributed to a campaign and then to a resulting order.
+  - title: Build the Attribution View
+    description: Build a query or model layer that connects marketing_campaigns through sessions to converted orders.
+  - title: Conversion Analysis
+    description: Analyze session-to-order conversion rate by channel and by individual campaign.
+  - title: Cost-Efficiency Analysis
+    description: Compare each campaign's budget against the revenue it generated to identify which campaigns are efficient and which are not.
+  - title: Time-Window Analysis
+    description: Analyze how campaign performance evolves relative to each campaign's active date range.
+  - title: Build the Marketing Dashboard
+    description: Design and build a dashboard summarizing conversion, spend efficiency, and channel performance for the marketing team.
+  - title: Insights and Budget Recommendation
+    description: Synthesize the findings into a specific recommendation for how budget should shift across channels and campaigns.
+  - title: Final Presentation
+    description: Present the attribution analysis and budget recommendation to the CMO in an executive-ready format.
+required_skills:
+  - sql-fundamentals
+  - advanced-sql
+  - business-metrics
+  - exploratory-data-analysis
+  - data-visualization
+  - business-analytics
+  - communication
+rubric:
+  - category: Business Understanding
+    weight: 15
+    criteria:
+      - criterion: Correctly identifies the marketing decision the analysis needs to inform
+        points: 10
+      - criterion: Recognizes the limits of the attribution data available (e.g. last-touch only, unattributed sessions)
+        points: 10
+  - category: Technical Execution
+    weight: 25
+    is_technical: true
+    criteria:
+      - criterion: Attribution join between campaigns, sessions, and orders is constructed correctly
+        points: 10
+      - criterion: Conversion rate and cost-efficiency metrics are computed correctly
+        points: 10
+  - category: Analytical Reasoning
+    weight: 25
+    criteria:
+      - criterion: Correctly distinguishes high-conversion channels from high-cost-efficiency channels
+        points: 10
+      - criterion: Time-window analysis reveals genuine performance patterns tied to campaign timing
+        points: 10
+      - criterion: Analysis accounts for confounds (e.g. channel mix, seasonality) rather than taking raw numbers at face value
+        points: 5
+  - category: Visualization
+    weight: 15
+    criteria:
+      - criterion: Dashboard clearly compares channels and campaigns across conversion and cost-efficiency
+        points: 10
+      - criterion: Chart choices make the budget-reallocation story legible at a glance
+        points: 10
+  - category: Recommendations
+    weight: 20
+    criteria:
+      - criterion: Budget-reallocation recommendation is specific and quantified, not directional-only
+        points: 10
+      - criterion: Recommendation is defensible from the analysis and acknowledges its own limitations
+        points: 10
+learning_objectives:
+  - Build a session-to-order marketing attribution view from raw campaign and session data
+  - Measure conversion rate and cost-efficiency across marketing channels and campaigns
+  - Evaluate campaign performance relative to timing and spend
+  - Design a marketing-performance dashboard for executive use
+  - Translate attribution analysis into a specific budget-reallocation recommendation
+estimated_hours: 7.0
+tags:
+  - sql
+  - marketing
+  - business-analytics
+  - e-commerce
+  - eda
+  - real-world
+  - intermediate
+version: 1

@@ -1,0 +1,101 @@
+slug: corr-correlation-vs-causation
+module_slug: correlation-regression
+title: Correlation Is Not Causation (Two Real Ways It Goes Wrong)
+description: Two concrete, real-data traps behind the classic warning — a correlation that's mechanically built into how two metrics are calculated, and one that vanishes once you check whether it's even statistically real.
+difficulty: ADVANCED
+estimated_minutes: 13
+display_order: 2
+objectives:
+  - Identify when a correlation between two variables reflects how one is mechanically derived from the other, rather than an independent business relationship.
+  - Recognize when a correlation computed on a small number of groups should be treated with extra caution before drawing a causal-sounding conclusion.
+skills: [statistics, statistical-reasoning, data-interpretation]
+datasets: [ecommerce]
+tags: [statistics, advanced, e-commerce, marketing]
+prerequisites: [corr-correlation-coefficient]
+key_takeaways:
+  - "\"Correlation isn't causation\" is well-known advice, but the useful version is specific: name the actual alternative explanation (mechanical construction, confounding variable, small sample, reverse causation) before accepting or dismissing a correlation."
+  - A correlation between two metrics that share a mathematical building block (e.g., one is computed as a function of the other) reflects that construction, not necessarily an independent causal business relationship.
+  - A correlation computed across a small number of groups (e.g., a handful of marketing campaigns) is especially fragile — always check the sample size behind a correlation before trusting its sign or magnitude.
+common_mistakes:
+  - Seeing any positive correlation between a marketing input (spend, budget) and a business outcome and assuming the spend *caused* the outcome, without ruling out reverse causation (successful campaigns get bigger follow-on budgets) or simply checking if the correlation is even statistically distinguishable from zero.
+  - Treating a correlation computed from a very small number of data points (e.g., 15 campaigns) with the same confidence as one computed from thousands of rows.
+interview_questions:
+  - question: "You find that campaign budget correlates with conversion count at r = -0.33 across your company's 15 marketing campaigns. A stakeholder wants to conclude \"spending more actively hurts conversions.\" What do you say?"
+    answer: >
+      First check whether that correlation is even statistically distinguishable from zero — with
+      only 15 data points, r = -0.33 corresponds to a p-value around 0.23, well above conventional
+      significance. This data doesn't provide reliable evidence of any relationship between budget
+      and conversion count, in either direction, so a causal claim ("spending more hurts
+      conversions") isn't supported here at all — the honest answer is "we don't have enough
+      campaigns to say," not a confident negative story.
+blocks:
+  - type: heading
+    text: "Trap #1: a correlation baked into how the metrics are built"
+  - type: text
+    body: >
+      Sometimes two variables correlate strongly not because one influences the other in a business
+      sense, but because one is **mechanically derived** from the other (or from a shared input),
+      making the correlation close to a mathematical fact rather than a discovery.
+  - type: example
+    title: Unit price and discount amount
+    body: >
+      Across the ecommerce dataset's 12,627 order line items, unit_price and discount (a dollar
+      amount) correlate at r = 0.422 — a moderate positive relationship. It would be tempting to
+      read this as "pricing applies bigger discounts to pricier items as a deliberate strategy." But
+      if discounts are set as a *percentage* of price (a plausible and common pricing mechanism),
+      a positive dollar-discount-to-price correlation follows almost automatically from the
+      arithmetic, regardless of any intentional strategy — the correlation reflects the discount
+      *formula*, not necessarily a merchandising decision.
+  - type: code
+    language: sql
+    code: |
+      SELECT ROUND(CORR(unit_price, discount), 3) AS corr_price_discount
+      FROM order_items;
+    caption: "r = 0.422 — before concluding anything strategic, check whether discount is structurally computed as a function of price."
+  - type: heading
+    text: "Trap #2: a correlation that isn't even statistically real"
+  - type: text
+    body: >
+      A second, more basic trap: computing a correlation across too few data points and treating its
+      sign and size as meaningful without checking significance at all.
+  - type: example
+    title: Campaign budget and conversions — a fragile, non-significant correlation
+    body: >
+      Across the ecommerce dataset's 15 marketing campaigns, budget correlates with the number of
+      sessions that converted at r = -0.33 (a moderate-looking *negative* relationship). But with
+      only 15 campaigns, that correlation's p-value is 0.23 — nowhere near conventional
+      significance. There's no reliable evidence here that higher-budget campaigns produce fewer
+      conversions; the apparent negative slope is easily explained by noise across just 15 data
+      points.
+  - type: code
+    language: python
+    code: |
+      from scipy import stats
+
+      corr, p_value = stats.pearsonr(campaign_summary["budget"], campaign_summary["n_conversions"])
+      print(round(corr, 3), round(p_value, 3))  # -0.328, 0.233
+    caption: "p = 0.233 on n = 15 — this correlation shouldn't be used to argue budget and conversions are related in either direction."
+  - type: callout
+    variant: warning
+    title: Ask "what's the alternative explanation" before accepting a causal story
+    body: >
+      For any correlation, run through the concrete alternatives before reaching for a causal
+      explanation: Is one variable mechanically derived from the other? Is the sample size (number
+      of independent groups, not rows) large enough for the correlation to be trustworthy? Could the
+      causal arrow run the other way (successful campaigns often get bigger follow-on budgets, not
+      the reverse)? Is a third factor driving both? Naming the specific alternative is far more
+      useful than reciting "correlation isn't causation" as a general caveat.
+  - type: question
+    prompt: >
+      A team correlates customer support response time with churn rate across only 8 support agents
+      and finds r = 0.61. What should happen before this is presented as "slow responses cause
+      churn"?
+    choices:
+      - "Nothing — r = 0.61 is a strong correlation and that's sufficient to present as a finding"
+      - "Check the correlation's statistical significance given only 8 data points, and consider alternative explanations (reverse causation, a confounding factor like ticket complexity) before any causal claim"
+      - "Multiply r by the number of agents to adjust for sample size"
+    correct_index: 1
+    explanation: >
+      With only 8 data points, even a seemingly strong r can easily fail to be statistically
+      significant, and a causal claim needs the alternative explanations (confounders, reverse
+      causation) ruled out first — "strong-looking correlation" alone is not enough on either count.

@@ -1,0 +1,107 @@
+slug: object-storage-and-managed-compute
+module_slug: cloud-storage-and-compute
+title: "Object Storage & Managed Compute, Across the Three Clouds"
+description: >-
+  What object storage is and why it underlies both data lakes and cloud
+  warehouses, the equivalent storage/VM/serverless/big-data-cluster
+  services across AWS, GCP, and Azure, and how this repo's own
+  external_location trick previews the same idea at local scale.
+difficulty: INTERMEDIATE
+estimated_minutes: 30
+display_order: 1
+prerequisites: [cloud-warehouse-landscape]
+objectives:
+  - Explain what object storage is (durable, cheap, schema-less blob storage accessed over HTTP) and why it underlies both data lakes and, often invisibly, cloud warehouses' own internal storage.
+  - Map the equivalent object storage, general-purpose VM, serverless function, and managed big-data-cluster services across AWS, GCP, and Azure.
+  - Connect this repo's own external_location technique to the same underlying idea cloud object storage applies at scale — pointing compute directly at where data already lives.
+skills: [cloud-data-warehouses, modern-data-stack, data-engineering-fundamentals]
+tags: [cloud, data-lake, architecture, modern-data-stack, intermediate]
+key_takeaways:
+  - "Object storage stores files ('objects') by key, at durable, cheap, effectively unlimited scale, accessed over HTTP rather than a filesystem — it's the backbone of a data lake, and often the literal, mostly-hidden storage layer underneath a cloud warehouse's own tables."
+  - "Every major cloud offers the same three shapes of compute under different names: general-purpose VMs you provision and manage, serverless functions you invoke and forget, and managed big-data clusters for distributed processing at scale (covered further in the next module)."
+  - "This repo's dbt project points sources.yml's external_location straight at a local CSV file instead of requiring a separate load step first — a small, local stand-in for exactly what querying data directly from cloud object storage (via external tables, or Spark reading Parquet from a data lake) does at scale."
+common_mistakes:
+  - "Assuming object storage is 'just cloud folders' — there's no real directory hierarchy underneath; what looks like folders in a console UI is really just object keys that happen to contain slashes, listed and grouped to look folder-like."
+  - "Memorizing every AWS/GCP/Azure service name as an unrelated list instead of recognizing the three underlying shapes (object storage, VM compute, serverless compute, managed big-data cluster) that every cloud offers — the shape is what transfers between clouds, not the brand name."
+interview_questions:
+  - question: "A job posting mentions 'data lands in S3 before being loaded into Snowflake.' What does that tell you about the pipeline's shape?"
+    answer: >
+      It's a fairly standard ELT-adjacent pattern: raw data is written to durable, cheap object storage
+      (S3) first — often because it's the easiest, most universal landing point for files coming from many
+      different sources — and a separate load step then reads from S3 into Snowflake's own storage for
+      querying. It also implies S3 is likely serving as (or feeding) a data lake alongside the warehouse:
+      raw, less-structured data can sit in S3 relatively cheaply, while Snowflake holds the structured,
+      query-optimized version used for day-to-day analytics.
+blocks:
+  - type: heading
+    text: "What object storage actually is"
+  - type: text
+    body: >
+      Object storage stores files — "objects" — identified by a key (a string, often written to look like
+      a file path with slashes in it), inside a container (a "bucket"). It has no real directory tree
+      underneath; the folder-like structure you see in a console is a convenience built on top of keys that
+      happen to share a prefix. It's accessed over HTTP rather than mounted like a local disk, is extremely
+      durable and cheap per gigabyte, and scales to effectively unlimited size without anyone provisioning
+      more "disks." This is the backbone of a data lake — raw files, in whatever format they arrived in —
+      and it's frequently the literal storage layer underneath a cloud warehouse's own tables too, simply
+      hidden behind the warehouse's own interface.
+  - type: table
+    headers: ["Shape", "AWS", "GCP", "Azure", "What it's for"]
+    rows:
+      - ["Object storage", "S3", "Cloud Storage (GCS)", "Blob Storage", "Durable, cheap, schema-less file storage — the backbone of a data lake"]
+      - ["General-purpose VM compute", "EC2", "Compute Engine (GCE)", "Azure Virtual Machines", "A server you provision, configure, and manage yourself"]
+      - ["Serverless functions", "Lambda", "Cloud Functions", "Azure Functions", "Code that runs on invocation, billed per execution, with no server to manage"]
+      - ["Managed big-data clusters", "EMR", "Dataproc", "HDInsight", "Managed Spark/Hadoop clusters for distributed processing (next module)"]
+  - type: heading
+    text: "Three shapes of compute, one per cloud each"
+  - type: text
+    body: >
+      Underneath the different brand names, every cloud offers the same three shapes of compute. A
+      general-purpose VM is a server you provision and manage — you choose the machine size, install
+      software on it, and pay roughly for however long it runs. A serverless function is code you upload
+      that runs only when invoked — no server to patch or size, billed per execution, ideal for short,
+      event-triggered work (like reacting the instant a new file lands in object storage). A managed
+      big-data cluster is a set of coordinated machines running a distributed processing framework like
+      Spark, provisioned and torn down as a unit rather than one VM at a time. Recognizing which of these
+      three shapes a service name belongs to matters more than memorizing every brand.
+  - type: heading
+    text: "This project's own small-scale preview of the same idea"
+  - type: code
+    language: yaml
+    code: |
+      # dbt/models/staging/sources.yml
+      sources:
+        - name: raw
+          meta:
+            external_location: "'{{ env_var('DBT_DATA_DIR') }}/{name}.csv'"
+    caption: "This project's real sources.yml — pointing directly at a CSV file path rather than a separately-loaded table."
+  - type: text
+    body: >
+      `external_location` here tells dbt-duckdb to query a CSV file directly from wherever it sits on disk,
+      instead of requiring a separate "load this file into a table first" step. At cloud scale, the same
+      underlying idea shows up as external tables (a warehouse querying files sitting in S3/GCS/Blob
+      Storage without copying them in first) or as Spark reading Parquet files straight out of a data lake
+      — in both cases, compute is pointed directly at where the data already lives, rather than the data
+      being copied somewhere else first. This project's local CSV trick is a small, zero-cost stand-in for
+      exactly that pattern.
+  - type: callout
+    variant: tip
+    title: "Recognize the shape, not the brand"
+    body: >
+      If a term you don't recognize shows up in a job posting or an engineer's sentence, ask which of the
+      three shapes it is before worrying about which cloud it belongs to: is it storage, a server you'd
+      configure, or compute you'd invoke and forget? That question transfers across every cloud; memorizing
+      brand names on their own doesn't.
+  - type: question
+    prompt: "Which of these is an example of serverless compute, as opposed to a general-purpose VM?"
+    choices:
+      - "AWS EC2"
+      - "GCP Compute Engine"
+      - "Azure Functions"
+      - "Azure Virtual Machines"
+    correct_index: 2
+    explanation: >
+      Azure Functions runs code on invocation, billed per execution, with no server for you to provision or
+      manage — that's the serverless shape. EC2, Compute Engine, and Azure Virtual Machines are all
+      general-purpose VMs: you choose a machine size, it runs continuously once started, and you're
+      responsible for configuring and managing it.

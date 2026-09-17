@@ -1,0 +1,42 @@
+slug: exp-interpret-onboarding-email-result
+lesson_slug: exp-practical-vs-statistical-significance
+skill: data-interpretation
+dataset: saas-product
+title: "Inconclusive Isn't Always the Same Story: onboarding_email's Real Result"
+description: Given the real onboarding_email statistics, explain why this "not significant" result deserves a different recommendation than checkout_redesign's.
+exercise_type: DATA_INTERPRETATION
+difficulty: INTERMEDIATE
+points: 15
+tags: [experimentation, ab-testing, saas, statistics, real-world, intermediate]
+prompt: >
+  The onboarding_email test has also finished. Here's the full real result: control converted at 32.4%
+  (162 of 500 users), treatment (which added a second onboarding email) converted at 31.4% (157 of 500
+  users) — treatment actually converted *slightly lower* than control, an absolute difference of -1.0
+  percentage points (-3.1% relative). A two-proportion z-test gives p = 0.73, and the 95% confidence
+  interval for the difference is [-6.8 points, +4.8 points]. A teammate says "well, it's the same
+  situation as checkout_redesign — not significant, so let's just run it longer." Explain whether that's
+  the right call here, and what you'd recommend instead, referencing the specific numbers.
+hints:
+  - "Compare this result's point estimate and confidence interval shape to checkout_redesign's — is the interval leaning toward a meaningful positive effect, or centered near zero?"
+  - "Consider what sample size would actually be needed to detect an effect this small and think about whether pursuing that is a good use of the team's time, versus what checkout_redesign's much larger point estimate implied."
+solution: >
+  This is not the same situation as checkout_redesign, and "run it longer" isn't the best recommendation
+  here. The key difference is the point estimate itself: checkout_redesign's point estimate was a
+  sizeable +10.6% relative lift in the hypothesized direction; onboarding_email's point estimate is
+  essentially flat and even slightly *negative* (-3.1% relative, opposite the hypothesized direction).
+  The 95% CI, [-6.8 points, +4.8 points], is wide but roughly centered on zero rather than leaning
+  positive — consistent with "there's genuinely little to no effect here," not with "there's a real
+  effect this test lacked the power to see." Detecting an effect this small reliably would require a very
+  large sample size (tens of thousands of users per group), which is a lot of additional time and traffic
+  to spend chasing an effect that, even if real, is too small to be a meaningful win. The better
+  recommendation is to deprioritize this specific version of the onboarding email change rather than
+  extend the test, and consider testing a more differentiated idea (a bigger change, likely to produce a
+  bigger, more detectable effect) instead.
+explanation: >
+  A strong answer recognizes that "not significant" alone doesn't tell you which of two very different
+  situations you're in, and explicitly compares the shape of the point estimate and confidence interval
+  to make the distinction — a promising-but-underpowered result (checkout_redesign) genuinely warrants
+  more data, while a flat, near-zero, wrong-direction result (onboarding_email) is better read as "likely
+  no meaningful effect," where more data has a low expected payoff. A weaker answer treats every
+  non-significant p-value identically ("we need a bigger sample," full stop) without engaging with what
+  the actual point estimate and interval suggest about which case this is.

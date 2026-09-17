@@ -1,0 +1,98 @@
+slug: dm-keys-and-relationships
+module_slug: entities-grain-relationships
+title: "Keys & Relationships"
+description: Primary keys, foreign keys, and the four relationship types the Data Modeler uses to connect tables — including the one case that needs a bridge table instead of a simple foreign key.
+difficulty: BEGINNER
+estimated_minutes: 20
+display_order: 2
+objectives:
+  - Identify the primary key and every foreign key for a given ecommerce table, and state which table and column each foreign key references.
+  - Choose the correct relationship type (ONE_TO_ONE / ONE_TO_MANY / MANY_TO_ONE / MANY_TO_MANY) for a pair of tables, and explain why orders and products need a bridge table rather than a direct foreign key between them.
+skills: [data-modeling, dimensional-modeling]
+datasets: [ecommerce]
+tags: [data-modeling, relationships, grain, beginner]
+prerequisites: [dm-entities-and-grain]
+key_takeaways:
+  - "A primary key uniquely identifies a row at the table's stated grain. A foreign key is a column that names another table's primary key, and that pairing is what a relationship is built from."
+  - "Relationship direction is a matter of which end you describe from, not a different fact: \"one customer has many orders\" (ONE_TO_MANY, starting from customers) and \"many orders belong to one customer\" (MANY_TO_ONE, starting from orders) describe the identical real-world relationship."
+  - "A genuine many-to-many relationship — which products appeared on which orders — can't be a single foreign key in either direction. It needs a bridge/associative table with its own key, which is exactly the job order_items does: it pairs one order_id with one product_id per row, plus its own attributes (quantity, unit_price, discount)."
+common_mistakes:
+  - "Marking a column is_foreign_key without setting references_table and references_column — the Data Modeler's validator has a specific check for exactly this gap (foreign_key_missing_target), covered in the validating-a-data-model module."
+  - "Assuming a primary key has to be a single surrogate ID column. order_items has a natural composite key of (order_id, product_id) — the same order should never contain the same product on two separate lines — even though this dataset also gives it a convenient surrogate order_item_id."
+interview_questions:
+  - question: "Is the relationship between orders and products one-to-many, many-to-one, or something else?"
+    answer: >
+      Neither — it's many-to-many. One order can contain many products (this dataset's orders carry 1 to 5
+      line items each), and one product can appear on many different orders. Neither table can hold a single
+      foreign key that captures this, because a single column can only point at one row on the other side. The
+      relationship is resolved by order_items, a bridge/associative table where each row pairs exactly one
+      order_id with one product_id — order_items itself is in a many-to-one relationship with both orders and
+      products individually.
+blocks:
+  - type: heading
+    text: Primary keys — what makes a row unique
+  - type: text
+    body: >
+      A primary key is the column (or set of columns) that uniquely identifies a row at the table's stated
+      grain. On the ecommerce dataset: `customers.customer_id`, `orders.order_id`, `products.product_id`,
+      `categories.category_id`, `payments.payment_id`, and `order_items.order_item_id` (a convenient surrogate
+      key — order_items could equally be uniquely identified by the natural pair `(order_id, product_id)`,
+      since the same product shouldn't appear on two separate lines of the same order).
+  - type: heading
+    text: Foreign keys — how one table names another's key
+  - type: text
+    body: >
+      A foreign key is a column whose values are meant to match a primary key on another table. That's the
+      literal mechanism a relationship is built from.
+  - type: table
+    caption: "The real foreign keys in the ecommerce dataset"
+    headers: ["Table.column", "References", "Meaning"]
+    rows:
+      - ["orders.customer_id", "customers.customer_id", "Which customer placed this order"]
+      - ["order_items.order_id", "orders.order_id", "Which order this line belongs to"]
+      - ["order_items.product_id", "products.product_id", "Which product this line is for"]
+      - ["products.category_id", "categories.category_id", "Which category this product belongs to"]
+      - ["payments.order_id", "orders.order_id", "Which order this payment is for"]
+  - type: heading
+    text: Relationship type is a matter of perspective
+  - type: text
+    body: >
+      In the Data Modeler, a relationship has a from-table, a to-table, and a type — ONE_TO_ONE, ONE_TO_MANY,
+      MANY_TO_ONE, or MANY_TO_MANY. Drawing the edge from `customers` to `orders` and calling it ONE_TO_MANY
+      ("one customer, many orders") describes the exact same real-world fact as drawing it from `orders` to
+      `customers` and calling it MANY_TO_ONE ("many orders, one customer"). You're not choosing between two
+      different truths — you're choosing which end of the same edge to start from.
+  - type: example
+    title: "When neither ONE_TO_MANY nor MANY_TO_ONE fits"
+    body: >
+      orders and products genuinely relate many-to-many: an order can have several products, and a product
+      shows up on many different orders. Neither table can carry a single foreign key for this — a single
+      `product_id` column on `orders` could only point at one product, which is exactly the trap the
+      building-your-first-dimensional-model module's walkthrough runs into. The real fix is `order_items`: each
+      row pairs exactly one `order_id` with one `product_id`, so `order_items` is in a plain many-to-one
+      relationship with *both* orders and products individually, and that pair of many-to-one relationships is
+      what resolves the many-to-many at the business level. A table that plays this role is called a bridge (or
+      associative) table — covered as its own table_type in the next module.
+  - type: callout
+    variant: common_mistake
+    title: "A foreign key column needs a real target"
+    body: >
+      Marking a column `is_foreign_key` in the Data Modeler without filling in `references_table` produces a
+      specific, named validator warning (`foreign_key_missing_target`) — and even if you do fill it in,
+      spelling the target table or column wrong produces two other specific warnings
+      (`foreign_key_unknown_table`, `foreign_key_unknown_column`). The validating-a-data-model module walks
+      through all of these by name.
+  - type: question
+    prompt: >
+      In the Data Modeler, you drag a relationship from dim_products to a hypothetical fct_order_items table
+      and label it ONE_TO_MANY. What is the equivalent way to describe the same relationship starting from
+      fct_order_items?
+    choices:
+      - "ONE_TO_MANY, since relationship type never changes based on direction"
+      - "MANY_TO_ONE, since many order-line rows can reference the same one product"
+      - "MANY_TO_MANY, since both tables have many rows"
+    correct_index: 1
+    explanation: >
+      One product can appear on many order-item rows, so from dim_products' side it's ONE_TO_MANY; from
+      fct_order_items' side, the same real relationship reads as MANY_TO_ONE (many lines, one product each).
+      It's the same edge described from its two ends, not two different relationships.

@@ -1,0 +1,28 @@
+slug: segmenting-a-flat-conversion-rate
+lesson_slug: segmentation
+skill: business-problem-solving
+dataset: orders-sample
+title: Segmenting a Flat-Looking Order Total
+description: Interpret an orders dataset where the overall metric looks unremarkable but a segment tells a different story.
+exercise_type: DATA_INTERPRETATION
+difficulty: INTERMEDIATE
+points: 15
+tags: [business-analytics, real-world]
+prompt: >
+  Using the orders-sample dataset (order_id, customer_id, order_date, status, order_total), overall
+  average order_total this month is roughly flat compared to last month. Before concluding "nothing
+  changed," which two columns would you use to segment the data first, and what pattern in each would
+  tell you the aggregate is hiding something?
+hints:
+  - "status and order_date are both in the table for a reason — think about what each one could reveal that a single blended average can't."
+  - "Consider: could a rising cancellation or return rate, combined with a rising average sale price among completed orders, still look \"flat\" in a plain average across all statuses?"
+solution: >
+  Segment by status first: if the mix of completed vs. cancelled or returned orders shifted, average
+  order_total among completed orders alone could be moving in a different direction than the blended
+  average across all statuses. Segment by order_date second, at a finer grain than the full month: a flat
+  monthly average can hide a decline in the first half of the month fully offset by a spike in the second
+  half, visible only once you look week over week instead of as one monthly number.
+explanation: >
+  A strong answer names specific, checkable segments — status, and a finer time grain than "this month" —
+  rather than a vague "look deeper." It also explains the mechanism: how mixing statuses or time periods
+  together can make two offsetting effects cancel out into a misleadingly flat aggregate.

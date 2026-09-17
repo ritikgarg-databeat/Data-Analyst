@@ -1,0 +1,82 @@
+slug: exp-checkout-redesign-ztest-pvalue
+lesson_slug: exp-reading-p-values-and-confidence-intervals
+skill: statistical-reasoning
+dataset: saas-product
+title: "Two-Proportion Z-Test: checkout_redesign"
+description: Run a two-proportion z-test comparing checkout_redesign's control and treatment conversion rates, and read the resulting p-value.
+exercise_type: PYTHON
+difficulty: INTERMEDIATE
+points: 15
+tags: [python, statistics, experimentation, ab-testing, saas, intermediate]
+business_context: >
+  The checkout redesign test observed a higher conversion rate in treatment than control. Before
+  recommending a ship decision, the team needs to know whether that gap is large enough, relative to
+  the sample size, to be unlikely to be random chance.
+prompt: >
+  Using `experiment_assignments`, filter to `experiment_id == 'checkout_redesign'`, and run a
+  two-proportion z-test comparing the treatment group's conversion rate to the control group's, using
+  `statsmodels.stats.proportion.proportions_ztest`. Store your answer in a variable named `result`: a
+  dict with keys `z_stat` (the z-statistic, rounded to 3 decimal places) and `p_value` (the two-sided
+  p-value, rounded to 4 decimal places).
+python_datasets: [experiment_assignments]
+python_starter_code: |
+  from statsmodels.stats.proportion import proportions_ztest
+
+  # experiment_assignments is already loaded as a DataFrame.
+  co = experiment_assignments[experiment_assignments["experiment_id"] == "checkout_redesign"]
+  co.head()
+python_solution_code: |
+  from statsmodels.stats.proportion import proportions_ztest
+
+  co = experiment_assignments[experiment_assignments["experiment_id"] == "checkout_redesign"]
+  control = co[co["variant"] == "control"]
+  treatment = co[co["variant"] == "treatment"]
+
+  count = [treatment["converted"].sum(), control["converted"].sum()]
+  nobs = [len(treatment), len(control)]
+
+  z_stat, p_value = proportions_ztest(count, nobs)
+  result = {"z_stat": round(float(z_stat), 3), "p_value": round(float(p_value), 4)}
+python_result_variable: result
+python_numeric_tolerance: 0.001
+python_hidden_tests:
+  - name: "z-stat and p-value match a live recomputation"
+    code: |
+      from statsmodels.stats.proportion import proportions_ztest
+
+      co = experiment_assignments[experiment_assignments["experiment_id"] == "checkout_redesign"]
+      control = co[co["variant"] == "control"]
+      treatment = co[co["variant"] == "treatment"]
+      count = [treatment["converted"].sum(), control["converted"].sum()]
+      nobs = [len(treatment), len(control)]
+      z_expected, p_expected = proportions_ztest(count, nobs)
+
+      assert abs(result["z_stat"] - z_expected) < 0.005, f"Expected z_stat close to {z_expected:.3f}"
+      assert abs(result["p_value"] - p_expected) < 0.001, f"Expected p_value close to {p_expected:.4f}"
+  - name: "z_stat should be positive (treatment converted more than control)"
+    code: |
+      assert result["z_stat"] > 0, "Treatment converted at a higher rate than control, so z_stat should be positive."
+hints:
+  - "`proportions_ztest` takes `count` (an array of successes for each group) and `nobs` (an array of sample sizes for each group), in the same order for both arrays — put treatment first in both, or control first in both, just be consistent."
+  - "`.sum()` on the `converted` column gives you the count of conversions for a filtered slice; `len(...)` gives you the sample size."
+solution: |
+  ```python
+  from statsmodels.stats.proportion import proportions_ztest
+
+  co = experiment_assignments[experiment_assignments["experiment_id"] == "checkout_redesign"]
+  control = co[co["variant"] == "control"]
+  treatment = co[co["variant"] == "treatment"]
+
+  count = [treatment["converted"].sum(), control["converted"].sum()]
+  nobs = [len(treatment), len(control)]
+
+  z_stat, p_value = proportions_ztest(count, nobs)
+  result = {"z_stat": round(float(z_stat), 3), "p_value": round(float(p_value), 4)}
+  ```
+explanation: >
+  `proportions_ztest` compares two independent proportions using a pooled-variance z-test. Run on the
+  real data, control converted 113/1,000 (11.3%) and treatment converted 125/1,000 (12.5%), giving
+  z ≈ 0.829 and p ≈ 0.4073 — well above the conventional 0.05 threshold, so this specific test does not
+  reach statistical significance, despite the encouraging direction. As the Statistical Power lesson
+  shows, this test had only about 13% power to detect its own observed effect size at 1,000 users per
+  group, which is the more likely explanation than "there's no real effect."

@@ -1,0 +1,55 @@
+slug: active-vs-inactive-products
+lesson_slug: dataframes
+skill: pandas
+dataset: ecommerce
+title: Active vs. Inactive Products
+description: Count how many products in the catalog are currently active versus inactive.
+exercise_type: PYTHON
+difficulty: BEGINNER
+points: 15
+tags: [python, intermediate, real-world]
+business_context: >
+  Merchandising is auditing the product catalog before a seasonal refresh and wants a quick
+  headcount of how many products are currently active (sellable) versus inactive (delisted),
+  so they know how much of the catalog needs review.
+prompt: >
+  Using `products`, count how many products are active versus inactive. Store your answer in a
+  variable named `result`: a DataFrame with two columns, `is_active` and `count`, with exactly
+  one row for each distinct value of `is_active` (2 rows total).
+python_datasets: [products]
+python_starter_code: |
+  # products is already loaded as a DataFrame.
+  # Explore it first:
+  products.head()
+python_solution_code: |
+  result = (
+      products.groupby("is_active")
+      .size()
+      .reset_index(name="count")
+  )
+python_result_variable: result
+python_row_order_matters: false
+python_numeric_tolerance: 0.01
+python_hidden_tests:
+  - name: "Counts add up to the full catalog"
+    code: |
+      assert result["count"].sum() == 150, (
+          f"Expected the two counts to add up to 150 products total, got {result['count'].sum()}"
+      )
+hints:
+  - "`products.groupby('is_active')` groups rows by the boolean is_active column. `.size()` counts rows per group; `.reset_index(name='count')` turns that into a two-column DataFrame."
+  - "You don't need to filter anything first — grouping by is_active naturally splits the table into its True and False rows."
+solution: |
+  ```python
+  result = (
+      products.groupby("is_active")
+      .size()
+      .reset_index(name="count")
+  )
+  ```
+explanation: >
+  `groupby("is_active")` followed by `.size()` is the standard pandas idiom for a value-count
+  broken out as a DataFrame rather than a Series — `reset_index(name="count")` gives the count
+  column a clean, explicit name instead of the default `0`. This is equivalent to
+  `products["is_active"].value_counts()`, but the groupby form generalizes better once you need
+  to group by more than one column or aggregate something other than a row count.

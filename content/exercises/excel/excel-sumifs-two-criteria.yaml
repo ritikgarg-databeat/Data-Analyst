@@ -1,0 +1,97 @@
+slug: excel-sumifs-two-criteria
+skill: excel-fundamentals
+title: Revenue by Region and Category with SUMIFS
+description: The `Data` sheet lists each sale's `Region` (A), `Category` (B), and `Amount` (C). On `Summary`, fill
+  in `B2` with a SUMIFS formula that totals `Data!C2:C9` for rows where `Data!A2:A9` is "West" AND `Data!B2:B9`
+  is "Electronics".
+exercise_type: EXCEL
+difficulty: INTERMEDIATE
+points: 10
+tags:
+- excel
+- sumifs
+business_context: A retailer wants total revenue for one specific region-and-category combination without building
+  a whole pivot table.
+prompt: The `Data` sheet lists each sale's `Region` (A), `Category` (B), and `Amount` (C). On `Summary`, fill in
+  `B2` with a SUMIFS formula that totals `Data!C2:C9` for rows where `Data!A2:A9` is "West" AND `Data!B2:B9` is
+  "Electronics".
+excel_starter_sheets:
+- name: Data
+  cells:
+    A1: Region
+    B1: Category
+    C1: Amount
+    A2: West
+    B2: Electronics
+    C2: '100'
+    A3: East
+    B3: Electronics
+    C3: '150'
+    A4: West
+    B4: Clothing
+    C4: '80'
+    A5: East
+    B5: Clothing
+    C5: '60'
+    A6: West
+    B6: Electronics
+    C6: '120'
+    A7: East
+    B7: Electronics
+    C7: '90'
+    A8: West
+    B8: Clothing
+    C8: '70'
+    A9: East
+    B9: Clothing
+    C9: '50'
+- name: Summary
+  cells:
+    A1: West Electronics Total
+    A2: Result
+excel_solution_sheets:
+- name: Data
+  cells:
+    A1: Region
+    B1: Category
+    C1: Amount
+    A2: West
+    B2: Electronics
+    C2: '100'
+    A3: East
+    B3: Electronics
+    C3: '150'
+    A4: West
+    B4: Clothing
+    C4: '80'
+    A5: East
+    B5: Clothing
+    C5: '60'
+    A6: West
+    B6: Electronics
+    C6: '120'
+    A7: East
+    B7: Electronics
+    C7: '90'
+    A8: West
+    B8: Clothing
+    C8: '70'
+    A9: East
+    B9: Clothing
+    C9: '50'
+- name: Summary
+  cells:
+    A1: West Electronics Total
+    A2: Result
+    B2: =SUMIFS(Data!C2:C9,Data!A2:A9,"West",Data!B2:B9,"Electronics")
+excel_check_cells:
+- Summary!B2
+hints:
+- 'SUMIFS takes the sum range FIRST, then pairs of (criteria range, criteria): =SUMIFS(sum_range, range1, crit1,
+  range2, crit2, ...).'
+- Both conditions must be true for a row to count -- SUMIFS is an AND across all the criteria pairs, unlike stacking
+  two separate SUMIFs.
+solution: '`=SUMIFS(Data!C2:C9,Data!A2:A9,"West",Data!B2:B9,"Electronics")` evaluates to 220.'
+explanation: SUMIFS sums `Data!C2:C9` only where BOTH the matching row in `Data!A2:A9` is "West" AND the matching
+  row in `Data!B2:B9` is "Electronics" -- rows 2 and 6 (100 + 120 = 220). Unlike plain SUMIF, SUMIFS supports any
+  number of AND'ed conditions.

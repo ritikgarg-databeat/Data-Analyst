@@ -1,0 +1,111 @@
+slug: streaming-and-distributed-processing
+module_slug: orchestration-streaming-and-distributed-processing
+title: "Kafka & Spark: Streaming and Distributed Processing, Conceptually"
+description: >-
+  What Kafka is for (a durable, ordered log that decouples producers from
+  consumers) and what Spark is for (distributed computation across a
+  cluster) — taught at the level of recognizing both in a job posting or
+  a conversation, not operating either.
+difficulty: INTERMEDIATE
+estimated_minutes: 25
+display_order: 2
+prerequisites: [orchestration-with-airflow]
+objectives:
+  - Explain what Kafka is for and its core vocabulary (topic, partition, producer, consumer, consumer group).
+  - Explain what Spark is for and its core vocabulary (cluster, driver/worker, DataFrame, partition), and when a problem is Spark-shaped rather than pandas-shaped.
+  - Recognize when a problem is streaming-shaped versus batch-shaped, well enough to follow a conversation about either without needing to configure one.
+skills: [data-pipelines, modern-data-stack]
+tags: [kafka, spark, streaming, batch-processing, modern-data-stack, intermediate]
+key_takeaways:
+  - "Kafka is a durable, ordered log of events organized into named topics — producers write events, consumers read them, and because the log persists, a consumer can read events well after they were produced. That decoupling in time is the entire point, not just 'fast messaging.'"
+  - "Spark is a distributed compute engine: it splits a large dataset across many worker machines (a cluster) and runs the same transformation on each machine's slice in parallel, coordinated by a driver — reach for it specifically when data (or the computation over it) is too large for one machine, not by default."
+  - "This platform's real dbt project is a batch pipeline through and through — a bounded CSV snapshot transformed on demand, not a continuously arriving stream — which is exactly why Kafka and Spark stay conceptual here: operating either properly needs a running cluster, and the goal is recognizing the terms, not configuring them."
+common_mistakes:
+  - "Assuming 'streaming' just means 'fast' — the defining trait is that events are processed as they arrive, one (or a small batch) at a time, continuously, rather than that it's quicker than batch; a batch job can be scheduled to run every minute and still be batch, not streaming, if it's processing a bounded chunk of already-landed data each time."
+  - "Reaching for Spark by default for any 'big' dataset — a dataset that comfortably fits in memory on one machine (as this platform's ecommerce dataset does) has no need for distributed processing at all; Spark earns its complexity specifically when data or computation genuinely outgrows a single machine."
+interview_questions:
+  - question: "An engineer mentions their team 'publishes an order_placed event to Kafka the moment checkout completes.' How does that differ from how this platform's own dbt project receives order data?"
+    answer: >
+      This platform's dbt project reads a bounded, already-complete CSV file of historical orders — a
+      batch snapshot, loaded and transformed as a whole, on demand. Publishing an order_placed event to
+      Kafka the instant checkout completes is streaming ingestion: each order becomes an individual event
+      on a topic the moment it happens, available to any consumer (a fraud-detection service, an inventory
+      system, an analytics pipeline) immediately rather than only in tomorrow's batch load. The business
+      data is conceptually the same (an order happened) — what differs is whether it's captured
+      continuously, event-by-event, or collected into a bounded chunk and processed periodically.
+blocks:
+  - type: heading
+    text: "Kafka: a durable, ordered log that decouples time"
+  - type: text
+    body: >
+      Kafka's core idea is a durable, ordered log of events, organized into named streams called topics
+      (e.g. an `order_placed` topic). A producer writes events onto a topic; a consumer reads them —
+      critically, because the log persists rather than disappearing the instant it's read, a consumer can
+      read events long after they were produced, and multiple independent consumers can each read the same
+      events at their own pace. That's the real point of Kafka: it decouples producers from consumers in
+      time, not just "fast messaging" between two systems.
+  - type: table
+    headers: ["Term", "What it means"]
+    rows:
+      - ["Topic", "A named stream of events, e.g. order_placed"]
+      - ["Producer", "Something that writes events onto a topic"]
+      - ["Consumer", "Something that reads events from a topic"]
+      - ["Partition", "How a topic is split internally for parallel throughput and ordering guarantees within each partition"]
+      - ["Consumer group", "A set of consumers sharing the work of reading a topic between them"]
+  - type: heading
+    text: "Spark: distributed computation across a cluster"
+  - type: text
+    body: >
+      Spark's core idea is splitting a large dataset across many worker machines (a cluster) and running
+      the same transformation on each machine's slice of the data in parallel, rather than processing it
+      all on one machine's memory and CPU. A driver process coordinates the overall plan and hands out work
+      to workers. Spark's DataFrame API deliberately looks similar to pandas — the difference isn't the
+      syntax, it's that the actual execution is distributed across a cluster instead of confined to one
+      machine.
+  - type: table
+    headers: ["Term", "What it means"]
+    rows:
+      - ["Cluster", "A group of machines working together on the same job"]
+      - ["Driver", "The process that plans the work and coordinates the workers"]
+      - ["Worker", "A machine that executes its assigned slice of the computation"]
+      - ["DataFrame", "Spark's table-like data structure, conceptually similar to a pandas DataFrame but executed across the cluster"]
+      - ["Partition (Spark)", "One slice of the dataset assigned to one worker — same word as Kafka's partition, but a different concept in a different system"]
+  - type: text
+    body: >
+      The signal to reach for Spark isn't "the dataset is big" in some vague sense — it's specifically that
+      the data, or the computation needed over it, has outgrown what a single machine can hold in memory or
+      process in a reasonable time. This platform's ecommerce dataset comfortably fits and processes on one
+      machine, which is exactly why the whole platform (pandas, SQL, and this real dbt project alike) never
+      needs Spark — the same reasoning an analyst applies on the job, in reverse, when a dataset does start
+      to genuinely outgrow a single machine.
+  - type: heading
+    text: "Recognizing the shape of a problem"
+  - type: table
+    headers: ["Signal", "Batch or streaming?"]
+    rows:
+      - ["\"Numbers only need to be correct as of last night's close\"", "Batch"]
+      - ["\"A fraud rule must react within seconds of a transaction happening\"", "Streaming"]
+      - ["\"We reload the whole warehouse from source files every morning\"", "Batch"]
+      - ["\"Each click on the site should update a live dashboard within a few seconds\"", "Streaming"]
+  - type: callout
+    variant: tip
+    title: "This platform's own project is a clean example of batch"
+    body: >
+      Every model in `dbt/models/` reads a bounded CSV snapshot and transforms it as a whole, on demand or
+      on a schedule — nothing about it reacts to an individual order the instant it happens. That's
+      squarely batch processing, and it's exactly why Kafka and Spark stay conceptual in this platform:
+      teaching either one properly means standing up and operating a real cluster, which has little to do
+      with the transformation skills the real, runnable dbt project already teaches hands-on.
+  - type: question
+    prompt: "A team says their pipeline 'reprocesses the entire previous day's orders every morning at 4am.' Is this batch or streaming, and why?"
+    choices:
+      - "Streaming — because it happens automatically every day"
+      - "Batch — a bounded, already-complete chunk of data (yesterday) is processed as a whole, on a schedule, not event-by-event as it happens"
+      - "Streaming — because 4am is a real-time trigger"
+      - "Neither — a daily schedule with no cluster involved isn't a real data pipeline"
+    correct_index: 1
+    explanation: >
+      The defining trait of streaming is processing events as they individually arrive; here, a full day's
+      worth of already-completed orders is collected first and then processed together, once, on a
+      schedule — that's the hallmark of batch processing, regardless of how automated or how frequent the
+      schedule is.

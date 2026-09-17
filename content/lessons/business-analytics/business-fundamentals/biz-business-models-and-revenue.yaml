@@ -1,0 +1,109 @@
+slug: biz-business-models-and-revenue
+module_slug: business-fundamentals
+title: Business Models and How Companies Actually Make Money
+description: How a transactional business and a subscription business earn revenue in fundamentally different shapes, and why that shape determines which metrics matter.
+difficulty: BEGINNER
+estimated_minutes: 12
+display_order: 1
+objectives:
+  - Distinguish a transactional revenue model from a recurring (subscription) revenue model
+  - Explain why the same word "revenue" is tracked and forecast differently under each model
+  - Identify which core metrics matter most under each business model
+skills: [business-analytics, business-problem-solving]
+datasets: [ecommerce, saas-product]
+tags: [business-analytics, foundations, beginner]
+key_takeaways:
+  - A transactional business (e.g. ecommerce) earns revenue in discrete, unpredictable events — every dollar has to be re-earned by winning the next sale.
+  - A recurring-revenue business (e.g. SaaS) earns revenue in a predictable, compounding stream — this quarter's revenue is mostly last quarter's revenue still in force, plus or minus a smaller delta.
+  - The business model determines which metrics are the "vital signs" — AOV and order frequency for transactional businesses, MRR and churn for recurring-revenue businesses — and a metric borrowed from the wrong model can be actively misleading.
+common_mistakes:
+  - Applying a subscription mindset ("what's our churn rate?") to a transactional business, where the more useful question is "how often does this customer come back and buy again?"
+  - Reporting a SaaS company's "monthly revenue" as if it resets to zero each month, when in reality most of it is already-committed recurring revenue carrying forward.
+interview_questions:
+  - question: "A ride-sharing marketplace and a project-management SaaS tool both report $2M in monthly revenue. Why might an analyst care about that number very differently in each case?"
+    answer: >
+      For the marketplace, $2M this month says almost nothing about next month — every trip has to be re-won, so the number is a lagging snapshot of recent activity with no built-in momentum. For the SaaS tool, $2M in MRR is a forward-looking claim: absent cancellations, most of that revenue recurs next month automatically, so the analyst's real question becomes "how much of it is at risk of churning, and how much new revenue is layering on top?" The same dollar figure carries a completely different amount of information about the future depending on the model generating it.
+blocks:
+  - type: heading
+    text: Two ways to earn the same dollar
+  - type: text
+    body: >
+      Ask "how does this business make money?" and it's tempting to answer with a single number — revenue.
+      But *how* that revenue arrives shapes almost everything an analyst does next: which metrics matter,
+      how far ahead you can forecast, and what a "good" trend even looks like. Two of the most common
+      shapes are the **transactional model** (a customer pays for a discrete purchase, with no obligation
+      to ever return) and the **recurring-revenue model** (a customer pays repeatedly for continued access,
+      typically monthly or annually).
+  - type: comparison
+    title: Transactional vs. Recurring Revenue Models
+    columns: ["Dimension", "Transactional (e.g. ecommerce)", "Recurring (e.g. SaaS)"]
+    rows:
+      - ["How revenue arrives", "One order at a time, whenever a customer chooses to buy", "A subscription fee that renews automatically until cancelled"]
+      - ["What next month's revenue depends on", "Almost entirely new buying decisions", "Mostly revenue that already exists (active subscriptions), plus new sales minus cancellations"]
+      - ["Core health metrics", "AOV, order frequency, repeat purchase rate, gross margin", "MRR/ARR, churn rate, expansion revenue, net revenue retention"]
+      - ["What a flat monthly total means", "Roughly the same number of people bought roughly the same amount — tells you little about tomorrow", "Could hide serious churn if it's masked by equally large new sales — tells you nothing about the underlying flow"]
+  - type: example
+    title: The same question, two different real datasets
+    body: >
+      This platform's own sample data shows the contrast directly. The ecommerce dataset is a transactional
+      business: 3,441 completed orders across 1,261 purchasing customers, averaging $1,686.32 per order,
+      with no ongoing obligation between orders — a customer who bought last month owes nothing this
+      month. The saas-product dataset is a recurring-revenue business: by January 2026 it had 139 active
+      subscriptions worth $11,571 in combined Monthly Recurring Revenue (MRR) — a number that persists
+      automatically into February unless a subscription is cancelled or a new one starts.
+    code: |
+      -- Transactional: revenue only exists where a completed order exists
+      SELECT COUNT(*) AS completed_orders, ROUND(AVG(order_total), 2) AS aov
+      FROM (
+        SELECT o.order_id, SUM(i.quantity * (i.unit_price - i.discount)) AS order_total
+        FROM orders o JOIN order_items i USING (order_id)
+        WHERE o.status = 'completed'
+        GROUP BY o.order_id
+      );
+
+      -- Recurring: revenue exists independent of any single day's activity
+      SELECT COUNT(*) AS active_subscriptions, SUM(mrr) AS total_mrr
+      FROM subscriptions
+      WHERE status = 'active';
+    language: sql
+  - type: heading
+    text: Why the model changes what you should even ask
+    level: 3
+  - type: text
+    body: >
+      In a transactional model, "how much revenue will we make next month" is fundamentally a forecasting
+      question about future buying behavior — you're predicting new events. In a recurring-revenue model,
+      it's mostly an *accounting* question about the base you already have — start with this month's MRR,
+      subtract expected churn, add expected new business and expansion. This is why SaaS companies can
+      give confident revenue guidance months in advance in a way a pure ecommerce retailer usually can't:
+      most of next quarter's SaaS revenue already exists on the books today.
+  - type: callout
+    variant: important
+    title: The model tells you where to look for risk
+    body: >
+      In a transactional business, the risk lives in acquisition and repeat-purchase behavior — if new
+      orders slow down, revenue slows down almost immediately. In a recurring-revenue business, the risk
+      lives in the *base* — a slow, quiet rise in churn can erode a seemingly healthy MRR number for months
+      before it becomes visible in the topline, because new sales are covering for it. Knowing which model
+      you're in tells you which side of the ledger to watch most closely.
+  - type: checklist
+    title: Before analyzing "revenue" for a business, confirm
+    items:
+      - Whether the business model is transactional, recurring, or a hybrid (e.g. a marketplace with recurring seller subscriptions)
+      - Whether this period's revenue is mostly "new" or mostly "already committed" from prior periods
+      - Which handful of metrics actually function as this business's vital signs, given its model
+  - type: question
+    prompt: >
+      A subscription analytics tool's MRR stayed flat at $50,000 for three straight months. Which
+      explanation should an analyst investigate first?
+    choices:
+      - "The business has stopped growing entirely — there's nothing more to check."
+      - "New MRR and churned MRR could both be substantial and roughly offsetting, hiding real churn beneath a flat topline."
+      - "A flat number is impossible in a subscription business, so this must be a data error."
+    correct_index: 1
+    explanation: >
+      A flat MRR total in a recurring-revenue business is exactly the situation where the topline number
+      is least trustworthy on its own — it can just as easily represent healthy growth entirely offset by
+      churn as it can represent true stagnation. The very first thing to check is the composition of that
+      flat number: new MRR added versus MRR lost to cancellations, which a single "total MRR" figure
+      cannot distinguish.

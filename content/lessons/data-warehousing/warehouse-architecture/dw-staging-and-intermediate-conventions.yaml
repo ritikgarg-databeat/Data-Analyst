@@ -1,0 +1,106 @@
+slug: dw-staging-and-intermediate-conventions
+module_slug: warehouse-architecture
+title: "Staging and Intermediate Layer Conventions"
+description: The naming and design conventions that make a staging/intermediate layer trustworthy — one row in, one row out at staging, and where shared business logic belongs instead.
+difficulty: INTERMEDIATE
+estimated_minutes: 35
+display_order: 2
+objectives:
+  - State the staging-layer convention "one row in, one row out — no joins yet" and explain why it's a useful discipline, not an arbitrary rule.
+  - Distinguish what belongs in a staging model from what belongs in an intermediate model, using real examples from this project.
+  - Explain why staging models are typically materialized as views rather than tables in this project's dbt configuration.
+skills: [data-warehousing, dbt, data-engineering-fundamentals]
+datasets: [ecommerce]
+tags: [architecture, models, dbt, ref, intermediate]
+prerequisites: [dw-raw-staging-marts]
+key_takeaways:
+  - "A staging model's discipline is narrow on purpose: select from exactly one source, rename/clean columns, keep the same grain as the source — no joins to other entities yet. This project's stg_orders, stg_customers, stg_order_items, stg_payments, stg_products, and stg_categories models each follow this pattern, one model per raw table."
+  - "An intermediate model is where joins and shared business logic that don't belong to any single source table live — this project's int_order_items_priced joins order items to products specifically to compute line_margin, a calculation more than one downstream mart might need."
+  - "This project's dbt_project.yml sets staging and intermediate models to +materialized: view (recomputed fresh on every query) while marts are +materialized: table (built once, stored) — a deliberate tradeoff: staging/intermediate favor always-current data over the storage and compute cost of stashing scan-once-per-report results as physical tables."
+common_mistakes:
+  - "Adding a join into a staging model because it's convenient right now. This blurs the layer boundary — the model responsible for cleaning stg_orders shouldn't also be deciding how orders relate to customers, and mixing the two makes both harder to test and reuse independently."
+  - "Recomputing the same business logic (like line-level margin) inside a marts model instead of pulling it from an intermediate model that already computes it. This project's fct_orders doesn't recompute margin itself — it aggregates the already-computed line_margin from int_order_items_priced, so the calculation exists in exactly one place."
+blocks:
+  - type: heading
+    text: "Staging's rule: one row in, one row out"
+  - type: text
+    body: >
+      A useful, simple discipline for a staging model: it selects from exactly one source table,
+      applies only cleaning and renaming, and never changes the grain — the same number of rows go
+      out as came in. No joins yet. This project's `stg_orders.sql` is a clean example: one row per
+      order in, one row per order out, with only `status` standardized (`trim(lower(status))`) and
+      the columns explicitly selected (rather than a bare `select *`, which would silently expose
+      whatever columns the raw source happens to have, including ones nobody downstream should rely
+      on).
+  - type: code
+    language: sql
+    code: |
+      -- dbt/models/staging/stg_categories.sql-style pattern: one source, no joins, same grain
+      select
+          order_id,
+          customer_id,
+          order_date,
+          trim(lower(status)) as status,
+          channel
+      from {{ source('raw', 'orders') }}
+    caption: "This is the entire discipline of a staging model: rename, clean, keep the grain — nothing else."
+  - type: heading
+    text: "Intermediate's job: joins and shared logic that don't belong to one source"
+  - type: text
+    body: >
+      Once a question needs more than one source table's information, that logic doesn't belong back
+      in staging (that would break the "no joins yet" rule) — it belongs in an intermediate model.
+      This project's `int_order_items_priced.sql` is exactly that: it joins `stg_order_items` to
+      `stg_products` specifically to compute `line_cost` and `line_margin` for each order line, a
+      calculation that inherently needs both tables' information at once. Because it's its own named,
+      referenceable model, any current or future mart that needs line-level margin can pull it from
+      here instead of re-deriving the join and the subtraction independently.
+  - type: code
+    language: sql
+    code: |
+      -- dbt/models/intermediate/int_order_items_priced.sql
+      select
+          oi.order_item_id,
+          oi.order_id,
+          oi.line_revenue,
+          p.cost as unit_cost,
+          (oi.quantity * p.cost) as line_cost,
+          oi.line_revenue - (oi.quantity * p.cost) as line_margin
+      from {{ ref('stg_order_items') }} as oi
+      left join {{ ref('stg_products') }} as p
+          on oi.product_id = p.product_id
+    caption: "A join plus a business calculation (margin) that no single staging model could own on its own — this is what makes it an intermediate model rather than a second staging model."
+  - type: table
+    headers: ["Question", "Staging model", "Intermediate model"]
+    rows:
+      - ["How many source tables does it select from?", "Exactly one", "Two or more, via ref() to other staging (or intermediate) models"]
+      - ["Does the grain change from the source?", "No — same grain, e.g. one row per order in and out", "Often yes — can aggregate or reshape (e.g. one row per order line, enriched)"]
+      - ["Typical transformations", "Renaming, casing/trim fixes, type casts", "Joins, business calculations shared across marts"]
+      - ["Real example in this project", "stg_orders (cleans status)", "int_order_items_priced (joins products, computes margin)"]
+  - type: callout
+    variant: tip
+    title: "Why staging/intermediate are views here, and marts are tables"
+    body: >
+      `dbt/dbt_project.yml` configures `staging` and `intermediate` as `+materialized: view` and
+      `marts` as `+materialized: table`. A view recomputes its query every time something selects
+      from it — no storage cost, always reflects the latest upstream data, but slower per query. A
+      table is computed once and physically stored — fast to query repeatedly, but only as fresh as
+      its last build. Staging and intermediate models are usually cheap, narrow transformations, so
+      keeping them as views (always fresh, no extra storage) is a reasonable default; marts are the
+      layer analysts and dashboards hit directly and repeatedly, so materializing them as tables
+      trades a bit of freshness for consistently fast queries.
+  - type: question
+    prompt: >
+      A model joins stg_order_items to stg_products to compute each line's margin. Which layer does
+      it belong in, and why?
+    choices:
+      - "Staging — because it still ultimately concerns order items, one of the staging models"
+      - "Intermediate — because it joins two source-derived models together and computes shared business logic, which staging's \"no joins yet\" discipline explicitly excludes"
+      - "Marts — anything involving a calculation should go directly in the final business-ready layer"
+    correct_index: 1
+    explanation: >
+      Staging models are deliberately narrow: one source in, cleaned, same grain, no joins. The
+      moment a model needs to combine two staging models' information (order items and products) to
+      compute something neither one could compute alone (margin), that's exactly the intermediate
+      layer's job — and keeping it there means any mart that needs line-level margin can reuse it
+      via ref() instead of recomputing the join itself.

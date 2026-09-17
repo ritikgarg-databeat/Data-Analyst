@@ -1,0 +1,136 @@
+slug: filtering
+module_slug: pandas-dataframes-fundamentals
+title: Filtering Rows
+description: "Boolean filtering with df[condition], combining conditions with & and | (and required parentheses), .isin(), and .query() as a readable alternative."
+difficulty: BEGINNER
+estimated_minutes: 12
+display_order: 6
+objectives:
+  - "Filter a DataFrame with a boolean condition: df[df['col'] == value]"
+  - "Combine multiple conditions with & and |, using parentheses correctly"
+  - Use .isin() for membership checks and .query() as a more readable alternative to bracket filtering
+prerequisites: [selecting-columns]
+skills: [pandas]
+datasets: [ecommerce]
+tags: [python, beginner, foundations]
+key_takeaways:
+  - "df[condition] filters rows: the condition produces a Series of True/False values (one per row), and only the True rows survive."
+  - "Use & for 'and' and | for 'or' — not the Python keywords and/or — and always wrap each individual condition in parentheses: (df['a'] == 1) & (df['b'] == 2)."
+  - ".isin(['a', 'b', 'c']) replaces a long chain of == comparisons joined by | with one readable call, and .query() lets you write the whole filter as a plain string expression."
+common_mistakes:
+  - "Using Python's and/or instead of & and | — and/or are for single True/False values, and pandas raises a ValueError ('truth value of a Series is ambiguous') when you try to use them on a whole column of conditions."
+  - "Forgetting parentheses around each condition when combining them: df['a'] == 1 & df['b'] == 2 is parsed wrong, because & binds tighter than == — it needs to be (df['a'] == 1) & (df['b'] == 2)."
+  - "Writing df[df['status']=='cancelled' | df['status']=='refunded'] instead of .isin(['cancelled', 'refunded']) — technically works once parenthesized correctly, but isin scales far better past two or three values."
+blocks:
+  - type: text
+    body: >
+      Filtering — keeping only the rows that match some condition — is one of the operations you'll write
+      most often in pandas. It's the direct equivalent of a SQL WHERE clause.
+  - type: heading
+    text: Boolean filtering
+  - type: code
+    language: python
+    code: |
+      import pandas as pd
+
+      orders = pd.read_csv("data/sample/ecommerce/orders.csv")
+
+      condition = orders["status"] == "completed"
+      print(condition.head())
+      print()
+      completed = orders[condition]
+      print(completed.shape)
+    caption: "The condition itself is a Series of True/False, one per row"
+  - type: output
+    body: |
+      0    True
+      1    True
+      2    True
+      3    False
+      4    True
+      Name: status, dtype: bool
+
+      (3441, 5)
+  - type: text
+    body: >
+      You'll almost always see this written in one line — `orders[orders["status"] == "completed"]` —
+      but it's worth seeing the condition Series on its own at least once, since that's exactly what's
+      happening inside the brackets: pandas keeps every row where the condition is True and drops the
+      rest.
+  - type: heading
+    text: "Combining conditions: & and |, with parentheses"
+  - type: code
+    language: python
+    code: |
+      web_completed = orders[(orders["status"] == "completed") & (orders["channel"] == "web")]
+      print(web_completed.shape)
+
+      cancelled_or_refunded = orders[(orders["status"] == "cancelled") | (orders["status"] == "refunded")]
+      print(cancelled_or_refunded.shape)
+    caption: "& for AND, | for OR — each individual condition wrapped in its own parentheses"
+  - type: output
+    body: |
+      (1890, 5)
+      (637, 5)
+  - type: callout
+    variant: warning
+    title: "Not and/or — and the parentheses are not optional"
+    body: >
+      Python's `and`/`or` keywords only work on single True/False values, not a whole Series of them —
+      using them here raises "ValueError: The truth value of a Series is ambiguous." Use `&` and `|`
+      instead. And because `&` binds more tightly than `==` in Python's operator precedence, `df['a'] ==
+      1 & df['b'] == 2` parses incorrectly — each side of `&` or `|` needs its own parentheses:
+      `(df['a'] == 1) & (df['b'] == 2)`.
+  - type: heading
+    text: ".isin() for membership checks"
+  - type: code
+    language: python
+    code: |
+      not_completed = orders[orders["status"].isin(["cancelled", "refunded"])]
+      print(not_completed.shape)
+    caption: "One call instead of chaining == with | for every value"
+  - type: output
+    body: |
+      (637, 5)
+  - type: text
+    body: >
+      Same result as the `|`-chained version above, but `.isin()` reads better and scales cleanly to five,
+      ten, or fifty values without the expression growing unwieldy.
+  - type: heading
+    text: ".query() — filtering as a readable string"
+  - type: code
+    language: python
+    code: |
+      result = orders.query("status == 'completed' and channel == 'web'")
+      print(result.shape)
+    caption: "Column names are written bare (no orders[...] repetition), and plain and/or work here"
+  - type: output
+    body: |
+      (1890, 5)
+  - type: callout
+    variant: tip
+    title: "Inside .query(), and/or/== work exactly like normal Python"
+    body: >
+      .query() parses its string argument itself, so the ambiguous-Series problem that rules out and/or
+      in bracket filtering doesn't apply here — write plain and/or, and refer to columns by name without
+      repeating the DataFrame's name. Many analysts find a query() string more readable once a filter
+      has three or more conditions, though it's purely a style choice — both approaches produce identical
+      results.
+  - type: table
+    headers: ["Approach", "Example", "Best for"]
+    rows:
+      - ["Bracket + single condition", "df[df['status'] == 'completed']", "One simple condition"]
+      - ["Bracket + & / |", "df[(cond1) & (cond2)]", "A couple of conditions, when you want the expression visible in code"]
+      - [".isin()", "df[df['status'].isin([...])]", "Matching against a list of allowed values"]
+      - [".query()", "df.query(\"a == 1 and b == 2\")", "Several conditions, prioritizing readability"]
+  - type: question
+    prompt: "Why does orders[orders['status'] == 'completed' and orders['channel'] == 'web'] raise an error?"
+    choices:
+      - "and only works on single boolean values, not on a whole Series of True/False results"
+      - "== cannot be used inside square brackets"
+      - "channel is not a valid column name"
+    correct_index: 0
+    explanation: >
+      Each side of `and` here is a full Series of True/False values (one per row), and Python's `and`
+      requires a single unambiguous True/False to evaluate — pandas raises a ValueError rather than
+      guess what you meant. The fix is `&` with each condition parenthesized.

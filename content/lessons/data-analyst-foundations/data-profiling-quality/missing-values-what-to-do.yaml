@@ -1,0 +1,114 @@
+slug: missing-values-what-to-do
+module_slug: data-profiling-quality
+title: "Missing Values: What to Actually Do About Them"
+description: Random vs. systematic missingness, why "just drop the nulls" is often the wrong first move, and how a 2% null rate should change your response very differently than a 40% one.
+difficulty: BEGINNER
+estimated_minutes: 11
+display_order: 2
+objectives:
+  - Distinguish missingness that looks random from missingness that looks structural or systematic
+  - Explain why dropping rows with missing values can silently bias a downstream statistic
+  - Calibrate a response to a null rate — a 2% gap is not the same problem as a 40% gap, even in the same column
+prerequisites: [reading-a-schema]
+skills: [exploratory-data-analysis]
+datasets: [ecommerce]
+tags: [foundations, beginner, real-world]
+key_takeaways:
+  - "A missing value isn't automatically a data quality defect — some missingness is structural, meaning the value genuinely doesn't apply to that row, not that it failed to be captured."
+  - "'Just drop the rows with nulls' is a safe-feeling default that's often wrong, because the rows you'd drop are frequently not a random sample of the dataset — dropping them changes what's left in a specific, sometimes misleading direction."
+  - "The right response scales with the null rate: 2% missing, spread with no obvious pattern, is usually low-risk to drop or impute. 40% missing changes the shape of your whole analysis if you drop it — at that rate, the missingness itself is a finding worth reporting, not a nuisance to clean away."
+  - "In this course's sessions table, marketing_campaign_id is missing on 59.75% of rows — structurally, by design, since only sessions that arrived via a tracked campaign have one. Conversion rate on those rows (15.86%) is close to conversion rate where it's present (14.29%), which is the signature of missingness that's structural and not meaningfully biasing an aggregate — a useful contrast to a column where missingness IS strongly tied to outcome, which you'll see worked in detail with real numbers in the Python EDA module."
+common_mistakes:
+  - "Dropping every row with any missing value as a reflexive first move, before checking whether that missingness is random, structural, or tied to the specific outcome being measured."
+  - "Treating a low null percentage as automatically safe to ignore — a 2% null rate concentrated entirely in your highest-value customer segment is a very different problem than 2% spread evenly across the whole dataset, even though the headline percentage looks identical."
+  - "Filling every missing value with a generic placeholder (0, 'unknown', the column mean) without considering whether that placeholder distorts the specific statistic you're about to compute from that column."
+practical_applications:
+  - "Reading a schema's null percentages as a checklist of questions to answer (expected or surprising?) rather than a single quality metric to minimize."
+  - "Choosing a null-handling strategy (drop, impute, flag-and-keep, or investigate further) deliberately per column, based on what the missingness pattern looks like, instead of applying one blanket rule to an entire dataset."
+interview_questions:
+  - question: "A column is 15% null. What's your process for deciding what to do about it?"
+    answer: "First, I'd check whether that 15% looks structural — does the value genuinely not apply to those rows, like a discount_code field only populated for orders that used one? If so, the missingness itself might be meaningful information (no discount applied), not a defect to fix. If it's not structural, I'd check whether the missingness correlates with anything else in the data, especially the outcome I'm ultimately measuring — if the missing rows behave differently, dropping them would bias my result. Only after that would I decide between dropping, imputing, or keeping and flagging it, and the decision would be specific to that column and that analysis, not a blanket rule."
+resources:
+  - title: "Pandas documentation — Working with missing data"
+    url: "https://pandas.pydata.org/docs/user_guide/missing_data.html"
+blocks:
+  - type: heading
+    text: "Not every null is a defect"
+  - type: text
+    body: >
+      It's tempting to treat "percent missing" as a single quality metric to minimize. But a missing value
+      can mean two very different things: the value failed to be captured (a real gap), or the value
+      genuinely doesn't apply to that row (structural, by design). Telling these apart is the first step,
+      before deciding what — if anything — to do about it.
+  - type: heading
+    text: "A structural example: sessions.marketing_campaign_id"
+  - type: text
+    body: >
+      In this course's ecommerce dataset, sessions.marketing_campaign_id is null on 7,170 of 12,000 rows —
+      59.75%. That's a large number on its own. But look at what it actually represents: a session only has
+      a marketing_campaign_id when it arrived via a tracked marketing campaign. Organic search, direct
+      navigation, and word-of-mouth traffic legitimately have nothing to put there — it's not that the
+      value failed to be recorded, it's that no campaign attribution applies.
+  - type: table
+    headers: ["Check", "Result", "What it suggests"]
+    rows:
+      - ["Missing rate by device (desktop/mobile/tablet)", "59.9% / 59.0% / 60.4% — nearly identical across all three", "Not concentrated in any one device — consistent with a structural cause, not a tracking bug on one platform"]
+      - ["Conversion rate: missing vs. present", "15.86% (missing) vs. 14.29% (present) — close, not a large gap", "Missingness here isn't strongly tied to the outcome — safer to treat as structural than as a hidden bias"]
+  - type: callout
+    variant: tip
+    title: "The check that matters: does missingness behave differently on the outcome you care about?"
+    body: >
+      Both checks above point the same direction: this missingness looks like "no campaign to attribute,"
+      not "a broken tracking pipeline" or "conversion is quietly different for these rows." That's the
+      value of running the check rather than assuming — the number 59.75% alone tells you almost nothing;
+      the pattern behind it tells you a lot. Not every column behaves this way — the Python EDA module
+      works through a real column in this same dataset where missingness IS strongly tied to conversion,
+      with the actual numbers, as a direct contrast to this one.
+  - type: heading
+    text: "Why 'just drop the nulls' is a risky default"
+  - type: text
+    body: >
+      Dropping every row with a missing value feels safe — you're left with only "complete" data. But that
+      framing hides the real question: is the subset you're left with still representative of what you're
+      trying to measure? If missingness is random, dropping is close to harmless. If missingness is
+      systematic — concentrated in a particular segment, time period, or channel — dropping those rows
+      changes the composition of what's left, in a specific direction, and any average or rate you compute
+      afterward inherits that shift.
+  - type: callout
+    variant: warning
+    title: "A dropped row is a silent decision, not a neutral one"
+    body: >
+      "I dropped the rows with missing values" sounds like cleanup. It's actually a modeling decision about
+      what those rows would have contributed, made by assuming they'd have looked just like the rows you
+      kept. That assumption needs to be checked, not taken for granted — especially before computing a rate
+      or average that a stakeholder will act on.
+  - type: heading
+    text: "How the null rate itself should change your response"
+  - type: comparison
+    title: "The same missing-values problem, at two different rates"
+    columns: ["", "~2% missing", "~40% missing"]
+    rows:
+      - ["Risk from dropping (if random)", "Low — a small, likely representative loss of rows", "High — you're discarding a huge share of the dataset"]
+      - ["Worth investigating the pattern first?", "Usually yes, but a lower-priority check", "Always yes — at this scale, the missingness pattern is itself a finding"]
+      - ["Typical response", "Drop or impute, after a quick sanity check", "Investigate the mechanism first; report the missingness rate alongside any statistic computed from the remaining rows"]
+  - type: heading
+    text: "A practical decision checklist"
+  - type: checklist
+    title: "Before deciding how to handle a column's missing values"
+    items:
+      - "Does the missing value likely mean 'doesn't apply' (structural) or 'failed to capture' (a real gap)?"
+      - "Does the missing rate vary meaningfully across an obvious dimension — device, channel, time period, segment?"
+      - "Does the outcome you're measuring differ between rows with and without the value present?"
+      - "Given the answers above, and the null rate itself, does dropping, imputing, or keeping-and-flagging make the most sense for THIS specific analysis?"
+  - type: question
+    prompt: "sessions.marketing_campaign_id is missing on 59.75% of rows, at a nearly identical rate across desktop, mobile, and tablet, and conversion rate is similar whether it's missing or present (15.86% vs 14.29%). What does this pattern suggest?"
+    choices:
+      - "The missingness looks structural (untracked/organic traffic legitimately has no campaign to attribute) rather than a data quality defect or a hidden bias tied to conversion"
+      - "The high percentage alone proves this is a broken data pipeline that needs to be fixed before any analysis"
+      - "Nothing can be concluded without first dropping the missing rows and recomputing"
+    correct_index: 0
+    explanation: >
+      Missingness that's evenly spread across an unrelated dimension (device) and doesn't strongly track the
+      outcome (conversion) is the signature of a structural cause rather than a systematic bias — here, that
+      a session simply wasn't attributed to any tracked campaign, which is a legitimate state, not a
+      collection failure.

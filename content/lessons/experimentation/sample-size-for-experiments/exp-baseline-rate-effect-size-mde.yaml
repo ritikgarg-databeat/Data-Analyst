@@ -1,0 +1,101 @@
+slug: exp-baseline-rate-effect-size-mde
+module_slug: sample-size-for-experiments
+title: Baseline Rate, Effect Size, and Minimum Detectable Effect
+description: >
+  The three inputs every sample-size conversation starts from — what conversion looks like today, how
+  big a change would actually matter, and the precise term (MDE) for "the smallest effect we insist on
+  being able to detect."
+difficulty: ADVANCED
+estimated_minutes: 25
+display_order: 1
+objectives:
+  - Define baseline rate, absolute effect size, relative effect size, and minimum detectable effect (MDE)
+  - Convert between absolute and relative effect sizes for a given baseline
+  - Explain why choosing a smaller MDE always requires a larger sample, holding everything else constant
+prerequisites: [exp-primary-secondary-guardrail-metrics]
+skills: [experimentation, statistical-reasoning]
+datasets: [saas-product]
+tags: [experimentation, ab-testing, saas, advanced]
+key_takeaways:
+  - "Baseline rate is the metric's current value under control — everything else in a sample-size calculation is defined relative to it."
+  - "Effect size can be stated in absolute terms (percentage points) or relative terms (percent change) — always state which one you mean, since a '2-point' lift means very different things at a 10% baseline versus a 60% baseline."
+  - "The minimum detectable effect (MDE) is a business decision, not a statistics one — it's the smallest effect size worth the cost of building and shipping the change, and it's the number that (together with the baseline rate) determines how many users the test needs."
+common_mistakes:
+  - Saying "a 2% lift" without specifying absolute or relative — a 2-percentage-point lift on a 10% baseline (to 12%) is a 20% relative lift, a very different claim from a 2%-relative lift (10% to 10.2%).
+  - Picking an MDE that's smaller than what the business actually needs to justify shipping, which inflates the required sample size (and test duration) for no practical benefit.
+blocks:
+  - type: heading
+    text: Three terms you need before you can calculate anything
+  - type: text
+    body: >
+      Before any sample-size formula gets used, three quantities need to be pinned down. The **baseline
+      rate** is what the metric looks like today, under the current experience (this is what the control
+      group's rate estimates). The **effect size** is how big a change you're hypothesizing or hoping
+      for, which can be described in **absolute** terms (percentage points: 10% to 12% is "+2 points") or
+      **relative** terms (percent change: 10% to 12% is "+20%"). And the **minimum detectable effect
+      (MDE)** is the smallest effect size the business actually cares about being able to detect — not
+      the smallest effect that could theoretically exist, but the smallest one worth the cost of shipping.
+  - type: formula
+    expression: "relative effect size = (treatment rate - baseline rate) / baseline rate"
+    description: >
+      Converts an absolute difference into a relative (percent) change — always relative to the
+      *baseline*, not the treatment rate.
+  - type: example
+    title: "checkout_redesign's real numbers, stated both ways"
+    body: >
+      In the real data, control (baseline) converted at 11.3% (113/1,000) and treatment converted at
+      12.5% (125/1,000). Stated absolutely, that's a +1.2 percentage-point lift. Stated relatively, that's
+      (0.125 - 0.113) / 0.113 ≈ +10.6%. Both descriptions are correct — but "a 1.2-point lift" and "a
+      10.6% lift" sound very different to a stakeholder, so it matters which one you're using, especially
+      when setting an MDE before the test even runs.
+  - type: table
+    caption: Same absolute gap, different relative meaning depending on baseline
+    headers: ["Baseline rate", "Treatment rate", "Absolute lift", "Relative lift"]
+    rows:
+      - ["11.3% (checkout_redesign control)", "12.5%", "+1.2 points", "+10.6%"]
+      - ["32.4% (hypothetical, same +1.2-point gap)", "33.6%", "+1.2 points", "+3.7%"]
+      - ["5.0% (hypothetical, same +1.2-point gap)", "6.2%", "+1.2 points", "+24.0%"]
+  - type: callout
+    variant: important
+    title: MDE is a business call, not a statistics call
+    body: >
+      Statistics tells you how many users you need to reliably detect a *given* MDE — it doesn't tell
+      you what the MDE should be. That's a business question: "given what it costs to build and maintain
+      this change, what's the smallest improvement that would make it worth shipping?" A smaller MDE
+      always demands a larger sample (and longer test), so setting it too conservatively low wastes time
+      chasing an effect too small to matter even if you could detect it.
+  - type: callout
+    variant: common_mistake
+    title: "\"Statistically significant\" isn't the same as \"meets the MDE\""
+    body: >
+      A test can find a statistically significant effect that's still smaller than the MDE the business
+      set — technically real, but not big enough to justify the cost of shipping. Significance answers
+      "is this probably not chance?"; the MDE answers "is this big enough to matter?" — both matter, and
+      they're different questions (more in the Practical vs. Statistical Significance lesson).
+  - type: question
+    prompt: >
+      A team sets an MDE of "at least a 5-percentage-point absolute increase" for a metric with a 40%
+      baseline rate. A colleague says this MDE is "way too conservative" for a metric already at 40%.
+      What's the more useful reframing?
+    choices:
+      - "The colleague is wrong — 5 points is 5 points regardless of baseline"
+      - "State the MDE in relative terms too: 5 points on a 40% baseline is only a 12.5% relative lift, which may or may not be conservative depending on what relative improvements this kind of change typically produces — the absolute number alone doesn't tell you that"
+      - "The MDE should always be set in absolute terms, never relative, to avoid this kind of confusion entirely"
+    correct_index: 1
+    explanation: >
+      Whether an MDE is "conservative" only makes sense relative to typical effect sizes for this kind of
+      change, and relative framing often makes that comparison easier: 5 points on a 40% baseline is a
+      12.5% relative lift, which is a much more moderate ask than 5 points on a 10% baseline (a 50%
+      relative lift). Neither absolute nor relative framing is universally "correct" — the point is to
+      state both and reason about which one matches how the business actually thinks about the change.
+interview_questions:
+  - question: "What's the difference between an absolute and a relative effect size, and why does it matter when setting a minimum detectable effect?"
+    answer: >
+      An absolute effect size is the raw difference in percentage points between treatment and control
+      (12% minus 10% is a 2-point absolute lift); a relative effect size expresses that same difference
+      as a percentage of the baseline (2 points on a 10% baseline is a 20% relative lift). It matters for
+      MDE-setting because the same absolute gap means something very different depending on the baseline
+      — 2 points on a 5% baseline is a 40% relative change, while 2 points on a 60% baseline is a 3.3%
+      relative change — so an MDE stated without specifying which framing you mean, and without
+      reference to the baseline, is ambiguous and can lead to a sample-size calculation that doesn't
+      match what the business actually intended to detect.

@@ -1,0 +1,30 @@
+slug: analytics-engineer-intermediate
+title: Analytics Engineer (Intermediate)
+category: ANALYTICS_ENGINEER_INTERMEDIATE
+description: >
+  Owns transformation pipelines end to end — scalable dimensional modeling,
+  pipeline reliability, and data quality across domains. A generic shape
+  based on common postings, not any single employer's exact requirements.
+core_skills:
+  - advanced-sql
+  - data-modeling
+  - dimensional-modeling
+  - dbt
+  - data-warehousing
+  - data-quality-engineering
+  - data-pipelines
+preferred_skills:
+  - data-lineage
+  - cloud-data-warehouses
+  - modern-data-stack
+  - pipeline-troubleshooting
+nice_to_have_skills:
+  - python-fundamentals
+  - machine-learning-fundamentals
+typical_responsibilities:
+  - Own end-to-end transformation pipelines
+  - Design scalable dimensional models across domains
+  - Diagnose and fix pipeline and data quality incidents
+  - Establish testing and documentation standards
+  - Partner with data engineering on the modern data stack
+version: 1

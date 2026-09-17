@@ -1,0 +1,159 @@
+slug: pa-cohort-retention-sql
+module_slug: cohorts
+title: "Building a Cohort Retention Matrix in SQL"
+description: >
+  Writing the full DATEDIFF-based cohort retention query from raw events, step by step, and
+  verifying every number in the output against a fresh recomputation.
+difficulty: ADVANCED
+estimated_minutes: 25
+display_order: 2
+objectives:
+  - Assign each user to a signup-month cohort and compute their period offset with DATE_TRUNC and DATEDIFF
+  - Build the two aggregates a retention matrix needs (cohort size, and active users per cohort/period) and join them correctly
+  - Verify a cohort retention query's output by manually recomputing one cell
+prerequisites: [pa-cohort-fundamentals, pa-funnel-sql]
+skills: [product-analytics, sql-fundamentals, advanced-sql]
+datasets: [saas-product]
+tags: [product, saas, cohort, sql, advanced]
+key_takeaways:
+  - "Cohort assignment and period offset both come from the same two DATE_TRUNC('month', ...) calls — one on signup_date (the cohort), one on event_timestamp (the observation) — with DATEDIFF('month', ...) turning the gap between them into a period number."
+  - "The WHERE event_timestamp >= signup_date filter matters: without it, a data entry error placing an event before its own signup date could produce a negative period_number and corrupt the matrix."
+  - Always verify a cohort query by hand-checking one cell — pick one cohort_month and period_number, recompute its active_users count with a standalone query, and confirm it matches the matrix output exactly before trusting the rest.
+common_mistakes:
+  - Computing period_number from the raw signup_date and event_timestamp without truncating both to the same grain first, which produces fractional or inconsistent period numbers instead of clean integer month offsets.
+  - Joining cohort_size back to the retention counts on the wrong grain (e.g. joining on user_id instead of cohort_month), which silently produces one retention row per user instead of one per cohort/period.
+blocks:
+  - type: text
+    body: >
+      This lesson builds the exact query used to produce the matrix from the previous lesson, from
+      scratch, in three pieces: cohort and period assignment, cohort sizing, and the retention
+      calculation itself.
+  - type: heading
+    text: "Piece 1: assign each event to a cohort and a period"
+  - type: code
+    language: sql
+    caption: DATE_TRUNC assigns the cohort; DATEDIFF computes how many months later the event happened
+    code: |
+      SELECT
+        user_id,
+        DATE_TRUNC('month', signup_date) AS cohort_month,
+        DATEDIFF(
+          'month',
+          DATE_TRUNC('month', signup_date),
+          DATE_TRUNC('month', event_timestamp)
+        ) AS period_number
+      FROM events
+      WHERE event_timestamp >= signup_date;
+  - type: callout
+    variant: warning
+    title: Why the WHERE clause is not optional
+    body: >
+      `event_timestamp >= signup_date` guards against a bad row producing a negative `period_number`
+      (an event dated before the user's own signup date, which shouldn't happen but is worth
+      defending against in raw data). Without this filter, a single malformed row could introduce a
+      period -1 or -2 that quietly shifts totals if it ever gets summed into a cohort's counts.
+  - type: heading
+    text: "Piece 2: cohort size (denominator)"
+  - type: code
+    language: sql
+    caption: Cohort size = distinct users active in period 0 (their own signup month)
+    code: |
+      WITH activity AS (
+        SELECT user_id,
+          DATE_TRUNC('month', signup_date) AS cohort_month,
+          DATEDIFF('month', DATE_TRUNC('month', signup_date),
+                    DATE_TRUNC('month', event_timestamp)) AS period_number
+        FROM events
+        WHERE event_timestamp >= signup_date
+      )
+      SELECT cohort_month, COUNT(DISTINCT user_id) AS n_users
+      FROM activity
+      WHERE period_number = 0
+      GROUP BY cohort_month;
+  - type: heading
+    text: "Piece 3: the full matrix"
+  - type: code
+    language: sql
+    caption: Complete cohort retention query, verified against the saas-product data
+    code: |
+      WITH activity AS (
+        SELECT user_id,
+          DATE_TRUNC('month', signup_date) AS cohort_month,
+          DATEDIFF('month', DATE_TRUNC('month', signup_date),
+                    DATE_TRUNC('month', event_timestamp)) AS period_number
+        FROM events
+        WHERE event_timestamp >= signup_date
+      ),
+      cohort_size AS (
+        SELECT cohort_month, COUNT(DISTINCT user_id) AS n_users
+        FROM activity WHERE period_number = 0
+        GROUP BY cohort_month
+      ),
+      retention AS (
+        SELECT cohort_month, period_number, COUNT(DISTINCT user_id) AS active_users
+        FROM activity
+        GROUP BY cohort_month, period_number
+      )
+      SELECT
+        r.cohort_month,
+        cs.n_users,
+        r.period_number,
+        r.active_users,
+        ROUND(r.active_users::DOUBLE / cs.n_users, 4) AS retention_pct
+      FROM retention r
+      JOIN cohort_size cs USING (cohort_month)
+      WHERE r.period_number BETWEEN 0 AND 4
+        AND r.cohort_month BETWEEN DATE '2025-01-01' AND DATE '2025-04-01'
+      ORDER BY r.cohort_month, r.period_number;
+  - type: table
+    headers: ["cohort_month", "n_users", "period_number", "active_users", "retention_pct"]
+    rows:
+      - ["2025-01-01", "126", "1", "34", "0.2698"]
+      - ["2025-01-01", "126", "2", "25", "0.1984"]
+      - ["2025-02-01", "134", "1", "36", "0.2687"]
+      - ["2025-03-01", "160", "1", "35", "0.2188"]
+      - ["2025-04-01", "140", "1", "48", "0.3429"]
+  - type: heading
+    text: "Verifying one cell by hand"
+  - type: text
+    body: >
+      Before trusting the whole matrix, spot-check one cell independently. The 2025-01 cohort's
+      period-1 active_users (34) should equal a direct count of distinct users whose cohort_month is
+      January 2025 and whose event_timestamp falls in February 2025.
+  - type: code
+    language: sql
+    caption: Independent recomputation of one cell (2025-01 cohort, period 1)
+    code: |
+      SELECT COUNT(DISTINCT e.user_id)
+      FROM events e
+      WHERE DATE_TRUNC('month', e.signup_date) = DATE '2025-01-01'
+        AND DATE_TRUNC('month', e.event_timestamp) = DATE '2025-02-01'
+        AND e.event_timestamp >= e.signup_date;
+      -- returns 34, matching the matrix exactly
+  - type: callout
+    variant: tip
+    title: This check takes thirty seconds and catches most join bugs
+    body: >
+      A mismatched cell here almost always means a join problem — most commonly, `cohort_size`
+      joined on the wrong key, or a `period_number` computed before applying the `event_timestamp >=
+      signup_date` filter. Running this kind of single-cell recomputation before publishing a cohort
+      matrix is the cheapest verification step available, and it's the same principle the exercises
+      in this module will grade against.
+  - type: question
+    prompt: >
+      DATEDIFF('month', a, b) already returns the same calendar-month difference regardless of the
+      day-of-month each date falls on. Given that, why does the query still wrap `signup_date` in
+      `DATE_TRUNC('month', ...)` to produce `cohort_month`?
+    choices:
+      - "It's unnecessary and can be removed with no change to the query's output"
+      - "DATE_TRUNC('month', signup_date) is what turns every user's exact signup date into a single, consistent value (the first of their signup month) that can be used as a GROUP BY / JOIN key — DATEDIFF alone never produces that shared key, it only produces the offset between two dates"
+      - "DATE_TRUNC is required so DATEDIFF can accept the value as an argument"
+      - "It's needed to convert the date into a string for display purposes"
+    correct_index: 1
+    explanation: >
+      You're right that DATEDIFF('month', ...) is already insensitive to day-of-month on its own —
+      that part doesn't need truncation. DATE_TRUNC earns its place for a different reason: it turns
+      every user's individual signup_date into a shared, groupable value (cohort_month), which is
+      exactly what GROUP BY cohort_month and the join to cohort_size depend on. Two users who signed
+      up on Jan 3 and Jan 29 need to land in the *same* cohort_month value, and DATEDIFF alone never
+      produces that — it only measures a gap between two dates, it doesn't produce a shared key.

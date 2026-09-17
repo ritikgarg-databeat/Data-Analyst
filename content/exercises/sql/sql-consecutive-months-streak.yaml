@@ -1,0 +1,57 @@
+slug: sql-consecutive-months-streak
+skill: advanced-sql
+dataset: ecommerce
+title: Customers With 3+ Consecutive Months of Orders
+description: Using `orders`, find every customer who has completed orders in at least 3 CONSECUTIVE calendar months
+  (no month gap in between). Return `customer_id`, `streak_length` (number of consecutive months), `streak_start`,
+  and `streak_end` (both as the first day of that month), for every qualifying streak (row order doesn't matter).
+  Only consider orders with status = 'completed'. A customer can appear more than once if they have multiple
+  separate qualifying streaks.
+exercise_type: SQL
+difficulty: ADVANCED
+points: 25
+tags:
+- sql
+- window-functions
+business_context: Retention wants to identify loyal customers who have ordered in at least 3 calendar months in
+  a row, a classic 'gaps and islands' pattern.
+prompt: Using `orders`, find every customer who has completed orders in at least 3 CONSECUTIVE calendar months (no
+  month gap in between). Return `customer_id`, `streak_length` (number of consecutive months), `streak_start`, and
+  `streak_end` (both as the first day of that month), for every qualifying streak (row order doesn't matter). Only
+  consider orders with status = 'completed'. A customer can appear more than once if they have multiple separate
+  qualifying streaks.
+sql_tables:
+- orders
+sql_starter_query: '-- Start by getting each customer''s distinct order months, then think about how to detect consecutive
+  runs
+
+  SELECT DISTINCT customer_id, DATE_TRUNC(''month'', order_date) AS month FROM orders WHERE status = ''completed''
+  LIMIT 20;'
+sql_solution_query: "WITH customer_months AS (\n  SELECT DISTINCT customer_id, DATE_TRUNC('month', order_date) AS\
+  \ month\n  FROM orders WHERE status = 'completed'\n),\nnumbered AS (\n  SELECT customer_id, month,\n         ROW_NUMBER()\
+  \ OVER (PARTITION BY customer_id ORDER BY month) AS rn\n  FROM customer_months\n),\ngrouped AS (\n  SELECT customer_id,\
+  \ month, month - (rn * INTERVAL 1 MONTH) AS grp\n  FROM numbered\n),\nstreaks AS (\n  SELECT customer_id, grp,\
+  \ COUNT(*) AS streak_length,\n         MIN(month) AS streak_start, MAX(month) AS streak_end\n  FROM grouped GROUP\
+  \ BY customer_id, grp\n)\nSELECT customer_id, streak_length, streak_start, streak_end\nFROM streaks WHERE streak_length\
+  \ >= 3\nORDER BY streak_length DESC, customer_id;"
+sql_row_order_matters: false
+sql_numeric_tolerance: 0.0
+hints:
+- 'The classic ''gaps and islands'' trick: number each customer''s distinct order-months with ROW_NUMBER(), then
+  subtract (row_number * 1 month) from the month itself -- consecutive months land on the exact same resulting date,
+  which becomes your grouping key for each unbroken streak.'
+- Get distinct (customer_id, month) pairs FIRST -- a customer with 3 orders in the same month should count as one
+  month toward a streak, not three.
+solution: "```sql\nWITH customer_months AS (\n  SELECT DISTINCT customer_id, DATE_TRUNC('month', order_date) AS\
+  \ month\n  FROM orders WHERE status = 'completed'\n),\nnumbered AS (\n  SELECT customer_id, month,\n         ROW_NUMBER()\
+  \ OVER (PARTITION BY customer_id ORDER BY month) AS rn\n  FROM customer_months\n),\ngrouped AS (\n  SELECT customer_id,\
+  \ month, month - (rn * INTERVAL 1 MONTH) AS grp\n  FROM numbered\n),\nstreaks AS (\n  SELECT customer_id, grp,\
+  \ COUNT(*) AS streak_length,\n         MIN(month) AS streak_start, MAX(month) AS streak_end\n  FROM grouped GROUP\
+  \ BY customer_id, grp\n)\nSELECT customer_id, streak_length, streak_start, streak_end\nFROM streaks WHERE streak_length\
+  \ >= 3\nORDER BY streak_length DESC, customer_id;\n```"
+explanation: 'DATE_TRUNC collapses each order to its calendar month; deduplicating first is essential since multiple
+  orders in one month must count as a single month of presence. Numbering each customer''s distinct months in order
+  and subtracting (row_number * 1 month) is the standard gaps-and-islands trick: for a truly consecutive run, `month
+  - rn months` is constant across the whole run (since both the month and the row number advance together by exactly
+  one each step), so grouping by that computed value isolates each unbroken streak, wherever a gap exists that group
+  value ticks past the next start. Filtering to streak_length >= 3 leaves only qualifying runs.'

@@ -1,0 +1,76 @@
+slug: dw-ex-model-accumulating-snapshot-fulfillment
+lesson_slug: dw-four-types-of-fact-tables
+skill: dimensional-modeling
+dataset: ecommerce
+title: "Design: An Order Fulfillment Accumulating Snapshot"
+description: Design, in prose, an accumulating snapshot fact table for order fulfillment, grounded in this dataset's real order-to-payment timing and payment-completion rate.
+exercise_type: MODELING
+difficulty: ADVANCED
+points: 30
+tags: [fact-table, grain, data-modeling, case-study]
+business_context: >
+  fct_orders (a transaction fact) and fct_daily_revenue (a periodic snapshot fact) both exist in the
+  real dbt project, but neither tracks an individual order's progress through a multi-step fulfillment
+  process. Real numbers from the dataset: of 4,205 total orders, 3,441 (81.83%) reach a successful
+  payment (matching exactly the 3,441 orders with status='completed' — every completed order has
+  exactly one successful payment, and vice versa), while 764 orders (18.17%) never do (127 pending,
+  379 cancelled, 258 refunded). Among orders that do get paid, payment happens fast — the average gap
+  between order_date and payment_date is just 0.96 days.
+stakeholder: "Operations Analytics Lead"
+constraints:
+  - "The real dataset has order_date and payment_date, but no shipped_date or delivered_date columns — those milestones are hypothetical for this design, as if a shipping system doesn't exist yet but is being planned for."
+  - "The design needs to support both \"how many orders are currently stuck at each stage\" and \"how long does each stage typically take,\" not just a final completion count."
+expected_deliverables:
+  - "The fact table's name and grain, explicitly stated as an accumulating snapshot (not a transaction fact or periodic snapshot)"
+  - "The milestone date columns it would carry, and which ones would be nullable and why"
+  - "An explanation of what makes this an accumulating snapshot rather than a transaction fact, tied to fct_orders as the contrasting real example"
+  - "At least one milestone-lag measure (e.g., days from order to payment), grounded in the real 0.96-day average, and a statement of what a null milestone means operationally"
+prompt: >
+  Design an accumulating snapshot fact table for order fulfillment. State its name and grain, the
+  milestone date columns it carries (noting which are nullable and why), and how it's meaningfully
+  different from fct_orders (a transaction fact) despite both having "1 row = 1 order" as their grain
+  statement. Include at least one milestone-lag measure and explain what a null value in a milestone
+  column means operationally, using the real payment-completion numbers above.
+hints:
+  - "\"1 row = 1 order\" alone doesn't distinguish a transaction fact from an accumulating snapshot — the real difference is whether the row is created once and left alone (fct_orders) or created once and then updated in place as milestones complete (an accumulating snapshot). State that distinction explicitly, don't just restate the grain."
+  - "A milestone column should be nullable if the order hasn't reached that stage yet (or never will, e.g., a cancelled order). 764 of 4,205 orders (18.17%) never reach the payment milestone at all — your design should say what a null paid_date means for those specific orders, not just for orders still in progress."
+rubric:
+  - criterion: "States a fact table name and grain as an accumulating snapshot (1 row = 1 order, updated in place across milestones), explicitly distinguishing this update-in-place behavior from fct_orders' create-once-and-leave-alone behavior as a transaction fact"
+    points: 30
+  - criterion: "Lists concrete milestone columns (at minimum order_placed_date and paid_date, using the real available data, plus at least one hypothetical downstream milestone like shipped_date), correctly identifies which are nullable, and explains what a null value means operationally (in-progress vs. never reaching that stage, e.g., for the 764 orders / 18.17% that never get a successful payment)"
+    points: 35
+  - criterion: "Includes at least one milestone-lag measure (e.g., days from order_date to paid_date) and grounds it in the real 0.96-day average gap, with a sensible interpretation of what that number implies operationally"
+    points: 35
+solution: >
+  Fact table: `fct_order_fulfillment`. Grain: 1 row = 1 order — the same grain statement as
+  fct_orders, but a fundamentally different fact table type: fct_orders' row is inserted once, when
+  the order is placed, and is not re-derived or updated afterward (a transaction fact). This table's
+  row is inserted once at the same moment, but then updated in place as the order progresses through
+  fulfillment — the row's shape doesn't change, but its milestone columns get filled in over time,
+  which is exactly what makes it an accumulating snapshot rather than a transaction fact.
+
+  Milestone columns: `order_placed_date` (never null — set at row creation, matching orders.order_date),
+  `paid_date` (nullable — filled in when a successful payment posts; using the real data, this happens
+  for 3,441 of 4,205 orders, 81.83%, and stays null forever for the other 764, 18.17%, whose orders end
+  up pending/cancelled/refunded instead), `shipped_date` and `delivered_date` (both hypothetical here,
+  since this dataset has no shipping system yet — both nullable, filled in only once that stage
+  actually happens, and both would stay null indefinitely for any order that never gets paid in the
+  first place).
+
+  Milestone-lag measure: `days_to_payment = paid_date - order_placed_date`, only meaningful (non-null)
+  for the 81.83% of orders that reach the payment milestone. Grounded in the real data, the average
+  gap is just 0.96 days — orders that do get paid overwhelmingly get paid same-day or next-day,
+  which suggests payment friction isn't where this business's fulfillment delays (if any exist)
+  actually occur; a real shipped_date/delivered_date rollout would let the same kind of lag
+  measurement identify whether delays cluster later in the process instead.
+explanation: >
+  A strong answer explicitly names the update-in-place behavior as the defining difference from a
+  transaction fact, rather than treating "1 row = 1 order" as sufficient to describe the table (both
+  fct_orders and this design share that exact grain statement, which is precisely why the type
+  distinction has to come from behavior, not grain alone). It correctly reasons about nullability using
+  the real completion numbers (764 orders, 18.17%, that never reach payment) rather than treating every
+  null as simply "not yet arrived." It grounds the lag measure in the real 0.96-day average rather than
+  inventing a plausible-sounding number, and draws a reasonable operational inference from it. A weaker
+  answer conflates grain with fact type, treats every null milestone as purely "still in progress" (as
+  opposed to "will never reach this stage"), or invents lag statistics not actually computable from the
+  described columns.

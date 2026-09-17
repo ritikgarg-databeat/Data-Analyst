@@ -1,0 +1,47 @@
+slug: de-sql-discount-percent-revenue
+lesson_slug: de-data-quality-dimensions
+skill: data-quality-engineering
+dataset: ecommerce
+title: "A Validity Trap: discount Is a Percentage, Not a Fraction"
+description: Compute total revenue from order_items correctly, after discovering that the discount column's real values (up to ~100) mean it's stored as a percentage, not the 0-1 fraction its name suggests.
+exercise_type: SQL
+difficulty: INTERMEDIATE
+points: 15
+tags: [sql, data-quality, validation, data-engineering, intermediate]
+business_context: >
+  A first attempt at computing total revenue from `order_items` using
+  `quantity * unit_price * (1 - discount)` produced a wildly negative total — a strong sign the
+  `discount` column doesn't mean what its name implies at first glance.
+prompt: >
+  Using `order_items`, first check the actual range of the `discount` column (its MIN and MAX) to
+  confirm it's stored as a percentage (0-100) rather than a fraction (0-1). Then write a query that
+  computes `total_revenue`: the sum, across all rows, of `quantity * unit_price * (1 - discount /
+  100.0)`, rounded to 2 decimal places. Return only that one corrected `total_revenue` figure.
+sql_tables: [order_items]
+sql_starter_query: |
+  -- Start by checking the column's actual range before trusting any assumption about its scale
+  SELECT MIN(discount) AS min_discount, MAX(discount) AS max_discount FROM order_items;
+sql_solution_query: |
+  SELECT
+    ROUND(SUM(quantity * unit_price * (1 - discount / 100.0)), 2) AS total_revenue
+  FROM order_items;
+sql_row_order_matters: false
+sql_numeric_tolerance: 1.0
+hints:
+  - "Run SELECT MIN(discount), MAX(discount) FROM order_items first — if the max is close to 100, this column is a percentage, not a fraction."
+  - "Divide discount by 100.0 before using it as the fraction subtracted from 1 — using the raw discount value directly (as if it were already a 0-1 fraction) produces a huge negative total."
+solution: >
+  ```sql
+  SELECT
+    ROUND(SUM(quantity * unit_price * (1 - discount / 100.0)), 2) AS total_revenue
+  FROM order_items;
+  ```
+explanation: >
+  Checking MIN/MAX(discount) first reveals values running from 0 up to nearly 100 — meaning
+  `discount` is stored as a percentage (e.g. 33.28 meaning "33.28% off"), not a 0-1 fraction, despite
+  what the column name alone might suggest. Treating it as a fraction directly (`1 - discount`)
+  produces nonsensical, deeply negative revenue for any row with a discount above 1 — which is most
+  of them. Dividing by 100.0 first (`1 - discount / 100.0`) gives the correct total revenue. This is
+  exactly the kind of validity assumption a data engineer or analyst should verify empirically
+  (checking the actual data range) rather than infer from a column's name alone — the correct,
+  verified total across all order_items is $5,797,667.52.

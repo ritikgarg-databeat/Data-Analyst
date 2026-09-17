@@ -1,0 +1,113 @@
+slug: data-storytelling
+module_slug: visualization-and-storytelling
+title: "From a Chart to an Insight"
+description: The difference between showing a chart and telling a story with it — observation, evidence, business implication, recommended action — and how this platform's own chart Insight feature and EDA Finding structure both encode exactly that sequence.
+difficulty: BEGINNER
+estimated_minutes: 12
+display_order: 4
+objectives:
+  - Distinguish "a chart" from "an insight" and explain why a chart alone often isn't enough
+  - Build a four-part insight — observation, evidence, business implication, recommended action — from a real chart
+  - Identify how this platform's chart Insight fields and EDA Finding fields both encode this same structure
+prerequisites: [building-effective-dashboards]
+skills: [data-visualization, business-problem-solving]
+datasets: [ecommerce]
+tags: [foundations, beginner, real-world]
+key_takeaways:
+  - "A chart shows what happened. An insight explains why it matters and what to do about it — and a stakeholder almost always needs the second thing, not just the first."
+  - "A complete insight has four parts: an observation (what the chart shows, in one sentence), evidence (the specific numbers backing it up), a business implication (why this matters to a decision someone is making), and a recommended action (what to actually do next)."
+  - "This exact four-part shape isn't an abstract framework invented for this lesson — this platform's own Chart Builder 'Add Insight' feature and its EDA Workspace 'Finding' structure both use it directly, as fields you fill in on a real chart or a real exploratory finding."
+  - "Skipping straight from a chart to a recommendation, with no stated evidence or business implication in between, forces a stakeholder to either trust you blindly or do the connecting work themselves — the four-part structure exists specifically so they don't have to do either."
+common_mistakes:
+  - "Sharing a chart with a caption like 'interesting pattern here' and no explicit observation, evidence, or recommendation — leaving the viewer to do the interpretive work the analyst is actually being asked to do."
+  - "Jumping straight from an observation to a recommended action without stating the business implication in between — the missing link is usually exactly the part a skeptical stakeholder will ask about."
+  - "Writing an insight's 'evidence' as a restatement of the chart itself ('the bars show different heights') instead of the specific numbers that make the observation checkable and concrete."
+practical_applications:
+  - "Attaching a written insight — not just a chart — to any finding meant for a stakeholder audience, using the observation / evidence / business implication / recommended action structure."
+  - "Reviewing a chart before sharing it by asking: if I only had 10 seconds with this stakeholder, could I say the insight out loud in one sentence, backed by one number?"
+interview_questions:
+  - question: "What's the difference between a chart and an insight, and why does it matter?"
+    answer: "A chart is a visualization of data — it shows what happened. An insight is a claim about what that data means and what to do about it. A chart of revenue by channel shows three bars; an insight says 'mobile revenue grew 40% while web was flat, evidenced by the last two months of channel data, which suggests our mobile checkout redesign is working and we should prioritize similar investment in web checkout next quarter.' Stakeholders usually need the insight, not just the chart — handing over a chart alone pushes the interpretive work back onto them, which is exactly the work they came to an analyst to get done."
+  - question: "Walk me through the four parts of a well-structured insight."
+    answer: "Observation: one plain-language sentence stating what the data shows. Evidence: the specific numbers that back the observation up and make it checkable, not vague. Business implication: why this matters to an actual decision someone is making — what changes, or what risk this creates, if the observation is true. Recommended action: what to actually do next, stated concretely enough that someone could act on it without a follow-up meeting. Skipping any one of the four leaves a gap the audience either has to fill in themselves or take on faith."
+resources:
+  - title: "Cole Nussbaumer Knaflic — Storytelling with Data (overview)"
+    url: "https://www.storytellingwithdata.com/"
+blocks:
+  - type: heading
+    text: "A chart is not an insight"
+  - type: text
+    body: >
+      A well-built, correctly-labeled, mistake-free chart — everything the last three lessons covered — is
+      still just a picture of some numbers. It shows what happened. It doesn't, by itself, say why that
+      matters or what anyone should do differently because of it. That gap is exactly what turns "a chart"
+      into "an insight," and it's a gap a chart alone never closes on its own.
+  - type: heading
+    text: "The four-part structure"
+  - type: table
+    headers: ["Part", "What it answers", "What makes it strong"]
+    rows:
+      - ["Observation", "What does the data show, in one plain sentence?", "Specific and stated up front — not buried after three paragraphs of methodology"]
+      - ["Evidence", "What specific numbers back this up?", "Concrete figures, not a vague gesture at 'the chart above'"]
+      - ["Business implication", "Why does this matter to a decision someone is making?", "Ties directly to something the business cares about — revenue, cost, risk, a specific team's plan"]
+      - ["Recommended action", "What should actually happen next?", "Concrete enough to act on without a follow-up meeting to clarify it"]
+  - type: heading
+    text: "A worked example, using this course's ecommerce data"
+  - type: text
+    body: >
+      Revenue by channel across the dataset comes out to $3,204,469.02 for web, $2,032,897.82 for mobile,
+      and $565,261.31 for marketplace. A chart alone shows three bars of those heights. An insight built on
+      top of it looks like this:
+  - type: example
+    title: "The same numbers, structured as a full insight"
+    body: >
+      **Observation:** Web is the dominant revenue channel, generating more than mobile and marketplace
+      combined. **Evidence:** Web revenue is $3,204,469.02, versus $2,032,897.82 for mobile and $565,261.31
+      for marketplace — web accounts for roughly 55% of the $5.8M total across all three channels.
+      **Business implication:** Marketplace, despite presumably carrying its own listing or commission
+      costs, contributes under 10% of revenue — any marketplace-specific investment should be evaluated
+      against that small a base, while web's outsized share makes even small conversion improvements there
+      disproportionately valuable. **Recommended action:** Prioritize the next round of checkout or
+      conversion experiments on web before marketplace, and treat marketplace's low share as a question worth
+      investigating on its own — is it underinvested, or is it simply a smaller channel by nature?
+  - type: callout
+    variant: important
+    title: "Notice what changed between the chart and the insight"
+    body: >
+      The chart alone communicates "web is bigger than mobile and marketplace." The full insight
+      communicates a specific, checkable claim (55% of revenue), a business-relevant consequence (marketplace's
+      small base changes how you'd evaluate investing in it), and something concrete to actually do next.
+      That's the entire value an analyst adds beyond the chart itself.
+  - type: heading
+    text: "This exact structure, built into the platform"
+  - type: text
+    body: >
+      This isn't an abstract framework unique to this lesson — this platform encodes the same four-part
+      shape directly into two features you'll use:
+  - type: comparison
+    title: "Two places this structure shows up as real fields you fill in"
+    columns: ["This lesson's structure", "Chart Builder's 'Add Insight' fields", "EDA Workspace's 'Finding' fields"]
+    rows:
+      - ["Observation", "insight_observation", "observation"]
+      - ["Evidence", "(folded into the observation/why-it-matters text)", "evidence"]
+      - ["Business implication", "insight_why_it_matters", "business_implication"]
+      - ["Recommended action", "insight_recommended_action", "recommended_action"]
+  - type: callout
+    variant: tip
+    title: "Practicing the structure here means using it for real, later"
+    body: >
+      When you attach an insight to a chart in the Chart Builder, or capture a finding in the EDA
+      Workspace, you'll be filling in fields with almost these exact names. Getting comfortable writing all
+      four parts now — observation, evidence, business implication, recommended action — means those
+      features feel like a natural extension of how you already think, not a new form to learn.
+  - type: question
+    prompt: "A colleague shares a chart with the caption 'mobile revenue is up.' What's missing to turn this into a complete insight?"
+    choices:
+      - "Specific supporting numbers (evidence), why this matters to a decision someone is making (business implication), and a concrete next step (recommended action) — the caption alone is only the observation"
+      - "Nothing — a one-sentence caption describing the chart is already a complete insight"
+      - "A different chart type would fix the problem; the caption itself is fine as-is"
+    correct_index: 0
+    explanation: >
+      "Mobile revenue is up" is only the observation piece. A complete insight needs the specific numbers
+      behind that claim, why it matters to whatever decision is on the table, and a concrete recommended
+      action — without those, the audience is left to fill in the "so what" and "now what" themselves.

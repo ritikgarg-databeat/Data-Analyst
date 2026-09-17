@@ -1,0 +1,37 @@
+slug: bhv-engineers-modeling-disagreement
+skill: behavioral-interviewing
+title: Disagreeing With Engineering on Data Modeling
+description: Describe a time you disagreed with an engineering team about how data should be modeled or
+  instrumented.
+exercise_type: INTERVIEW_RESPONSE
+difficulty: INTERMEDIATE
+points: 10
+tags:
+- behavioral
+- star-method
+- working-with-engineers
+prompt: Describe a time you disagreed with an engineering team about how data should be modeled or instrumented.
+hints:
+- The STAR framework (Situation, Task, Action, Result) is a useful structure, not a script -- use it to
+  make sure you cover what actually happened, in what context, what you personally did, and what came
+  of it.
+- Interviewers are listening for a specific, real example -- a vague 'sometimes this happens on my team'
+  answer is much weaker than one concrete story with real details.
+rubric:
+- criterion: Describes one specific, real situation rather than a hypothetical or a generic pattern
+  points: 25
+- criterion: Clearly states the task or goal and the person's own specific role in it
+  points: 20
+- criterion: Explains concrete actions the person personally took, not just what the team did
+  points: 30
+- criterion: States a clear, ideally measurable outcome and what was learned from it
+  points: 25
+solution: 'An engineering team wanted to log a single ''purchase'' event regardless of whether it was
+  a first purchase or a repeat one, to keep the event schema simple. I pushed back because that made first-purchase-conversion
+  analysis -- something the business cared about specifically -- impossible to compute after the fact.
+  We compromised: they kept the single event type but added an `is_first_purchase` boolean field, which
+  cost them almost nothing extra to implement and unblocked the analysis I needed without complicating
+  their schema.'
+explanation: Proposing a small, concrete addition (one boolean field) rather than insisting on a much
+  bigger schema change shows the analyst negotiating a solution that respected engineering's constraints
+  while still solving the actual analytical need.

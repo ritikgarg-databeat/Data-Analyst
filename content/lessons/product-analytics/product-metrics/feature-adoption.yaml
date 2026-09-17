@@ -1,0 +1,95 @@
+slug: feature-adoption
+module_slug: product-metrics
+title: Feature Adoption
+description: Why feature adoption must be measured against the users eligible to use a feature, not the entire user base.
+difficulty: BEGINNER
+estimated_minutes: 13
+display_order: 7
+objectives:
+  - Define adoption rate as eligible users who used a feature divided by users eligible to use it
+  - Explain why using the total user base as the denominator understates adoption for gated or rolled-out features
+  - Account for discovery time when judging whether a new feature's adoption is "good" yet
+prerequisites: [product-retention]
+skills: [product-metrics]
+tags: [product-analytics, beginner, foundations]
+key_takeaways:
+  - The denominator in an adoption rate must be the eligible population — users who could plausibly have used the feature — not the entire user base, or the rate is quietly understated for any gated or partially rolled-out feature.
+  - Eligibility can be platform (iOS only), plan tier (premium only), or exposure (a 20% experiment rollout) — the denominator has to match whichever gate actually applied.
+  - Adoption needs a discovery window before it's judged — measuring adoption the day after launch mostly measures who happened to be active that day, not who ultimately would use the feature.
+common_mistakes:
+  - Dividing feature usage by the total user base when the feature was only ever available to a subset (e.g. a premium-only feature, or a 20% experiment rollout), which manufactures an artificially low adoption number.
+  - Declaring a launch a failure based on adoption measured in the first 24-48 hours, before most eligible users have even had a session in which they could discover the feature.
+  - Counting a single, possibly accidental, click into a feature as "adoption" instead of requiring a real, intentional usage event — inflating adoption in the other direction.
+blocks:
+  - type: text
+    body: >
+      Feature adoption sounds simple — "what fraction of users used the new thing?" — but the
+      denominator is where most feature-adoption numbers go wrong. Adoption should always be measured
+      against the users who were actually **eligible** to use the feature, not the entire user base.
+  - type: heading
+    text: Getting the denominator right
+  - type: text
+    body: >
+      A feature can be gated in several ways: restricted to a platform (iOS-only at launch), a plan tier
+      (premium subscribers only), or a staged experiment rollout (20% of users see it this week).
+      Whichever gate applied, the adoption denominator has to be the population that actually had
+      access — everyone else structurally *could not* have adopted it, and including them just dilutes
+      the number.
+  - type: example
+    title: The same raw usage, three very different "adoption rates"
+    body: >
+      A new export feature is used by 900 users in its first month. If it's measured against the entire
+      user base of 100,000, adoption looks like 0.9% — alarming. If it's correctly measured against the
+      12,000 premium users who were the only ones with access, adoption is 7.5% — a far more reasonable
+      early number. If the feature was additionally only rolled out to half of premium users during an
+      experiment, the correct denominator shrinks to 6,000 eligible users, putting real adoption at 15%.
+  - type: comparison
+    title: Same numerator, different (and differently wrong) denominators
+    columns: ["Denominator used", "Adoption rate", "Verdict"]
+    rows:
+      - ["Entire user base (100,000)", "0.9%", "Wrong — most of these users were never eligible"]
+      - ["All premium users (12,000)", "7.5%", "Better, but still includes users outside the experiment rollout"]
+      - ["Premium users in the 50% rollout (6,000)", "15%", "Correct — matches who actually had access"]
+  - type: code
+    language: sql
+    caption: Adoption rate restricted to the correctly eligible population
+    code: |
+      WITH eligible AS (
+        SELECT user_id
+        FROM users
+        WHERE plan = 'premium'
+          AND feature_rollout_group = 'export_v2'   -- the experiment exposure flag
+      ),
+      adopters AS (
+        SELECT DISTINCT user_id
+        FROM events
+        WHERE event_type = 'export_used'
+      )
+      SELECT
+        COUNT(DISTINCT e.user_id)                                   AS eligible_users,
+        COUNT(DISTINCT a.user_id)                                   AS adopters,
+        ROUND(COUNT(DISTINCT a.user_id)::numeric
+              / COUNT(DISTINCT e.user_id), 3)                       AS adoption_rate
+      FROM eligible e
+      LEFT JOIN adopters a ON a.user_id = e.user_id;
+  - type: callout
+    variant: tip
+    title: Give adoption time to breathe
+    body: >
+      Most eligible users won't discover a new feature in their very first session after launch — it
+      may take several visits before they even notice it exists. Measuring adoption 24 hours after
+      launch mostly measures who happened to log in that day, not the feature's real ceiling. A
+      reasonable practice is tracking adoption as a cumulative curve over the weeks following launch,
+      not a single snapshot.
+  - type: question
+    prompt: A premium-only feature shows 1.2% adoption when measured against the entire user base, but the product only has 8% premium subscribers. What is the most likely explanation?
+    choices:
+      - The feature is a clear failure regardless of denominator
+      - The denominator should be the premium subscriber base, not the entire user base, since non-premium users were never eligible
+      - The adoption event is being logged incorrectly and should be ignored
+    correct_index: 1
+    explanation: >
+      If premium users are only 8% of the total base, and adoption is measured against the full base,
+      the ceiling for that metric is capped at 8% even if every single eligible user adopted the
+      feature. Recomputing against only the eligible (premium) population gives a number that actually
+      reflects how the feature is landing with the people who could use it.

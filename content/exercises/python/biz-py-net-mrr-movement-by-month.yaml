@@ -1,0 +1,92 @@
+slug: biz-py-net-mrr-movement-by-month
+lesson_slug: biz-recurring-revenue-and-margin
+skill: pandas
+dataset: saas-product
+title: Net MRR Movement by Month
+description: Decompose each month's MRR change into new MRR (subscriptions starting) and churned MRR (subscriptions ending).
+exercise_type: PYTHON
+difficulty: ADVANCED
+points: 25
+tags: [python, business-analytics, advanced, saas, churn]
+business_context: >
+  A flat or slow-growing total MRR number can hide very different underlying stories. Finance
+  wants new MRR and churned MRR broken out separately by month so a slowdown can be correctly
+  attributed to weak acquisition versus rising churn.
+prompt: >
+  Using `subscriptions`, compute, for every month that appears as either a `start_date` or an
+  `end_date` in the table, the new MRR added that month and the MRR churned that month. Store
+  your answer in a variable named `result`: a DataFrame with columns `month` (as a string in
+  `"YYYY-MM"` format), `new_mrr` (sum of `mrr` for subscriptions with that `start_date` month),
+  `churned_mrr` (sum of `mrr` for subscriptions with that `end_date` month, treating months with
+  no churn as 0), and `net_mrr_change` (`new_mrr - churned_mrr`). Sort by `month` ascending.
+python_datasets: [subscriptions]
+python_starter_code: |
+  # subscriptions is already loaded as a DataFrame, with start_date/end_date parsed as datetimes.
+  # Explore it first:
+  subscriptions.head()
+python_solution_code: |
+  subs = subscriptions.copy()
+  subs["start_date"] = pd.to_datetime(subs["start_date"])
+  subs["end_date"] = pd.to_datetime(subs["end_date"])
+
+  new_mrr = subs.groupby(subs["start_date"].dt.to_period("M"))["mrr"].sum()
+  churned = subs.dropna(subset=["end_date"])
+  churned_mrr = churned.groupby(churned["end_date"].dt.to_period("M"))["mrr"].sum()
+
+  combined = pd.DataFrame({"new_mrr": new_mrr, "churned_mrr": churned_mrr}).fillna(0.0)
+  combined["net_mrr_change"] = combined["new_mrr"] - combined["churned_mrr"]
+
+  result = combined.reset_index().rename(columns={"index": "month"})
+  result.columns = ["month", "new_mrr", "churned_mrr", "net_mrr_change"]
+  result["month"] = result["month"].astype(str)
+  result = result.sort_values("month").reset_index(drop=True)
+python_result_variable: result
+python_row_order_matters: true
+python_numeric_tolerance: 0.01
+python_hidden_tests:
+  - name: "October 2025 shows the smallest net_mrr_change of any month in 2025"
+    code: |
+      row_2025 = result[result["month"].str.startswith("2025")]
+      min_month_row = row_2025.loc[row_2025["net_mrr_change"].idxmin()]
+      assert min_month_row["month"] == "2025-10", (
+          f"Expected 2025-10 to have the smallest net_mrr_change in 2025, "
+          f"got {min_month_row['month']} instead"
+      )
+  - name: "new_mrr total across all months matches total subscription MRR"
+    code: |
+      assert abs(result["new_mrr"].sum() - subscriptions["mrr"].sum()) < 0.01, (
+          "Summing new_mrr across every month should equal the total mrr across all subscriptions, "
+          "since every subscription has exactly one start_date."
+      )
+hints:
+  - "Use dt.to_period('M') on start_date and end_date separately, then groupby(...)['mrr'].sum() for each — new_mrr and churned_mrr are two independent aggregations that only get combined at the end."
+  - "Combine the two resulting Series into one DataFrame with pd.DataFrame({...}), which aligns them by their shared period index — then .fillna(0.0) for any month that had new subscriptions but zero churn (or vice versa)."
+solution: |
+  ```python
+  subs = subscriptions.copy()
+  subs["start_date"] = pd.to_datetime(subs["start_date"])
+  subs["end_date"] = pd.to_datetime(subs["end_date"])
+
+  new_mrr = subs.groupby(subs["start_date"].dt.to_period("M"))["mrr"].sum()
+  churned = subs.dropna(subset=["end_date"])
+  churned_mrr = churned.groupby(churned["end_date"].dt.to_period("M"))["mrr"].sum()
+
+  combined = pd.DataFrame({"new_mrr": new_mrr, "churned_mrr": churned_mrr}).fillna(0.0)
+  combined["net_mrr_change"] = combined["new_mrr"] - combined["churned_mrr"]
+
+  result = combined.reset_index().rename(columns={"index": "month"})
+  result.columns = ["month", "new_mrr", "churned_mrr", "net_mrr_change"]
+  result["month"] = result["month"].astype(str)
+  result = result.sort_values("month").reset_index(drop=True)
+  ```
+explanation: >
+  New MRR and churned MRR have to be computed as two separate group-bys because they key off two
+  different date columns (`start_date` and `end_date`) that don't line up row-for-row — combining them
+  into one `pd.DataFrame(...)` call aligns the two resulting Series on their shared period index,
+  automatically producing `NaN` for any month that only has one side of the movement, which `.fillna(0.0)`
+  then resolves. `churned.dropna(subset=["end_date"])` before grouping is necessary because still-active
+  subscriptions have a null `end_date`, and grouping by `dt.to_period("M")` on a null timestamp would
+  either error or silently create a garbage group depending on the pandas version. A common mistake is
+  computing `net_mrr_change` as a running cumulative total (total active MRR) rather than a per-month
+  flow — the two are related but different: this exercise asks specifically for the *movement* within
+  each month, not the running snapshot level.

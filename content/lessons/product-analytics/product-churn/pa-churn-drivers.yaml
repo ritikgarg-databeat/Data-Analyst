@@ -1,0 +1,120 @@
+slug: pa-churn-drivers
+module_slug: product-churn
+title: "Churn Drivers: Segmenting Before You Diagnose"
+description: >
+  Segmenting churn by acquisition channel and tenure, and connecting it back to activation and
+  engagement as leading indicators rather than treating churn as an isolated end-stage metric.
+difficulty: INTERMEDIATE
+estimated_minutes: 20
+display_order: 2
+objectives:
+  - Segment churn rate by acquisition channel and by subscription tenure to find where risk concentrates
+  - Explain why churn should be read alongside upstream metrics (activation, engagement) rather than in isolation
+  - Distinguish a segment that's a real churn driver from one that's just a proxy for another cause
+prerequisites: [pa-churn-definitions, pa-cohort-retention-sql]
+skills: [product-analytics, product-metrics, root-cause-analysis]
+datasets: [saas-product]
+tags: [product, saas, churn, root-cause, intermediate]
+key_takeaways:
+  - "Churn segmented by acquisition channel ranges from 26.32% (paid_social) to 47.37% (content) among this dataset's subscribers — a wide spread that argues against a single blended churn number describing the business."
+  - The average tenure of a churned subscription here (170.6 days, roughly 5.6 months) tells you churn isn't concentrated in the first weeks — it's a mid-lifecycle problem in this data, which points away from onboarding and toward ongoing value delivery or renewal friction as the more likely driver.
+  - Churn is a downstream, lagging signal — activation and engagement (both measurable within the first days or weeks) are earlier, faster signals of the same underlying risk, and should be read together rather than waiting for churn itself to confirm a problem months later.
+common_mistakes:
+  - Treating churn as the first metric to look at when investigating retention risk, when activation and engagement are available weeks or months earlier and are frequently better early-warning signals for the same underlying problem.
+  - Segmenting churn by acquisition channel and stopping there, without checking whether the same channel's subscribers also skew toward a particular plan tier — since plan tier alone was already shown to correlate with churn rate.
+blocks:
+  - type: text
+    body: >
+      The previous lesson established two churn numbers for the whole subscriber base. This lesson
+      breaks churn down further — by channel and by tenure — and connects it back to the activation
+      and engagement findings from earlier modules, since churn doesn't happen in isolation from what
+      came before it.
+  - type: heading
+    text: Churn rate by acquisition channel
+  - type: code
+    language: sql
+    caption: Churn rate among subscribers, segmented by the channel that originally acquired them
+    code: |
+      SELECT
+        u.acquisition_channel,
+        COUNT(*)                                                   AS n_subscriptions,
+        SUM(CASE WHEN s.status = 'churned' THEN 1 ELSE 0 END)      AS n_churned,
+        ROUND(SUM(CASE WHEN s.status = 'churned' THEN 1.0 ELSE 0 END)
+              / COUNT(*), 4)                                        AS churn_rate
+      FROM subscriptions s
+      JOIN users u ON u.user_id = s.user_id
+      GROUP BY u.acquisition_channel
+      ORDER BY churn_rate DESC;
+  - type: table
+    headers: ["Channel", "Subscriptions", "Churned", "Churn rate"]
+    rows:
+      - ["content", "19", "9", "47.37%"]
+      - ["organic", "75", "29", "38.67%"]
+      - ["referral", "36", "11", "30.56%"]
+      - ["paid_search", "44", "13", "29.55%"]
+      - ["paid_social", "38", "10", "26.32%"]
+  - type: callout
+    variant: warning
+    title: Small denominators need a caveat, not a headline
+    body: >
+      content has only 19 subscribers total — the highest churn rate (47.37%) here comes from just 9
+      churned accounts out of 19. That's too small a sample to declare "content-acquired customers
+      churn worst" with much confidence; one or two accounts either way would swing the rate by 5+
+      points. organic, with 75 subscribers and a 38.67% rate, is a sturdier finding worth more
+      attention first.
+  - type: callout
+    variant: interview_tip
+    title: A genuinely useful pattern here — paid_social churns least, despite activating least
+    body: >
+      Recall from the `product-activation` module that paid_social has the *worst* activation rate
+      (55.9%) of any channel. Here, paid_social subscribers churn *least* (26.32%). Put together: the
+      paid_social users who make it all the way to becoming subscribers are a smaller, more
+      qualified group who stick around once they're in — the channel's problem is getting people in
+      the door and activated, not retaining the ones who convert. That's a genuinely different
+      diagnosis than "paid_social is a bad channel," and it changes where you'd invest.
+  - type: heading
+    text: Tenure of churned accounts
+  - type: code
+    language: sql
+    caption: Average days between subscription start and churn, for churned subscriptions only
+    code: |
+      SELECT ROUND(AVG(DATE_DIFF('day', start_date, end_date)), 1) AS avg_tenure_days
+      FROM subscriptions
+      WHERE status = 'churned';
+  - type: output
+    body: "avg_tenure_days = 170.6 (roughly 5.6 months)"
+  - type: callout
+    variant: important
+    title: This is a mid-lifecycle problem, not an early one
+    body: >
+      An average tenure of 170.6 days means churned customers here typically stuck around for close
+      to half a year before leaving — this is not a story about a broken first week or a bad
+      onboarding experience (that would show up as churn concentrated under 30 days). A mid-lifecycle
+      churn pattern points more toward fading engagement, a competitor's better offer showing up at
+      renewal time, or a value gap that only becomes apparent after the initial excitement wears off
+      — quite different fixes from an onboarding-focused one.
+  - type: heading
+    text: Why churn should never be read alone
+  - type: text
+    body: >
+      Churn is necessarily a *lagging* signal — you only learn a customer churned after months of
+      subscription. Activation (measurable in the first session) and engagement depth (measurable
+      within the first weeks, and shown in the `product-engagement` module to predict monetization at
+      41.6% vs. 2.6% between power users and casual users) are available far earlier for the same
+      underlying risk. A churn-reduction program that waits for the churn number to move is
+      necessarily reacting months after the real signal was already visible upstream.
+  - type: question
+    prompt: >
+      paid_social has the lowest activation rate of any channel (55.9%) but also the lowest churn
+      rate among its subscribers (26.32%). What's the most defensible read of this combination?
+    choices:
+      - "paid_social is simply a bad channel overall and should be cut"
+      - "paid_social's problem is concentrated at the top of the funnel (getting users activated), not at retention — the subset of paid_social users who do become subscribers are a well-qualified group that sticks around"
+      - "The two numbers must be measuring the same underlying thing, so one of them is redundant"
+      - "Channels with low activation always have low churn, as a general rule"
+    correct_index: 1
+    explanation: >
+      A channel can be weak at one stage of the lifecycle and strong at another — here, paid_social
+      struggles to activate users but retains the ones who do convert unusually well. Reading
+      activation and churn together (rather than either one alone) reveals a specific, more useful
+      diagnosis: fix the top of the funnel for this channel, not the retention motion.

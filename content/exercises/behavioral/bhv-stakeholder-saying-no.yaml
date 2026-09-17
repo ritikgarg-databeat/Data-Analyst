@@ -1,0 +1,34 @@
+slug: bhv-stakeholder-saying-no
+skill: behavioral-interviewing
+title: Saying No to a Stakeholder
+description: Describe a time you had to say no to a stakeholder's request, and how you handled it.
+exercise_type: INTERVIEW_RESPONSE
+difficulty: INTERMEDIATE
+points: 10
+tags:
+- behavioral
+- star-method
+- stakeholder-management
+prompt: Describe a time you had to say no to a stakeholder's request, and how you handled it.
+hints:
+- The STAR framework (Situation, Task, Action, Result) is a useful structure, not a script -- use it to
+  make sure you cover what actually happened, in what context, what you personally did, and what came
+  of it.
+- Interviewers are listening for a specific, real example -- a vague 'sometimes this happens on my team'
+  answer is much weaker than one concrete story with real details.
+rubric:
+- criterion: Describes one specific, real situation rather than a hypothetical or a generic pattern
+  points: 25
+- criterion: Clearly states the task or goal and the person's own specific role in it
+  points: 20
+- criterion: Explains concrete actions the person personally took, not just what the team did
+  points: 30
+- criterion: States a clear, ideally measurable outcome and what was learned from it
+  points: 25
+solution: A sales director asked me to build a custom, one-off dashboard for a single upcoming client
+  pitch, on top of an already full sprint. I said no to building it myself on that timeline, but didn't
+  leave it there -- I pointed him to a self-service reporting tool that could get him 80% of what he needed
+  within the day, and offered to review the output before the pitch. He got a usable dashboard, and my
+  team's committed work wasn't derailed.
+explanation: A good 'no' in this context isn't a dead end -- it comes with an alternative path that still
+  serves the stakeholder's actual need, which is what separates a collaborative no from an unhelpful one.

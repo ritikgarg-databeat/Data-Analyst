@@ -1,0 +1,115 @@
+slug: indexing
+module_slug: numpy-for-analytics
+title: Array Indexing
+description: Basic indexing, 2D indexing with arr[row, col], and fancy indexing with a list of positions.
+difficulty: BEGINNER
+estimated_minutes: 9
+display_order: 3
+objectives:
+  - Index a 1D array by position, including negative indices
+  - Index a 2D array with the arr[row, col] syntax to reach a single element, row, or column
+  - Use fancy indexing (a list of positions) to select several specific elements at once
+prerequisites: [shapes]
+skills: [pandas]
+datasets: []
+tags: [python, beginner, foundations]
+key_takeaways:
+  - "1D array indexing works exactly like list indexing — arr[0], arr[-1] — since a 1D array is, positionally, the same idea as a list."
+  - "A 2D array uses one comma-separated index, arr[row, col], rather than Python's list-of-lists style arr[row][col] — both work on a 2D NumPy array, but arr[row, col] is the idiomatic NumPy form."
+  - "Fancy indexing — passing a list (or array) of positions instead of a single index or slice — selects exactly those positions at once: arr[[0, 2, 4]] returns elements 0, 2, and 4 as a new array."
+common_mistakes:
+  - "Writing grid[1][2] out of list-of-lists habit instead of the idiomatic grid[1, 2] — both give the same result on a 2D array, but grid[row, col] is what you'll see in real NumPy code and generalizes better to more dimensions."
+  - "Expecting arr[[0, 2]] (fancy indexing) to behave like arr[0:2] (slicing) — they look similar but do different things: fancy indexing picks out exactly the listed positions, a slice picks a contiguous range."
+  - "Indexing past the end of an array (arr[10] on a 5-element array) and expecting None back — like a list, this raises an IndexError."
+blocks:
+  - type: text
+    body: >
+      Indexing an array means reaching in and pulling out specific elements by position. 1D indexing
+      will feel completely familiar from Python lists; 2D indexing and fancy indexing are where NumPy's
+      own syntax takes over.
+  - type: heading
+    text: 1D indexing — same as a list
+  - type: code
+    language: python
+    code: |
+      import numpy as np
+
+      arr = np.array([10, 20, 30, 40, 50])
+
+      arr[0]     # 10
+      arr[-1]    # 50 — negative indices count from the end, same as a list
+    caption: 1D array indexing follows exactly the same rules as list indexing
+  - type: heading
+    text: "2D indexing: arr[row, col]"
+  - type: text
+    body: >
+      A 2D array uses one index with a comma inside it — `arr[row, col]` — rather than Python's
+      list-of-lists style `arr[row][col]`. Both actually work on a NumPy 2D array, but `arr[row, col]` is
+      the idiomatic NumPy form, and the only form that generalizes cleanly to 3D and beyond.
+  - type: code
+    language: python
+    code: |
+      grid = np.array([
+          [1, 2, 3],
+          [4, 5, 6],
+          [7, 8, 9],
+      ])
+
+      grid[0, 0]    # 1  — first row, first column
+      grid[1, 2]    # 6  — second row, third column
+      grid[2, -1]   # 9  — last row, last column
+    caption: "grid[row, col] — a single comma-separated index reaches into both dimensions at once"
+  - type: heading
+    text: Selecting a whole row or column
+  - type: code
+    language: python
+    code: |
+      grid[1]      # array([4, 5, 6])  — a single index selects a whole row
+      grid[:, 0]   # array([1, 4, 7])  — : for "every row", 0 to fix the column
+    caption: "A bare index selects a full row; : in the row position with a fixed column selects a full column (full slicing mechanics are next lesson)"
+  - type: callout
+    variant: tip
+    title: More on this next lesson
+    body: >
+      `grid[:, 0]` above is a first taste of **slicing** a 2D array — using `:` to mean "every position
+      along this dimension." The next lesson covers array slicing in full, including a critical
+      difference from list slicing you'll want to know before using slices to modify data.
+  - type: heading
+    text: "Fancy indexing: a list of positions"
+  - type: text
+    body: >
+      **Fancy indexing** means indexing with a list (or array) of positions instead of a single index —
+      it returns exactly those positions, in the order given, as a new array.
+  - type: code
+    language: python
+    code: |
+      arr = np.array([10, 20, 30, 40, 50])
+      idx = [0, 2]
+
+      arr[idx]     # array([10, 30])  — elements at positions 0 and 2
+
+      grid[[0, 2]] # array([[1, 2, 3], [7, 8, 9]])  — rows 0 and 2
+    caption: "arr[list_of_positions] selects exactly those positions — works for rows on a 2D array too"
+  - type: example
+    title: "Picking out specific customer rows by ID position"
+    body: >
+      Fancy indexing is the natural tool when you already know which specific positions you want — for
+      instance, the row indices of the top few results from some earlier computation.
+    code: |
+      customer_scores = np.array([72, 91, 45, 88, 63])
+      top_positions = [1, 3]   # positions of the two highest scores, found some other way
+
+      print(customer_scores[top_positions])   # [91 88]
+    language: python
+  - type: question
+    prompt: "grid is a 3x3 array. What does grid[0, 2] return, compared to grid[[0, 2]]?"
+    choices:
+      - "grid[0, 2] returns a single element (row 0, col 2); grid[[0, 2]] returns rows 0 and 2 as a new 2D array"
+      - "They're two ways of writing the exact same thing"
+      - "grid[0, 2] returns row 0; grid[[0, 2]] returns a single element"
+    correct_index: 0
+    explanation: >
+      grid[0, 2] is 2D indexing with a comma — it reaches one specific element at row 0, column 2.
+      grid[[0, 2]] is fancy indexing with a single list argument — since there's no comma, NumPy treats
+      [0, 2] as a list of row positions to select, returning rows 0 and 2 together as a new 2x3 array.
+      The comma is what changes the meaning entirely.

@@ -1,0 +1,82 @@
+slug: where
+module_slug: sql-fundamentals
+title: WHERE
+description: Filtering rows with comparison operators, combining conditions with AND/OR/NOT, and testing for missing values with IS NULL.
+difficulty: BEGINNER
+estimated_minutes: 10
+display_order: 2
+objectives:
+  - Filter rows using comparison operators (=, <>, >, <, >=, <=)
+  - Combine multiple conditions correctly with AND, OR, and NOT
+  - Test for missing values with IS NULL / IS NOT NULL instead of = NULL
+prerequisites: [select]
+skills: [sql-fundamentals]
+datasets: [orders-sample]
+tags: [sql, beginner, foundations]
+key_takeaways:
+  - WHERE filters individual rows before any grouping or aggregation happens.
+  - AND is evaluated before OR unless you use parentheses — mixed conditions without parentheses are a common source of wrong results.
+  - Missing values can never be found with "= NULL"; you must use IS NULL or IS NOT NULL.
+common_mistakes:
+  - Writing "status = 'completed' OR status = 'refunded' AND order_total > 100" and expecting the OR to apply last, when AND actually binds tighter and changes the meaning.
+  - Writing "WHERE order_total = NULL" to find rows with a missing total — this returns zero rows every time, because NULL is never equal to anything, including itself.
+blocks:
+  - type: heading
+    text: Filtering rows with comparison operators
+  - type: text
+    body: >
+      SELECT decides which columns you see; WHERE decides which rows you see. WHERE runs against
+      the raw `orders-sample` table, row by row, keeping only the rows where the condition evaluates
+      to true. The basic comparison operators are `=`, `<>` (not equal), `>`, `<`, `>=`, and `<=`.
+  - type: code
+    language: sql
+    caption: Only completed orders worth more than $50
+    code: |
+      SELECT order_id, customer_id, order_total
+      FROM orders
+      WHERE status = 'completed'
+        AND order_total > 50;
+  - type: text
+    body: >
+      Beyond a single comparison, conditions combine with AND, OR, and NOT. AND requires every
+      condition to be true; OR requires at least one; NOT inverts a condition.
+      The trap: **AND binds tighter than OR**, so `a OR b AND c` is evaluated as `a OR (b AND c)`,
+      not `(a OR b) AND c`. When you mix AND and OR, add parentheses to say what you actually mean —
+      don't rely on operator precedence to guess correctly for you.
+  - type: example
+    title: Precedence changes the answer
+    body: >
+      Suppose you want orders that are either refunded, or completed orders over $100. Without
+      parentheses, `status = 'refunded' OR status = 'completed' AND order_total > 100` is read as
+      `status = 'refunded' OR (status = 'completed' AND order_total > 100)` — which happens to be
+      what was intended here, but only because it lined up by luck. Writing the parentheses
+      explicitly removes any doubt for the next person reading the query.
+    code: |
+      SELECT order_id, status, order_total
+      FROM orders
+      WHERE status = 'refunded'
+         OR (status = 'completed' AND order_total > 100);
+    language: sql
+  - type: text
+    body: >
+      A third thing WHERE has to handle correctly is missing values. A cancelled or still-pending
+      order in `orders-sample` has no `order_total` yet — that cell is
+      NULL, meaning "unknown," not zero and not an empty string. SQL's comparison operators always
+      return *unknown* when either side is NULL, so `order_total = NULL` never matches anything, even
+      rows where order_total genuinely is NULL. Use `IS NULL` and `IS NOT NULL` instead.
+  - type: table
+    headers: ["Goal", "Wrong", "Right"]
+    rows:
+      - ["Find rows missing a total", "WHERE order_total = NULL", "WHERE order_total IS NULL"]
+      - ["Find rows that have a total", "WHERE order_total <> NULL", "WHERE order_total IS NOT NULL"]
+  - type: question
+    prompt: You write "WHERE order_total = NULL" trying to find orders with no total recorded yet. How many rows does this return, even if such rows exist?
+    choices:
+      - All the rows where order_total is missing
+      - Zero rows, always
+      - It depends on how many rows the table has
+    correct_index: 1
+    explanation: >
+      Any comparison against NULL — including "= NULL" — evaluates to unknown rather than true, so
+      WHERE never keeps that row. This is true no matter how many NULLs exist in the table. IS NULL
+      is a dedicated test for exactly this case and is the only correct way to check.

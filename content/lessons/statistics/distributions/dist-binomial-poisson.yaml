@@ -1,0 +1,124 @@
+slug: dist-binomial-poisson
+module_slug: distributions
+title: Binomial & Poisson Distributions
+description: Modeling counts of successes out of a fixed number of trials, and counts of events over time — plus how to check whether a real count actually fits the model before trusting it.
+difficulty: INTERMEDIATE
+estimated_minutes: 15
+display_order: 2
+objectives:
+  - Use the binomial distribution to compute the probability of a specific number of successes out of a fixed number of independent trials.
+  - Recognize when a Poisson-style "counts over time" assumption is violated by checking whether a real dataset's variance is close to its mean.
+skills: [statistics]
+datasets: [ecommerce]
+tags: [statistics, intermediate, e-commerce]
+prerequisites: [prob-fundamentals-expected-value, dist-normal-distribution]
+key_takeaways:
+  - The binomial distribution models the count of successes across a fixed number `n` of independent yes/no trials, each with the same probability `p`.
+  - The Poisson distribution models counts of events over a fixed window (per day, per hour), and it makes one specific, checkable assumption — that the variance of the count equals its mean.
+  - Before applying either distribution to a business metric, check the assumption (fixed independent trials for binomial; variance ≈ mean for Poisson) rather than assuming it fits because the data is "a count."
+common_mistakes:
+  - Applying the Poisson distribution to a count metric without checking whether its variance is close to its mean — many real counts are "overdispersed" (variance much bigger than the mean) because of clustering (promotions, day-of-week effects) that a pure Poisson process doesn't have.
+  - Treating binomial trials as independent when they aren't (e.g., repeated purchases from the same customer aren't independent of each other the way separate customers' first purchases are).
+interview_questions:
+  - question: When would you reach for a binomial distribution versus a Poisson distribution?
+    answer: >
+      Binomial is for a fixed, known number of independent trials, each either a success or failure
+      with the same probability (e.g., 20 sessions, each converts or doesn't). Poisson is for
+      counting events over a continuous window without a fixed number of "trials" (e.g., orders
+      placed per day), and it assumes those events occur independently at a constant average rate.
+      A quick check for Poisson fit: compute the variance and mean of the counts — for a true Poisson
+      process they should be roughly equal; if variance is much larger than the mean, the process is
+      "overdispersed" and a plain Poisson model will understate real-world variability.
+blocks:
+  - type: heading
+    text: Binomial — counting successes across fixed trials
+  - type: text
+    body: >
+      The **binomial distribution** answers: "given n independent trials, each with the same
+      probability p of success, what's the probability of exactly k successes?" It requires a fixed
+      number of trials known in advance, each trial independent of the others, and the same success
+      probability every time.
+  - type: formula
+    expression: "P(X = k) = C(n, k) * p^k * (1-p)^(n-k)"
+    description: "C(n, k) is the number of ways to choose which k of the n trials succeed."
+  - type: example
+    title: How many conversions in the next 20 sessions?
+    body: >
+      Using the ecommerce dataset's real conversion probability (p = 0.1522, from 1,827 of 12,000
+      sessions), the probability distribution for the number of conversions in the next 20 sessions
+      looks like this — note the probabilities are spread across a range of outcomes, not
+      concentrated on the expected value of 3.05.
+  - type: table
+    caption: "P(exactly k conversions out of 20 sessions), p = 0.1522"
+    headers: ["k conversions", "Probability"]
+    rows:
+      - ["0", "3.7%"]
+      - ["1", "13.2%"]
+      - ["2", "22.5%"]
+      - ["3", "24.3%"]
+      - ["4", "18.5%"]
+      - ["5+", "17.8%"]
+  - type: code
+    language: python
+    code: |
+      from scipy.stats import binom
+
+      p_convert = 0.1522
+      n_sessions = 20
+      # Probability of at least 3 conversions:
+      p_at_least_3 = 1 - binom.cdf(2, n_sessions, p_convert)
+      print(round(p_at_least_3, 3))  # 0.606
+    caption: "60.6% chance of seeing 3 or more conversions in the next 20 sessions — a wide, unremarkable range around the expected value of ~3."
+  - type: heading
+    text: Poisson — counting events over a window, and checking the fit
+  - type: text
+    body: >
+      The **Poisson distribution** models counts of events over a fixed interval (per day, per
+      hour) when events happen independently at a roughly constant average rate. Its defining,
+      checkable property is that the **variance equals the mean**. If a real count's variance is
+      much larger than its mean, the data is "overdispersed" and a plain Poisson model will
+      understate how much the count actually swings.
+  - type: example
+    title: Do daily order counts actually look Poisson?
+    body: >
+      Across 636 days in the ecommerce dataset, the average number of orders per day is 6.61, but
+      the variance is 35.16 — more than 5 times the mean. A true Poisson process would have variance
+      close to 6.61, not 35.16. This dataset's daily order volume is overdispersed relative to a
+      pure Poisson assumption, most likely because order volume clusters around specific days
+      (promotions, weekday/weekend patterns) rather than arriving at a constant, independent rate.
+  - type: code
+    language: sql
+    code: |
+      WITH daily AS (
+        SELECT order_date, COUNT(*) AS n_orders
+        FROM orders
+        GROUP BY order_date
+      )
+      SELECT
+        ROUND(AVG(n_orders), 2) AS mean_orders,
+        ROUND(VAR_SAMP(n_orders), 2) AS variance_orders
+      FROM daily;
+    caption: "mean = 6.61, variance = 35.16 — variance far exceeds the mean, so a plain Poisson model would understate real day-to-day swings."
+  - type: callout
+    variant: common_mistake
+    title: "\"It's a count\" is not enough to assume Poisson"
+    body: >
+      A forecasting or staffing model built on the assumption "daily orders are Poisson-distributed"
+      would badly underestimate the chance of an unusually high (or low) day here, because it would
+      use variance = 6.61 instead of the real 35.16. The fix isn't to abandon modeling the count —
+      it's to check the mean-versus-variance assumption first, and reach for a model built for
+      overdispersion (like a negative binomial) when it fails.
+  - type: question
+    prompt: >
+      A count metric has a mean of 10 and a variance of 45 across many time windows. What does this
+      tell you?
+    choices:
+      - "It's a textbook Poisson process, since both numbers describe the same count"
+      - "It's overdispersed relative to a Poisson assumption (variance far exceeds the mean), suggesting the count swings more than a plain Poisson model would predict"
+      - "The mean and variance should be added together to get the true average"
+    correct_index: 1
+    explanation: >
+      A Poisson process requires variance approximately equal to the mean. A variance of 45 against
+      a mean of 10 is a clear sign of overdispersion — real-world clustering or clumping is making
+      the counts swing more than pure random arrivals would, and a Poisson-based forecast would
+      understate that risk.

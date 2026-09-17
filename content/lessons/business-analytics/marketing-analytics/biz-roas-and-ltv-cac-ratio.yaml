@@ -1,0 +1,132 @@
+slug: biz-roas-and-ltv-cac-ratio
+module_slug: marketing-analytics
+title: "ROAS and LTV:CAC — Judging a Channel by What It's Actually Worth"
+description: Why cost-per-acquisition alone can't tell you whether a marketing channel is a good investment, and how pairing it with the revenue it generates changes the answer.
+difficulty: INTERMEDIATE
+estimated_minutes: 15
+display_order: 2
+objectives:
+  - Compute Return on Ad Spend (ROAS) for a marketing channel from attributed revenue and spend
+  - Compute the LTV:CAC ratio and explain what a "healthy" ratio generally means
+  - Explain why the cheapest channel by CAC is not automatically the best channel by ROI
+prerequisites: [biz-cac-by-channel]
+skills: [business-analytics, business-metrics, decision-making]
+datasets: [ecommerce]
+tags: [business-analytics, marketing, intermediate, e-commerce]
+key_takeaways:
+  - "ROAS = revenue attributed to a channel / spend on that channel — it answers \"did this spend pay for itself,\" which CAC alone cannot."
+  - "LTV:CAC ratio = average customer lifetime value / CAC for that channel — a widely used rule of thumb treats 3:1 or higher as healthy, though the right bar depends on margin structure and payback-period needs."
+  - "In this platform's real ecommerce data, display has the lowest CAC-efficiency story of all four channels once revenue is considered: it costs the most per customer ($342.03) AND returns the least per dollar spent (9.67:1), while email is both the cheapest channel and the best-returning one (17.62:1) — the two metrics agree here, but they don't always."
+common_mistakes:
+  - Choosing to scale a channel because it has the lowest CAC, without checking whether it also brings in lower-value customers — a channel can be "cheap" and still be a poor investment.
+  - Reporting LTV:CAC as a single company-wide ratio, hiding that some channels clear the bar comfortably while others don't clear it at all.
+blocks:
+  - type: heading
+    text: CAC alone answers half the question
+  - type: text
+    body: >
+      A previous lesson computed CAC by channel and found real spread — from $194.44 (email) to $342.03
+      (display). But CAC alone can't say whether $342.03 is expensive: expensive relative to what? The
+      missing half of the question is what that customer is actually worth once acquired. Two metrics fill
+      that gap: **ROAS** (return on ad spend, at the channel/campaign level) and **LTV:CAC ratio** (at the
+      per-customer level).
+  - type: formula
+    expression: "ROAS = Revenue attributed to a channel / Spend on that channel          LTV:CAC Ratio = Average Customer Lifetime Value / CAC"
+    description: >
+      ROAS is typically expressed as a multiple (e.g. "4.2x") or a percentage. LTV:CAC is almost always
+      expressed as a ratio (e.g. "3:1"), and answers a related but distinct question: not "did the channel
+      pay for itself" but "is a typical customer from this channel worth several times what it cost to
+      acquire them."
+  - type: example
+    title: Pairing CAC with realized revenue, per channel
+    body: >
+      Attributing this platform's completed-order revenue back to the same customers used in the CAC
+      calculation (customers with a converted session tied to a campaign of each channel) gives both ROAS
+      and LTV:CAC ratio in one pass. Email looks cheap on CAC alone ($194.44) *and* looks best on the
+      return side (17.62x) — the two metrics agree. Display looks expensive on CAC alone ($342.03) *and*
+      returns the least per dollar spent (9.67x) — the two metrics agree here too, which is the case for
+      moving budget away from it, not just because it's pricier but because it's also the worst-returning
+      channel of the four.
+    code: |
+      WITH channel_customers AS (
+        SELECT camp.channel, s.customer_id
+        FROM sessions s
+        JOIN marketing_campaigns camp ON s.marketing_campaign_id = camp.campaign_id
+        WHERE s.converted = true AND s.customer_id IS NOT NULL
+        GROUP BY 1, 2
+      ),
+      customer_revenue AS (
+        SELECT o.customer_id, SUM(i.quantity * (i.unit_price - i.discount)) AS lifetime_revenue
+        FROM orders o JOIN order_items i USING (order_id)
+        WHERE o.status = 'completed'
+        GROUP BY 1
+      ),
+      channel_budget AS (
+        SELECT channel, SUM(budget) AS budget FROM marketing_campaigns GROUP BY 1
+      )
+      SELECT
+        cc.channel,
+        COUNT(DISTINCT cc.customer_id) AS customers,
+        b.budget,
+        ROUND(SUM(COALESCE(cr.lifetime_revenue, 0)), 2) AS total_revenue,
+        ROUND(SUM(COALESCE(cr.lifetime_revenue, 0)) / b.budget, 2) AS roas
+      FROM channel_customers cc
+      LEFT JOIN customer_revenue cr USING (customer_id)
+      JOIN channel_budget b USING (channel)
+      GROUP BY cc.channel, b.budget
+      ORDER BY roas DESC;
+    language: sql
+  - type: table
+    headers: ["Channel", "Customers", "CAC", "Avg. LTV (revenue to date)", "LTV:CAC ratio", "ROAS"]
+    rows:
+      - ["email", "112", "$194.44", "$3,425.93", "17.62x", "17.62x"]
+      - ["search", "46", "$265.80", "$3,717.20", "13.99x", "13.99x"]
+      - ["social", "215", "$252.56", "$3,525.83", "13.96x", "13.96x"]
+      - ["display", "224", "$342.03", "$3,306.58", "9.67x", "9.67x"]
+    caption: "LTV:CAC ratio and ROAS coincide here because both are computed from the same realized-revenue-to-date figure per customer — in a business with true forward-looking LTV modeling, the two can diverge."
+  - type: callout
+    variant: important
+    title: Cheapest isn't the same as best
+    body: >
+      If a marketing lead only looked at CAC, display would clearly look worst ($342.03, the highest) —
+      that part of the story checks out. But it's worth noticing this doesn't always have to align: it's
+      entirely possible for a channel to have a middling CAC yet the *lowest* average customer value of
+      any channel, making its true ratio worse than a channel with a higher CAC but much higher-value
+      customers. Always compute the ratio explicitly rather than assuming CAC rank and ROAS rank will
+      match.
+  - type: heading
+    text: What counts as a "healthy" ratio
+    level: 3
+  - type: comparison
+    title: Reading an LTV:CAC Ratio
+    columns: ["Ratio", "General read"]
+    rows:
+      - ["Below 1:1", "Losing money on every customer acquired through this channel — an urgent problem"]
+      - ["1:1 to 3:1", "Marginal — may not cover fixed costs, sales overhead, or the time value of money spent upfront"]
+      - ["3:1 or higher", "Commonly cited as a healthy benchmark, though the right bar depends on gross margin and how fast the business needs to recoup acquisition spend"]
+  - type: text
+    body: >
+      All four channels in this dataset clear even a strict 3:1 bar comfortably — this isn't a business
+      with a channel actively losing money, it's a business deciding *how much better* to make an
+      already-profitable acquisition engine by shifting the mix toward its strongest channels.
+  - type: checklist
+    title: Before recommending a budget reallocation from ROAS/LTV:CAC, confirm
+    items:
+      - Both CAC and the value side (ROAS or LTV:CAC) have been computed on the same customer population per channel
+      - Whether "value" reflects realized revenue-to-date, a modeled/predicted LTV, or margin (not just revenue) — the choice changes the number
+      - Whether a channel's absolute volume (not just its ratio) makes it worth the reallocation effort — a great ratio on a tiny channel may not move the business much
+  - type: question
+    prompt: >
+      A channel has the lowest CAC of any channel this quarter. A stakeholder proposes moving more budget
+      to it immediately. What's the most important number still missing from that decision?
+    choices:
+      - "Nothing is missing — the lowest CAC channel is always the right one to scale."
+      - "The value (LTV or realized revenue) of the customers that channel brings in, so CAC can be compared against what those customers are actually worth."
+      - "The exact number of employees on the marketing team."
+    correct_index: 1
+    explanation: >
+      CAC alone measures cost, not return. A channel can have the lowest CAC in the business and still be
+      a mediocre or even poor investment if the customers it brings in are worth proportionally less — this
+      lesson's own data shows CAC rank and LTV:CAC rank happening to agree, but that alignment isn't
+      guaranteed. The decision needs the pairing of cost and value, not cost alone, before committing more
+      budget.

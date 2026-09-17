@@ -1,0 +1,87 @@
+slug: pa-sql-signup-to-upgrade-funnel
+lesson_slug: pa-funnel-sql
+skill: product-analytics
+dataset: saas-product
+title: Build the Signup-to-Upgrade Funnel
+description: Write a cumulative funnel query across the four saas-product event steps and return the count reaching each one.
+exercise_type: SQL
+difficulty: INTERMEDIATE
+points: 20
+tags: [sql, product, saas, funnel, intermediate]
+business_context: >
+  The product team wants one query they can drop into a weekly report showing how many users make
+  it through each stage of the product: signup, activated, engaged, upgraded. They specifically want
+  a *cumulative* funnel — a user only counts toward "engaged" if they also activated first, not just
+  "has an engaged event somewhere."
+prompt: >
+  Using the `events` table (columns: user_id, signup_date, event_name, event_timestamp), write a
+  query that returns exactly one row with four columns: `signup_count`, `activated_count`,
+  `engaged_count`, `upgraded_count`. Each column should count users cumulatively — `activated_count`
+  counts users who reached both signup and activated; `engaged_count` counts users who reached
+  signup, activated, AND engaged; `upgraded_count` counts users who reached all four steps. A user
+  "reaches" a step if they have a matching `event_name` row anywhere in the table for them,
+  regardless of timestamp order.
+sql_tables: [events]
+sql_starter_query: |
+  -- Explore the events table first
+  SELECT event_name, COUNT(*) FROM events GROUP BY 1;
+sql_solution_query: |
+  WITH reached AS (
+    SELECT
+      user_id,
+      MAX(CASE WHEN event_name = 'signup'    THEN 1 ELSE 0 END) AS signup,
+      MAX(CASE WHEN event_name = 'activated'  THEN 1 ELSE 0 END) AS activated,
+      MAX(CASE WHEN event_name = 'engaged'    THEN 1 ELSE 0 END) AS engaged,
+      MAX(CASE WHEN event_name = 'upgraded'   THEN 1 ELSE 0 END) AS upgraded
+    FROM events
+    GROUP BY user_id
+  )
+  SELECT
+    SUM(signup) AS signup_count,
+    SUM(CASE WHEN signup=1 AND activated=1 THEN 1 END) AS activated_count,
+    SUM(CASE WHEN signup=1 AND activated=1 AND engaged=1 THEN 1 END) AS engaged_count,
+    SUM(CASE WHEN signup=1 AND activated=1 AND engaged=1 AND upgraded=1 THEN 1 END) AS upgraded_count
+  FROM reached;
+sql_row_order_matters: false
+sql_numeric_tolerance: 0.01
+sql_hidden_tests:
+  - name: Independent recomputation of upgraded_count
+    query: |
+      SELECT 3000 AS marker, COUNT(*) AS expected_upgraded
+      FROM (
+        SELECT user_id FROM events GROUP BY user_id HAVING COUNT(DISTINCT event_name) = 4
+      ) t
+    key_columns: 1
+hints:
+  - "First collapse the events table into one row per user with a 0/1 flag for each of the four event names — MAX(CASE WHEN event_name = '...' THEN 1 ELSE 0 END), grouped by user_id."
+  - "Then, in an outer SELECT, chain AND conditions across the flags for each cumulative count — e.g. engaged_count needs signup=1 AND activated=1 AND engaged=1, not just engaged=1 alone."
+solution: >
+  ```sql
+  WITH reached AS (
+    SELECT
+      user_id,
+      MAX(CASE WHEN event_name = 'signup'    THEN 1 ELSE 0 END) AS signup,
+      MAX(CASE WHEN event_name = 'activated'  THEN 1 ELSE 0 END) AS activated,
+      MAX(CASE WHEN event_name = 'engaged'    THEN 1 ELSE 0 END) AS engaged,
+      MAX(CASE WHEN event_name = 'upgraded'   THEN 1 ELSE 0 END) AS upgraded
+    FROM events
+    GROUP BY user_id
+  )
+  SELECT
+    SUM(signup) AS signup_count,
+    SUM(CASE WHEN signup=1 AND activated=1 THEN 1 END) AS activated_count,
+    SUM(CASE WHEN signup=1 AND activated=1 AND engaged=1 THEN 1 END) AS engaged_count,
+    SUM(CASE WHEN signup=1 AND activated=1 AND engaged=1 AND upgraded=1 THEN 1 END) AS upgraded_count
+  FROM reached;
+  ```
+  Run against the real data, this returns signup_count=3000, activated_count=2074, engaged_count=1125,
+  upgraded_count=212.
+explanation: >
+  The core idea is a two-stage transformation: first pivot the long events table into one row per
+  user with a flag per step (conditional aggregation with MAX/CASE), then apply cumulative AND
+  conditions across those flags. The AND chain is what makes this a *cumulative* funnel rather than
+  four independent step-reach counts — without it, `SUM(engaged)` alone would return 2,577 (everyone
+  who ever has an engaged event, whether or not they activated first), which is a different, looser
+  question than "how many users made it through activation on their way to engagement." A common
+  mistake is skipping the cumulative AND chain entirely and reporting each step's flag independently,
+  which silently inflates every step after the first.

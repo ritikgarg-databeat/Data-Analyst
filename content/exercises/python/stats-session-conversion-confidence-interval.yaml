@@ -1,0 +1,69 @@
+slug: stats-session-conversion-confidence-interval
+lesson_slug: ci-confidence-intervals-basics
+skill: statistics
+dataset: ecommerce
+title: A Confidence Interval for Session Conversion Rate
+description: Compute the point estimate and a 95% confidence interval for the overall session conversion rate using the normal approximation.
+exercise_type: PYTHON
+difficulty: INTERMEDIATE
+points: 20
+tags: [python, statistics, intermediate, e-commerce]
+business_context: >
+  Leadership wants the site's overall conversion rate reported alongside a sense of how precise
+  that number actually is, rather than as a single bare percentage that invites over-reading small
+  week-to-week wiggles as real changes.
+prompt: >
+  Using `sessions`, compute the overall conversion rate (the fraction of sessions where `converted`
+  is true) and its 95% confidence interval using the normal approximation:
+  `p_hat ± 1.96 * sqrt(p_hat * (1 - p_hat) / n)`. Store your answer in a variable named `result`: a
+  dict with keys `p_hat`, `ci_lower`, and `ci_upper`, each rounded to 4 decimal places.
+python_datasets: [sessions]
+python_starter_code: |
+  # sessions is already loaded as a DataFrame.
+  # Explore it first:
+  sessions["converted"].value_counts()
+python_solution_code: |
+  n = len(sessions)
+  conversions = int(sessions["converted"].sum())
+  p_hat = conversions / n
+  se = (p_hat * (1 - p_hat) / n) ** 0.5
+  result = {
+      "p_hat": round(p_hat, 4),
+      "ci_lower": round(p_hat - 1.96 * se, 4),
+      "ci_upper": round(p_hat + 1.96 * se, 4),
+  }
+python_result_variable: result
+python_numeric_tolerance: 0.0005
+python_hidden_tests:
+  - name: "p_hat matches a fresh recomputation and sits inside the interval"
+    code: |
+      n_check = len(sessions)
+      conversions_check = int(sessions["converted"].sum())
+      p_check = conversions_check / n_check
+      assert abs(result["p_hat"] - round(p_check, 4)) < 0.0005, (
+          "p_hat doesn't match a fresh recomputation from sessions."
+      )
+      assert result["ci_lower"] < result["p_hat"] < result["ci_upper"], (
+          "The confidence interval should contain the point estimate."
+      )
+hints:
+  - "sessions['converted'] is boolean — `.sum()` gives the conversion count directly and `.mean()` would give p_hat in one step, but compute it explicitly here so you also have n and the count for the standard error formula."
+  - "The standard error formula is `sqrt(p_hat * (1 - p_hat) / n)` — plug that into the ± 1.96 formula given in the prompt for the lower and upper bounds."
+solution: |
+  ```python
+  n = len(sessions)
+  conversions = int(sessions["converted"].sum())
+  p_hat = conversions / n
+  se = (p_hat * (1 - p_hat) / n) ** 0.5
+  result = {
+      "p_hat": round(p_hat, 4),
+      "ci_lower": round(p_hat - 1.96 * se, 4),
+      "ci_upper": round(p_hat + 1.96 * se, 4),
+  }
+  ```
+explanation: >
+  With 1,827 conversions out of 12,000 sessions, p_hat = 0.1522 and the standard error is about
+  0.0033, giving a 95% confidence interval of roughly (0.1458, 0.1587). The interval is narrow
+  because the sample size is large — this is the same standard-error machinery from the Central
+  Limit Theorem lesson, applied to build an honest range around the point estimate instead of
+  reporting 15.2% as if it were exact.

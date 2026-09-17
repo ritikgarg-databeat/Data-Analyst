@@ -1,0 +1,158 @@
+slug: common-interview-pitfalls
+module_slug: sql-interview-prep
+title: Common Interview Pitfalls
+description: The classic mistakes that trip up otherwise strong candidates — forgetting DISTINCT, a join type that silently fans out rows, off-by-one date boundaries, and unhandled NULLs.
+difficulty: INTERMEDIATE
+estimated_minutes: 12
+display_order: 5
+objectives:
+  - Recognize when a join can multiply rows and know how to check for it before it corrupts a count or sum
+  - Distinguish an inclusive date boundary mistake from a correct half-open range
+  - Predict how NULLs behave in comparisons, aggregates, and NOT IN, and avoid the traps each creates
+prerequisites: [timed-practice-strategy]
+skills: [interview-sql]
+datasets: [ecommerce]
+tags: [sql, interview, intermediate]
+key_takeaways:
+  - "A join that matches one row to many (like orders to order_items) fans out the result — any COUNT or SUM taken after that join, without accounting for the fan-out, silently overcounts."
+  - "BETWEEN and >= / <= on dates are inclusive on both ends, which quietly double-counts or misses boundary values compared to a half-open range (>= start AND < end) — the safer default for 'this whole period.'"
+  - "NULL breaks ordinary boolean logic in three specific places worth memorizing: it fails every direct comparison (including = NULL, which is always NULL, never true), it's skipped by most aggregate functions, and it can silently empty a NOT IN result if the list contains even one NULL."
+common_mistakes:
+  - "Forgetting DISTINCT when a JOIN could reasonably produce more than one matching row per entity you're trying to count — e.g. COUNT(DISTINCT customer_id) vs. COUNT(*) after a join that isn't guaranteed one-to-one."
+  - "Writing WHERE order_date BETWEEN '2025-01-01' AND '2025-01-31' for 'all of January' — correct for whole-day date columns, but a trap the moment the column is a timestamp, since any time after midnight on Jan 31 falls outside that range."
+interview_questions:
+  - question: "Your query joins orders to order_items and returns a COUNT(*) that's much higher than the number of orders you expected. What's likely wrong, and how do you fix it?"
+    answer: >
+      The join almost certainly fanned out — each order row got duplicated once per line item it has,
+      so COUNT(*) is counting order_items rows, not orders. The fix is either COUNT(DISTINCT
+      o.order_id) to count unique orders despite the fan-out, or restructuring the query to aggregate
+      order_items first and join the aggregate back to orders, depending on what else the query needs.
+  - question: "What's wrong with WHERE order_date BETWEEN '2025-01-01' AND '2025-01-31' if order_date is a TIMESTAMP column?"
+    answer: >
+      BETWEEN is inclusive on both ends, and a bare date literal like '2025-01-31' is interpreted as
+      midnight at the start of that day. Any timestamp later that same day (say, 2025-01-31 14:00) falls
+      outside the range and gets silently excluded from "all of January." The safer pattern is a
+      half-open range: order_date >= '2025-01-01' AND order_date < '2025-02-01'.
+  - question: "Why might a query using NOT IN (subquery) return zero rows when you expected several?"
+    answer: >
+      If the subquery's result contains even one NULL, NOT IN evaluates to unknown (not true) for every
+      row, because comparing anything to NULL never returns true — and a filter that's never true for
+      any row returns no rows at all. NOT EXISTS avoids this because it checks for the existence of a
+      match rather than comparing against a literal list of values that might include NULL.
+blocks:
+  - type: heading
+    text: "Pitfall 1: a join fans out, and DISTINCT (or its absence) decides the outcome"
+  - type: text
+    body: >
+      Joining `orders` to `order_items` produces one row per matching line item, not one row per
+      order — an order with 3 line items appears 3 times in the joined result. Taking `COUNT(*)`
+      straight after that join counts line items, not orders, and the mistake is easy to miss because
+      the query runs perfectly and returns a number that merely looks plausible.
+  - type: code
+    language: sql
+    caption: "Fan-out in action: a join inflates the count"
+    code: |
+      SELECT COUNT(*) AS naive_order_count
+      FROM orders o
+      JOIN order_items oi ON oi.order_id = o.order_id;
+  - type: output
+    body: |
+      naive_order_count
+      -------------------
+                    12627
+  - type: text
+    body: >
+      There are only 4,205 orders in this dataset — the joined count of 12,627 is roughly 3x higher,
+      because most orders have multiple line items. The fix depends on intent: if the query genuinely
+      doesn't need order_items at all, drop the join. If it needs both (say, revenue per order and the
+      order count together), count with `COUNT(DISTINCT o.order_id)` instead of `COUNT(*)`.
+  - type: callout
+    variant: interview_tip
+    title: A fast fan-out check
+    body: >
+      Whenever a query joins two tables and then aggregates, ask out loud: "is this join one-to-one, or
+      could one row on the left match multiple rows on the right?" If it's not guaranteed one-to-one,
+      say explicitly whether you need `COUNT(*)` (counting the joined rows themselves) or
+      `COUNT(DISTINCT ...)` (counting distinct entities despite the fan-out) — naming the distinction
+      shows the interviewer you caught the risk rather than got lucky.
+  - type: heading
+    text: "Pitfall 2: inclusive date boundaries"
+  - type: text
+    body: >
+      `BETWEEN` (and `>=` / `<=` used as a pair) is inclusive on both ends. That's exactly right for
+      whole-day DATE columns, but it becomes a trap the moment a column carries a time component, or
+      the moment you're pattern-matching this logic from memory onto a new problem without checking the
+      column's type.
+  - type: code
+    language: sql
+    caption: Fine for a DATE column, but fragile if order_date ever becomes a TIMESTAMP
+    code: |
+      -- Works correctly here because order_date is a DATE with no time component
+      SELECT COUNT(*) FROM orders
+      WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-01-31';
+  - type: code
+    language: sql
+    caption: A half-open range is correct regardless of whether the column has a time component
+    code: |
+      SELECT COUNT(*) FROM orders
+      WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2025-02-01';
+  - type: callout
+    variant: warning
+    title: Default to half-open ranges for "a whole period"
+    body: >
+      `>= start AND < end` (using the *first day of the next period* as the exclusive upper bound) is
+      correct whether the underlying column is a DATE or a TIMESTAMP, and it never depends on knowing
+      how many days are in the month. It's a safe habit to reach for by default any time a prompt says
+      "all of [month/quarter/year]," rather than deciding case by case whether BETWEEN happens to be
+      safe for this particular column.
+  - type: heading
+    text: "Pitfall 3: NULLs breaking assumptions in three specific places"
+  - type: text
+    body: >
+      NULL means "unknown," and SQL's three-valued logic (true / false / unknown) trips up comparisons,
+      aggregates, and set-membership checks in ways that are easy to forget under pressure.
+  - type: table
+    headers: ["Where NULL bites", "What actually happens", "The safe pattern"]
+    rows:
+      - ["Direct comparison", "col = NULL is always unknown (never true), even for rows where col is genuinely NULL", "Use IS NULL / IS NOT NULL, never = NULL"]
+      - ["Aggregate functions", "COUNT(col), SUM(col), AVG(col) all silently skip NULL rows rather than treating them as 0", "Use COUNT(*) if you want every row counted regardless of NULLs; be deliberate about which behavior you want"]
+      - ["NOT IN (subquery)", "If the subquery returns even one NULL, NOT IN evaluates to unknown for every outer row, silently returning zero rows total", "Use NOT EXISTS with a correlated subquery instead"]
+  - type: code
+    language: sql
+    caption: "The NOT IN + NULL trap, illustrated"
+    code: |
+      -- If any order has a NULL customer_id (e.g. a data quality issue),
+      -- this NOT IN silently returns ZERO rows for every customer — not an error, just wrong.
+      SELECT customer_id FROM customers
+      WHERE customer_id NOT IN (SELECT customer_id FROM orders);
+
+      -- NOT EXISTS is immune to this, because it never compares against a literal list
+      SELECT c.customer_id FROM customers c
+      WHERE NOT EXISTS (
+        SELECT 1 FROM orders o WHERE o.customer_id = c.customer_id
+      );
+  - type: callout
+    variant: interview_tip
+    title: Say the NULL check out loud
+    body: >
+      Before reaching for NOT IN, say: "I need to check whether this subquery's column can ever be
+      NULL — if it can, I'll use NOT EXISTS instead to be safe." Even if you can't verify it in the
+      moment, naming the risk demonstrates the exact awareness interviewers are checking for, and it's
+      one of the most commonly cited "gotcha" questions in SQL interviews specifically because so many
+      candidates don't think to mention it unprompted.
+  - type: question
+    prompt: >
+      A query counts customers with `SELECT customer_id FROM customers WHERE customer_id NOT IN (SELECT
+      customer_id FROM orders)` and unexpectedly returns zero rows, even though several customers are
+      known to have never placed an order. What is the most likely cause?
+    choices:
+      - "The customers table is empty"
+      - "The subquery (SELECT customer_id FROM orders) returns at least one NULL customer_id, which makes NOT IN evaluate to unknown for every row in the outer query"
+      - "NOT IN cannot be used with subqueries in standard SQL"
+    correct_index: 1
+    explanation: >
+      This is the classic NOT IN + NULL trap: if any row in the orders table has a NULL customer_id
+      (an order that couldn't be attributed to a customer, say), that NULL becomes part of the list
+      NOT IN compares against. Comparing any value to that NULL produces unknown rather than true or
+      false, which propagates through the NOT IN check and causes it to filter out every row — silently
+      returning zero results instead of raising any kind of error.

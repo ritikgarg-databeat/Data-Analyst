@@ -1,0 +1,71 @@
+slug: hypothesis-thinking
+module_slug: analytical-thinking
+title: Hypothesis Thinking
+description: Forming a testable hypothesis before you dig into data, instead of exploring undirected and hoping something turns up.
+difficulty: BEGINNER
+estimated_minutes: 12
+display_order: 2
+objectives:
+  - Explain the difference between hypothesis-driven analysis and undirected exploration
+  - Write a specific, testable hypothesis for a framed business question
+prerequisites: [problem-framing]
+skills: [business-problem-solving, experimentation]
+tags: [foundations, beginner, business-analytics]
+key_takeaways:
+  - A good hypothesis names a specific, falsifiable cause — not just "something changed."
+  - Hypothesis-first analysis is faster because you know exactly which query would prove or kill the idea.
+  - Undirected exploration isn't wrong early on, but it should produce hypotheses to test, not conclusions to present.
+common_mistakes:
+  - Treating a vague hunch, like "maybe it's seasonality," as a hypothesis without naming what evidence would confirm or rule it out.
+  - Exploring data until something interesting-looking appears, then presenting it as the explanation without testing it against the original question.
+blocks:
+  - type: heading
+    text: Two ways to start an analysis
+  - type: text
+    body: >
+      Once a question is well-framed, there are two ways to attack it: form a specific hypothesis about
+      the cause and go test it directly, or explore the data broadly and see what turns up. Both have a
+      place, but they aren't interchangeable, and defaulting to the second one is usually slower.
+  - type: comparison
+    title: Hypothesis-driven vs. undirected exploration
+    columns: ["Hypothesis-driven", "Undirected exploration"]
+    rows:
+      - ["Starting point: a specific, falsifiable guess about the cause, e.g. \"churn rose because of the Aug 12 pricing change.\"", "Starting point: \"let's look at everything and see what stands out.\""]
+      - ["Speed to a decision: fast — you know exactly which query proves or kills the idea.", "Speed to a decision: slow — no clear stopping point, easy to chase noise."]
+      - ["Main risk: confirmation bias, if you only look for evidence that supports it.", "Main risk: finding a spurious pattern and mistaking it for the cause."]
+  - type: heading
+    text: What makes a hypothesis good
+  - type: checklist
+    items:
+      - Names a specific mechanism, not just "something changed"
+      - Is falsifiable with data you can actually pull
+      - Is testable in a bounded amount of time
+      - Ties back to the original framed question
+  - type: example
+    title: Three competing hypotheses for a churn spike
+    body: >
+      Weekly churn rose from 3% to 4.5% right after a pricing change. Three testable hypotheses: (1)
+      price-sensitive customers on the lowest tier are churning at a higher rate — test by segmenting
+      churn by pricing tier; (2) a specific onboarding cohort was affected by an unrelated bug — test by
+      segmenting churn by signup cohort and checking support ticket volume; (3) it's normal month-end
+      seasonality unrelated to pricing — test by comparing this month's pattern to the same week in
+      prior months before any pricing changes existed. Each hypothesis maps to exactly one query that
+      would confirm or rule it out.
+  - type: callout
+    variant: common_mistake
+    title: Confirmation bias
+    body: >
+      Once you've formed a hypothesis, it's tempting to stop at the first query that seems to support
+      it. Also check what the data would look like if the hypothesis were false, and make sure you
+      didn't get that instead.
+  - type: question
+    prompt: Which of these is a well-formed hypothesis, not just a hunch?
+    choices:
+      - "\"Something about the new pricing must be causing this.\""
+      - "\"Customers on the Basic tier are churning at a higher rate than other tiers since the Aug 12 price increase, because Basic is the most price-sensitive segment.\""
+      - "\"Let's look at churn by every dimension we have and see what's different.\""
+    correct_index: 1
+    explanation: >
+      The second option names a specific segment, a specific timing, and a mechanism, and it points to
+      exactly one query — churn rate by tier, before and after Aug 12 — that would confirm or kill it.
+      The others are either too vague to test directly or aren't a hypothesis at all.

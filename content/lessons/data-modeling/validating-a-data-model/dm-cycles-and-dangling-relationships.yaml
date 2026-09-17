@@ -1,0 +1,90 @@
+slug: dm-cycles-and-dangling-relationships
+module_slug: validating-a-data-model
+title: "Circular and Dangling Relationships"
+description: The two checks that represent genuine structural breakage rather than a style nudge — and a pre-flight checklist to run before you ever click Validate.
+difficulty: INTERMEDIATE
+estimated_minutes: 18
+display_order: 2
+objectives:
+  - Explain what makes a relationship "dangling," why it's always an error regardless of model_kind, and how it typically happens in practice.
+  - Explain why circular_relationship is a warning in DIMENSIONAL and ARCHITECTURE models but a hard error in PIPELINE models, tying the difference to what an edge actually represents in each model_kind.
+skills: [data-modeling]
+datasets: [ecommerce]
+tags: [validation, relationships, data-modeling, intermediate]
+prerequisites: [dm-validator-findings-explained]
+key_takeaways:
+  - "dangling_relationship is severity=\"error\" in every model_kind, with no exception — it means a relationship's from_table_id or to_table_id points at a table that no longer exists in the model, which is real structural breakage, not a modeling opinion. It typically happens when you delete a table and an old relationship pointing at it is left behind."
+  - "circular_relationship's severity depends on what the relationship graph represents: for DIMENSIONAL and ARCHITECTURE models it's a warning, because a star schema or architecture diagram rarely needs a cycle but nothing about the structure is actually broken if it has one. For PIPELINE models it's a hard error, because a pipeline's edges are execution dependencies (DEPENDS_ON) and a cyclic dependency graph could never actually run."
+  - "Running through a short pre-flight checklist before clicking Validate catches most of these issues before they even become findings — cheaper than fixing them after the fact."
+common_mistakes:
+  - "Deleting a table from a model without checking whether any relationship still points at it — this is exactly how a dangling_relationship finding usually gets created."
+  - "Assuming circular_relationship always means the model is broken. In a DIMENSIONAL or ARCHITECTURE model it's a nudge worth investigating, not proof that something is structurally wrong — only inside a PIPELINE graph does a cycle mean the thing genuinely cannot run."
+blocks:
+  - type: heading
+    text: "dangling_relationship: always an error"
+  - type: text
+    body: >
+      Every relationship you draw stores the IDs of its from-table and to-table. If either of those tables is
+      later deleted from the model — say, you decide dim_products isn't needed for this version and remove it,
+      but forget you'd already drawn a relationship to it — the relationship itself is left pointing at
+      nothing. That's dangling_relationship, and it's severity="error" in every model_kind, with no exception:
+      it isn't a modeling opinion, it's a broken reference, exactly the same category of problem as a foreign
+      key in a real database pointing at a row that was deleted out from under it.
+  - type: example
+    title: "How this actually happens"
+    body: >
+      In the building-your-first-dimensional-model walkthrough, imagine you'd gone on to connect dim_products
+      to fct_orders with a relationship, then later deleted dim_products entirely to redesign the model around
+      a new fct_order_items table instead. If you forgot to also delete the relationship that pointed at the
+      now-gone dim_products, Validate would return dangling_relationship — not because anything about
+      fct_orders itself changed, but because that one leftover relationship now references a table ID that
+      doesn't exist anymore. The fix is simply deleting the stale relationship (or restoring the table, if it
+      was removed by mistake).
+  - type: heading
+    text: "circular_relationship: severity depends on what the edges mean"
+  - type: text
+    body: >
+      A cycle in the relationship graph — A connects to B, B connects to C, C connects back to A — means
+      something different depending on model_kind, because a "relationship" means something different in each
+      one.
+  - type: table
+    caption: "circular_relationship severity by model_kind"
+    headers: ["model_kind", "What an edge represents", "circular_relationship severity"]
+    rows:
+      - ["DIMENSIONAL (Data Modeler)", "A key relationship between two tables (e.g. ONE_TO_MANY)", "warning"]
+      - ["ARCHITECTURE (Architecture Diagram Builder)", "Data moving from one system to another (FLOW)", "warning"]
+      - ["PIPELINE (Pipeline Playground)", "One step must complete before another can run (DEPENDS_ON)", "error"]
+  - type: callout
+    variant: warning
+    title: "Only PIPELINE treats a cycle as broken"
+    body: >
+      A star schema or architecture diagram rarely needs a cycle, but nothing about its structure is actually
+      *broken* if one exists — it's flagged as a nudge worth a second look. A pipeline is different: its edges
+      are execution dependencies, and a cyclic dependency graph describes a set of steps that could never
+      actually run (step A waiting on step C, which is waiting on step B, which is waiting on step A) — that's
+      why the exact same cycle-detection logic is promoted to a hard error specifically for PIPELINE models.
+  - type: heading
+    text: A pre-flight checklist before clicking Validate
+  - type: checklist
+    title: "Before you click Validate"
+    items:
+      - "Does every table have exactly one column marked is_primary_key?"
+      - "Does every FACT table have a grain filled in, stated as \"1 row = 1 ...\"?"
+      - "For every column marked is_foreign_key, is references_table spelled exactly like the real table name in this model, and references_column exactly like a real column on it?"
+      - "For every relationship you've drawn, do from_column and to_column exactly match real column names on their respective tables?"
+      - "If you deleted a table, did you also delete every relationship that pointed at it?"
+      - "Does any DIMENSION table have a numeric column named like a measure (amount/total/revenue/cost/margin/price/count/sum/qty/quantity) that might actually belong on a fact table instead?"
+  - type: question
+    prompt: >
+      A Pipeline Playground graph has a cycle: Extract Orders depends on Load Warehouse, which depends on
+      Transform Marts, which depends on Extract Orders. What does Validate return?
+    choices:
+      - "A circular_relationship warning, the same as it would in the Data Modeler"
+      - "A circular_relationship error, because in a PIPELINE model a cycle means the steps could never actually execute in order"
+      - "Nothing — cycle detection only runs for DIMENSIONAL and ARCHITECTURE models"
+    correct_index: 1
+    explanation: >
+      Cycle detection runs for every model_kind, but its severity is promoted to "error" specifically for
+      PIPELINE models, because a pipeline's edges are DEPENDS_ON execution dependencies — a cyclic dependency
+      graph describes steps that could never actually run, which is genuine structural breakage rather than a
+      style nudge.

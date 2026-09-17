@@ -1,0 +1,146 @@
+slug: ecommerce-dashboard-numbers-dont-match-investigation
+title: "Whose Revenue Number Is Right?"
+category: DATA_QUALITY
+difficulty: INTERMEDIATE
+estimated_minutes: 75
+
+company_context: >
+  Brightcart is a mid-sized direct-to-consumer online retailer. The sales team tracks a revenue
+  dashboard built from order data; finance separately produces a quarterly revenue report. Orders
+  carry a status of completed, cancelled, refunded, or pending and an order_date; payments carry
+  their own status of success or refunded and a payment_date that can differ slightly from the
+  order's date; order_items carry a quantity, a unit_price, and a discount (a dollar amount already
+  subtracted per unit, not a percentage).
+stakeholder_name: "Tom Reyes"
+stakeholder_role: "Sales Director"
+problem_statement: >
+  "The sales dashboard and finance's quarterly report don't agree on revenue for last quarter, and
+  nobody can tell me why. My dashboard says one number, finance says another, and now I've got two
+  different figures floating around before the board meeting. Can you figure out what's actually
+  going on and tell me which number I should trust?"
+business_context: >
+  Both the sales team and finance believe their own revenue figure is correct, and neither has ever
+  written down exactly how their number is computed. Leadership needs one figure — or a clearly
+  explained set of figures — to present to the board, and wants to know whether this is a data error
+  or something else entirely.
+objective: >
+  Reconcile the sales-dashboard-style revenue figure and the finance-report-style revenue figure for
+  last quarter using the real order, order_item, and payment data, identify exactly which
+  definitional and timing choices cause them to diverge, quantify the size of each gap, and
+  recommend a single agreed-upon definition (or clearly labeled set of definitions) going forward.
+initial_information: >
+  "Last quarter" should be treated as the most recent complete quarter in the available data (Q4
+  2025: October 1 through December 31, 2025). You have access to the full e-commerce schema: orders
+  (order_date, status of completed/cancelled/refunded/pending), order_items (quantity, unit_price,
+  discount), payments (payment_date, amount, status of success/refunded), products, categories,
+  customers, sessions, and marketing_campaigns.
+constraints:
+  - "Do not assume either team's number is simply wrong. Reproduce both, using genuinely different but each internally reasonable definitions, before deciding what should become the standard going forward."
+  - "The discount field in order_items is a dollar amount already netted per unit (unit_price minus discount gives the net unit price) — it is not a percentage. Confirm this before computing any 'net revenue' figure."
+  - "A payment's payment_date can differ from its order's order_date by a small number of days — check this gap before assuming period cutoffs behave identically for both date fields."
+available_datasets: ["ecommerce"]
+expected_deliverables:
+  - "At least two distinct, real, computed 'revenue for last quarter' figures representing plausible dashboard-style and finance-style definitions, with the dollar gap between them"
+  - "An explicit list of which definitional choices (order statuses included, gross vs. net-of-discount, order_date vs. payment_date, how refunds are treated) drive the gap, and by how much each contributes"
+  - "A validation step confirming the computed figures are reproducible and correctly scoped to the intended period, not a one-off calculation"
+  - "A recommended single definition (or small, clearly labeled set of definitions) to use going forward, documenting what each includes and excludes"
+learning_objectives:
+  - "Practice metric reconciliation: isolating exactly which definitional choices explain a numeric gap between two reports that are each internally correct"
+  - "Distinguish accrual-style (order-date-based) revenue recognition from cash-style (payment-date-based) revenue recognition"
+  - "Recognize that a 'the numbers don't match' complaint is often a metric-definition problem rather than a data error or bug"
+  - "Write a clear, specific metric definition that a business stakeholder could actually adopt going forward"
+stages: [CLARIFY, FRAME, EXPLORE, ANALYZE, VALIDATE, INSIGHTS, RECOMMEND, SUBMIT]
+required_exercise_slugs: []
+tags: [e-commerce, data-quality, finance, business-analytics, root-cause, case-study, real-world, intermediate]
+skills: [metric-definition, exploratory-data-analysis, data-interpretation, root-cause-analysis, data-quality-engineering, communication]
+
+clarification_guidance:
+  - "A good clarifying question asks each team exactly how they currently define 'revenue' — which order statuses count, whether it's gross or net of discount, and whether it's based on order_date or payment_date — since this is likely the actual crux, not a bug."
+  - "A good clarifying question confirms exactly which two reports and which specific quarter are being compared, so the reconciliation targets the right two numbers."
+  - "A good clarifying question asks whether Brightcart has ever written down an official revenue definition anywhere (e.g., a metrics glossary) to check the two reports against."
+  - "A good clarifying question asks what precision or threshold of agreement would count as 'resolved,' since an exact match between two differently-defined metrics is unlikely even after reconciliation."
+rubric:
+  - category: "Problem Framing & Clarification"
+    weight: 15
+    criteria:
+      - criterion: "Identifies that 'revenue' likely has multiple plausible definitions before attempting to compute a single number"
+        points: 8
+      - criterion: "Pins down the specific period and the specific two report styles being reconciled"
+        points: 7
+  - category: "Technical Analysis"
+    weight: 30
+    is_technical: true
+    criteria:
+      - criterion: "Correctly computes a gross, all-statuses, order-date-based revenue figure for the target quarter"
+        points: 10
+      - criterion: "Correctly computes a net-of-discount, completed-orders-only figure, correctly treating discount as a dollar amount rather than a percentage"
+        points: 10
+      - criterion: "Correctly computes a payment/cash-based figure (e.g., successful payments net of refunds) filtered by payment_date, and identifies the order_date-vs-payment_date timing gap"
+        points: 10
+  - category: "Validation & Rigor"
+    weight: 15
+    criteria:
+      - criterion: "Explicitly checks that each figure's date filter captures the intended period correctly (no off-by-period errors) and that no order_items or payments are double-counted"
+        points: 8
+      - criterion: "Cross-checks at least one intermediate number (e.g., order counts by status in the period) against an independent aggregate to confirm the computation is internally consistent"
+        points: 7
+  - category: "Insight Quality"
+    weight: 20
+    criteria:
+      - criterion: "Correctly attributes the gap between figures to specific, named definitional choices rather than a vague 'data quality issue'"
+        points: 12
+      - criterion: "Quantifies how much each individual definitional choice (status filter, discount treatment, date field choice, refund treatment) contributes to the total gap"
+        points: 8
+  - category: "Recommendation & Communication"
+    weight: 20
+    criteria:
+      - criterion: "Recommends a specific standard definition (or clearly labeled set of definitions) for 'revenue' going forward, with what it includes and excludes stated explicitly"
+        points: 12
+      - criterion: "Communicates clearly that this is a definitional/process gap, not a data error, in a way a non-technical stakeholder could act on before a board meeting"
+        points: 8
+hints:
+  - "Before computing anything, write down at least two full candidate definitions of 'quarterly revenue' — for example, gross order value for every order placed in the quarter, versus net-of-discount value for completed orders only — so you know exactly what you're computing before you compute it."
+  - "Try building the figure two different ways: once anchored on order_date (an 'orders placed' view) and once anchored on payment_date (a 'cash collected' view) — these are genuinely different questions, not just different SQL syntax for the same one."
+  - "When you land on two different numbers, don't stop at 'they're different' — break the gap down step by step (all-statuses vs. completed-only, gross vs. net-of-discount, order_date vs. payment_date, refund treatment) to see how much each individual choice contributes."
+  - "Sanity-check your own numbers before presenting them — confirm your period filter is capturing exactly the intended date range, and that you're not double-counting order_items or payments rows in a join."
+reference_solution:
+  summary: >
+    For Q4 2025 (October 1 - December 31, 2025), three genuinely different but each internally
+    reasonable "revenue" figures were computed. A gross, sales-dashboard-style figure — all
+    order-item value (quantity x unit_price) for every order placed in the quarter regardless of
+    status, filtered by order_date — comes to $2,935,781.01 across 1,602 orders (1,300 completed,
+    155 cancelled, 102 refunded, 45 still pending). A finance-style figure #1 — net-of-discount
+    order-item value for completed orders only, still filtered by order_date — comes to
+    $2,179,287.14, a gap of $756,493.87 (about 25.8% of the dashboard figure) versus the first
+    number, driven entirely by excluding cancelled/refunded/pending orders and by netting out
+    item-level discounts. A finance-style figure #2 — net cash actually collected, computed as
+    successful payments ($2,165,500.64) minus refunded payments ($182,956.35) — but filtered by
+    payment_date instead of order_date — comes to $1,982,544.29, a further gap of $196,742.85 (about
+    9.0%) versus figure #1, driven by the order_date-vs-payment_date timing difference and by
+    netting refund dollars against the period the cash moved rather than the period of the original
+    sale. Payment timing lag itself is small (payment_date is 0-2 days after order_date for the
+    roughly 88% of orders that generate a payment row at all — cancelled and pending orders never
+    get one), so this second gap is driven mainly by how refunds are recognized, not by long payment
+    delays. Net result: depending purely on which definition is used, "last quarter's revenue" can
+    honestly be reported anywhere from about $1.98M to about $2.94M — a spread of roughly 48% of the
+    low-end figure. There is no data error or bug here: the sales dashboard and finance report are
+    each internally consistent, but they are answering different questions (orders placed vs.
+    recognized revenue vs. cash collected).
+  key_insights:
+    - "Gross, all-statuses, order-date-based revenue for Q4 2025 is $2,935,781.01 (1,602 orders placed); net-of-discount, completed-orders-only revenue for the same period (same order_date filter) is $2,179,287.14 — a gap of $756,493.87 (about 25.8%), driven by order-status filtering and discount netting."
+    - "A cash-collected figure (successful payments minus refunded payments, filtered by payment_date) is $1,982,544.29 — a further gap of $196,742.85 (about 9.0%) versus the completed-orders figure, driven by the order_date-vs-payment_date timing difference and by how refunds are recognized."
+    - "Payment_date lags order_date by only 0-2 days for orders that generate a payment at all, so the timing gap is small in absolute days — the dollar gap it produces comes mainly from refund recognition timing, not payment delay."
+    - "'Last quarter's revenue' can be honestly reported anywhere from about $1.98M to about $2.94M (roughly a 48% spread) purely as a function of definition choice, with no underlying data error."
+  recommendation: >
+    Adopt one documented definition as Brightcart's official quarterly revenue metric — most likely
+    net-of-discount, completed-orders-only, order_date-based ($2,179,287.14 for Q4 2025) as the
+    standard "recognized revenue" figure for board reporting — while explicitly keeping the gross
+    figure ($2,935,781.01) as a separately labeled "orders placed / bookings" metric for sales
+    pipeline tracking, and the cash-collected figure ($1,982,544.29) as a separately labeled
+    finance/cash-flow metric. Write all three definitions down in a shared metrics glossary so this
+    reconciliation does not have to be redone manually every quarter, and so sales and finance stop
+    using the single word "revenue" to mean three different computations.
+  acceptable_alternatives:
+    - "Choosing net cash collected as the official headline 'revenue' number instead (a defensible, common choice in finance-led organizations) as long as the choice is made explicit and documented alongside the other two figures."
+    - "Recommending that sales and finance each keep their own metric but rename them distinctly (e.g., 'bookings' vs. 'recognized revenue' vs. 'cash collected') rather than both continuing to call their own figure simply 'revenue.'"
+version: 1

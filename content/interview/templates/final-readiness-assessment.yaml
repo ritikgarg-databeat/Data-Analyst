@@ -1,0 +1,57 @@
+slug: final-readiness-assessment
+title: "Final Readiness Assessment"
+target_profile: "Data Analyst — ~2 Years Experience"
+description: >
+  The broadest assessment in the lab: every round type in one sitting, scored against the full
+  six-dimension rubric. Intended to be taken once you are close to interviewing for real — it is
+  long and deliberately unforgiving about time, so treat the result as a readiness verdict rather
+  than a practice session.
+sections:
+  - interview_type: SQL
+    title: "SQL"
+    duration_minutes: 25
+    question_count: 4
+  - interview_type: PYTHON
+    title: "Python / Pandas"
+    duration_minutes: 20
+    question_count: 3
+  - interview_type: EXCEL
+    title: "Excel"
+    duration_minutes: 10
+    question_count: 2
+  - interview_type: STATISTICS
+    title: "Statistics"
+    duration_minutes: 15
+    question_count: 3
+  - interview_type: AB_TESTING
+    title: "A/B Testing"
+    duration_minutes: 15
+    question_count: 2
+  - interview_type: PRODUCT_ANALYTICS
+    title: "Product Analytics"
+    duration_minutes: 15
+    question_count: 2
+  - interview_type: BUSINESS_ANALYTICS
+    title: "Business Analytics"
+    duration_minutes: 15
+    question_count: 2
+  - interview_type: DATA_INTERPRETATION
+    title: "Data Interpretation"
+    duration_minutes: 10
+    question_count: 2
+  - interview_type: CASE_STUDY
+    title: "Business Case"
+    duration_minutes: 30
+    question_count: 1
+  - interview_type: BEHAVIORAL
+    title: "Behavioural"
+    duration_minutes: 15
+    question_count: 3
+rubric_weights:
+  Technical Correctness: 30
+  Analytical Reasoning: 20
+  Business Understanding: 20
+  Communication: 15
+  Problem Solving: 10
+  Efficiency: 5
+tags: [mock-interview, sql, python, excel, statistics, ab-testing, product-analytics, business-analytics, case-study, behavioral]

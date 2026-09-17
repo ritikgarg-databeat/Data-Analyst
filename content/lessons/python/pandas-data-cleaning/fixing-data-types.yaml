@@ -1,0 +1,151 @@
+slug: fixing-data-types
+module_slug: pandas-data-cleaning
+title: Fixing Data Types
+description: ".astype(), pd.to_numeric(), and pd.to_datetime() — and why a column that 'looks numeric' but reads in as text almost always means dirty data hiding inside it."
+difficulty: BEGINNER
+estimated_minutes: 12
+display_order: 3
+objectives:
+  - "Convert a column's dtype with .astype(), and understand why it fails hard on unclean data"
+  - "Use pd.to_numeric() and pd.to_datetime() with errors='coerce' to convert messy columns without crashing"
+  - "Recognize that a numeric-looking column reading in as text usually means stray characters are mixed into it"
+prerequisites: [duplicates]
+skills: [pandas]
+datasets: [ecommerce]
+tags: [python, beginner, real-world]
+key_takeaways:
+  - "If a column that should obviously be numbers reads in as text, that's not usually a pandas quirk — it almost always means at least one row has a stray non-numeric value (a stray '$', a typo like 'N/A', empty string) mixed in among the real numbers."
+  - ".astype() is strict — it converts a column, or raises an error the instant it hits a single value it can't convert. pd.to_numeric() and pd.to_datetime() with errors='coerce' convert what they can and turn everything else into NaN / NaT, so you can inspect what failed instead of the whole operation blowing up."
+  - "errors='coerce' doesn't fix bad data — it isolates it. Always follow it with an .isna().sum() check to see how much data just got quietly turned into missing values, and decide whether that's acceptable."
+common_mistakes:
+  - "Reaching for errors='coerce' as a first move without checking how many values it actually breaks — silently converting a load-bearing column's bad values to NaN can lose meaningful data if the 'dirty' values were actually recoverable with a bit of string cleaning first."
+  - "Calling .astype(float) directly on a column you haven't inspected, and getting a confusing ValueError deep in a script instead of catching the dirty value up front with a quick .unique() or a look at value_counts()."
+blocks:
+  - type: text
+    body: >
+      Every column has a dtype, and getting it right matters — you can't do date math on text, and you
+      can't sum a column of numbers stored as strings. This lesson is about closing the gap between "the
+      dtype pandas gave a column" and "the dtype the column should actually have."
+  - type: heading
+    text: "When a numeric column reads in as text"
+  - type: code
+    language: python
+    code: |
+      import pandas as pd
+
+      raw = pd.DataFrame({
+          "order_id": [1, 2, 3, 4, 5],
+          "price_raw": ["19.99", "24.50", "N/A", "31.00", "$45.00"],
+      })
+      print(raw.dtypes)
+      print()
+      print(raw["price_raw"])
+    caption: "A price column, straight from a messy export"
+  - type: output
+    body: |
+      order_id     int64
+      price_raw      str
+      dtype: object
+
+      0     19.99
+      1     24.50
+      2       N/A
+      3     31.00
+      4    $45.00
+      Name: price_raw, dtype: str
+  - type: callout
+    variant: important
+    title: "This is (almost) never a pandas problem"
+    body: >
+      price_raw looks like it should obviously be numbers, but it read in as text. The reason is
+      concrete and inspectable, not mysterious: row 2 has "N/A" and row 4 has "$45.00" — pandas can't
+      make a single dtype work for a mix of clean decimals, a stray label, and a currency-prefixed
+      string, so the whole column falls back to text. When you see this pattern, the fix is to look for
+      the specific values breaking it, not to assume the column is inherently unfixable.
+  - type: heading
+    text: ".astype() — strict, all-or-nothing conversion"
+  - type: code
+    language: python
+    code: |
+      clean_ints = pd.Series(["1", "2", "3"])
+      print(clean_ints.astype(int))
+      print()
+      try:
+          raw["price_raw"].astype(float)
+      except ValueError as e:
+          print("ValueError:", e)
+    caption: ".astype() works great on already-clean data, and fails loudly on the first bad value it hits"
+  - type: output
+    body: |
+      0    1
+      1    2
+      2    3
+      dtype: int64
+
+      ValueError: could not convert string to float: 'N/A'
+  - type: heading
+    text: "pd.to_numeric() with errors='coerce'"
+  - type: code
+    language: python
+    code: |
+      converted = pd.to_numeric(raw["price_raw"], errors="coerce")
+      print(converted)
+      print()
+      print("values that failed to convert:", converted.isna().sum())
+    caption: "Instead of crashing on 'N/A', the unparseable values become NaN, and the rest still convert"
+  - type: output
+    body: |
+      0    19.99
+      1    24.50
+      2      NaN
+      3    31.00
+      4      NaN
+      Name: price_raw, dtype: float64
+
+      values that failed to convert: 2
+  - type: text
+    body: >
+      `errors='coerce'` turned "N/A" and "$45.00" into NaN rather than stopping the whole conversion.
+      That's the trade — you get a working numeric column back, but two rows are now missing data, which
+      is a decision worth making deliberately (using the tools from the previous lesson), not by
+      accident.
+  - type: heading
+    text: "pd.to_datetime() with errors='coerce'"
+  - type: code
+    language: python
+    code: |
+      dates = pd.Series(["2024-01-15", "2024-02-20", "not a date"])
+      print(pd.to_datetime(dates, errors="coerce"))
+    caption: "Same pattern, for dates instead of numbers"
+  - type: output
+    body: |
+      0   2024-01-15
+      1   2024-02-20
+      2          NaT
+      dtype: datetime64[us]
+  - type: table
+    headers: ["Tool", "On bad data", "Use when"]
+    rows:
+      - [".astype(dtype)", "Raises an error immediately", "You've already confirmed the column is clean, or you WANT it to fail loudly on anything unexpected"]
+      - ["pd.to_numeric(col, errors='coerce')", "Converts what it can, NaN for the rest", "You need a working numeric column now and plan to handle the failures separately"]
+      - ["pd.to_datetime(col, errors='coerce')", "Converts what it can, NaT for the rest", "Same idea, for dates — you'll go deeper on this in the next lesson"]
+  - type: callout
+    variant: tip
+    title: "coerce isolates bad data — it doesn't decide what to do with it"
+    body: >
+      Always pair errors='coerce' with an immediate .isna().sum() check. If two rows failed out of five,
+      that's a real and visible signal — go back to those raw values, understand why they failed, and
+      decide whether coercing them to missing was the right call, or whether they needed cleaning
+      (stripping a '$', mapping 'N/A' to something specific) instead.
+  - type: question
+    prompt: "A 'revenue' column reads in as text. What's the most likely explanation?"
+    choices:
+      - "At least one value in the column isn't a clean number — a stray symbol, a typo, or a placeholder like 'N/A' mixed in among real numbers"
+      - "pandas defaults every column to text unless told otherwise"
+      - "The column is too large for pandas to infer a numeric dtype"
+    correct_index: 0
+    explanation: >
+      pandas infers dtype from the actual values in a column. A column of clean numeric strings reads in
+      as int64/float64 automatically — text almost always means something in that column genuinely isn't
+      a clean number, and it's worth finding that value rather than assuming the dtype is wrong for no
+      reason.

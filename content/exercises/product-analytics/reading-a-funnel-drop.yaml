@@ -1,0 +1,44 @@
+slug: reading-a-funnel-drop
+lesson_slug: funnel-conversion
+skill: product-metrics
+title: Reading a Funnel Drop-Off Table
+description: Interpret a step-by-step checkout funnel table to find the real bottleneck and decide what to check next.
+exercise_type: DATA_INTERPRETATION
+difficulty: BEGINNER
+points: 10
+tags: [product-analytics, beginner]
+prompt: >
+  A checkout funnel shows the following step-by-step data:
+
+
+  Step 1 — Added item to cart: 20,000 users (100% of step 1, — step-to-step)
+
+  Step 2 — Started checkout: 9,000 users (45% of step 1, 45% step-to-step)
+
+  Step 3 — Entered payment info: 8,500 users (42.5% of step 1, 94% step-to-step)
+
+  Step 4 — Completed purchase: 3,200 users (16% of step 1, 38% step-to-step)
+
+
+  Which step is the biggest opportunity for improvement, and what would you investigate first to
+  understand why users are dropping there?
+hints:
+  - "Look at the step-to-step conversion column, not the 'vs. step 1' column — which single step loses the highest percentage of the users who had already reached it?"
+  - "Once you've picked the step, think about what kind of friction typically causes a drop at that specific point in a checkout flow — technical, trust-related, or pricing-related."
+solution: >
+  The biggest step-to-step drop is Step 3 to Step 4 (94% down to 38% step-to-step conversion) — losing
+  62% of users who had already entered payment info, the point furthest along the funnel where
+  abandonment is most costly. Step 1 to Step 2 also loses more than half of users (45% step-to-step),
+  which is worth a second look, but users abandoning that early are more likely still comparison-
+  shopping. A user who has already entered payment details and still doesn't complete the purchase is a
+  stronger signal of a fixable in-product problem: unexpected costs shown only at this step (shipping,
+  taxes), a payment error, too many required fields, or a lack of trust signals right before the final
+  click. The first checks would be segmenting this step's drop-off by device/browser (a technical
+  failure) and by cart value (a price-shock issue appearing only at checkout).
+explanation: >
+  A strong answer reads step-to-step conversion, not just overall conversion vs. step 1, to correctly
+  identify Step 3 to Step 4 as the sharpest late-funnel drop, and proposes concrete next checks (payment
+  errors, hidden fees revealed late, device-specific bugs) rather than a vague "improve the payment
+  page." A weaker answer picks Step 1 to Step 2 purely because the raw user count lost there is larger,
+  without weighing that late-funnel abandonment after payment details are entered is typically the more
+  fixable and higher-value problem.

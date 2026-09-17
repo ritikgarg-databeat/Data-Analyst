@@ -1,0 +1,79 @@
+slug: revenue-by-channel-and-status
+lesson_slug: transform
+skill: pandas
+dataset: ecommerce
+title: Revenue by Channel and Status
+description: Break down successful-payment revenue by order channel and compute each channel's share of the total.
+exercise_type: PYTHON
+difficulty: INTERMEDIATE
+points: 20
+tags: [python, intermediate, real-world]
+business_context: >
+  Sales ops wants to know how much revenue each order channel (web, mobile, marketplace) is
+  bringing in, and what share of total revenue each channel represents, to help set next
+  quarter's channel-specific targets.
+prompt: >
+  Using `orders` and `payments`, find total revenue from successful payments
+  (`payments.status == "success"`) broken down by order channel, along with each channel's
+  share of the grand total revenue as a percentage. Merge payments to orders to bring in
+  `channel`, then use `groupby(...).transform("sum")` to compute each channel's total revenue
+  as a group-relative value on the ungrouped rows — that's exactly the tool for this job,
+  rather than a manual groupby-then-merge-back. Store your answer in a variable named `result`:
+  a DataFrame with columns `channel`, `revenue` (rounded to 2 decimal places), and
+  `pct_of_total` (each channel's revenue divided by the grand total, times 100, rounded to 1
+  decimal place), sorted descending by revenue.
+python_datasets: [orders, payments]
+python_starter_code: |
+  # orders and payments are already loaded as DataFrames.
+  # Explore them first:
+  payments.head()
+python_solution_code: |
+  success = payments[payments["status"] == "success"].copy()
+  merged = success.merge(orders[["order_id", "channel"]], on="order_id")
+  merged["revenue"] = merged.groupby("channel")["amount"].transform("sum")
+  grand_total = merged["amount"].sum()
+  merged["pct_of_total"] = (merged["revenue"] / grand_total * 100).round(1)
+  result = (
+      merged[["channel", "revenue", "pct_of_total"]]
+      .drop_duplicates()
+      .assign(revenue=lambda d: d["revenue"].round(2))
+      .sort_values("revenue", ascending=False)
+      .reset_index(drop=True)
+  )
+python_result_variable: result
+python_row_order_matters: true
+python_numeric_tolerance: 0.01
+python_hidden_tests:
+  - name: "Channel percentages sum to roughly 100%"
+    code: |
+      assert abs(result["pct_of_total"].sum() - 100) < 1, (
+          f"Expected pct_of_total to sum to ~100, got {result['pct_of_total'].sum()}"
+      )
+hints:
+  - "Filter payments to status == 'success' first, then merge in just the order_id and channel columns from orders — you don't need the rest of the orders table."
+  - "`merged.groupby('channel')['amount'].transform('sum')` returns a Series the same length as merged, where every row gets its channel's total — no separate merge-back step needed. Once you have that column, dividing by the overall grand total (merged['amount'].sum()) and multiplying by 100 gives the percentage."
+solution: |
+  ```python
+  success = payments[payments["status"] == "success"].copy()
+  merged = success.merge(orders[["order_id", "channel"]], on="order_id")
+  merged["revenue"] = merged.groupby("channel")["amount"].transform("sum")
+  grand_total = merged["amount"].sum()
+  merged["pct_of_total"] = (merged["revenue"] / grand_total * 100).round(1)
+  result = (
+      merged[["channel", "revenue", "pct_of_total"]]
+      .drop_duplicates()
+      .assign(revenue=lambda d: d["revenue"].round(2))
+      .sort_values("revenue", ascending=False)
+      .reset_index(drop=True)
+  )
+  ```
+explanation: >
+  `groupby(...).transform(...)` is the right tool whenever you need a group-level statistic
+  attached back onto every row of the original (ungrouped) shape — here, every payment row gets
+  its channel's total revenue without a separate `groupby().sum()` followed by a `merge()` back
+  onto the original rows. Once each row carries its channel's total, `drop_duplicates()` collapses
+  down to one row per channel cleanly, since every row within a channel now holds the same
+  `revenue` value. Computing `pct_of_total` from the grand total of the *filtered* (successful-only)
+  amounts, not the grand total of all payments, is the detail that makes the percentages actually
+  sum to 100 — mixing in refunded payments in the denominator would silently understate every
+  channel's share.

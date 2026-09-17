@@ -1,0 +1,21 @@
+slug: pa-onboarding-funnel-metric
+skill: product-metrics
+title: Onboarding Funnel Metrics
+description: Which metric best measures whether a new user's onboarding flow itself is working, distinct from whether
+  the product is good overall?
+exercise_type: MULTIPLE_CHOICE
+difficulty: BEGINNER
+points: 5
+tags:
+- product-analytics
+- funnel
+prompt: Which metric best measures whether a new user's onboarding flow itself is working, distinct from whether
+  the product is good overall?
+correct_answer: Completion rate through each individual onboarding step, showing exactly where users drop off
+explanation: Step-by-step onboarding completion rate isolates the onboarding experience itself (where specifically
+  people give up) from broader product-market-fit questions that revenue or company-wide LTV would conflate it with.
+choices:
+- Completion rate through each individual onboarding step, showing exactly where users drop off
+- Total company revenue this quarter
+- Number of employees on the product team
+- Average customer lifetime value across all cohorts

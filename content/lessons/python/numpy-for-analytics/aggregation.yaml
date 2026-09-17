@@ -1,0 +1,108 @@
+slug: aggregation
+module_slug: numpy-for-analytics
+title: Aggregation and the axis Parameter
+description: sum, mean, min/max, and std across a whole array or along a specific axis — the axis parameter that trips almost everyone up at first.
+difficulty: BEGINNER
+estimated_minutes: 12
+display_order: 7
+objectives:
+  - Compute sum, mean, min/max, and std across an entire array
+  - Use the axis parameter to aggregate down columns or across rows on a 2D array, and explain the difference
+prerequisites: [broadcasting]
+skills: [pandas]
+datasets: [ecommerce]
+tags: [python, beginner, foundations]
+key_takeaways:
+  - "Called with no axis argument, an aggregation method (.sum(), .mean(), .min(), .max(), .std()) collapses the entire array — 2D or not — down to a single number."
+  - "axis=0 collapses DOWN the rows, producing one result per column; axis=1 collapses ACROSS the columns, producing one result per row — the axis you name is the one that disappears from the result."
+  - "The confusion almost everyone hits at first: axis=0 feels like it should mean 'row-wise' because rows are listed first in shape (rows, cols) — but it actually means 'collapse along the row axis,' which produces one value per column."
+common_mistakes:
+  - "Using axis=0 when a per-row result was wanted (or vice versa) — this is easily the single most common NumPy mistake; the fix is to remember that the named axis is the one that gets collapsed away, not the one that's preserved."
+  - "Calling .mean() on an array containing np.nan and getting nan back for the whole calculation — NaN propagates through ordinary aggregations by default (covered in a later lesson's np.nan section) unless you use the nan-aware variant, e.g. np.nanmean()."
+  - "Forgetting that .std() computes the population standard deviation by default (ddof=0), which differs from pandas' default sample standard deviation (ddof=1) — the numbers won't match unless you set ddof to the same value in both."
+blocks:
+  - type: text
+    body: >
+      Once data is in an array, the next thing you'll do almost every time is summarize it: totals,
+      averages, extremes, spread. NumPy's aggregation methods do exactly what you'd expect on a 1D
+      array — the real subtlety, and the one worth spending time on, is what happens on a 2D array once
+      the **axis** parameter enters the picture.
+  - type: heading
+    text: Aggregating a whole array
+  - type: code
+    language: python
+    code: |
+      import numpy as np
+
+      sales = np.array([
+          [120, 85, 200],
+          [95, 110, 175],
+          [200, 90, 160],
+          [150, 130, 190],
+      ])   # 4 orders (rows) x 3 products (columns)
+
+      sales.sum()    # 1705   — every value in the whole array, added up
+      sales.mean()   # 142.08333333333334
+      sales.min()    # 85
+      sales.max()    # 200
+      sales.std()    # 41.15308480404463
+    caption: "With no axis given, every method collapses the entire 2D array down to one number"
+  - type: heading
+    text: "The axis parameter: which dimension collapses"
+  - type: text
+    body: >
+      Pass `axis=0` or `axis=1` to aggregate along just one dimension instead of the whole array. The
+      rule that actually matters: **the axis you name is the one that disappears** from the result — not
+      the one that's preserved. `axis=0` collapses the rows away, leaving one result per column;
+      `axis=1` collapses the columns away, leaving one result per row.
+  - type: code
+    language: python
+    code: |
+      sales.sum(axis=0)   # array([565, 415, 725])       — one total PER COLUMN (summed down the rows)
+      sales.sum(axis=1)   # array([405, 380, 450, 470])  — one total PER ROW (summed across the columns)
+
+      sales.mean(axis=0)  # array([141.25, 103.75, 181.25])  — average of each product, across all 4 orders
+    caption: "axis=0 gives 3 results (one per column, 3 products); axis=1 gives 4 results (one per row, 4 orders)"
+  - type: table
+    headers: ["Call", "Result shape", "What it means", "Read it as"]
+    rows:
+      - ["sales.sum()", "single number", "Total across the whole array", "Grand total"]
+      - ["sales.sum(axis=0)", "one per column", "Rows collapse; each column's own total remains", "'Total per product' — down each column"]
+      - ["sales.sum(axis=1)", "one per row", "Columns collapse; each row's own total remains", "'Total per order' — across each row"]
+  - type: callout
+    variant: common_mistake
+    title: The memory trick that actually works
+    body: >
+      Instead of memorizing "axis=0 is columns, axis=1 is rows" (easy to mix up), remember: **the named
+      axis is the one that gets collapsed and disappears**. axis=0 walks down the rows and collapses
+      them, so what's left is one result per column. axis=1 walks across the columns and collapses them,
+      leaving one result per row.
+  - type: example
+    title: "Real data: quantity ordered, from order_items.csv"
+    body: >
+      A single numeric column pulled straight from the ecommerce dataset — 12,627 order-item rows — is a
+      1D array, so aggregating it needs no axis argument at all; axis only matters once you're aggregating
+      a 2D array.
+    code: |
+      import pandas as pd
+
+      items = pd.read_csv("data/sample/ecommerce/order_items.csv")
+      quantity = items["quantity"].to_numpy()
+
+      print(quantity.shape)         # (12627,)
+      print(quantity.sum())          # 31535
+      print(round(quantity.mean(), 2))   # 2.5
+      print(quantity.min(), quantity.max())   # 1 4
+      print(round(quantity.std(), 2))    # 1.12
+    language: python
+  - type: question
+    prompt: "sales has shape (4, 3) — 4 orders (rows), 3 products (columns). What does sales.sum(axis=1) return?"
+    choices:
+      - "A single number: the grand total across the whole array"
+      - "An array of 3 numbers — one total per product, summed down the rows"
+      - "An array of 4 numbers — one total per order, summed across the columns"
+    correct_index: 2
+    explanation: >
+      axis=1 collapses the column dimension away, leaving one result per row — and here, each row is one
+      order. So sales.sum(axis=1) produces 4 numbers, one per order, each the sum of that order's 3
+      product values. (axis=0 is what would produce the 3 per-product totals instead.)

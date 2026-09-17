@@ -1,0 +1,117 @@
+slug: building-effective-dashboards
+module_slug: visualization-and-storytelling
+title: "Building Effective Dashboards"
+description: What makes a small set of charts function as one coherent dashboard — a clear top-line metric, supporting breakdowns, and consistent time grain and filters — versus a wall of unrelated charts.
+difficulty: BEGINNER
+estimated_minutes: 11
+display_order: 3
+objectives:
+  - Explain why a dashboard needs a clear top-line metric before any supporting charts are added
+  - State why a consistent time grain and consistent filters across charts matter more than any individual chart's polish
+  - Distinguish a coherent dashboard from a wall of unrelated charts using a concrete example
+prerequisites: [common-visualization-mistakes]
+skills: [data-visualization]
+datasets: [ecommerce]
+tags: [foundations, beginner]
+key_takeaways:
+  - "A dashboard is not 'several good charts on one page.' It's a small set of charts that work together to answer one coherent question, anchored by one clear top-line metric that everything else supports or explains."
+  - "Every supporting chart on a good dashboard exists to answer a follow-up question the top-line metric naturally raises — 'revenue is up, but where' or 'orders are down, since when' — not just 'another interesting thing about this dataset.'"
+  - "Consistent time grain and consistent filters across every chart on the dashboard matter more than any single chart's individual polish — a dashboard where one chart shows daily data and another shows monthly, or where filters silently apply to some charts and not others, actively misleads even if each chart is individually correct."
+  - "A wall of unrelated charts — 12 tiles, no shared question, no obvious reading order — isn't a small dashboard problem, it's the absence of the one thing a dashboard is actually for: letting someone answer a specific question faster than digging through raw data themselves."
+common_mistakes:
+  - "Building a dashboard by adding every chart that seemed interesting during exploration, rather than deliberately choosing the small set that supports one clear top-line question."
+  - "Mixing time grains across charts on the same dashboard (one chart daily, another weekly, a third monthly) without a strong reason, which makes it hard to compare what's happening across charts at a glance."
+  - "Letting a global filter (like a date range picker) apply to some charts on the dashboard but not others, without making that inconsistency obvious — a viewer will naturally assume every chart reflects the filter they just changed."
+practical_applications:
+  - "Starting any new dashboard by writing down the one top-line metric it exists to communicate, before choosing a single supporting chart."
+  - "Auditing an existing dashboard by checking whether every chart on it shares the same time grain and responds to the same filters, and fixing any chart that quietly doesn't."
+interview_questions:
+  - question: "What separates a good dashboard from a collection of charts on one page?"
+    answer: "A good dashboard is anchored by one clear top-line metric — the single number a viewer should walk away knowing — with a small number of supporting charts, each one answering a specific follow-up question that metric naturally raises, like a breakdown by segment or a trend over time. A collection of charts, by contrast, has no organizing question: it's whatever seemed interesting during exploration, with no clear reading order and often inconsistent time grains or filters across the tiles. The test I'd apply: can someone look at this dashboard and answer a specific business question in under a minute, or do they have to piece together several disconnected charts themselves to get there?"
+resources:
+  - title: "Stephen Few — Information Dashboard Design (summary and principles)"
+    url: "https://www.perceptualedge.com/articles/Whitepapers/Dashboard_Design.pdf"
+blocks:
+  - type: heading
+    text: "A dashboard needs one job, not twelve"
+  - type: text
+    body: >
+      The previous two lessons covered getting one chart right. This one is about what happens when several
+      charts sit on the same screen together — because a set of individually correct, individually
+      well-labeled charts can still add up to a confusing dashboard if they don't share a clear organizing
+      purpose.
+  - type: callout
+    variant: important
+    title: "Start from the top-line metric, not the chart list"
+    body: >
+      Before choosing a single chart, decide the one number a viewer of this dashboard should walk away
+      knowing — total revenue this month, active customer count, conversion rate. Every other chart on the
+      dashboard should exist to support or explain that number, not stand alone as "another interesting
+      thing."
+  - type: heading
+    text: "A worked example: an ecommerce revenue dashboard"
+  - type: table
+    headers: ["Element", "What it shows", "Question it answers"]
+    rows:
+      - ["Top-line metric", "Total revenue this month, with change vs. last month", "How are we doing overall, right now?"]
+      - ["Supporting chart 1", "Revenue by day, this month vs. last month", "Where in the month is the change concentrated?"]
+      - ["Supporting chart 2", "Revenue by channel (web / mobile / marketplace)", "Which part of the business is driving the change?"]
+      - ["Supporting chart 3", "Revenue by customer segment (business / consumer)", "Is the change broad-based, or concentrated in one segment?"]
+  - type: text
+    body: >
+      Notice the shape: one headline number, then three charts that each answer a natural follow-up
+      question that number raises — "revenue is up 8%... where, in which channel, and for which
+      customers?" Nothing here is chosen because it happened to look interesting during exploration. Each
+      chart earns its place by answering a question the top-line number itself creates.
+  - type: heading
+    text: "Consistency matters more than any individual chart's polish"
+  - type: text
+    body: >
+      A dashboard's charts need to agree with each other, or a viewer will draw wrong conclusions by
+      comparing them — even if every individual chart is technically correct on its own.
+  - type: comparison
+    title: "Consistent vs. inconsistent dashboard construction"
+    columns: ["", "Consistent (good)", "Inconsistent (misleading)"]
+    rows:
+      - ["Time grain across charts", "Every chart on the dashboard uses the same grain (e.g. all daily, or all monthly)", "One chart shows daily data, another monthly — hard to tell if a spike on one lines up with a dip on another"]
+      - ["Filters", "A shared date-range or segment filter applies identically to every chart on the dashboard", "The filter silently only applies to some charts — a viewer changes the date range expecting every tile to update, and half don't"]
+      - ["Metric definitions", "'Revenue' means the same thing (e.g. successful payments only) on every chart that uses it", "One chart's 'revenue' includes pending orders, another's doesn't, with no label explaining the difference"]
+  - type: callout
+    variant: common_mistake
+    title: "A silently inconsistent filter is worse than no filter at all"
+    body: >
+      If a viewer adjusts a date range and assumes (reasonably) that every chart on the dashboard just
+      updated, but one chart is actually still showing all-time data, they'll draw a comparison that's
+      simply wrong — and nothing about the dashboard will visibly warn them it happened.
+  - type: heading
+    text: "The wall-of-charts failure mode"
+  - type: text
+    body: >
+      Contrast the worked example above with a dashboard that has 10-12 tiles: revenue, orders, average
+      order value, customers, sessions, conversion rate, top products, top categories, campaign spend,
+      device breakdown — each individually reasonable, with no shared top-line story connecting them and no
+      obvious order to read them in. A viewer lands on this and has to do the organizing work themselves:
+      deciding what matters, in what order, and how the pieces relate. That's not a bigger dashboard — it's
+      the absence of the one thing a dashboard is supposed to do for them.
+  - type: heading
+    text: "A practical build checklist"
+  - type: checklist
+    title: "Before considering a dashboard finished"
+    items:
+      - "Is there one clear top-line metric, and does it appear first / most prominently?"
+      - "Does every other chart answer a specific follow-up question the top-line metric raises?"
+      - "Do all charts share the same time grain, unless there's a strong, labeled reason not to?"
+      - "Does a shared filter (date range, segment) apply identically to every chart on the dashboard?"
+      - "Could someone unfamiliar with the underlying data answer a specific business question from this dashboard in under a minute?"
+  - type: question
+    prompt: "A revenue dashboard has a top-line 'total revenue this month' number, and a viewer adjusts the date-range filter to last quarter. Two of the five charts on the dashboard update; three don't, with no visible indication why. What's the core problem here?"
+    choices:
+      - "The dashboard's filters are inconsistent across charts — a viewer will naturally assume the date range applies to everything on the page, and the silent exception on three charts will produce a genuinely misleading comparison"
+      - "There's no real problem, since the top-line metric itself updated correctly"
+      - "The dashboard has too many charts and should be reduced to just the top-line metric"
+    correct_index: 0
+    explanation: >
+      A shared filter that silently applies to only some charts breaks the reasonable assumption a viewer
+      brings to the dashboard — that adjusting one control updates everything consistently. The fix is
+      making every chart respond to the shared filter (or clearly labeling any chart that intentionally
+      doesn't), not the chart count itself.

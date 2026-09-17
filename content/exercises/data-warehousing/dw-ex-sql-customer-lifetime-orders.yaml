@@ -1,0 +1,71 @@
+slug: dw-ex-sql-customer-lifetime-orders
+lesson_slug: dw-star-schema-basics
+skill: dimensional-modeling
+dataset: ecommerce
+title: Build dim_customers' Lifetime Order Stats
+description: Recreate the lifetime_order_count, first_order_date, and most_recent_order_date columns dim_customers derives from the orders table.
+exercise_type: SQL
+difficulty: INTERMEDIATE
+points: 20
+tags: [dimension-table, star-schema, aggregation]
+business_context: >
+  dim_customers enriches each customer with lifetime order stats (lifetime_order_count,
+  first_order_date, most_recent_order_date), computed by aggregating the orders table up to the
+  customer grain before joining it onto customer attributes. Rebuilding that aggregation yourself
+  confirms you understand exactly how a dimension table's derived columns get computed.
+prompt: >
+  Using the `orders` table, write a query that returns, for every customer who has placed at least
+  one order: `customer_id`, `lifetime_order_count` (their total number of orders, of any status),
+  `first_order_date` (their earliest order_date), and `most_recent_order_date` (their latest
+  order_date). Order the result by `lifetime_order_count` descending, then `customer_id` ascending.
+sql_tables: [orders]
+sql_starter_query: |
+  -- Explore the orders table first
+  SELECT * FROM orders LIMIT 20;
+sql_solution_query: |
+  SELECT
+    customer_id,
+    COUNT(*) AS lifetime_order_count,
+    MIN(order_date) AS first_order_date,
+    MAX(order_date) AS most_recent_order_date
+  FROM orders
+  GROUP BY customer_id
+  ORDER BY lifetime_order_count DESC, customer_id ASC;
+sql_row_order_matters: true
+sql_numeric_tolerance: 0.01
+sql_hidden_tests:
+  - name: "The top customer's lifetime_order_count is correct"
+    query: |
+      SELECT
+        customer_id,
+        COUNT(*) AS lifetime_order_count
+      FROM orders
+      GROUP BY customer_id
+      ORDER BY lifetime_order_count DESC, customer_id ASC
+      LIMIT 1
+    key_columns: 1
+hints:
+  - "This is a single GROUP BY customer_id over the orders table — COUNT(*) gives the lifetime order count, and MIN/MAX of order_date give the first and most recent order dates in the same pass."
+  - "Order by lifetime_order_count DESC first, then customer_id ASC as a tiebreaker, so customers with equal counts come out in a stable, well-defined order."
+solution: >
+  ```sql
+  SELECT
+    customer_id,
+    COUNT(*) AS lifetime_order_count,
+    MIN(order_date) AS first_order_date,
+    MAX(order_date) AS most_recent_order_date
+  FROM orders
+  GROUP BY customer_id
+  ORDER BY lifetime_order_count DESC, customer_id ASC;
+  ```
+  The top result is customer_id=51, with lifetime_order_count=15, first_order_date=2024-07-12, and
+  most_recent_order_date=2025-12-02 (several customers tie at 15 orders; customer 51 sorts first
+  because of the customer_id ASC tiebreaker).
+explanation: >
+  A strong answer recognizes this as one aggregation over one table — COUNT(*), MIN(order_date), and
+  MAX(order_date) all computed together in a single GROUP BY customer_id, exactly mirroring how
+  dim_customers.sql's `customer_orders` CTE derives these same three columns before joining them onto
+  customer attributes. A common mistake is querying orders and customers together with a join before
+  aggregating, which is unnecessary here (nothing about customer attributes is needed to compute these
+  three order-derived stats) and only adds risk of an accidental fan-out if the join isn't handled
+  carefully.

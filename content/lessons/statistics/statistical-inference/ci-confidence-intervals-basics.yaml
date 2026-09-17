@@ -1,0 +1,91 @@
+slug: ci-confidence-intervals-basics
+module_slug: statistical-inference
+title: Confidence Intervals, Constructed From Real Data
+description: How to build a confidence interval for a rate or a mean, and why it's the honest way to report a single number pulled from a sample.
+difficulty: INTERMEDIATE
+estimated_minutes: 14
+display_order: 1
+objectives:
+  - Construct a 95% confidence interval for a proportion from real counts, using the point estimate and its standard error.
+  - Explain why reporting an interval, rather than a single point estimate, better represents the uncertainty in a sample-based number.
+skills: [statistics, statistical-reasoning]
+datasets: [ecommerce]
+tags: [statistics, intermediate, e-commerce]
+prerequisites: [dist-sampling-distribution-clt, samp-sample-size]
+key_takeaways:
+  - "A confidence interval is a range built around a point estimate, wide enough that the procedure used to build it captures the true population value a stated percentage of the time (typically 95%) across repeated sampling."
+  - "For a proportion, the 95% interval is the point estimate plus or minus 1.96 standard errors — the exact same standard error math from the sampling distributions lesson."
+  - Reporting a single number ("conversion rate is 15.2%") without its interval hides exactly how much that number could plausibly move if you re-ran the measurement.
+common_mistakes:
+  - Reporting a rate to more decimal places than its confidence interval justifies (e.g., "15.23%" when the interval is ±0.64 points — the extra precision is false confidence).
+  - Building a confidence interval on a subgroup too small to give it any real precision, then reporting it with the same authority as the full-dataset number.
+interview_questions:
+  - question: How would you construct a 95% confidence interval for a conversion rate, and what does the width of that interval tell a stakeholder?
+    answer: >
+      Compute the point estimate p_hat (successes / n), its standard error sqrt(p_hat(1-p_hat)/n),
+      then the interval is p_hat plus/minus 1.96 times that standard error for 95% confidence. The
+      width tells the stakeholder how much precision the sample actually supports — a narrow
+      interval means the point estimate is trustworthy to state with confidence; a wide one means
+      the "true" rate could plausibly be quite different from the point estimate, and more data or
+      caution is warranted before acting on it.
+blocks:
+  - type: heading
+    text: Building a confidence interval, step by step
+  - type: text
+    body: >
+      A **confidence interval** is a range around a point estimate, built so that the *procedure*
+      used to construct it captures the true population value a stated percentage of the time
+      (typically 95%) if you repeated the sampling process many times. For a proportion, it's built
+      directly from the standard error you already know how to compute.
+  - type: formula
+    expression: "95% CI = p_hat ± 1.96 * sqrt( p_hat * (1 - p_hat) / n )"
+    description: p_hat is the sample proportion, n is the sample size, 1.96 is the critical value for 95% confidence under a normal approximation.
+  - type: example
+    title: A 95% confidence interval for the real session conversion rate
+    body: >
+      From the ecommerce dataset, 1,827 of 12,000 sessions converted: p_hat = 0.1522. The standard
+      error is sqrt(0.1522 x 0.8478 / 12,000) ≈ 0.00328. The 95% confidence interval is
+      0.1522 ± 1.96 x 0.00328 = 0.1522 ± 0.0064, or (14.58%, 15.87%).
+  - type: code
+    language: python
+    code: |
+      import numpy as np
+
+      n = 12000
+      conversions = 1827
+      p_hat = conversions / n
+      se = np.sqrt(p_hat * (1 - p_hat) / n)
+      ci_lower, ci_upper = p_hat - 1.96 * se, p_hat + 1.96 * se
+      print(round(p_hat, 4), round(ci_lower, 4), round(ci_upper, 4))
+      # 0.1522, 0.1458, 0.1587
+    caption: "Point estimate 15.2%, 95% CI (14.6%, 15.9%) — this is the range that should accompany any report of the headline number."
+  - type: text
+    body: >
+      Notice how narrow this interval is — a direct consequence of the very large sample size
+      (12,000 sessions). If the same 15.2% rate had come from only 200 sessions, the interval would
+      be roughly (10.2%, 20.2%): far too wide to state the rate with much confidence at all. The
+      interval width is the honest, quantitative answer to "how much should I trust this number?"
+  - type: callout
+    variant: tip
+    title: Reporting a range changes the conversation
+    body: >
+      "Conversion rate is 15.2%, with a 95% confidence interval of (14.6%, 15.9%)" invites a very
+      different (and more accurate) conversation than "conversion rate is 15.2%" alone. It signals
+      immediately whether a competing number — say, a rival team's channel reporting 15.5% — is
+      actually distinguishable from this one, or well within the range this same sample would
+      plausibly produce just by chance.
+  - type: question
+    prompt: >
+      Two teams each report their channel's conversion rate: Team A says "18.0%" from a sample of
+      12,000, Team B says "19.5%" from a sample of 40. Which number deserves more trust as a
+      standalone figure, and why?
+    choices:
+      - "Team B's, since 19.5% is a bigger number"
+      - "Team A's, since its much larger sample size gives it a far narrower confidence interval — Team B's 40-session estimate could easily swing several points in either direction"
+      - "Both deserve equal trust since both are valid percentages"
+    correct_index: 1
+    explanation: >
+      Sample size drives precision. Team A's 12,000-session estimate has a tight confidence
+      interval; Team B's 40-session estimate has a very wide one and could easily be off by ten
+      percentage points or more in either direction just from sampling error, even with no bias at
+      all.

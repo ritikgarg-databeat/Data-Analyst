@@ -1,0 +1,105 @@
+slug: pa-py-activation-rate-by-channel
+lesson_slug: pa-funnel-python
+skill: pandas
+dataset: saas-product
+title: Activation Rate by Channel in pandas
+description: Merge events and users to compute activation rate per acquisition channel, ranked descending.
+exercise_type: PYTHON
+difficulty: INTERMEDIATE
+points: 20
+tags: [python, product, saas, intermediate]
+business_context: >
+  Growth wants the channel-level activation breakdown reproduced in pandas so it can be plugged
+  directly into a Python-based reporting notebook instead of a separate SQL step.
+prompt: >
+  Using the `events` and `users` DataFrames, build a per-user flag table (as in the funnel exercise),
+  merge in each user's `acquisition_channel`, and compute activation rate per channel. Store a
+  DataFrame in a variable named `result` with columns `acquisition_channel`, `signups`,
+  `activated_users`, and `activation_rate` (activated_users / signups, rounded to 4 decimals), sorted
+  in descending order by `activation_rate`.
+python_datasets: [events, users]
+python_starter_code: |
+  # events and users are already loaded as DataFrames.
+  users.head()
+python_solution_code: |
+  flags = events.pivot_table(
+      index="user_id", columns="event_name", values="event_timestamp", aggfunc="count"
+  ).notna()
+  for step in ["signup", "activated"]:
+      if step not in flags.columns:
+          flags[step] = False
+  flags = flags[["signup", "activated"]]
+
+  merged = flags.merge(users[["user_id", "acquisition_channel"]], left_index=True, right_on="user_id")
+
+  rows = []
+  for channel, d in merged.groupby("acquisition_channel"):
+      signups = int(d["signup"].sum())
+      activated_users = int((d["signup"] & d["activated"]).sum())
+      rows.append({
+          "acquisition_channel": channel,
+          "signups": signups,
+          "activated_users": activated_users,
+          "activation_rate": round(activated_users / signups, 4),
+      })
+
+  result = pd.DataFrame(rows).sort_values("activation_rate", ascending=False).reset_index(drop=True)
+python_result_variable: result
+python_row_order_matters: true
+python_numeric_tolerance: 0.001
+python_hidden_tests:
+  - name: signups column sums to the total user count
+    code: |
+      assert result["signups"].sum() == events["user_id"].nunique(), (
+          "The signups column across all channels should sum to the total number of distinct users "
+          "in the events table."
+      )
+  - name: paid_social's activation_rate matches an independent recomputation
+    code: |
+      paid_social_users = users.loc[users["acquisition_channel"] == "paid_social", "user_id"]
+      paid_social_events = events[events["user_id"].isin(paid_social_users)]
+      independent_rate = round(
+          paid_social_events[paid_social_events["event_name"] == "activated"]["user_id"].nunique()
+          / paid_social_events["user_id"].nunique(),
+          4,
+      )
+      row = result.loc[result["acquisition_channel"] == "paid_social"].iloc[0]
+      assert abs(row["activation_rate"] - independent_rate) < 0.001, (
+          f"Expected paid_social's activation_rate to be close to {independent_rate}, "
+          f"got {row['activation_rate']}."
+      )
+hints:
+  - "merge the per-user flag table (indexed by user_id) to users[['user_id', 'acquisition_channel']] using left_index=True, right_on='user_id' — this attaches each user's channel onto their own flag row before grouping."
+  - "Group by acquisition_channel and, within each group, compute signups as the sum of the signup flag and activated_users as the sum of (signup & activated) — then divide, round to 4 decimals, and sort descending on activation_rate at the end."
+solution: |
+  ```python
+  flags = events.pivot_table(
+      index="user_id", columns="event_name", values="event_timestamp", aggfunc="count"
+  ).notna()
+  for step in ["signup", "activated"]:
+      if step not in flags.columns:
+          flags[step] = False
+  flags = flags[["signup", "activated"]]
+
+  merged = flags.merge(users[["user_id", "acquisition_channel"]], left_index=True, right_on="user_id")
+
+  rows = []
+  for channel, d in merged.groupby("acquisition_channel"):
+      signups = int(d["signup"].sum())
+      activated_users = int((d["signup"] & d["activated"]).sum())
+      rows.append({
+          "acquisition_channel": channel, "signups": signups, "activated_users": activated_users,
+          "activation_rate": round(activated_users / signups, 4),
+      })
+  result = pd.DataFrame(rows).sort_values("activation_rate", ascending=False).reset_index(drop=True)
+  ```
+  Run against the real data: organic 78.86%, referral 78.16%, content 72.00%, paid_search 61.68%,
+  paid_social 55.93%.
+explanation: >
+  The merge step is where this exercise is most often gotten wrong: `flags` is indexed by
+  `user_id` (from the pivot_table), so merging it against `users` needs `left_index=True,
+  right_on='user_id'` — merging on a plain column name without accounting for the index produces
+  either an error or a silently empty result. Once the channel is attached to each user's flag row, the
+  grouped aggregation is the same cumulative-count-then-divide pattern as the unsegmented funnel. A
+  useful sanity check: summing the `signups` column across every row of `result` should equal the
+  total distinct user count in `events` (3,000), which catches a join that dropped or duplicated rows.

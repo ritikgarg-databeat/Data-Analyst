@@ -1,0 +1,20 @@
+slug: stat-type-1-error
+skill: statistics
+title: Defining a Type I Error
+description: In hypothesis testing, what is a Type I error?
+exercise_type: MULTIPLE_CHOICE
+difficulty: INTERMEDIATE
+points: 5
+tags:
+- statistics
+- hypothesis-testing
+prompt: In hypothesis testing, what is a Type I error?
+correct_answer: Rejecting the null hypothesis when it is actually true (a false positive)
+explanation: 'A Type I error is a false positive: concluding there''s an effect (rejecting the null) when there
+  truly isn''t one. The significance level (alpha, typically 0.05) is exactly the rate of Type I errors you''re
+  willing to tolerate.'
+choices:
+- Rejecting the null hypothesis when it is actually true (a false positive)
+- Failing to reject the null hypothesis when it is actually false (a false negative)
+- Using too small a sample size
+- Choosing the wrong statistical test

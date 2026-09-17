@@ -1,0 +1,20 @@
+slug: negative-revenue-churn-true-false
+lesson_slug: churn
+skill: business-metrics
+title: Can Revenue Churn Be Negative?
+description: Test whether net revenue churn can go negative when expansion revenue outpaces losses.
+exercise_type: TRUE_FALSE
+difficulty: INTERMEDIATE
+points: 10
+tags: [business-analytics, intermediate]
+prompt: >
+  True or false: net revenue churn can be negative, meaning a company's recurring revenue from its
+  existing customer base actually grows over a period even though some of those customers cancel
+  entirely.
+choices: ["True", "False"]
+correct_answer: "True"
+explanation: >
+  Net revenue churn nets churned revenue against expansion revenue (upgrades, cross-sells, seat
+  growth) from customers who stayed. When expansion revenue from the customers who remain outweighs
+  the revenue lost from the customers who left, net revenue churn goes negative — a strong signal that
+  a business's existing base is growing in value even without any new customer acquisition.

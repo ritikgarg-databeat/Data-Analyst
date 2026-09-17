@@ -1,0 +1,106 @@
+slug: exp-how-randomization-creates-comparable-groups
+module_slug: randomization
+title: How Randomization Creates Comparable Groups
+description: >
+  Why assigning users to control/treatment by a coin flip (not by any of their characteristics) is what
+  makes the two groups alike on average — including on things you never measured.
+difficulty: INTERMEDIATE
+estimated_minutes: 15
+display_order: 1
+objectives:
+  - Explain why random assignment balances both measured and unmeasured characteristics across groups, on average
+  - Check that an actual assignment split matches the intended ratio (e.g., 50/50) using real data
+  - Explain why the unit of randomization (user vs. session vs. account) needs to be chosen deliberately
+prerequisites: [exp-what-is-an-experiment]
+skills: [experimentation, statistical-reasoning]
+datasets: [saas-product]
+tags: [experimentation, ab-testing, saas, intermediate]
+key_takeaways:
+  - Random assignment balances control and treatment groups on every characteristic — including ones you didn't think to measure — because each unit had an equal, independent chance of landing in either group.
+  - The unit of randomization should be the same unit at which the treatment is experienced and the outcome is measured; mismatching them causes contamination (covered in the Pitfalls module).
+  - Checking that the actual split matches the intended ratio (a basic sample ratio check) is a cheap, mechanical way to catch an assignment bug before trusting any other result from the test.
+common_mistakes:
+  - Randomizing by session when the same user could return in multiple sessions and see both variants, muddying what "the treatment's effect" even means for that user.
+  - Assuming a roughly-even split proves randomization worked correctly, without checking numerically whether the observed split is statistically consistent with the intended ratio.
+blocks:
+  - type: heading
+    text: What randomization actually buys you
+  - type: text
+    body: >
+      When each user has an equal, independent chance of landing in control or treatment, the two groups
+      end up alike *in expectation* on every characteristic — the ones you thought to measure (signup
+      date, plan, country) and the ones you didn't (how price-sensitive someone is, how much free time
+      they have, whether they're having a good week). That's the entire trick: you don't need to
+      individually match up every possible confounding variable, because randomization balances all of
+      them simultaneously, automatically.
+  - type: heading
+    text: The unit of randomization
+    level: 3
+  - type: text
+    body: >
+      Randomization has to happen at a specific **unit** — usually the user, but sometimes the session,
+      account, or even geographic region. The right unit is whichever one keeps a single unit from
+      experiencing both variants: if the same person could see the control checkout in one session and
+      the treatment checkout in another, you can no longer cleanly attribute their behavior to either
+      variant. For most product experiments (like a checkout redesign), randomizing by `user_id` — and
+      keeping that user in the same variant for the life of the test — is the safer default.
+  - type: code
+    language: sql
+    code: |
+      SELECT
+        experiment_id,
+        variant,
+        COUNT(*) AS users,
+        COUNT(DISTINCT user_id) AS distinct_users
+      FROM experiment_assignments
+      WHERE experiment_id = 'checkout_redesign'
+      GROUP BY experiment_id, variant;
+    caption: >
+      A basic sanity check: users and distinct_users should match exactly (2 columns equal) — if they
+      don't, the same user_id was assigned more than once, which usually signals a randomization or
+      logging bug worth fixing before analyzing anything else. Run against the real data, both columns
+      come back equal (1,000 and 1,000 for each variant).
+  - type: example
+    title: "Confirming the intended 50/50 split, for real"
+    body: >
+      The checkout_redesign test was designed as a 50/50 split. Counting rows by variant gives exactly
+      1,000 control and 1,000 treatment out of 2,000 total users — matching the intended ratio exactly.
+      That's a good sign, but "close to 50/50 by eye" isn't the same as a rigorous check — the
+      Experiment Pitfalls module covers the formal statistical test (a chi-square goodness-of-fit test)
+      for when a split looks *close* to right but isn't, which is the more common and more dangerous
+      case in practice.
+  - type: callout
+    variant: important
+    title: Randomization doesn't fix a badly chosen unit
+    body: >
+      Randomizing correctly at the wrong unit still breaks the experiment. If a B2B product randomizes
+      by individual user but the actual purchasing decision is made at the account/company level, several
+      "independent" units in the same account could see different variants and influence each other's
+      behavior (or the account's admin could effectively vote for both) — the unit needs to match how the
+      product and the decision actually work.
+  - type: question
+    prompt: >
+      A team building a collaborative document editor wants to test a new commenting UI. Multiple
+      teammates on the same shared document could easily be split across control and treatment if
+      randomization happens per-user. What's the risk, and what's a better unit of randomization?
+    choices:
+      - "No risk — per-user randomization is always correct"
+      - "Teammates who share a document but see different variants may interact with (and be influenced by) each other's version, contaminating the comparison; randomizing by document or by team/workspace would keep everyone on a shared document in the same variant"
+      - "The risk is only that the sample size will be smaller than expected"
+    correct_index: 1
+    explanation: >
+      This is a network-effect / contamination risk: if two collaborators on the same document see
+      different commenting UIs, their behavior isn't independent of each other's variant, which
+      undermines the assumption that each unit's outcome only depends on its own assignment. Randomizing
+      at the document or workspace level (so everyone touching the same shared object gets the same
+      variant) avoids this specific failure mode.
+interview_questions:
+  - question: "Why is choosing the right unit of randomization just as important as randomizing correctly?"
+    answer: >
+      Randomization only delivers comparable groups if a single unit fully experiences one variant and
+      nothing about its outcome leaks into another unit's outcome. If the unit is chosen wrong — say,
+      randomizing by session when the same user returns across sessions, or randomizing by user when the
+      real decision-maker is an account or a group of collaborators who influence each other — a unit can
+      end up straddling both variants or being influenced by someone else's variant. That breaks the core
+      assumption experiments rely on (each unit's outcome depends only on its own assignment), even if
+      the random number generator itself worked perfectly.

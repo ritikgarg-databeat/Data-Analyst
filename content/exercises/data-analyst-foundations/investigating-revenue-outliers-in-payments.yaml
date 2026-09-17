@@ -1,0 +1,43 @@
+slug: investigating-revenue-outliers-in-payments
+lesson_slug: welcome-to-the-challenge-library
+skill: exploratory-data-analysis
+dataset: ecommerce
+title: "The Largest Payment in the Dataset: Error or Real Order?"
+description: Investigate the single largest successful payment in the dataset and decide, with evidence, whether it should be treated as a data error or a legitimate large order.
+exercise_type: DATA_INTERPRETATION
+difficulty: INTERMEDIATE
+points: 20
+tags: [eda, real-world, intermediate]
+prompt: >
+  Using `payments`, `orders`, and `order_items`, an IQR check on successful `payments.amount` (Q1 =
+  $832.14, Q3 = $2,363.94) flags 37 of 3,441 successful payments (about 1.1%) as statistically extreme. The
+  single largest is $6,370.39, from order_id 1166, customer_id 387 — nearly double the next-highest
+  payment. Describe exactly what you'd check about this specific order before deciding whether it's a data
+  error or a legitimate large order, and what result on each check would push you toward each conclusion.
+hints:
+  - "A single extreme total doesn't tell you much on its own — break it down into what it's actually made of: how many line items, how many distinct products, and whether the per-item quantities and prices look ordinary or implausible."
+  - "Also check this customer's order history as a whole: is this their only order, or one of several? That distinguishes 'a one-time large purchase' from 'a pattern consistent with a data error or a genuinely different kind of customer relationship,' though neither answer alone is fully conclusive."
+solution: >
+  Checking order 1166 directly: it's customer 387's only order in the entire dataset — there's no
+  supporting pattern of repeat large purchases the way a genuine whale customer would usually show (unlike
+  a different high-spend customer elsewhere in this dataset whose $32,936.81 total comes from 13 separate,
+  individually ordinary orders across ten weeks). That absence of a pattern is worth noting, but on its own
+  it doesn't prove an error — plenty of real customers place exactly one large order and never return.
+  Breaking the order down into its line items resolves it further: order 1166 contains 5 line items across
+  5 different products (a backpack, a blender, a speaker, a board game, a phone case), quantities of 2-4
+  units each, and unit prices ranging from $168.15 to $499.81 — all ordinary, in-range values for their
+  respective products, with a modest $25.22 discount on one line. Nothing here is internally inconsistent:
+  no impossible quantity, no price mismatched to its product, no discount exceeding its line's price. That
+  combination — a single order, but built from multiple ordinary, internally-consistent line items across
+  different products, rather than one suspicious line — points toward a legitimate large multi-item order,
+  not a data entry error. The right conclusion: keep it in the analysis, but note it's this customer's only
+  order (unlike a repeat high-value customer) if the analysis specifically concerns repeat-purchase
+  behavior or customer lifetime value.
+explanation: >
+  A strong answer doesn't stop at "check if it looks weird" — it decomposes the total into its line items
+  and checks internal consistency (do the quantities and prices make sense for each specific product), and
+  separately checks whether this is a one-time event or part of a repeat pattern for that customer, since
+  those two checks answer different questions. It also avoids treating "no repeat pattern" as proof of an
+  error on its own — a one-time large order is a normal thing for a real business to have, and the internal
+  consistency of the line items is the stronger signal here. A weaker answer treats the flagged dollar
+  amount alone as sufficient grounds to remove the order, without looking at what's actually behind it.

@@ -1,0 +1,86 @@
+slug: case-expressions
+module_slug: sql-fundamentals
+title: CASE
+description: Writing conditional column logic with CASE WHEN...THEN...ELSE END.
+difficulty: BEGINNER
+estimated_minutes: 10
+display_order: 7
+objectives:
+  - Write a CASE expression with multiple WHEN branches and an ELSE fallback
+  - Use CASE to turn a raw column into a labeled, business-readable category
+  - Explain what a CASE expression returns when no WHEN condition matches and there's no ELSE
+prerequisites: [null-handling]
+skills: [sql-fundamentals]
+datasets: [orders-sample]
+tags: [sql, beginner, foundations]
+key_takeaways:
+  - CASE WHEN...THEN...ELSE END is an if/elif/else for a single column value, evaluated top to bottom, and it stops at the first WHEN that matches.
+  - Without an ELSE branch, a row that matches no WHEN condition gets NULL instead of an error.
+  - "CASE is an expression, not a clause: it can be used anywhere a column can, in SELECT, WHERE, ORDER BY, or inside an aggregate."
+common_mistakes:
+  - Leaving off ELSE and assuming every row is covered by the WHEN branches, when in practice an unanticipated value (or a NULL) silently becomes NULL in the output.
+  - Writing overlapping WHEN conditions and expecting all of them to apply — CASE only ever fires the first WHEN that matches and ignores the rest.
+blocks:
+  - type: heading
+    text: Conditional logic inside a query
+  - type: text
+    body: >
+      CASE lets a single column in the SELECT list hold different values depending on a condition —
+      the SQL equivalent of an if/elif/else chain. It's evaluated row by row, top to bottom, and stops
+      at the first WHEN condition that's true for that row.
+  - type: code
+    language: sql
+    caption: Labeling orders by size
+    code: |
+      SELECT
+        order_id,
+        order_total,
+        CASE
+          WHEN order_total >= 150 THEN 'large'
+          WHEN order_total >= 50  THEN 'medium'
+          WHEN order_total IS NULL THEN 'unknown'
+          ELSE 'small'
+        END AS order_size
+      FROM orders;
+  - type: text
+    body: >
+      Order matters. Because CASE stops at the first true WHEN, put the most specific or highest
+      conditions first. If the branches above were reordered so `order_total >= 50` came before
+      `order_total >= 150`, every large order would incorrectly get labeled "medium" — it would match
+      the first WHEN it hits and never reach the second one.
+  - type: callout
+    variant: warning
+    title: No ELSE means unmatched rows become NULL
+    body: >
+      If a row doesn't satisfy any WHEN condition and there's no ELSE branch, the CASE expression
+      returns NULL for that row rather than raising an error. This is easy to miss — always ask
+      "what happens to a row that matches none of my conditions?" and add an ELSE if the answer
+      matters.
+  - type: heading
+    text: CASE is an expression, not just a display trick
+  - type: example
+    title: Using CASE inside a WHERE clause
+    body: >
+      Because CASE produces a value, it can be used anywhere a value is expected — not only in
+      SELECT. Here it's used inside WHERE to flag orders that are either large, or completed and
+      medium-sized, without duplicating the size logic in two places.
+    code: |
+      SELECT order_id, status, order_total
+      FROM orders
+      WHERE CASE
+              WHEN order_total >= 150 THEN true
+              WHEN status = 'completed' AND order_total >= 50 THEN true
+              ELSE false
+            END;
+    language: sql
+  - type: question
+    prompt: A CASE expression has WHEN branches for order_total >= 150 and order_total >= 50, but no ELSE. A row has order_total = 20. What does the expression return for that row?
+    choices:
+      - "'small', because SQL infers a reasonable default label"
+      - NULL, because the row doesn't match any WHEN condition and there's no ELSE
+      - An error, because every possible value must be covered
+    correct_index: 1
+    explanation: >
+      CASE never invents a value and never errors when nothing matches — without an ELSE, an
+      unmatched row simply evaluates to NULL. This is exactly why it's worth deliberately deciding
+      whether an ELSE branch is needed rather than leaving it off by default.

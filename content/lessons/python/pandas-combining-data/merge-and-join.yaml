@@ -1,0 +1,173 @@
+slug: merge-and-join
+module_slug: pandas-combining-data
+title: Merge and Join
+description: pd.merge() for combining tables on a key column (inner/left/right/outer), and .join() as the merge-on-index shorthand — with a real orders + payments example.
+content_type: READING
+difficulty: INTERMEDIATE
+estimated_minutes: 14
+display_order: 1
+objectives:
+  - Combine two DataFrames on a key column with pd.merge(), using the on and how parameters
+  - Predict what happens to unmatched rows under inner, left, right, and outer joins
+  - Use .join() as a shorthand for merging on the index instead of a column
+prerequisites: [crosstab]
+skills: [pandas]
+datasets: [ecommerce]
+tags: [python, intermediate, real-world]
+key_takeaways:
+  - "pd.merge(left, right, on='key', how=...) combines two DataFrames row-by-row wherever their key columns match — how controls what happens to rows that don't have a match on the other side."
+  - "inner keeps only matched rows; left keeps every row from the left table (filling unmatched right-side columns with NaN); right is the mirror image; outer keeps every row from both sides."
+  - ".join() does the same underlying merge, but matches on the DataFrame's index by default instead of a named column — convenient once you've .set_index() on the key you want to match on."
+common_mistakes:
+  - "Not checking len(result) after a merge — an unexpectedly large or small row count is often the first sign of a many-to-many match or an unwanted row-dropping join, both covered in more depth later in this module."
+  - "Using how='inner' (the default) when the real question requires keeping unmatched rows — e.g. 'which orders have no payment yet' silently disappears under an inner join, since those orders get dropped entirely."
+  - "Forgetting that overlapping non-key column names get a _x/_y suffix by default — leaving code that references the pre-merge column name broken until you pass suffixes= or rename first."
+practical_applications:
+  - "Attaching payment details to every order to build a revenue report, while explicitly deciding whether unpaid orders should appear (left join) or be excluded (inner join)."
+  - "Finding orders that were never paid — e.g. cancelled or pending orders — by inspecting which rows come back with NaN payment columns after a left join."
+interview_questions:
+  - question: "What's the difference between how='inner' and how='left' in pd.merge(), and when would you choose one over the other?"
+    answer: "how='inner' keeps only rows whose key exists on both sides — anything unmatched on either side is dropped entirely. how='left' keeps every row from the left DataFrame regardless of whether it has a match, filling any right-side columns with NaN when it doesn't. Choose inner when you only care about records that exist in both tables (e.g. paid orders with payment details); choose left when you need to preserve every record from your primary table even if some enrichment data is missing (e.g. every order, whether or not it's been paid)."
+  - question: "How does .join() differ from .merge() in what it matches on by default?"
+    answer: ".merge() matches on one or more named columns you specify with the on= parameter. .join() matches on the DataFrame's index by default — it's a convenience wrapper for the common case where you've already set the key column as the index with .set_index(). Under the hood it's calling the same merge machinery; it's a shorthand, not a fundamentally different operation."
+resources:
+  - title: "pandas documentation — Merge, join, concatenate and compare"
+    url: "https://pandas.pydata.org/docs/user_guide/merge.html"
+blocks:
+  - type: text
+    body: >
+      Real analysis almost never lives in a single table. **`pd.merge()`** is how you combine two
+      DataFrames based on a shared key column — the pandas equivalent of a SQL `JOIN`. If you know
+      SQL joins, the concept transfers directly; the vocabulary (`how='inner'/'left'/'right'/'outer'`)
+      is deliberately the same idea.
+  - type: heading
+    text: A real two-table merge — orders and payments
+  - type: text
+    body: >
+      In the ecommerce dataset, `orders` has one row per order and `payments` has one row per
+      **completed or refunded** order — cancelled and pending orders never got paid, so they simply
+      don't appear in `payments` at all. That gap is exactly what makes this a good example: it
+      forces you to think about what should happen to orders with no matching payment.
+  - type: code
+    language: python
+    code: |2
+      import pandas as pd
+
+      orders = pd.read_csv("data/sample/ecommerce/orders.csv")
+      payments = pd.read_csv("data/sample/ecommerce/payments.csv")
+
+      len(orders), len(payments)
+    caption: "4,205 orders, but only 3,699 payments — 506 orders were never paid"
+  - type: output
+    body: (4205, 3699)
+  - type: heading
+    text: "how='inner' — keep only matched rows"
+  - type: code
+    language: python
+    code: |2
+      inner = orders.merge(payments, on="order_id", how="inner")
+      len(inner)
+    caption: Inner join keeps only orders that DO have a payment
+  - type: output
+    body: "3699"
+  - type: heading
+    text: "how='left' — keep every order, matched or not"
+  - type: code
+    language: python
+    code: |2
+      left = orders.merge(payments, on="order_id", how="left")
+      len(left), left["amount"].isna().sum()
+    caption: All 4,205 orders survive; unmatched ones get NaN in the payment columns
+  - type: output
+    body: "(4205, 506)"
+  - type: code
+    language: python
+    code: |2
+      left.loc[left["amount"].isna(), "status"].value_counts()
+    caption: The 506 orders with no payment are exactly the cancelled and pending ones
+  - type: output
+    body: |2
+      status
+      cancelled    379
+      pending      127
+      Name: count, dtype: int64
+  - type: callout
+    variant: important
+    title: This matches the data's real invariant
+    body: >
+      completed (3,441) + refunded (258) = 3,699, exactly the payments row count — every completed
+      or refunded order has a payment, and no cancelled or pending order does. A left join surfaces
+      that invariant directly through the NaN pattern, without needing to inspect status separately.
+  - type: heading
+    text: "how='right' and how='outer'"
+  - type: table
+    headers: ["how", "Keeps", "Row count here"]
+    rows:
+      - ["inner", "Only rows with a match on both sides", "3,699"]
+      - ["left", "Every row from orders (left table); NaN-fills unmatched payment columns", "4,205"]
+      - ["right", "Every row from payments (right table); NaN-fills unmatched order columns", "3,699"]
+      - ["outer", "Every row from both sides — union of keys", "4,205"]
+  - type: text
+    body: >
+      Here right and outer happen to match inner and left exactly, because every payment does have a
+      matching order (payments never reference an order_id that doesn't exist in orders) — there's
+      simply no case where the right table has a key the left table lacks. That won't always be true;
+      always check len() after a merge rather than assuming.
+  - type: callout
+    variant: common_mistake
+    title: Overlapping column names get suffixed
+    body: >
+      Both orders and payments have a status column (order status vs. payment status) — after
+      merging, pandas renames them status_x and status_y by default to avoid a collision. Pass
+      suffixes=('_order', '_payment') to control the names explicitly, or rename columns before
+      merging.
+  - type: code
+    language: python
+    code: |2
+      orders.merge(
+          payments, on="order_id", how="left", suffixes=("_order", "_payment")
+      )[["order_id", "status_order", "status_payment"]].head(3)
+    caption: Explicit suffixes make the two status columns unambiguous
+  - type: output
+    body: |2
+         order_id status_order status_payment
+      0         1    completed        success
+      1         2    completed        success
+      2         3    completed        success
+  - type: heading
+    text: ".join() — merge shorthand for index-aligned tables"
+  - type: text
+    body: >
+      `.join()` does the same underlying work as `.merge()`, but matches on the **index** by default
+      instead of a named column. It's most natural once you've already set your key column as the
+      index with `.set_index()` — common when a DataFrame's "row identity" really is that key.
+  - type: code
+    language: python
+    code: |2
+      orders_idx = orders.set_index("order_id")
+      payments_idx = payments.set_index("order_id")[["amount", "payment_method"]]
+
+      joined = orders_idx.join(payments_idx, how="left")
+      len(joined)
+    caption: Same result as the merge above, matched on the index instead of an "on" column
+  - type: output
+    body: "4205"
+  - type: callout
+    variant: tip
+    title: merge vs. join — which to reach for
+    body: >
+      In practice, most real code uses .merge() as the default, since it works directly on columns
+      without requiring an index setup first. Reach for .join() when your DataFrames already share a
+      meaningful index (or when chaining several lookups against the same indexed table) — it reads
+      more naturally in that specific case, but the two are functionally close cousins.
+  - type: question
+    prompt: "orders.merge(payments, on='order_id', how='left') is run. An order that was cancelled and never paid appears in the result. What will its payment-side columns (like amount) contain?"
+    choices:
+      - "The row is dropped — it won't appear in the result at all"
+      - "NaN — the row is kept, but there's nothing to fill in from the unmatched side"
+      - "0 — pandas fills missing merge values with zero by default"
+    correct_index: 1
+    explanation: >
+      A left join keeps every row from the left DataFrame (orders) regardless of whether it has a
+      match. When there's no matching payment, the payment-side columns are filled with NaN, not
+      dropped and not zeroed — 0 would be a misleading stand-in for 'no payment exists.'

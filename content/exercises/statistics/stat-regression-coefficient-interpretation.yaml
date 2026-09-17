@@ -1,0 +1,41 @@
+slug: stat-regression-coefficient-interpretation
+skill: statistical-reasoning
+title: Interpreting a Regression Coefficient
+description: Interpret the coefficient 3.2 in plain business terms, and state one important caveat about treating
+  it as a causal effect.
+exercise_type: BUSINESS_REASONING
+difficulty: ADVANCED
+points: 25
+tags:
+- statistics
+- regression
+business_context: 'A simple linear regression models monthly revenue as a function of ad spend: Revenue = 5000 +
+  3.2 * AdSpend, fit on historical monthly data.'
+prompt: Interpret the coefficient 3.2 in plain business terms, and state one important caveat about treating it
+  as a causal effect.
+stakeholder: null
+constraints:
+- Assume the model was fit on historical monthly ad spend and revenue data only, with no experiment.
+expected_deliverables:
+- A plain-language interpretation of the coefficient
+- An explicit causality caveat
+rubric:
+- criterion: States that each additional dollar of ad spend is associated with about $3.20 more in revenue, holding
+    the modeled relationship fixed
+  points: 40
+- criterion: Correctly notes the intercept (5000) as the modeled revenue at zero ad spend, not a claim about a real
+    zero-spend scenario
+  points: 20
+- criterion: Explicitly cautions that this is an observational association, not a proven causal effect, since spend
+    wasn't randomized
+  points: 40
+hints:
+- A regression coefficient from observational (non-experimental) data describes association, not proof of causation
+  -- other factors (season, competitor activity, overall demand) could be driving both ad spend decisions and revenue.
+solution: 'Interpretation: each additional $1 of monthly ad spend is associated with about $3.20 more in monthly
+  revenue, on average, across the months in this data. Caveat: since ad spend wasn''t randomly assigned (the company
+  likely spends more in months it already expects to be strong), this coefficient reflects an association, not a
+  proven causal return on ad spend -- a proper A/B test with randomized spend levels would be needed to claim causation.'
+explanation: A regression coefficient describes the modeled linear association within the observed data; presenting
+  it as 'every dollar of spend produces $3.20 of revenue' overstates what an observational (non-randomized) regression
+  can prove, since confounding factors could inflate or deflate the apparent relationship.

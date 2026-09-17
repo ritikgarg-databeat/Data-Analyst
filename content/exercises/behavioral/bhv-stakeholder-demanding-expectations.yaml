@@ -1,0 +1,34 @@
+slug: bhv-stakeholder-demanding-expectations
+skill: behavioral-interviewing
+title: Managing a Demanding Stakeholder
+description: Tell me about a time you had to manage a demanding stakeholder's expectations.
+exercise_type: INTERVIEW_RESPONSE
+difficulty: INTERMEDIATE
+points: 10
+tags:
+- behavioral
+- star-method
+- stakeholder-management
+prompt: Tell me about a time you had to manage a demanding stakeholder's expectations.
+hints:
+- The STAR framework (Situation, Task, Action, Result) is a useful structure, not a script -- use it to
+  make sure you cover what actually happened, in what context, what you personally did, and what came
+  of it.
+- Interviewers are listening for a specific, real example -- a vague 'sometimes this happens on my team'
+  answer is much weaker than one concrete story with real details.
+rubric:
+- criterion: Describes one specific, real situation rather than a hypothetical or a generic pattern
+  points: 25
+- criterion: Clearly states the task or goal and the person's own specific role in it
+  points: 20
+- criterion: Explains concrete actions the person personally took, not just what the team did
+  points: 30
+- criterion: States a clear, ideally measurable outcome and what was learned from it
+  points: 25
+solution: A VP wanted daily updates on a complex multi-week analysis and kept requesting new cuts of the
+  data mid-stream. Instead of just complying with every ad hoc request, I set up a lightweight weekly
+  check-in with a one-page summary of progress and open questions, and asked the VP to funnel new questions
+  through that instead of pinging me directly throughout the week. That gave them visibility without fragmenting
+  my time, and most of their questions turned out to be answered by the next scheduled update anyway.
+explanation: This shows proactively creating structure to manage a stakeholder relationship, rather than
+  either passively absorbing every interruption or refusing engagement -- a sustainable middle path.

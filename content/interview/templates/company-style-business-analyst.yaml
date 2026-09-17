@@ -1,0 +1,41 @@
+slug: company-style-business-analyst
+title: "Company-Style Assessment — Business Analyst Archetype"
+target_profile: "Data Analyst — ~2 Years Experience (commercial/business team)"
+description: >
+  A generic BUSINESS ANALYST interview archetype: the loop shape commonly used by commercial,
+  finance-adjacent and operations teams, weighted toward business understanding, spreadsheet fluency
+  and being able to defend a recommendation to a non-technical stakeholder. This is an archetype for
+  practice — it is not a description of any specific company's current hiring process.
+sections:
+  - interview_type: SQL
+    title: "SQL"
+    duration_minutes: 15
+    question_count: 2
+  - interview_type: EXCEL
+    title: "Excel / Spreadsheet"
+    duration_minutes: 15
+    question_count: 2
+  - interview_type: BUSINESS_ANALYTICS
+    title: "Business Metrics & Judgement"
+    duration_minutes: 20
+    question_count: 3
+  - interview_type: DATA_INTERPRETATION
+    title: "Reading the Numbers"
+    duration_minutes: 10
+    question_count: 2
+  - interview_type: CASE_STUDY
+    title: "Business Case"
+    duration_minutes: 30
+    question_count: 1
+  - interview_type: BEHAVIORAL
+    title: "Stakeholder & Behavioural"
+    duration_minutes: 10
+    question_count: 2
+rubric_weights:
+  Technical Correctness: 20
+  Analytical Reasoning: 20
+  Business Understanding: 30
+  Communication: 20
+  Problem Solving: 5
+  Efficiency: 5
+tags: [company-style, business-analytics, sql, excel, data-interpretation, case-study, behavioral]

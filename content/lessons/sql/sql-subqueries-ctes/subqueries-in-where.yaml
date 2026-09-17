@@ -1,0 +1,126 @@
+slug: subqueries-in-where
+module_slug: sql-subqueries-ctes
+title: IN, NOT IN, EXISTS, and NOT EXISTS
+description: Filtering rows against a set produced by a subquery, and the NULL trap that makes NOT IN dangerous.
+difficulty: INTERMEDIATE
+estimated_minutes: 12
+display_order: 2
+objectives:
+  - Filter rows using IN with a subquery that returns a list of values
+  - Explain why NOT IN silently misbehaves when the subquery's column contains NULLs
+  - Rewrite an IN/NOT IN subquery using EXISTS/NOT EXISTS
+  - Choose NOT EXISTS over NOT IN when NULLs might be present
+prerequisites: [scalar-subqueries]
+skills: [advanced-sql]
+datasets: [ecommerce]
+tags: [sql, intermediate]
+key_takeaways:
+  - "IN (subquery) keeps rows whose value matches any row the subquery returns; NOT IN keeps rows that match none of them."
+  - "If the subquery behind NOT IN can return even a single NULL, NOT IN silently returns zero rows for the entire query — one of the most common silent-bug patterns in SQL."
+  - "EXISTS and NOT EXISTS test for the presence or absence of matching rows rather than comparing values directly, which makes NOT EXISTS immune to the NULL trap that breaks NOT IN."
+common_mistakes:
+  - "Using NOT IN (SELECT nullable_column FROM ...) to find rows with no match — if that column has even one NULL among all rows the subquery scans, the whole NOT IN condition evaluates to unknown for every row, and the query returns nothing."
+  - "Forgetting that IN and EXISTS answer slightly different questions: IN compares a value against a list, while EXISTS just checks whether a correlated subquery finds any row at all — that distinction matters more once subqueries reference the outer query, covered next."
+blocks:
+  - type: heading
+    text: Filtering against a list a subquery produces
+  - type: text
+    body: >
+      A subquery isn't limited to returning one value — when it returns a column of several rows, IN
+      and NOT IN let you filter the outer query against that whole list, the same way you'd write
+      `WHERE status IN ('completed', 'refunded')` except the list comes from a query instead of being
+      typed out by hand.
+  - type: code
+    language: sql
+    caption: Products belonging to the Electronics or Books categories
+    code: |
+      SELECT product_name, category_id, unit_price
+      FROM products
+      WHERE category_id IN (
+        SELECT category_id FROM categories WHERE category_name IN ('Electronics', 'Books')
+      )
+      ORDER BY category_id;
+  - type: text
+    body: >
+      This runs the inner query first, gets back a small set of category_id values, then keeps every
+      product row whose category_id is in that set. NOT IN does the mirror image — it keeps rows
+      whose value matches *none* of the subquery's results.
+  - type: heading
+    text: "The NOT IN trap: NULLs make it disappear"
+  - type: text
+    body: >
+      This is one of the most consequential gotchas in SQL. `sessions.customer_id` is NULL for
+      roughly a third of all rows (those are anonymous visits with no logged-in customer). Try to
+      find customers who have never had a session using NOT IN:
+  - type: code
+    language: sql
+    caption: "This returns 0 rows — even though customers with no sessions definitely exist"
+    code: |
+      SELECT COUNT(*)
+      FROM customers
+      WHERE customer_id NOT IN (SELECT customer_id FROM sessions);
+  - type: callout
+    variant: warning
+    title: Why NOT IN quietly returns nothing
+    body: >
+      SQL's NOT IN is defined as a chain of `<> ` comparisons joined with AND: "customer_id <> v1 AND
+      customer_id <> v2 AND ...". The moment any v is NULL, `customer_id <> NULL` evaluates to
+      *unknown* rather than true or false — and AND-ing anything with even one unknown can never
+      produce true. Since `sessions.customer_id` contains NULLs, every single NOT IN comparison
+      becomes unknown for every customer, and the WHERE clause keeps zero rows. No error, no warning
+      — just a silently wrong answer.
+  - type: code
+    language: sql
+    caption: "Fix 1 — filter out the NULLs before comparing"
+    code: |
+      SELECT COUNT(*)
+      FROM customers
+      WHERE customer_id NOT IN (
+        SELECT customer_id FROM sessions WHERE customer_id IS NOT NULL
+      );
+      -- returns 6
+  - type: heading
+    text: EXISTS and NOT EXISTS
+  - type: text
+    body: >
+      EXISTS asks a different question than IN. Instead of "does this value appear in that list?", it
+      asks "does the subquery find at least one matching row at all?" — it doesn't even look at what
+      the subquery returns, only whether it returns anything. Written with a correlated condition
+      (one that references the outer row, covered in depth next lesson), EXISTS and NOT EXISTS
+      answer the same "has any / has none" questions as IN and NOT IN, but NOT EXISTS never falls
+      into the NULL trap, because it's testing for row existence, not comparing values.
+  - type: code
+    language: sql
+    caption: "Fix 2 — the safer way to ask 'customers with no sessions'"
+    code: |
+      SELECT COUNT(*)
+      FROM customers c
+      WHERE NOT EXISTS (
+        SELECT 1 FROM sessions s WHERE s.customer_id = c.customer_id
+      );
+      -- returns 6, with no need to filter out NULLs first
+  - type: text
+    body: >
+      Both fixes agree: 6 customers have never had a session. But NOT EXISTS got there without
+      needing to remember the NULL filter — it's simply asking, for each customer, "is there any
+      session row where s.customer_id equals this customer's id?" and a NULL session.customer_id can
+      never equal anything, so it's automatically excluded rather than poisoning the whole condition.
+  - type: comparison
+    title: "IN/NOT IN vs. EXISTS/NOT EXISTS"
+    columns: ["", "IN / NOT IN", "EXISTS / NOT EXISTS"]
+    rows:
+      - ["Compares", "A value against a list of values", "Whether any row satisfies a condition"]
+      - ["Safe with NULLs in the subquery?", "IN: yes. NOT IN: no — can silently return zero rows", "Always safe"]
+      - ["Typical subquery shape", "A single column of values", "Usually correlated to the outer row (SELECT 1 ... WHERE ...)"]
+  - type: question
+    prompt: "sessions.customer_id contains NULLs. Which of these safely finds customers with zero sessions?"
+    choices:
+      - "WHERE customer_id NOT IN (SELECT customer_id FROM sessions)"
+      - "WHERE NOT EXISTS (SELECT 1 FROM sessions s WHERE s.customer_id = customers.customer_id)"
+      - Both work identically
+    correct_index: 1
+    explanation: >
+      NOT IN compares customer_id against every value the subquery returns using <>, and any NULL in
+      that list turns the whole condition unknown for every row — returning zero results regardless
+      of the real answer. NOT EXISTS instead checks row-by-row whether a match exists, which NULLs
+      simply fail to produce rather than corrupting the result.

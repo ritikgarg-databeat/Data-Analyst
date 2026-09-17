@@ -1,0 +1,86 @@
+slug: biz-sql-aov-by-order-channel
+lesson_slug: biz-aov-vs-arpu
+skill: business-metrics
+dataset: ecommerce
+title: Compute Average Order Value by Channel
+description: Compute the average order value of completed orders, broken down by the channel the order was placed through.
+exercise_type: SQL
+difficulty: BEGINNER
+points: 15
+tags: [sql, business-analytics, beginner, e-commerce]
+business_context: >
+  The merchandising team wants to know whether typical basket size differs by the channel a
+  customer checks out on (web, mobile, or marketplace) before deciding whether to run a
+  channel-specific promotion.
+prompt: >
+  Using `orders` and `order_items`, write a query that computes Average Order Value (AOV) for
+  completed orders (`orders.status = 'completed'`), broken down by `channel`. Return
+  `channel`, `completed_orders` (count of completed orders in that channel), and `aov`
+  (`ROUND(AVG(order_revenue), 2)`, where each order's revenue is
+  `SUM(quantity * (unit_price - discount))` across its line items). Order the result by `aov`
+  descending, breaking ties by `channel` ascending (two channels here round to the same AOV).
+  Row order matters.
+sql_tables: [orders, order_items]
+sql_starter_query: |
+  -- Explore the tables first
+  SELECT * FROM orders LIMIT 20;
+sql_solution_query: |
+  WITH order_totals AS (
+    SELECT o.order_id, o.channel,
+           SUM(i.quantity * (i.unit_price - i.discount)) AS order_revenue
+    FROM orders o
+    JOIN order_items i USING (order_id)
+    WHERE o.status = 'completed'
+    GROUP BY 1, 2
+  )
+  SELECT
+    channel,
+    COUNT(*) AS completed_orders,
+    ROUND(AVG(order_revenue), 2) AS aov
+  FROM order_totals
+  GROUP BY channel
+  ORDER BY aov DESC, channel ASC;
+sql_row_order_matters: true
+sql_numeric_tolerance: 0.01
+sql_hidden_tests:
+  - name: "Marketplace channel's AOV matches an independent recomputation"
+    query: |
+      WITH order_totals AS (
+        SELECT o.order_id, o.channel, SUM(i.quantity * (i.unit_price - i.discount)) AS order_revenue
+        FROM orders o JOIN order_items i USING (order_id)
+        WHERE o.status = 'completed' GROUP BY 1, 2
+      )
+      SELECT channel, ROUND(AVG(order_revenue), 2) AS aov
+      FROM order_totals
+      WHERE channel = 'marketplace'
+      GROUP BY channel
+    key_columns: 1
+hints:
+  - "First build a CTE that collapses order_items down to one row per order (per order_id and channel), summing quantity * (unit_price - discount) to get each completed order's total revenue."
+  - "Then GROUP BY channel over that CTE, using COUNT(*) for the order count and AVG(order_revenue) for AOV — the AVG must operate on already-collapsed one-row-per-order totals, not on the raw line-item rows."
+solution: >
+  ```sql
+  WITH order_totals AS (
+    SELECT o.order_id, o.channel,
+           SUM(i.quantity * (i.unit_price - i.discount)) AS order_revenue
+    FROM orders o
+    JOIN order_items i USING (order_id)
+    WHERE o.status = 'completed'
+    GROUP BY 1, 2
+  )
+  SELECT
+    channel,
+    COUNT(*) AS completed_orders,
+    ROUND(AVG(order_revenue), 2) AS aov
+  FROM order_totals
+  GROUP BY channel
+  ORDER BY aov DESC, channel ASC;
+  ```
+explanation: >
+  The key structural decision is collapsing to one row per order *before* averaging — AOV is the average
+  of order totals, not the average of individual line-item prices. Skipping the inner CTE and instead
+  running `AVG(unit_price)` directly against `order_items` would average line-item prices (ignoring
+  quantity, discount, and the fact that a multi-item order should count once, not once per item), producing
+  a completely different and meaningless number. A common mistake is grouping by channel in the inner CTE
+  without also grouping by order_id, which would incorrectly merge every order in a channel into a single
+  revenue total before AOV ever gets computed per order.

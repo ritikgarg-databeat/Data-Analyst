@@ -1,0 +1,112 @@
+slug: date-time-functions
+module_slug: sql-functions-expressions
+title: Date and Time Functions
+description: DATE_TRUNC, DATE_DIFF, EXTRACT, and date arithmetic for measuring and bucketing time.
+difficulty: BEGINNER
+estimated_minutes: 12
+display_order: 3
+objectives:
+  - Round a date down to the start of its containing month/week with DATE_TRUNC
+  - Measure the number of days (or other units) between two dates with DATE_DIFF
+  - Add or subtract a fixed amount of time from a date using date arithmetic
+prerequisites: [numeric-functions]
+skills: [sql-fundamentals]
+datasets: [ecommerce]
+tags: [sql, beginner]
+key_takeaways:
+  - "DATE_TRUNC('month', a_date) rounds a_date down to the first day of its month — it's the standard way to bucket individual dates into a coarser period for grouping (the aggregation module builds directly on this)."
+  - "DATE_DIFF('day', start, end) returns the number of days between two dates as a plain number, which is what most \"time between two events\" business questions actually need."
+  - Plain arithmetic works on dates too — a_date + 30 shifts a date forward by 30 days, and most databases also accept explicit INTERVAL literals for clearer intent.
+common_mistakes:
+  - "Naming DATE_DIFF's arguments in the wrong order and getting a negative result back (e.g. DATE_DIFF('day', later_date, earlier_date)) — the function doesn't know which one is \"supposed\" to be first, it just subtracts."
+  - "Assuming the function name is identical across every database — some call it DATE_DIFF, others DATEDIFF with no underscore, and the argument order isn't always the same either. Check the specific database's docs rather than assuming."
+blocks:
+  - type: heading
+    text: Rounding a date down with DATE_TRUNC
+  - type: text
+    body: >
+      A raw date like 2025-10-18 is precise down to the day, which is often more detail than a
+      question needs. "How many orders came in each month?" doesn't care about the day part at all —
+      it needs every date in October collapsed to the same bucket. DATE_TRUNC('unit', a_date) does
+      exactly that: it rounds a_date down to the start of the given unit (month, week, quarter, year,
+      and so on), discarding everything finer than that unit.
+  - type: code
+    language: sql
+    caption: Rounding every order date down to its month
+    code: |
+      SELECT
+        order_id,
+        order_date,
+        DATE_TRUNC('month', order_date) AS order_month
+      FROM orders
+      LIMIT 5;
+  - type: text
+    body: >
+      Every order placed anywhere in October comes back with order_month equal to the first of
+      October — 2025-10-04 and 2025-10-31 both truncate to 2025-10-01. That's the property that
+      makes DATE_TRUNC so useful for grouping: two different raw dates that belong to the "same"
+      bucket become the exact same value, so GROUP BY can collapse them together.
+  - type: heading
+    text: Measuring the gap between two dates
+  - type: text
+    body: >
+      A different, equally common question isn't "which bucket does this date fall in" but "how much
+      time passed between two dates." How many days after signing up did a customer place their first
+      order? DATE_DIFF('unit', start, end) answers that directly: it returns the number of whole units
+      (days, months, years, ...) between start and end, as end minus start.
+  - type: example
+    title: Days between signup and first order, per customer
+    body: >
+      This joins each customer to their orders, finds the earliest order_date with MIN, and measures
+      the gap back to signup_date with DATE_DIFF. Order matters — DATE_DIFF('day', signup_date,
+      first_order_date) is signup subtracted from first order, which is positive when the order came
+      after signup (the normal case). Reversing the two arguments would flip the sign.
+    code: |
+      SELECT
+        c.customer_id,
+        c.signup_date,
+        MIN(o.order_date) AS first_order_date,
+        DATE_DIFF('day', c.signup_date, MIN(o.order_date)) AS days_to_first_order
+      FROM customers c
+      JOIN orders o ON o.customer_id = c.customer_id
+      GROUP BY c.customer_id, c.signup_date
+      ORDER BY days_to_first_order DESC
+      LIMIT 5;
+    language: sql
+  - type: callout
+    variant: tip
+    title: EXTRACT still works for a single component
+    body: >
+      basic-functions already introduced EXTRACT(part FROM a_date) for pulling out one component,
+      like EXTRACT(MONTH FROM order_date). It's the right tool when a query needs to group or filter
+      by a calendar part directly (every order placed in December, regardless of year) rather than
+      measure a duration or produce a groupable bucketed date — that's what DATE_TRUNC and DATE_DIFF
+      are for.
+  - type: text
+    body: >
+      Dates also support plain arithmetic. order_date + 30 shifts a date 30 days forward — handy for
+      a "did this happen within 30 days" style check — and most databases additionally accept an
+      explicit INTERVAL literal (order_date + INTERVAL '30 days') when the unit needs to be
+      unambiguous, such as adding months rather than days.
+  - type: code
+    language: sql
+    caption: Adding a fixed number of days to a date
+    code: |
+      SELECT
+        order_id,
+        order_date,
+        order_date + 30 AS follow_up_date
+      FROM orders
+      LIMIT 5;
+  - type: question
+    prompt: "A query computes DATE_DIFF('day', o.order_date, p.payment_date) to measure how long an order took to be paid. For one row it returns -3. What does that most likely mean?"
+    choices:
+      - "The payment happened 3 days before the order date — worth checking whether the arguments or the underlying dates are correct"
+      - "DATE_DIFF always returns a positive number, so -3 signals a database error"
+      - "It means the order took 3 days longer than typical, expressed as a negative offset from average"
+    correct_index: 0
+    explanation: >
+      DATE_DIFF just subtracts — a negative result means the second date is earlier than the first
+      one given the argument order used. Since a payment should never precede its own order, a
+      negative value here is a real signal to investigate the data (or double-check argument order),
+      not evidence of some averaging behavior DATE_DIFF doesn't actually have.

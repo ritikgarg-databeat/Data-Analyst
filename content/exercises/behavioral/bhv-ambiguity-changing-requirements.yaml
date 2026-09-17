@@ -1,0 +1,36 @@
+slug: bhv-ambiguity-changing-requirements
+skill: behavioral-interviewing
+title: Adapting to Changing Requirements
+description: Describe a project where the requirements kept changing. How did you adapt?
+exercise_type: INTERVIEW_RESPONSE
+difficulty: INTERMEDIATE
+points: 10
+tags:
+- behavioral
+- star-method
+- ambiguity
+prompt: Describe a project where the requirements kept changing. How did you adapt?
+hints:
+- The STAR framework (Situation, Task, Action, Result) is a useful structure, not a script -- use it to
+  make sure you cover what actually happened, in what context, what you personally did, and what came
+  of it.
+- Interviewers are listening for a specific, real example -- a vague 'sometimes this happens on my team'
+  answer is much weaker than one concrete story with real details.
+rubric:
+- criterion: Describes one specific, real situation rather than a hypothetical or a generic pattern
+  points: 25
+- criterion: Clearly states the task or goal and the person's own specific role in it
+  points: 20
+- criterion: Explains concrete actions the person personally took, not just what the team did
+  points: 30
+- criterion: States a clear, ideally measurable outcome and what was learned from it
+  points: 25
+solution: I was building a churn-prediction dashboard, and the target definition of 'churned' changed
+  three times as different stakeholders weighed in -- first 30 days inactive, then cancelled subscription,
+  then a hybrid score. Rather than rebuilding from scratch each time, I restructured the underlying query
+  to compute several churn-signal fields separately, so the final 'churned' label was just a configurable
+  combination of those fields. When the definition changed a fourth time, it took an hour instead of two
+  days.
+explanation: This shows adapting the underlying design, not just redoing the work each time -- anticipating
+  that requirements might shift again and building in a seam for that, which is a mark of experience rather
+  than just persistence.

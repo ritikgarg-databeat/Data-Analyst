@@ -1,0 +1,112 @@
+slug: dbt-singular-tests-and-quality-suite
+module_slug: dbt-tests-and-data-quality
+title: "Singular Tests & a Version-Controlled Quality Suite"
+description: >-
+  This repo's real singular test, assert_no_negative_revenue.sql, mapped
+  onto the five data quality dimensions, and how dbt test/build turns
+  quality checks into a reviewable, versioned suite instead of a one-off
+  manual query.
+difficulty: INTERMEDIATE
+estimated_minutes: 20
+display_order: 2
+prerequisites: [dbt-generic-tests]
+objectives:
+  - Read this repo's real singular test and state the pass/fail rule every singular test follows.
+  - Map dbt's generic and singular tests onto the five data quality dimensions (completeness, uniqueness, validity, consistency, freshness).
+  - Explain what dbt test/dbt build produce and how that output becomes a reviewable, version-controlled quality suite.
+skills: [dbt, data-quality-engineering, modern-data-stack]
+datasets: [ecommerce]
+tags: [dbt, tests, data-quality, validation, real-execution, intermediate]
+key_takeaways:
+  - "A singular test is just a .sql file under tests/ containing a plain SELECT — it fails if that query returns any rows at all, and passes if it returns zero. There's no special syntax beyond ordinary SQL."
+  - "Generic tests (module 3's unique/not_null/accepted_values/relationships) are reusable and parameterized; singular tests encode a one-off business rule that can't be expressed by filling in a generic template, like 'gross_revenue on a real order should never be negative.'"
+  - "dbt test and dbt build both produce a machine-readable pass/fail result per test (run_results.json) — that's what turns data quality from a manual, one-off spreadsheet check into a versioned, repeatable suite that runs the same way on every single run, and what the dbt Lab's test-results viewer actually reads."
+common_mistakes:
+  - "Trying to force every business rule into a generic test — some checks (like 'a computed column's value must never go negative') depend on business logic specific to one model and are more naturally expressed as a plain SQL query in a singular test, not shoehorned into accepted_values or a made-up generic test."
+  - "Treating a green dbt test run as proof the data is 'correct' in every sense — a passing suite only proves the specific rules that were written were satisfied; it says nothing about dimensions nobody wrote a test for, like whether a metric's business definition itself is right."
+interview_questions:
+  - question: "How would you explain to a non-technical stakeholder what it means that 'all dbt tests passed' on this morning's data?"
+    answer: >
+      It means every quality rule the team explicitly wrote down and encoded as a test — things like "no
+      order should be duplicated," "every order must belong to a real customer," "revenue can't be
+      negative" — was checked automatically against this morning's data, and every single one held true.
+      It's an important, real signal, but it's bounded by what the team thought to test: a green run
+      means "nothing we checked for is broken," not "this data is guaranteed correct in every possible
+      way." If a genuinely new failure mode shows up that no test covers, tests will stay green even
+      though something is wrong — which is exactly why the test suite keeps growing as new failure modes
+      get discovered.
+blocks:
+  - type: heading
+    text: "A singular test is a query that should return nothing"
+  - type: code
+    language: sql
+    code: |
+      -- dbt/tests/assert_no_negative_revenue.sql
+      -- Fails if it returns any rows. Revenue on a real order line
+      -- should never be negative — a negative value here would mean a
+      -- data-entry error or a broken discount calculation upstream, not
+      -- a valid business case.
+      select order_id, gross_revenue
+      from {{ ref('fct_orders') }}
+      where gross_revenue < 0
+    caption: "The real, unedited singular test in this project — no special test syntax, just a SELECT."
+  - type: text
+    body: >
+      That's the entire rule for any singular test: it's a `.sql` file living under `tests/`, it can
+      `ref()` any model exactly like a normal model can, and dbt runs it and checks whether it returned
+      any rows. Zero rows means the rule held; any rows means the rule was violated, and dbt reports
+      exactly which rows (here, the specific `order_id`/`gross_revenue` pairs that broke the rule) as the
+      failure detail.
+  - type: heading
+    text: "Why this couldn't be a generic test"
+  - type: text
+    body: >
+      The four generic tests from the previous lesson are reusable precisely because their logic is
+      generic — "is this value unique," "is this value in a list" applies the same way to any column.
+      "gross_revenue must never be negative" is a business rule specific to one computed column on one
+      mart, derived from *this* project's definition of revenue — there's no reusable template for it
+      elsewhere in the project, so it's written once, directly as SQL, exactly where it's needed.
+  - type: heading
+    text: "Mapping tests onto the five data quality dimensions"
+  - type: table
+    headers: ["Dimension", "What it asks", "How this project's tests address it"]
+    rows:
+      - ["Completeness", "Is required data actually present?", "not_null tests (customer_id, email, order_id, ...)"]
+      - ["Uniqueness", "Does each row appear exactly once at its intended grain?", "unique tests (order_id, order_item_id, payment_id, ...)"]
+      - ["Validity", "Does a value fall within its allowed domain?", "accepted_values (status, channel, payment_method, ...) and the singular assert_no_negative_revenue test"]
+      - ["Consistency", "Do related tables agree with each other?", "relationships tests (order_items.product_id -> products.product_id, ...)"]
+      - ["Freshness", "Is the data recent enough to trust?", "Not exercised in this local, static dataset — conceptually, it would check the newest row's timestamp against the current time"]
+  - type: callout
+    variant: important
+    title: "Freshness is the one dimension this project's small, static dataset doesn't need"
+    body: >
+      This project's source is a bounded set of CSV files, not a live-refreshing feed, so there's no
+      meaningful "how stale is this data" question to test here. In a production pipeline with new data
+      landing daily, a freshness check (often run against the raw source directly, before any
+      transformation) would fail loudly if, say, yesterday's data never arrived — catching a silent
+      ingestion failure before anyone notices a stale dashboard.
+  - type: heading
+    text: "From one-off checks to a version-controlled suite"
+  - type: text
+    body: >
+      Every test in this project — generic and singular alike — lives in the same git-tracked project as
+      the models themselves. Running `dbt test` (or `dbt build`, which interleaves tests with builds)
+      executes every one of them and writes a structured result — pass/fail, the query that was run, and
+      any offending rows — to `run_results.json`. That's the difference between "someone ran a one-off
+      SELECT to eyeball the data last Tuesday" and a real quality suite: the exact same checks run the
+      same way on every single invocation, are reviewed and changed through the same pull-request process
+      as the models they check, and produce a structured result a tool (like the dbt Lab's test-results
+      viewer) can read and render without a human re-running anything by hand.
+  - type: question
+    prompt: "Which data quality dimension does assert_no_negative_revenue.sql primarily target?"
+    choices:
+      - "Completeness"
+      - "Uniqueness"
+      - "Validity"
+      - "Freshness"
+    correct_index: 2
+    explanation: >
+      The test isn't checking whether a value is missing (completeness) or duplicated (uniqueness) or how
+      recent the data is (freshness) — it's checking whether a present, unique value falls within the
+      range that's actually valid for that business concept (revenue can't be negative), which is a
+      validity check.

@@ -1,0 +1,169 @@
+slug: indexing-in-pandas
+module_slug: pandas-dataframes-fundamentals
+title: Indexing in pandas
+description: ".loc vs .iloc for row selection, setting a custom index, and why chained indexing is dangerous — the mechanics that make .loc the safe way to both read and write."
+difficulty: BEGINNER
+estimated_minutes: 13
+display_order: 7
+objectives:
+  - "Select rows by label with .loc and by position with .iloc"
+  - "Set a meaningful column as the index with .set_index(), and undo it with .reset_index()"
+  - Explain why chained indexing is unreliable for assignment and how to avoid it with .loc
+prerequisites: [filtering]
+skills: [pandas]
+datasets: [ecommerce]
+tags: [python, beginner, foundations]
+key_takeaways:
+  - ".loc selects by label (row/column names, including the index) and .iloc selects by integer position — the same row can require [3] in one and a completely different value in the other, once the index isn't the default 0, 1, 2, ..."
+  - ".set_index('col') promotes a column to the index (useful for fast, meaningful lookups), and .reset_index() undoes it, turning the index back into an ordinary column and restoring a default RangeIndex."
+  - "Chained indexing — df[condition]['col'] = value, two selections back-to-back — is unreliable for assignment: it may silently fail to update the original DataFrame, or raise a ChainedAssignmentError outright. df.loc[condition, 'col'] = value does the same thing safely, in a single step."
+common_mistakes:
+  - "Using .iloc with a label ('order_id') or .loc with a plain integer position, expecting them to be interchangeable — they aren't once the index is anything other than a default 0..n-1 RangeIndex."
+  - "Writing df[df['status'] == 'pending']['channel'] = 'unknown' expecting it to update df — this chained assignment either does nothing to the original DataFrame or raises an error; df.loc[df['status'] == 'pending', 'channel'] = 'unknown' is the correct, reliable pattern."
+blocks:
+  - type: text
+    body: >
+      You've used `.loc` and `.iloc` briefly already for column selection — this lesson covers what
+      they're really for: selecting **rows**, by label or by position, and why that distinction matters
+      the moment a DataFrame's index isn't just 0, 1, 2, ...
+  - type: heading
+    text: ".loc — selection by label"
+  - type: code
+    language: python
+    code: |
+      import pandas as pd
+
+      orders = pd.read_csv("data/sample/ecommerce/orders.csv")
+
+      print(orders.loc[0:2, ["order_id", "status"]])
+    caption: "Rows labeled 0 through 2 (inclusive!), specific columns by name"
+  - type: output
+    body: |
+         order_id     status
+         0         1  completed
+         1         2  completed
+         2         3  completed
+  - type: callout
+    variant: warning
+    title: ".loc slices are inclusive on both ends"
+    body: >
+      orders.loc[0:2] returns rows labeled 0, 1, AND 2 — three rows. This is different from Python list
+      slicing (and from .iloc, below), where the stop value is exclusive. With .loc, you're naming the
+      last label you want included, not a stopping point to fall short of.
+  - type: heading
+    text: ".iloc — selection by integer position"
+  - type: code
+    language: python
+    code: |
+      print(orders.iloc[0:3, 0:3])
+      print()
+      print(orders.iloc[2, 2])
+    caption: "Positions 0, 1, 2 for rows (stop IS exclusive here) and columns; a single [row, col] returns a scalar"
+  - type: output
+    body: |
+         order_id  customer_id order_date
+         0         1            1 2025-10-18
+         1         2            1 2025-12-16
+         2         3            2 2025-09-29
+
+         2025-09-29
+  - type: table
+    headers: ["", ".loc", ".iloc"]
+    rows:
+      - ["Selects by", "Label (index/column name)", "Integer position (0-based)"]
+      - ["Slice [0:2] means", "Labels 0, 1, and 2 — stop is inclusive", "Positions 0 and 1 — stop is exclusive, like a Python list"]
+      - ["Works when index isn't 0, 1, 2, ...", "Yes — this is the whole point", "Yes, but always counts from 0 regardless of the labels"]
+  - type: heading
+    text: ".set_index() and .reset_index()"
+  - type: code
+    language: python
+    code: |
+      by_order = orders.set_index("order_id")
+      print(by_order.head(3))
+      print()
+      print(by_order.loc[3])
+    caption: "order_id is now the index — .loc[3] looks up the row labeled 3 directly"
+  - type: output
+    body: |
+                customer_id  order_date     status channel
+                order_id
+                1                   1  2025-10-18  completed  mobile
+                2                   1  2025-12-16  completed     web
+                3                   2  2025-09-29  completed     web
+
+                customer_id             2
+                order_date     2025-09-29
+                status          completed
+                channel               web
+                Name: 3, dtype: object
+  - type: text
+    body: >
+      Setting a meaningful column as the index turns lookups by that value into direct, readable `.loc`
+      calls. `.reset_index()` undoes it — the index becomes an ordinary column again, and a fresh default
+      `RangeIndex` (0, 1, 2, ...) takes its place.
+  - type: code
+    language: python
+    code: |
+      back_to_default = by_order.reset_index()
+      print(back_to_default.head(3))
+    caption: order_id is a column again
+  - type: output
+    body: |
+         order_id  customer_id  order_date     status channel
+         0         1            1  2025-10-18  completed  mobile
+         1         2            1  2025-12-16  completed     web
+         2         3            2  2025-09-29  completed     web
+  - type: heading
+    text: Why chained indexing is dangerous
+  - type: text
+    body: >
+      It's tempting to filter and then assign in what looks like one line — select the rows you want,
+      then set a column on the result. This is called **chained indexing**, and for assignment it does
+      not reliably do what it looks like it does.
+  - type: code
+    language: python
+    code: |
+      orders[orders["status"] == "pending"]["channel"] = "unknown"
+    caption: Two indexing operations chained back to back — looks fine, is not safe
+  - type: output
+    body: |
+      ChainedAssignmentError: A value is being set on a copy of a DataFrame or Series through chained
+      assignment.
+      Such chained assignment never works to update the original DataFrame or Series, because the
+      intermediate object on which we are setting values always behaves as a copy (due to Copy-on-Write).
+
+      Try using '.loc[row_indexer, col_indexer] = value' instead, to perform the assignment in a single
+      step.
+  - type: callout
+    variant: common_mistake
+    title: "Two selections, back to back, is the trap — even split across lines"
+    body: >
+      orders[orders['status'] == 'pending'] first creates an intermediate DataFrame; ['channel'] = ... then
+      tries to assign onto that intermediate object, not onto orders itself. Modern pandas raises a clear
+      ChainedAssignmentError for exactly this pattern written as one expression. Splitting it across two
+      lines (sub = orders[...]; sub['channel'] = ...) avoids the error but is just as broken in spirit —
+      it silently updates sub without ever touching orders, which is arguably worse since nothing tells
+      you it didn't work.
+  - type: code
+    language: python
+    code: |
+      orders.loc[orders["status"] == "pending", "channel"] = "unknown"
+      print(orders[orders["status"] == "pending"][["order_id", "channel"]].head(3))
+    caption: "The correct, single-step pattern: .loc[row_condition, column] = value"
+  - type: output
+    body: |
+          order_id  channel
+          10        11  unknown
+          14        15  unknown
+          34        35  unknown
+  - type: question
+    prompt: "What's the safe way to set the 'channel' column to 'unknown' for every row where status == 'pending'?"
+    choices:
+      - "orders.loc[orders['status'] == 'pending', 'channel'] = 'unknown'"
+      - "orders[orders['status'] == 'pending']['channel'] = 'unknown'"
+      - "Both work identically"
+    correct_index: 0
+    explanation: >
+      .loc[row_condition, column] performs the row selection and the column assignment in a single step
+      directly on orders. The bracket-then-bracket version chains two separate indexing operations and
+      either raises a ChainedAssignmentError or silently fails to update the original DataFrame.

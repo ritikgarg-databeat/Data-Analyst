@@ -1,0 +1,48 @@
+slug: ex-payments-by-method-summary
+skill: dbt
+dataset: ecommerce
+title: "dbt Exercise: An Aggregate Worth Making Incremental Later"
+description: Build a daily-flavored aggregate model correctly before thinking about making it incremental.
+exercise_type: DBT
+difficulty: INTERMEDIATE
+points: 10
+tags: [dbt, aggregation, incremental, real-execution]
+business_context: >
+  Finance wants total payment volume broken out by `payment_method` — the same shape of question
+  `fct_daily_revenue` answers by day. Before making anything incremental (the next lesson's topic),
+  the aggregation logic and its grain need to be correct on a full rebuild first.
+prompt: >
+  Write a dbt model named `ex_payments_by_method` that aggregates `{{ ref('stg_payments') }}` to one
+  row per `payment_method`, with `total_amount` (the sum of `amount`) and `payment_count` (the number
+  of payments). Get this right on an ordinary full build first — this is exactly the kind of
+  aggregation `fct_daily_revenue.sql` later makes incremental so it doesn't rescan all history on
+  every run, but that optimization only matters once the underlying logic is correct.
+hints:
+  - "group by payment_method, with sum(amount) and count(*)."
+  - "payment_method's real values are gift_card, credit_card, and paypal — the unique test will fail if your grouping is wrong."
+dbt_model_name: ex_payments_by_method
+dbt_starter_sql: |
+  select
+      payment_method
+      -- TODO: add total_amount and payment_count, with the right GROUP BY
+  from {{ ref('stg_payments') }}
+dbt_schema_yml: |
+  columns:
+    - name: payment_method
+      tests:
+        - unique
+        - not_null
+        - accepted_values:
+            arguments:
+              values: ["gift_card", "credit_card", "paypal"]
+solution: |
+  select
+      payment_method,
+      sum(amount) as total_amount,
+      count(*) as payment_count
+  from {{ ref('stg_payments') }}
+  group by payment_method
+explanation: >
+  The grain here (one row per payment_method) is what an incremental strategy would eventually need
+  to key on via `unique_key` — getting the plain aggregation and its grain right first is the
+  prerequisite for that later optimization, not something incremental materialization fixes for you.

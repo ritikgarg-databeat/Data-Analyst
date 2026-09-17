@@ -1,0 +1,81 @@
+slug: customer-lifetime-value
+module_slug: business-metrics
+title: Customer Lifetime Value (LTV)
+description: A simple LTV formula, and why its reliability depends entirely on the retention, AOV, and margin assumptions feeding it.
+difficulty: BEGINNER
+estimated_minutes: 15
+display_order: 7
+objectives:
+  - Calculate a simple customer lifetime value estimate from AOV, purchase frequency, margin, and churn
+  - Explain why LTV is only as reliable as the retention and margin assumptions that feed it
+  - Use LTV alongside customer acquisition cost (CAC) to reason about whether an acquisition channel is sustainable
+prerequisites: [churn]
+skills: [business-metrics, business-problem-solving]
+tags: [business-analytics, beginner]
+key_takeaways:
+  - LTV pulls together three metrics from this module — AOV, margin, and churn/retention — into one forward-looking number, so it's only as trustworthy as its weakest input.
+  - Because churn sits in the denominator, small changes in the churn assumption swing the LTV estimate disproportionately — sanity-check LTV against a range of churn scenarios, not a single point estimate.
+  - LTV is typically judged against customer acquisition cost (CAC); a healthy business generally needs LTV to comfortably exceed CAC, not just be marginally larger.
+common_mistakes:
+  - Treating a single LTV number as a precise fact rather than a projection built on assumptions that should be stress-tested.
+  - Computing LTV from revenue instead of gross margin, which overstates how much a customer is actually worth to the business.
+blocks:
+  - type: heading
+    text: "LTV: how much a customer is worth, not just what they paid last time"
+  - type: text
+    body: >
+      Every metric earlier in this module — revenue, AOV, retention, churn — describes something that
+      already happened. Lifetime value (LTV) is the one that looks forward: it's an estimate of the
+      total profit a business can expect from a customer over the entire relationship, and it's built
+      directly from the metrics already covered.
+  - type: formula
+    expression: "Simple LTV = (AOV × Purchase Frequency per period × Gross Margin %) / Churn Rate"
+    description: >
+      AOV and purchase frequency together estimate revenue per period; multiplying by gross margin
+      converts that to profit per period; dividing by churn rate extends that per-period profit out
+      over the customer's expected lifespan.
+  - type: formula
+    expression: "Average Customer Lifespan = 1 / Churn Rate"
+    description: "A 20% annual churn rate implies an average customer lifespan of 1 / 0.20 = 5 years — this is the number LTV is implicitly multiplying by."
+  - type: example
+    title: Plugging in real numbers
+    body: >
+      A subscription box service has an AOV of $60, customers order 4 times per year on average, and
+      gross margin is 40%. Annual churn is 20%. LTV = ($60 × 4 × 0.40) / 0.20 = $96 / 0.20 = $480. That
+      $480 is the ceiling a business could profitably spend to acquire one customer and still break
+      even over that customer's lifetime — spending meaningfully above it means acquisition isn't
+      sustainable at current retention and margin.
+  - type: table
+    headers: ["Annual churn rate", "Implied lifespan", "LTV (same $60 AOV, 4x/yr, 40% margin)"]
+    rows:
+      - ["10%", "10 years", "$960"]
+      - ["20%", "5 years", "$480"]
+      - ["40%", "2.5 years", "$240"]
+    caption: "Every other input held constant — churn alone drives a 4x swing in LTV."
+  - type: callout
+    variant: warning
+    title: LTV is a projection, not a fact
+    body: >
+      Because churn sits in the denominator, a modest error in the churn estimate produces a large
+      error in LTV — doubling churn cuts LTV in half. Always present LTV as a range or alongside its
+      key assumptions, not as a single precise-looking dollar figure.
+  - type: text
+    body: >
+      In practice, LTV is rarely reported alone — it's compared against **customer acquisition cost
+      (CAC)**, what it costs to win a new customer. A common rule of thumb is that a healthy business
+      wants an LTV:CAC ratio of at least 3:1; anything close to 1:1 means the business is barely
+      breaking even on new customers before accounting for fixed costs.
+  - type: question
+    prompt: >
+      A team proposes doubling ad spend on a channel with LTV = $480 and CAC = $460 per customer.
+      What's the strongest concern with this plan?
+    choices:
+      - None — LTV is higher than CAC, so the channel is profitable and should be scaled
+      - The LTV:CAC ratio is close to 1:1, leaving almost no margin for error in the churn and margin assumptions LTV depends on
+      - CAC should always be exactly zero for a channel to be worth scaling
+    correct_index: 1
+    explanation: >
+      LTV technically exceeds CAC here, but only by $20 — and LTV is a projection built on churn and
+      margin assumptions that can easily be off by more than that. An LTV:CAC ratio this close to 1:1
+      leaves no cushion; a small negative surprise in retention or margin would flip this channel from
+      profitable to loss-making, which is why the 3:1 rule of thumb exists as a safety margin.

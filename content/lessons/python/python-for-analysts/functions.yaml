@@ -1,0 +1,118 @@
+slug: functions
+module_slug: python-for-analysts
+title: Functions
+description: Packaging reusable logic with def, parameters, and return values — and why that matters for analysis code.
+difficulty: BEGINNER
+estimated_minutes: 12
+display_order: 5
+objectives:
+  - Define functions with def, parameters, and return statements
+  - Distinguish a function that returns a value from one that only prints/has a side effect
+  - Explain why functions make analysis scripts more reliable and reusable
+prerequisites: [loops]
+skills: [python-fundamentals]
+tags: [python, beginner, foundations]
+key_takeaways:
+  - "A function packages a piece of logic under a name so you write it once and reuse it, instead of copy-pasting the same block of code with small tweaks every time you need it."
+  - "return sends a value back to the caller; print() only displays something and gives the caller nothing to work with — these are not interchangeable."
+  - Giving parameters default values makes a function flexible without forcing every caller to specify every argument.
+common_mistakes:
+  - "Writing a function that prints a result instead of returning it, then trying to use that result elsewhere in the script (result = my_function() ends up as None, since print() returns nothing)."
+  - Forgetting that variables created inside a function are local to it and disappear once the function ends — they don't leak out and overwrite variables of the same name outside the function.
+  - "Copy-pasting a block of transformation logic four times with tiny variable-name changes instead of writing one function and calling it four times — this is exactly the repetition functions exist to eliminate, and it's a common flag in code review."
+blocks:
+  - type: text
+    body: >
+      If you've ever copy-pasted the same five lines of cleaning logic into three different places in
+      a script — and then found a bug in one copy but not the other two — you've felt the problem
+      functions solve. A **function** packages a block of logic under a name, so you write the logic
+      once, and call it wherever you need it.
+  - type: heading
+    text: Defining a function
+  - type: code
+    language: python
+    code: |
+      def clean_revenue(raw_value):
+          value = float(raw_value)
+          if value < 0:
+              value = 0.0
+          return value
+
+      clean_revenue("150.00")   # 150.0
+      clean_revenue("-12.50")   # 0.0 — negative revenue treated as bad data, zeroed out
+    caption: "def name(parameters): ... return value"
+  - type: text
+    body: >
+      `raw_value` is a **parameter** — a placeholder name for whatever gets passed in when the function
+      is called. `return` sends a value back out to whoever called the function, so it can be stored in
+      a variable, used in a condition, or passed into another function.
+  - type: callout
+    variant: common_mistake
+    title: return is not print
+    body: >
+      `print()` shows something on screen — it doesn't give the calling code anything to work with. A
+      function that only prints its result and has no `return` statement implicitly returns `None`. If
+      you write `result = clean_revenue(...)` and the function only prints, `result` will be `None`,
+      not the value you saw printed. This is one of the most common early-Python bugs.
+  - type: heading
+    text: Multiple parameters and defaults
+  - type: code
+    language: python
+    code: |
+      def flag_large_order(order_total, threshold=1000):
+          return order_total >= threshold
+
+      flag_large_order(1500)          # True — uses the default threshold of 1000
+      flag_large_order(1500, 2000)    # False — caller overrides the threshold
+      flag_large_order(order_total=800, threshold=500)  # True — named arguments
+    caption: Default parameter values make a function flexible without extra required arguments
+  - type: heading
+    text: Why this matters for analysis code
+  - type: text
+    body: >
+      A one-off script with no functions is fine for a quick, throwaway check. But the moment logic
+      needs to run on more than one column, more than one file, or gets reused next week, functions pay
+      for themselves: fix a bug once inside the function, and every call site is fixed. Without a
+      function, you'd have to find and fix every copy-pasted instance of that logic individually — and
+      it's easy to miss one.
+  - type: comparison
+    title: Repeated logic vs. a function
+    columns: ["", "Copy-pasted logic", "Wrapped in a function"]
+    rows:
+      - ["Fixing a bug", "Must find and fix every copy", "Fix once, every call site is fixed"]
+      - ["Readability", "Same 5 lines repeated with small tweaks, easy to lose track of", "One named call site: clean_revenue(x) — the intent is obvious"]
+      - ["Testing", "Hard to verify each copy behaves the same", "Test the one function definition directly"]
+  - type: example
+    title: "A function used inside a loop"
+    body: >
+      Functions and loops combine naturally — the loop handles repetition over the collection, the
+      function handles the logic for one item.
+    code: |
+      raw_totals = ["150.00", "-12.50", "89.99", "not_a_number"]
+
+      cleaned = []
+      for raw in raw_totals:
+          try:
+              cleaned.append(clean_revenue(raw))
+          except ValueError:
+              continue   # skip values that can't be converted at all
+
+      print(cleaned)  # [150.0, 0.0, 89.99]
+    language: python
+  - type: question
+    prompt: |
+      What does result equal after this code runs?
+
+      def get_status(is_active):
+          print("checking status")
+
+      result = get_status(True)
+    choices:
+      - "True"
+      - "The string 'checking status'"
+      - "None"
+    correct_index: 2
+    explanation: >
+      get_status only calls print(), which displays text but does not send a value back to the caller.
+      Since the function has no return statement, it implicitly returns None. result is bound to None,
+      not to True or to the printed string — print() and return are not the same thing.

@@ -1,0 +1,48 @@
+slug: exp-interpret-checkout-redesign-result
+lesson_slug: exp-practical-vs-statistical-significance
+skill: data-interpretation
+dataset: saas-product
+title: "Ship, Kill, or Keep Testing? checkout_redesign's Real Result"
+description: Given the real checkout_redesign statistics, decide and justify what the team should do next.
+exercise_type: DATA_INTERPRETATION
+difficulty: ADVANCED
+points: 20
+tags: [experimentation, ab-testing, saas, statistics, real-world, advanced]
+prompt: >
+  The checkout_redesign A/B test has finished collecting its planned data. Here's the full real result:
+  control converted at 11.3% (113 of 1,000 users), treatment converted at 12.5% (125 of 1,000 users) —
+  an absolute lift of +1.2 percentage points, or +10.6% relative. A two-proportion z-test gives p = 0.41
+  (not significant at the conventional 0.05 threshold), and the 95% confidence interval for the
+  difference is [-1.6 points, +4.0 points]. Separately, a power analysis shows this test had only about
+  13% power to detect its own observed effect size at 1,000 users per group, and that reliably detecting
+  an effect this size at 80% power would require roughly 11,000-13,000 users per group. A product
+  director asks you: "So — do we ship the redesign, kill it, or what?" Write your recommendation and the
+  reasoning behind it, including what you'd tell the director about why a plain "it wasn't significant,
+  so no" would be misleading here.
+hints:
+  - "Separate the two different questions a result like this raises: 'is this probably not chance?' (statistical significance) and 'is the effect, if real, big enough to matter, and is there a reasonable path to finding out?' (practical significance and next steps)."
+  - "Think about what the confidence interval and the power number together tell you that the p-value alone doesn't — a wide interval that leans positive, from a test with only ~13% power, looks very different from a wide interval centered right on zero."
+solution: >
+  Recommendation: neither ship nor kill outright — extend the test toward the sample size this effect
+  size would actually need before making a final call. The reasoning: the point estimate (+10.6%
+  relative lift in checkout conversion) would be a meaningful business win if real, and it's in the
+  direction the hypothesis predicted, not the opposite direction. The non-significant p-value (0.41)
+  doesn't rule that out — it's exactly what you'd expect from a test that only had about 13% power to
+  detect its own observed effect size at this sample size (1,000 users per group). In other words, even
+  if the 11.3%-to-12.5% effect is completely real and durable, a test this underpowered would fail to
+  reach significance the large majority of the time anyway — so "not significant" here is much closer to
+  "inconclusive" than to "disproven." The 95% CI [-1.6pp, +4.0pp] reinforces this: it can't rule out zero,
+  but it also can't rule out a genuinely large positive effect, and it leans positive rather than being
+  centered on zero. Given the potential upside, the responsible next step is to quantify how much more
+  data is needed (roughly 11,000-13,000 users per group to reach 80% power against this effect size) and
+  decide whether extending the test that far is worth the calendar time — not to treat "p > 0.05" as
+  equivalent to "this doesn't work."
+explanation: >
+  A strong answer treats statistical significance and practical significance as two separate questions
+  and uses all three pieces of evidence together — the point estimate, the confidence interval, and the
+  power analysis — rather than stopping at the p-value. It explicitly explains *why* a non-significant
+  result isn't strong evidence against a real effect here (low achieved power), and it gives the director
+  a concrete, falsifiable next step (how much more data, roughly) rather than a vague "let's keep an eye
+  on it." A weaker answer either says "ship it, the redesign looks better" (ignoring that the result isn't
+  actually significant) or "kill it, it wasn't significant" (ignoring that this test was too underpowered
+  to have reliably shown significance even if the effect were real).

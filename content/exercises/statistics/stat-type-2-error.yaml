@@ -1,0 +1,19 @@
+slug: stat-type-2-error
+skill: statistics
+title: Defining a Type II Error
+description: In hypothesis testing, what is a Type II error?
+exercise_type: MULTIPLE_CHOICE
+difficulty: INTERMEDIATE
+points: 5
+tags:
+- statistics
+- hypothesis-testing
+prompt: In hypothesis testing, what is a Type II error?
+correct_answer: Failing to reject the null hypothesis when it is actually false (a false negative)
+explanation: 'A Type II error is a false negative: there truly is an effect, but the test fails to detect it (fails
+  to reject the null). Its probability is called beta, and 1 - beta is the test''s statistical power.'
+choices:
+- Failing to reject the null hypothesis when it is actually false (a false negative)
+- Rejecting the null hypothesis when it is actually true (a false positive)
+- Setting alpha too high
+- Running a one-tailed test when a two-tailed test was appropriate

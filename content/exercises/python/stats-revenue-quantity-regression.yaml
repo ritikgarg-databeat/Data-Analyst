@@ -1,0 +1,82 @@
+slug: stats-revenue-quantity-regression
+lesson_slug: corr-simple-linear-regression
+skill: statistics
+dataset: ecommerce
+title: Fitting a Regression of Order Revenue on Total Quantity
+description: Fit a simple OLS regression predicting order-level net revenue from total item quantity, and report the intercept, slope, and R-squared.
+exercise_type: PYTHON
+difficulty: ADVANCED
+points: 25
+tags: [python, statistics, advanced, e-commerce]
+business_context: >
+  Finance wants a concrete rule of thumb — "about how much extra revenue does one more item in an
+  order tend to add" — to sanity-check a revenue forecast that's currently built purely off
+  projected order volume.
+prompt: >
+  Using `order_items`, compute each line's net revenue (`quantity * unit_price - discount *
+  quantity`), aggregate to the order level to get `total_qty` and `revenue`, and fit a simple OLS
+  regression of `revenue` on `total_qty` using `statsmodels` (with a constant term). Store your
+  answer in a variable named `result`: a dict with keys `intercept` (rounded to 2 decimals), `slope`
+  (rounded to 2 decimals), and `r_squared` (rounded to 3 decimals).
+python_datasets: [order_items]
+python_starter_code: |
+  # order_items is already loaded as a DataFrame.
+  # Explore it first:
+  order_items.head()
+python_solution_code: |
+  import statsmodels.api as sm
+
+  oi = order_items.copy()
+  oi["line_net"] = oi["quantity"] * oi["unit_price"] - oi["discount"] * oi["quantity"]
+  order_agg = (
+      oi.groupby("order_id")
+      .agg(total_qty=("quantity", "sum"), revenue=("line_net", "sum"))
+      .reset_index()
+  )
+  X = sm.add_constant(order_agg["total_qty"])
+  model = sm.OLS(order_agg["revenue"], X).fit()
+  result = {
+      "intercept": round(model.params["const"], 2),
+      "slope": round(model.params["total_qty"], 2),
+      "r_squared": round(model.rsquared, 3),
+  }
+python_result_variable: result
+python_numeric_tolerance: 0.01
+python_hidden_tests:
+  - name: "R-squared should equal the correlation coefficient squared, and the slope should be positive"
+    code: |
+      assert abs(result["r_squared"] - 0.833 ** 2) < 0.01, (
+          "For a simple linear regression with one predictor, R-squared should equal r-squared "
+          "from the correlation between total_qty and revenue (about 0.833^2 = 0.694)."
+      )
+      assert result["slope"] > 0, (
+          "More total quantity per order should be associated with higher revenue, not lower."
+      )
+hints:
+  - "Build `total_qty` and `revenue` at the order level exactly as in the correlation exercise, then pass `sm.add_constant(order_agg['total_qty'])` as X and `order_agg['revenue']` as y into `sm.OLS(y, X).fit()`."
+  - "The fitted model's `.params` gives you `const` (the intercept) and `total_qty` (the slope); `.rsquared` gives R-squared directly."
+solution: |
+  ```python
+  import statsmodels.api as sm
+
+  oi = order_items.copy()
+  oi["line_net"] = oi["quantity"] * oi["unit_price"] - oi["discount"] * oi["quantity"]
+  order_agg = (
+      oi.groupby("order_id")
+      .agg(total_qty=("quantity", "sum"), revenue=("line_net", "sum"))
+      .reset_index()
+  )
+  X = sm.add_constant(order_agg["total_qty"])
+  model = sm.OLS(order_agg["revenue"], X).fit()
+  result = {
+      "intercept": round(model.params["const"], 2),
+      "slope": round(model.params["total_qty"], 2),
+      "r_squared": round(model.rsquared, 3),
+  }
+  ```
+explanation: >
+  The fitted line is revenue ≈ 6.55 + 224.17 x total_qty, with R-squared = 0.694. The slope is the
+  actionable rule of thumb Finance asked for: each additional item in an order predicts about $224
+  more revenue, on average. The intercept (6.55) isn't statistically significant on its own and isn't
+  a meaningful real scenario (no order has zero items) — the slope and R-squared are the numbers that
+  matter here.

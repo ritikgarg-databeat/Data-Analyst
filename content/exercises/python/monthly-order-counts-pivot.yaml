@@ -1,0 +1,74 @@
+slug: monthly-order-counts-pivot
+lesson_slug: pivot-table
+skill: pandas
+dataset: ecommerce
+title: Monthly Order Counts by Status
+description: Build a pivot table of order counts by calendar month and order status.
+exercise_type: PYTHON
+difficulty: INTERMEDIATE
+points: 20
+tags: [python, intermediate, real-world]
+business_context: >
+  Operations wants a month-by-month breakdown of how many orders landed in each status
+  (completed, cancelled, refunded, pending), so they can spot months with unusually high
+  cancellation or refund rates.
+prompt: >
+  Using `orders`, build a pivot table with one row per calendar month (derived from `order_date`,
+  formatted like `"2024-01"`) and one column per `status`, where each cell holds the count of
+  orders in that month and status. Any month/status combination with no orders should show as 0,
+  not missing. Store your answer in a variable named `result`: a DataFrame with a `month` column
+  plus one column per status value, built with `pd.pivot_table`.
+python_datasets: [orders]
+python_starter_code: |
+  # orders is already loaded as a DataFrame.
+  # Explore it first:
+  orders.head()
+python_solution_code: |
+  orders_copy = orders.copy()
+  orders_copy["month"] = pd.to_datetime(orders_copy["order_date"]).dt.to_period("M").astype(str)
+  result = pd.pivot_table(
+      orders_copy,
+      index="month",
+      columns="status",
+      values="order_id",
+      aggfunc="count",
+      fill_value=0,
+  ).reset_index()
+  result.columns.name = None
+python_result_variable: result
+python_row_order_matters: false
+python_numeric_tolerance: 0.01
+python_hidden_tests:
+  - name: "Total order count matches the raw table and no cell is missing"
+    code: |
+      status_cols = [c for c in result.columns if c != "month"]
+      assert result[status_cols].values.sum() == 4205, (
+          f"Expected all cells to sum to 4205 total orders, got {result[status_cols].values.sum()}"
+      )
+      assert result.isna().sum().sum() == 0, "No cell should be missing — use fill_value=0."
+hints:
+  - "Derive the month label with `pd.to_datetime(orders['order_date']).dt.to_period('M').astype(str)`, which turns a date into a string like '2024-01'."
+  - "`pd.pivot_table(df, index='month', columns='status', values='order_id', aggfunc='count', fill_value=0)` builds the grid directly — `fill_value=0` is what makes empty month/status combinations show 0 instead of NaN. Use `.reset_index()` afterward so 'month' becomes a normal column."
+solution: |
+  ```python
+  orders_copy = orders.copy()
+  orders_copy["month"] = pd.to_datetime(orders_copy["order_date"]).dt.to_period("M").astype(str)
+  result = pd.pivot_table(
+      orders_copy,
+      index="month",
+      columns="status",
+      values="order_id",
+      aggfunc="count",
+      fill_value=0,
+  ).reset_index()
+  result.columns.name = None
+  ```
+explanation: >
+  `pd.pivot_table` reshapes long data (one row per order) into wide data (one row per month, one
+  column per status) in a single call — `aggfunc="count"` counts how many `order_id` values fall
+  into each month/status cell, and `fill_value=0` is the detail that keeps a month with zero
+  cancellations from becoming a `NaN` instead of an honest 0. Deriving the month label with
+  `dt.to_period("M")` groups every date in, say, March 2024 into the same bucket regardless of
+  the day, which is exactly the granularity a month-over-month trend needs. `reset_index()` turns
+  the pivoted index back into a normal `month` column so the result is a plain, comparable
+  DataFrame rather than one with a multi-level column index.

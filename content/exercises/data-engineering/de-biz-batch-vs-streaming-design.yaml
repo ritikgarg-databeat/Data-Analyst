@@ -1,0 +1,79 @@
+slug: de-biz-batch-vs-streaming-design
+lesson_slug: de-batch-vs-streaming
+skill: data-pipelines
+dataset: ecommerce
+title: "Case: Design an Ingestion Approach for a New Fraud-Hold Feature"
+description: Recommend batch, micro-batch, or streaming ingestion for a new feature, reasoning explicitly about the latency-vs-complexity tradeoff rather than defaulting to the newest-sounding option.
+exercise_type: BUSINESS_REASONING
+difficulty: INTERMEDIATE
+points: 25
+tags: [case-study, batch-processing, streaming, real-world]
+business_context: >
+  Risk & Fraud wants a new feature: automatically place a temporary hold on any order over $2,000
+  paid by a payment method that has had 3+ refunds in the past 24 hours, before the order is marked
+  fulfilled. Today, `orders` and `payments` are ingested via a single nightly batch job at 2am.
+  Fulfillment currently begins as soon as an order is marked "completed," which can happen at any
+  hour. The team currently ships the same day an order is placed for roughly 70% of orders.
+stakeholder: "Director of Risk & Fraud"
+constraints:
+  - "The hold has to be placed before an order is fulfilled, not just flagged in a next-morning report — a hold placed after the item has already shipped is useless."
+  - "The team has one data engineer available for this project and no existing streaming infrastructure today — anything beyond the current nightly batch job is new operational surface area that has to be justified."
+  - "You only have the orders and payments tables' current shape to reason from (order_id, customer_id, order_date, status, channel; payment_id, order_id, payment_date, amount, payment_method, status) — assume a refund is represented as a payments row with status = 'refunded'."
+expected_deliverables:
+  - "A clear recommendation: batch, micro-batch, or full streaming, with the reasoning tied explicitly to what actually breaks at each latency level given same-day fulfillment"
+  - "An explicit acknowledgment of what the recommended approach costs in complexity, and why that cost is or isn't justified here"
+  - "A description of what would need to change about today's nightly batch job to support the recommendation, in plain language (no need to write actual pipeline code)"
+prompt: >
+  Using the batch vs. micro-batch vs. streaming framework, recommend an ingestion/processing
+  approach for this fraud-hold feature. Justify your choice against the real constraint that
+  fulfillment can begin any hour of the day for ~70% of same-day orders, and be explicit about the
+  tradeoff you're accepting (or avoiding) relative to full streaming.
+hints:
+  - "The current nightly batch job's 2am schedule is the actual conflict here — a hold rule evaluated only once a day, hours after many orders are already placed and possibly already fulfilled, doesn't meet the stated requirement at all."
+  - "Full streaming isn't the only alternative to nightly batch — a frequent micro-batch (e.g. every 5-10 minutes) may satisfy 'before fulfillment' for the vast majority of cases without taking on continuous-stream engineering complexity."
+rubric:
+  - criterion: "Correctly identifies that the current once-nightly batch schedule fundamentally cannot satisfy the requirement (holds must apply before same-day fulfillment, which can happen within minutes to hours of an order being placed)"
+    points: 20
+  - criterion: "Recommends a specific, reasoned approach — most defensibly a frequent micro-batch (e.g. every 5-10 minutes) rather than jumping straight to full event-driven streaming — and justifies why that latency level is sufficient for a same-day fulfillment window"
+    points: 30
+  - criterion: "Explicitly names the complexity/cost being accepted (a new frequent scheduled job querying recent payments/orders) versus the complexity being deliberately avoided (a continuous streaming/event system, given only one data engineer and no existing streaming infrastructure)"
+    points: 30
+  - criterion: "Describes concretely what changes about the current pipeline (schedule frequency, and querying a rolling recent window rather than full daily extracts) without needing to write actual pipeline code"
+    points: 20
+solution: >
+  The current nightly 2am batch job cannot satisfy this requirement at all: it only evaluates the
+  fraud-hold rule once a day, but roughly 70% of orders ship the same day they're placed — meaning
+  most orders would already be fulfilled, possibly hours before the rule ever runs. A rule that
+  only checks the data after the fact isn't a hold, it's a next-morning report.
+
+  Recommendation: move to a frequent micro-batch — for example, a job that runs every 5-10 minutes,
+  querying only orders and payments from roughly the last hour (a rolling window, not a full daily
+  extract), checking each new order over $2,000 against whether its payment method has 3+
+  `status = 'refunded'` rows in the trailing 24 hours, and placing a hold on any match before it's
+  released to fulfillment. This keeps the maximum delay between an order being placed and the hold
+  rule evaluating it to well under fulfillment's typical timeline, without requiring continuous
+  streaming infrastructure.
+
+  This is a deliberate tradeoff, not a compromise avoided: full event-driven streaming (evaluating
+  the rule within seconds of each order/payment event) would close the small remaining gap (a
+  same-minute fulfillment edge case), but given the constraint of one data engineer and no existing
+  streaming infrastructure, standing up and operating a continuous stream processor is a much larger
+  and riskier lift than a frequent scheduled job — for a feature where a several-minute worst-case
+  delay is very likely acceptable relative to typical fulfillment timelines. If same-minute
+  fulfillment turns out to be common enough that even a 5-10 minute window is too slow, that's the
+  specific evidence that would justify revisiting streaming later, rather than starting there.
+
+  Concretely, what changes versus today: instead of one nightly job re-extracting all of `orders`
+  and `payments`, a new frequent job runs every 5-10 minutes, extracting only orders and payments
+  from roughly the last hour (an incremental-load-style narrow window, not a full extract), and
+  evaluates the hold rule against that recent slice — the existing nightly batch job for the rest of
+  reporting can continue unchanged.
+explanation: >
+  A strong answer correctly rules out the *current* nightly batch schedule as fundamentally
+  incompatible with the stated requirement, then chooses the least operationally risky option that
+  still satisfies it — a frequent micro-batch — rather than reflexively reaching for full streaming
+  because the problem sounds real-time. It explicitly weighs the one-data-engineer constraint
+  against the latency need, which is exactly the kind of tradeoff reasoning the batch-vs-streaming
+  lesson is built around. A weaker answer either keeps the nightly batch schedule (ignoring the
+  fulfillment-timing constraint entirely) or jumps to full streaming without acknowledging the real
+  operational cost that choice would add given the team's stated constraints.

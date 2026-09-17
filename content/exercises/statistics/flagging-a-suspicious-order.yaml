@@ -1,0 +1,28 @@
+slug: flagging-a-suspicious-order
+lesson_slug: outliers
+skill: exploratory-data-analysis
+dataset: orders-sample
+title: Flagging a Suspicious Order
+description: Decide what to do with an order flagged as a statistical outlier in the orders-sample dataset.
+exercise_type: BUSINESS_REASONING
+difficulty: INTERMEDIATE
+points: 15
+tags: [statistics, real-world]
+prompt: >
+  In the orders-sample dataset (order_id, customer_id, order_date, status, order_total), nearly every
+  order_total falls between $15 and $90. One order has order_total = $6,500 and status = 'completed'.
+  An IQR-based check flags it as an outlier. List the first three things you'd check before deciding
+  whether to exclude it from a "typical order value" analysis, and explain what each check would tell
+  you.
+hints:
+  - "Start by asking whether the value is even physically plausible for this business, or whether it's the kind of order (e.g., a bulk or wholesale purchase) that would legitimately produce a much higher total."
+  - "Separate 'is this a data problem' (a duplicated line item, a currency mismatch, a decimal-point error) from 'is this a real, rare business event' (a genuine large customer)."
+explanation: >
+  A strong answer names concrete, checkable steps rather than just "look into it" — for example: (1)
+  check whether order_total looks like a data-entry or unit error, such as an extra zero or a currency
+  mismatch, (2) check the customer's order history to see whether this is a known wholesale/B2B account
+  that regularly places large orders versus a one-off from an otherwise normal retail customer, and (3)
+  check the order's status and any related records (line items, payment confirmation) to confirm it's a
+  legitimate order and not a test, duplicate, or fraudulent record. A weak answer simply says "exclude
+  it" or "keep it" without a process for finding out which is true, and doesn't distinguish "the
+  heuristic flagged it" from "it should actually be removed."

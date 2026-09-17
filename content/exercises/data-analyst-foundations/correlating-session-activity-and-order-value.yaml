@@ -1,0 +1,48 @@
+slug: correlating-session-activity-and-order-value
+lesson_slug: welcome-to-the-challenge-library
+skill: exploratory-data-analysis
+dataset: ecommerce
+title: "Testing Two Assumed Correlations That Turn Out Not to Hold"
+description: Check two numeric relationships you'd naturally expect to see in ecommerce data — session count vs. customer spend, and product price vs. quantity ordered — and interpret both coming back essentially uncorrelated.
+exercise_type: DATA_INTERPRETATION
+difficulty: ADVANCED
+points: 20
+tags: [eda, real-world, advanced]
+prompt: >
+  Two relationships you might reasonably expect in ecommerce data: (1) customers with more sessions
+  (`sessions`, grouped by `customer_id`) spend more in total (`orders`/`payments`), and (2) cheaper products
+  (`order_items.unit_price`) get ordered in higher quantities (`order_items.quantity`) than expensive ones.
+  Computed directly on this dataset: correlation between a customer's session count and their total spend
+  is r = -0.015 (essentially zero), and correlation between a product's unit_price and the quantity ordered
+  per line is r = 0.007 (also essentially zero). Both assumptions you might walk in with turn out to be
+  unsupported. What do you do with a near-zero correlation result — is it evidence of "nothing going on,"
+  or does it need more investigation before you report it that way?
+hints:
+  - "A near-zero correlation coefficient only tests for a LINEAR relationship between the two raw variables as measured. Think about whether a real relationship could still exist in a form a simple linear correlation wouldn't detect — a non-linear pattern, or a relationship that only shows up within a subgroup."
+  - "Also consider measurement choices: 'session count' as measured here includes sessions where no purchase happened at all, and 'total spend' is a lifetime figure regardless of tenure — could either of those choices be diluting a relationship that would show up more clearly with a different, more careful measure?"
+solution: >
+  A near-zero correlation coefficient is real information, but it's narrower than "nothing is going on" — it
+  specifically means there's no strong LINEAR relationship between these two variables, measured exactly
+  this way. Before reporting "no relationship" as a final conclusion, I'd check a few things a simple
+  correlation can miss. For session count vs. total spend: total spend isn't tenure-adjusted (a customer who
+  signed up two years ago has had far more opportunity to accumulate both sessions and spend than one who
+  joined last month), so mixing customers of very different tenure together could be diluting a real
+  relationship that would show up if I looked at spend-per-session or controlled for tenure directly. It's
+  also possible the true relationship is non-linear (spend might rise with the first few sessions and then
+  plateau) or that "sessions" is simply the wrong measure of engagement for this business (maybe purchases
+  come from very few, highly targeted sessions rather than volume of browsing). For unit_price vs. quantity:
+  it's plausible this dataset's product catalog and quantities were generated independently of each other
+  by design (a synthetic dataset with no real underlying purchasing behavior baked in), which would produce
+  exactly this kind of null result honestly, not because of a measurement problem. My conclusion either way:
+  I'd report both as "no meaningful linear relationship found, checked directly" rather than silently
+  omitting the check, and I'd flag the tenure-adjustment idea as the one follow-up worth actually running
+  before fully closing the door on the session-count relationship.
+explanation: >
+  A strong answer treats "essentially zero correlation" as a real, reportable result rather than something
+  to hide or something that automatically means the investigation failed — and it correctly distinguishes
+  "no linear relationship in this exact measurement" from "no relationship of any kind could possibly
+  exist," proposing specific follow-ups (tenure adjustment, non-linear pattern, subgroup effects) rather than
+  vaguely gesturing at "maybe there's something there." It also allows for the honest possibility that a
+  synthetic dataset simply has no relationship baked in between certain columns, which is a legitimate
+  conclusion, not a failure to find one. A weaker answer either discards the near-zero result without
+  reporting it, or fabricates a relationship the actual numbers don't support.

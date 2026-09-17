@@ -1,0 +1,36 @@
+slug: bhv-influence-reluctant-leadership
+skill: behavioral-interviewing
+title: Convincing Reluctant Leadership
+description: Describe a time you had to convince leadership to act on a finding they were reluctant to
+  accept.
+exercise_type: INTERVIEW_RESPONSE
+difficulty: INTERMEDIATE
+points: 10
+tags:
+- behavioral
+- star-method
+- influencing
+prompt: Describe a time you had to convince leadership to act on a finding they were reluctant to accept.
+hints:
+- The STAR framework (Situation, Task, Action, Result) is a useful structure, not a script -- use it to
+  make sure you cover what actually happened, in what context, what you personally did, and what came
+  of it.
+- Interviewers are listening for a specific, real example -- a vague 'sometimes this happens on my team'
+  answer is much weaker than one concrete story with real details.
+rubric:
+- criterion: Describes one specific, real situation rather than a hypothetical or a generic pattern
+  points: 25
+- criterion: Clearly states the task or goal and the person's own specific role in it
+  points: 20
+- criterion: Explains concrete actions the person personally took, not just what the team did
+  points: 30
+- criterion: States a clear, ideally measurable outcome and what was learned from it
+  points: 25
+solution: I found that a flagship customer segment leadership was proud of actually had below-average
+  retention once adjusted for acquisition channel, which was an uncomfortable finding nobody wanted to
+  hear. Instead of leading with the conclusion, I walked leadership through the analysis step by step,
+  showed the raw numbers before the adjustment so they could see why the adjustment mattered, and pre-empted
+  the objection I expected ('this segment is just newer') with the tenure-controlled version of the same
+  result. They accepted it because they could see exactly how I got there.
+explanation: Anticipating the specific objection and addressing it within the analysis itself, rather
+  than after pushback, is what got a reluctant audience to accept an uncomfortable conclusion.

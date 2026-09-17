@@ -1,0 +1,84 @@
+slug: wau
+module_slug: product-metrics
+title: Weekly Active Users (WAU)
+description: WAU as a smoother activity window than DAU, and how the DAU/WAU ratio measures how "sticky" a product actually is.
+difficulty: BEGINNER
+estimated_minutes: 12
+display_order: 2
+objectives:
+  - Define WAU and explain why a 7-day window smooths out day-of-week noise that DAU can't
+  - Compute stickiness as the DAU/WAU ratio and interpret what a given ratio implies about usage habit
+  - Avoid the common error of averaging daily DAU values to estimate WAU
+prerequisites: [dau]
+skills: [product-metrics]
+tags: [product-analytics, beginner, foundations]
+key_takeaways:
+  - WAU counts distinct users active at least once across a 7-day window — it is not the sum or average of the week's daily DAU values.
+  - Stickiness (DAU/WAU) measures what fraction of a product's weekly user base shows up on a typical day — a proxy for how habitual the product is.
+  - A "good" stickiness ratio depends entirely on the product's natural use cadence — a daily-need product and a weekly-need product should not be judged against the same bar.
+common_mistakes:
+  - Estimating WAU by averaging or summing the 7 daily DAU values — this over-counts, since a user active on both Monday and Tuesday should only be counted once in WAU, not twice.
+  - Comparing stickiness across products with fundamentally different natural cadences (e.g., a daily commute app vs. a weekly meal-planning app) and concluding one product is "worse" without accounting for that difference.
+  - Treating a rising WAU as automatically good news without checking whether DAU is flat or falling — WAU can rise even while daily engagement is quietly eroding.
+blocks:
+  - type: text
+    body: >
+      DAU is noisy day to day — weekends, holidays, and even day-of-week habits (a B2B tool is quiet on
+      Sundays) create swings that have nothing to do with whether the product is healthy. Weekly Active
+      Users (WAU) — distinct users active at least once in a trailing or calendar 7-day window — smooths
+      that noise out and answers a slightly different question: how many people find this product worth
+      returning to across a full week, not just today?
+  - type: callout
+    variant: important
+    title: WAU is not "add up the daily numbers"
+    body: >
+      WAU is a **distinct** user count across the whole window, computed the same way DAU is — just
+      over 7 days instead of 1. A user active every single day of the week still counts once toward
+      WAU. Summing or averaging the 7 daily DAU numbers over-counts anyone active on more than one day.
+  - type: heading
+    text: Stickiness — DAU/WAU
+  - type: formula
+    expression: "Stickiness = DAU / WAU"
+    description: >
+      The fraction of a product's weekly active users who show up on a typical single day. A ratio near
+      1.0 means almost everyone in the weekly base comes back daily; a ratio near 0.15 means the weekly
+      base is spread thin, each person showing up roughly once a week.
+  - type: comparison
+    title: Typical stickiness by product cadence
+    columns: ["Product type", "Natural use cadence", "Typical DAU/WAU range"]
+    rows:
+      - ["Messaging / social feed", "Multiple times a day", "50-65%"]
+      - ["Ride-share / food delivery", "A few times a week", "25-40%"]
+      - ["Meal planning / budgeting app", "Weekly planning ritual", "12-20%"]
+      - ["B2B reporting tool", "Checked on demand", "10-20%"]
+  - type: code
+    language: sql
+    caption: Computing WAU and stickiness for one week
+    code: |
+      WITH wau AS (
+        SELECT COUNT(DISTINCT user_id) AS wau
+        FROM events
+        WHERE event_type IN ('message_sent', 'message_read')
+          AND event_at >= '2026-08-24' AND event_at < '2026-08-31'
+      ),
+      dau AS (
+        SELECT COUNT(DISTINCT user_id) AS dau
+        FROM events
+        WHERE event_type IN ('message_sent', 'message_read')
+          AND event_at >= '2026-08-30' AND event_at < '2026-08-31'
+      )
+      SELECT dau.dau, wau.wau, ROUND(dau.dau::numeric / wau.wau, 3) AS stickiness
+      FROM dau, wau;
+  - type: question
+    prompt: A weekly meal-planning app has DAU/WAU stickiness of 15%, while a messaging app has 60%. What is the most defensible conclusion?
+    choices:
+      - The meal-planning app is failing and needs an urgent redesign
+      - Stickiness ratios aren't directly comparable across these two products because their natural use cadence differs
+      - The messaging app's number must be inflated because no product is used that consistently
+    correct_index: 1
+    explanation: >
+      A meal-planning app is, by design, a weekly-cadence tool — most users are only expected to open
+      it once or twice a week to plan, so a lower stickiness ratio is expected, not a failure signal. A
+      messaging app is designed for many-times-a-day use, so a high ratio is the healthy outcome for
+      that product. The right comparison is each product against its own historical trend and against
+      similar-cadence competitors, not against an unrelated product type.

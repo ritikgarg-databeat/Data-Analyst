@@ -1,0 +1,110 @@
+slug: dbt-docs-and-lineage
+module_slug: dbt-docs-lineage-and-macros
+title: "dbt Docs & the Lineage Graph"
+description: >-
+  What dbt docs generate actually produces, where its descriptions come
+  from, and how to trace a real multi-hop lineage path through this repo's
+  project from a raw source to an incremental mart.
+difficulty: INTERMEDIATE
+estimated_minutes: 20
+display_order: 1
+prerequisites: [dbt-singular-tests-and-quality-suite]
+objectives:
+  - Explain what dbt docs generate produces and where the descriptions/column docs that appear in it actually come from.
+  - Describe manifest.json's role as the single source of truth both the generated docs site and this platform's lineage graph are built from.
+  - Trace a real multi-hop lineage path (raw orders -> stg_orders -> fct_orders -> fct_daily_revenue) end to end.
+skills: [dbt, data-lineage, modern-data-stack]
+datasets: [ecommerce]
+tags: [dbt, lineage, real-execution, modern-data-stack, intermediate]
+key_takeaways:
+  - "dbt docs generate doesn't invent documentation — it compiles the descriptions already written in sources.yml/schema.yml files, plus every model's compiled SQL and column list, into manifest.json and catalog.json. The docs site and lineage graph are both just a UI over those two files."
+  - "This project's real files consistently document grain first ('1 row = 1 order,' '1 row = 1 customer') before anything else — a habit worth copying into your own models, since grain is usually the single most important fact about a table."
+  - "A lineage graph is a diagnostic tool, not just a picture: when a number looks wrong, following the arrows backward from the mart toward the source is how you find exactly which model introduced the problem."
+common_mistakes:
+  - "Assuming dbt docs are hand-written in a separate tool — every description, test, and lineage edge shown in the generated docs site comes directly from this same project's .sql and .yml files; there's no second place to keep documentation in sync with."
+  - "Reading a lineage graph only left-to-right (source to mart) — the more common real diagnostic move is right-to-left: start at the mart that looks wrong and walk backward, checking each upstream model until the numbers stop making sense."
+interview_questions:
+  - question: "A stakeholder says dim_customers.lifetime_order_count looks wrong for one customer. How would you use this project's lineage to investigate?"
+    answer: >
+      Start at dim_customers and look at its lineage edges backward: it's built directly from
+      stg_customers (customer attributes) left-joined to an aggregate over stg_orders (lifetime_order_count,
+      first/most recent order date). Since the number in question is an order count, the investigation
+      narrows immediately to stg_orders — check whether that customer's orders in the raw source look
+      right (right count, right customer_id on each), then check whether stg_orders' own transformation
+      (trimming/lowercasing status, but no filtering of rows) could be dropping or duplicating any of
+      them. The lineage graph turns "something is wrong somewhere" into "the problem is in one of exactly
+      two models," which is most of the diagnostic work.
+blocks:
+  - type: heading
+    text: "Where the generated docs actually come from"
+  - type: text
+    body: >
+      Running `dbt docs generate` does not open an editor or invent explanations — it compiles the entire
+      project's metadata into two JSON files: `manifest.json` (every model, its compiled SQL, its columns,
+      its tests, and every ref()/source() edge between them) and `catalog.json` (the actual columns and
+      types dbt found in the warehouse). The docs website is simply a UI rendered on top of those two
+      files — every description you see in it was typed by a developer into a `description:` field in a
+      `sources.yml` or `schema.yml` file somewhere in the project, not generated from nothing.
+  - type: code
+    language: yaml
+    code: |
+      # dbt/models/staging/sources.yml
+      sources:
+        - name: raw
+          tables:
+            - name: orders
+              description: "1 row = 1 order."
+            - name: customers
+              description: "1 row = 1 customer."
+            - name: order_items
+              description: "1 row = 1 product line within an order."
+            - name: payments
+              description: "1 row = 1 payment transaction for an order."
+    caption: "Real descriptions from this project — every one states the table's grain first, before anything else."
+  - type: callout
+    variant: tip
+    title: "Copy this habit: document grain before anything else"
+    body: >
+      Notice the pattern across this project's real files: every table and model description starts with
+      "1 row = 1 &lt;thing&gt;." Grain — what a single row actually represents — is the single most
+      important fact about any table, and it's the fact that's hardest to recover later just by looking at
+      column names. Stating it first, consistently, is a small habit that pays off every time someone new
+      opens the generated docs.
+  - type: heading
+    text: "Tracing a real lineage path end to end"
+  - type: table
+    headers: ["Step", "Model", "Layer", "What changes at this step"]
+    rows:
+      - ["1", "raw.orders (source)", "Raw", "Nothing yet — the CSV as ingestion would have landed it"]
+      - ["2", "stg_orders", "Staging", "Column renames, trim(lower(status)) standardization"]
+      - ["3", "fct_orders", "Marts", "Joined to order items/payments/channel labels; aggregated to one row per order"]
+      - ["4", "fct_daily_revenue", "Marts (incremental)", "Re-aggregated again, from order grain to one row per calendar day"]
+  - type: text
+    body: >
+      That four-step chain is exactly what the dbt Lab's lineage graph renders as boxes connected by
+      arrows — generated straight from `manifest.json`, not drawn by hand. Every arrow in that picture
+      corresponds to one real `ref()` or `source()` call somewhere in the project's actual SQL; there's no
+      lineage edge that exists only in the diagram and not in the code, because the diagram *is* the code's
+      own dependency graph, rendered.
+  - type: example
+    title: "Reading the graph backward to debug a wrong number"
+    body: >
+      Suppose `fct_daily_revenue.total_gross_revenue` looks too low for yesterday. Following the lineage
+      graph backward: fct_daily_revenue sums gross_revenue from fct_orders where status = 'completed', so
+      first check whether fct_orders itself looks right for that day. If fct_orders looks low too, follow
+      further back to int_order_items_priced (are line items missing or under-priced?) and stg_orders (is
+      the completed-order count itself right?). The graph doesn't hand you the answer, but it tells you
+      exactly which handful of models are even candidates — instead of guessing across the entire project.
+  - type: question
+    prompt: "Where does the description text shown for a model or column in the generated dbt docs website actually come from?"
+    choices:
+      - "dbt infers it automatically from the model's SQL"
+      - "It's typed by a developer into a description field in a sources.yml or schema.yml file"
+      - "It's pulled live from the warehouse's own column comments at doc-generation time"
+      - "It's generated by an AI summarization step baked into dbt docs generate"
+    correct_index: 1
+    explanation: >
+      dbt docs are entirely a rendering of metadata already committed to the project's own YAML files —
+      every description is hand-written by whoever authored that source or model's schema.yml entry. There
+      is no automatic inference or generation step; if a description looks wrong or missing in the docs
+      site, the fix is to edit the YAML file it comes from.

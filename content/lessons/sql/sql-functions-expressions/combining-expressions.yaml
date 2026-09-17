@@ -1,0 +1,117 @@
+slug: combining-expressions
+module_slug: sql-functions-expressions
+title: Combining Expressions
+description: Composing string, numeric, and CASE logic together in one SELECT to answer a single business question.
+difficulty: BEGINNER
+estimated_minutes: 14
+display_order: 6
+objectives:
+  - Build a multi-step calculation (like per-unit margin after a discount) out of several nested expressions
+  - Feed a numeric calculation into a CASE expression to label it, in the same SELECT that computed it
+  - Assemble a formatted, human-readable output string from several pieces using CONCAT, CAST, and ROUND together
+prerequisites: [null-safe-expressions]
+skills: [sql-fundamentals]
+datasets: [ecommerce]
+tags: [sql, beginner]
+key_takeaways:
+  - A single business question — "what's this line item's per-unit margin, and is it healthy?" — usually needs several functions layered together, not one function in isolation.
+  - "The order of composition matters: compute the raw underlying number first, then round it for display, then feed it into CASE for a label — mixing that order up (rounding too early, labeling before the calculation is finished) produces subtly wrong results."
+  - CAST is often the piece that connects a numeric calculation to a string one — a number has to become text (via CAST) before it can be concatenated into a sentence with CONCAT.
+common_mistakes:
+  - "Repeating the same multi-part calculation (e.g. (unit_price - discount) - cost) three separate times in one SELECT — once raw, once rounded, once inside a CASE — instead of naming it once and reusing that alias, which most databases don't even allow within the same SELECT list, forcing the repetition. Recognizing the repetition is still worth it: it's a strong signal a CTE (a later module) would clean the query up."
+  - "Rounding a number before comparing it inside a CASE branch, so a value that's genuinely 19.6 (and belongs in a \"below 20\" bucket) rounds to 20 first and lands in the wrong bucket. Compare against the raw value; round only what gets displayed."
+blocks:
+  - type: heading
+    text: One business question, several functions
+  - type: text
+    body: >
+      Every function so far — string, numeric, date, CASE, COALESCE, CAST — has mostly been shown one
+      at a time. Real reporting questions rarely stay that simple. "What's this line item's per-unit
+      margin after its discount, and should someone be worried about it?" needs numeric functions to
+      compute the margin, and then a CASE expression to translate that number into a label a
+      non-technical reader can act on — all in the same SELECT.
+  - type: code
+    language: sql
+    caption: Per-unit margin after discount, bucketed into a business-readable label
+    code: |
+      SELECT
+        oi.order_item_id,
+        p.product_name,
+        ROUND((oi.unit_price - oi.discount) - p.cost, 2) AS unit_margin_after_discount,
+        CASE
+          WHEN (oi.unit_price - oi.discount) - p.cost < 0  THEN 'loss'
+          WHEN (oi.unit_price - oi.discount) - p.cost < 20 THEN 'thin margin'
+          ELSE 'healthy margin'
+        END AS margin_bucket
+      FROM order_items oi
+      JOIN products p ON p.product_id = oi.product_id;
+  - type: text
+    body: >
+      Notice (oi.unit_price - oi.discount) - p.cost appears twice — once wrapped in ROUND for
+      display, once raw inside every CASE condition. That's deliberate, not sloppy: the CASE branches
+      compare against the full-precision value, and ROUND only touches the column meant for a human to
+      read. If the ROUND(...) result were compared inside CASE instead, a margin of 19.6 would round
+      to 20 first and incorrectly skip the "thin margin" bucket.
+  - type: heading
+    text: Turning numbers into a formatted sentence
+  - type: text
+    body: >
+      Sometimes the goal isn't a table of columns at all — it's a single readable string, like a
+      line that could go straight into an alert or a summary email. That means crossing from numeric
+      functions into string functions, and CAST is usually the bridge: CONCAT can only join strings,
+      so a computed number has to be explicitly converted to text before it can take its place in a
+      sentence.
+  - type: example
+    title: A one-line margin summary per order item
+    body: >
+      Working from the inside out, this expression (1) computes the raw margin, (2) takes its
+      absolute value with ABS since the sentence phrases a loss and a margin differently rather than
+      showing a negative number, (3) rounds that to two decimal places, (4) casts the rounded number
+      to text, and (5) concatenates it into a full sentence alongside a CASE-chosen phrase ("margin
+      of $" vs. "loss of $"). Five functions, one readable line of output.
+    code: |
+      SELECT
+        oi.order_item_id,
+        CONCAT(
+          p.product_name,
+          ': ',
+          CASE
+            WHEN (oi.unit_price - oi.discount) - p.cost < 0 THEN 'loss of $'
+            ELSE 'margin of $'
+          END,
+          CAST(ROUND(ABS((oi.unit_price - oi.discount) - p.cost), 2) AS VARCHAR),
+          ' per unit'
+        ) AS margin_summary
+      FROM order_items oi
+      JOIN products p ON p.product_id = oi.product_id;
+    language: sql
+  - type: callout
+    variant: important
+    title: Build it inside-out, one layer at a time
+    body: >
+      A composed expression like the one above is much easier to write (and debug) by building it in
+      layers rather than typing the whole thing at once. Start with the raw calculation alone in
+      SELECT, confirm it looks right, then wrap it in ROUND, confirm again, then wrap that in CASE or
+      CONCAT. Each layer is a small, checkable step — trying to write all five nested functions
+      correctly on the first try invites a mistake that's hard to spot once everything is nested
+      together.
+  - type: table
+    headers: ["Layer (innermost first)", "Purpose", "Function used"]
+    rows:
+      - ["1", "Compute the raw per-unit margin after discount", "(unit_price - discount) - cost"]
+      - ["2", "Ignore the sign, since the label handles loss vs. margin separately", "ABS(...)"]
+      - ["3", "Trim to a display-friendly precision", "ROUND(..., 2)"]
+      - ["4", "Convert the number to text so it can join a sentence", "CAST(... AS VARCHAR)"]
+      - ["5", "Assemble the final sentence, choosing wording with CASE", "CONCAT(...)"]
+  - type: question
+    prompt: "In the margin summary example, CAST(ROUND(ABS(margin_expr), 2) AS VARCHAR) is nested inside CONCAT. Why is CAST needed there at all, if ROUND already produced a clean number?"
+    choices:
+      - "CAST isn't actually needed — it's only there for style"
+      - "CONCAT joins strings, so a numeric value has to be explicitly converted to text before it can be combined with the surrounding text pieces"
+      - "CAST is what actually performs the rounding; ROUND alone doesn't change the display precision"
+    correct_index: 1
+    explanation: >
+      ROUND controls precision but still returns a number, not text. CONCAT's job is joining string
+      values, so a numeric argument needs to become text first — that's exactly what CAST(... AS
+      VARCHAR) does here. Without it, most databases would either error or perform an implicit
+      conversion that isn't guaranteed to format the number the way the query intends.

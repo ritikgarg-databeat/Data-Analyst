@@ -1,0 +1,54 @@
+slug: customers-by-country
+skill: sql-fundamentals
+dataset: ecommerce
+title: Count Customers by Country
+description: Write a query that counts customers per country and sorts the countries from most to fewest customers.
+exercise_type: SQL
+difficulty: BEGINNER
+points: 15
+tags: [sql, beginner]
+business_context: >
+  The international expansion team is prioritizing where to invest localized support and marketing
+  next, and wants a simple headcount of existing customers in each country, ranked from the largest
+  existing base down to the smallest.
+prompt: >
+  Using the `customers` table, write a query that returns each `country` together with the count of
+  customers in that country (`customer_count`), sorted from the highest customer count to the lowest.
+  If two countries have the same count, break the tie alphabetically by country name (A to Z).
+sql_tables: [customers]
+sql_starter_query: |
+  -- Explore the customers table first
+  SELECT * FROM customers LIMIT 20;
+sql_solution_query: |
+  SELECT country, COUNT(*) AS customer_count
+  FROM customers
+  GROUP BY country
+  ORDER BY customer_count DESC, country ASC;
+sql_row_order_matters: true
+sql_numeric_tolerance: 0.01
+sql_hidden_tests:
+  - name: "Country with the most customers is correct"
+    query: |
+      SELECT country, COUNT(*) AS customer_count
+      FROM customers
+      GROUP BY country
+      ORDER BY customer_count DESC, country ASC
+      LIMIT 1
+    key_columns: 1
+hints:
+  - "This is a classic group-and-count: pick the column you want one row per group for, and count how many rows fall into each group."
+  - "GROUP BY country, use COUNT(*) for the count, and finish with ORDER BY customer_count DESC — add country ASC as a second sort key so countries tied on count still come out in a predictable order."
+solution: |
+  ```sql
+  SELECT country, COUNT(*) AS customer_count
+  FROM customers
+  GROUP BY country
+  ORDER BY customer_count DESC, country ASC;
+  ```
+explanation: >
+  A strong answer groups by country, counts rows per group with COUNT(*), and orders the result by that
+  count descending so the largest markets appear first. What separates a complete answer from an almost-
+  complete one here is the tiebreaker: two countries in this dataset land on the exact same customer
+  count, so ordering by count alone leaves their relative order undefined — adding country ASC as a
+  second ORDER BY key makes the result fully deterministic instead of depending on whatever order the
+  database engine happens to process the groups in.

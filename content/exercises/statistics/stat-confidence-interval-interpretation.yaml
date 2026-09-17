@@ -1,0 +1,25 @@
+slug: stat-confidence-interval-interpretation
+skill: statistics
+title: Correctly Interpreting a Confidence Interval
+description: A 95% confidence interval for average order value is [$42, $58]. Which statement correctly interprets
+  this interval?
+exercise_type: MULTIPLE_CHOICE
+difficulty: ADVANCED
+points: 5
+tags:
+- statistics
+- confidence-interval
+prompt: A 95% confidence interval for average order value is [$42, $58]. Which statement correctly interprets this
+  interval?
+correct_answer: If we repeated this sampling process many times, about 95% of the resulting intervals would contain
+  the true population mean
+explanation: 'This is the single most commonly misinterpreted statistic in analytics interviews: a confidence interval
+  is a statement about the LONG-RUN PROCEDURE (95% of intervals built this way would capture the true mean), not
+  a probability statement about this one already-computed interval, and it says nothing about where 95% of individual
+  orders fall.'
+choices:
+- If we repeated this sampling process many times, about 95% of the resulting intervals would contain the true population
+  mean
+- There is a 95% probability the true population mean lies between $42 and $58
+- 95% of individual orders fall between $42 and $58
+- We are 95% confident the sample mean is correct

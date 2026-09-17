@@ -1,0 +1,53 @@
+slug: pa-di-cohort-retention-trend-or-noise
+lesson_slug: pa-cohort-fundamentals
+skill: data-interpretation
+dataset: saas-product
+title: "Cohort Retention: Trend or Noise?"
+description: Given four consecutive monthly cohorts' month-1 retention, decide whether it's improving, worsening, or just bouncing around.
+exercise_type: DATA_INTERPRETATION
+difficulty: ADVANCED
+points: 20
+tags: [product, saas, cohort, retention, advanced, real-world]
+business_context: >
+  A product lead looked at four months of cohort data, saw April's number was highest, and wants to
+  announce that a recent onboarding change "improved retention." Before that goes in a company
+  update, they want a second opinion.
+prompt: >
+  Real month-1 retention for four consecutive signup cohorts:
+
+  | Cohort | Cohort size | Month-1 retention |
+  |---|---|---|
+  | 2025-01 | 126 | 26.98% |
+  | 2025-02 | 134 | 26.87% |
+  | 2025-03 | 160 | 21.88% |
+  | 2025-04 | 140 | 34.29% |
+
+  Is this evidence of a real, improving trend by April, a real decline in March followed by recovery,
+  or neither? What would you need to see to confidently call this a trend rather than noise, and
+  what would you tell the product lead about announcing this now?
+hints:
+  - "Four data points is a small sample of cohorts, and each cohort itself is only 126-160 users — consider both sources of noise (few cohorts, and moderate cohort size) before reading a shape into the sequence."
+  - "Think about what you'd want to see across many more cohorts, or a controlled comparison (e.g. before/after a specific known product change), to distinguish a real shift from ordinary month-to-month variation."
+solution: >
+  This is not strong evidence of a trend in either direction. Four points bouncing between 21.88% and
+  34.29% — a 12-point range — on cohorts of only 126-160 users each is exactly the kind of variation
+  you'd expect from ordinary noise, not necessarily a real underlying shift. A rough sense of scale:
+  with roughly 130-160 users, the standard error on a proportion near 25-30% is on the order of 3-4
+  percentage points, meaning month-to-month swings of 5-12 points are well within what chance alone
+  would produce even if the true underlying retention rate never moved at all. Telling the product
+  lead "April's cohort retained better, so the onboarding change worked" from four data points risks
+  attributing a real business decision to noise. What would make this credible: (1) many more cohorts
+  before and after the specific change, ideally with a clear date the change shipped, so before/after
+  cohorts can be compared as groups rather than reading tea leaves from four individual points; (2) a
+  formal comparison (even a simple confidence interval on each cohort's rate, or pooling several
+  pre-change and post-change cohorts) rather than eyeballing single months; (3) ideally, a proper
+  controlled experiment if the change is significant enough to warrant one, which is exactly the kind
+  of question the `product-experiments` bridge module points toward.
+explanation: >
+  A strong answer resists the pull of a good story ("April was highest, right after some change, so
+  the change worked") and instead sizes up the noise given the actual cohort sizes before concluding
+  anything. It proposes a concrete standard for what *would* count as evidence — more cohorts, a
+  known change date, a formal statistical comparison — rather than just saying "we need more data" in
+  the abstract. A weaker answer either accepts the naive reading (announces the trend based on four
+  points) or dismisses the data entirely without engaging with what would actually settle the
+  question.

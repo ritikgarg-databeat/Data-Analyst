@@ -1,0 +1,31 @@
+slug: same-mean-different-spread
+lesson_slug: standard-deviation
+skill: statistics
+dataset: orders-sample
+title: Same Mean, Different Spread
+description: Interpret what two regions with equal average daily order counts but very different standard deviations imply about operational consistency.
+exercise_type: DATA_INTERPRETATION
+difficulty: INTERMEDIATE
+points: 15
+tags: [statistics, business-analytics]
+prompt: >
+  Two regions built from data like the orders-sample table have the same average daily order count:
+  50. Region A has a standard deviation of 2 orders/day. Region B has a standard deviation of 18
+  orders/day. A stakeholder says "they're performing identically, since the averages match." Explain
+  what the standard deviation numbers tell you that the average doesn't, and why the stakeholder's
+  conclusion is incomplete.
+hints:
+  - "The mean tells you the center of each region's daily order counts, but says nothing about how much a single day can vary from that center."
+  - "Think about what a standard deviation of 18 (versus 2) implies for staffing, inventory, or forecasting decisions on any given day in that region."
+solution: >
+  Region A's daily order count is tightly clustered around 50 (most days land close to 46-54), making
+  it predictable and easy to staff and forecast for. Region B's average of 50 is masking much bigger
+  day-to-day swings (roughly 32-68 on a typical day, and wider on bad days) — some days are quiet,
+  others are overloaded. Two regions can share an identical average while requiring completely
+  different operational planning, because the average alone can't distinguish a stable, predictable
+  region from a volatile one.
+explanation: >
+  A strong answer explicitly connects the standard deviation numbers to real operational consequences
+  (staffing, inventory, forecast confidence) rather than just restating the definition of standard
+  deviation. It should also directly push back on "identical performance," since consistency is itself
+  a business-relevant property that the average order count alone cannot reveal.

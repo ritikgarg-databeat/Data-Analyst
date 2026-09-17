@@ -1,0 +1,94 @@
+slug: welcome-to-the-challenge-library
+module_slug: eda-challenge-library
+title: "Welcome to the EDA Challenge Library"
+description: How to work through this module's 15 open-ended exploratory data analysis challenges — what to expect, how they're graded, and why the value is in the reasoning, not a single "correct" number.
+difficulty: INTERMEDIATE
+estimated_minutes: 10
+display_order: 1
+objectives:
+  - Explain what makes these 15 exercises different from an auto-graded SQL or Python exercise
+  - Use the EDA Workspace, SQL Lab, or Python Lab as the working environment for a challenge before writing an answer
+  - Set the right expectation for what a "strong answer" means when there's no single correct number
+soft_prerequisites: [the-quality-score-explained, working-with-the-dataset-hub, data-storytelling, correlation-and-causation-in-charts]
+skills: [exploratory-data-analysis, business-problem-solving]
+datasets: [ecommerce]
+tags: [foundations, intermediate, eda]
+key_takeaways:
+  - "The 15 exercises that follow this lesson are all DATA_INTERPRETATION challenges: open-ended, business-framed EDA questions against this course's ecommerce dataset, with no single numeric answer being auto-graded."
+  - "Your workflow for each one: investigate the data yourself — in the EDA Workspace, SQL Lab, or Python Lab, whichever fits the question — write your own answer to the prompt, and only then compare it against the model solution and explanation."
+  - "There's no hidden 'correct number' these are checking for. Two people can investigate the same challenge, reach compatible conclusions phrased differently, and both have written a strong answer — the thing being evaluated is the quality and specificity of the reasoning, not a match against one exact figure."
+  - "Every challenge draws on this dataset's 8 tables (categories, products, customers, marketing_campaigns, sessions, orders, order_items, payments) and every real column name mentioned in a prompt exists in the actual data — you can go verify anything a challenge claims."
+common_mistakes:
+  - "Reading a challenge's model solution before attempting your own investigation — the exercise's value comes from doing the analytical work yourself first, not from recognizing a good answer once it's shown to you."
+  - "Writing a vague answer ('there might be some interesting patterns here') instead of a specific, checkable claim backed by an actual number or a described check you'd run — a strong answer to an open-ended question is still concrete, not just open-ended."
+  - "Treating a different phrasing or a different but reasonable segmentation choice than the model solution as 'wrong' — these are open-ended by design, and a well-reasoned answer that takes a different but defensible path is exactly what a strong answer looks like."
+practical_applications:
+  - "Practicing the exact skill a take-home analytics case study or an EDA-focused interview question tests: investigating an unfamiliar dataset and producing a business-framed, evidence-backed answer under your own judgment, not a scripted checklist."
+  - "Building a personal library of investigation techniques (segmentation, outlier checks, missingness checks, correlation checks) you can reach for quickly on a brand-new dataset outside this course."
+interview_questions:
+  - question: "How would you approach an open-ended take-home data analysis exercise with no specific correct answer to find?"
+    answer: "I'd treat it the same way as any real analyst request: understand what business question is actually being asked, investigate the data with a clear plan rather than randomly poking at it, and build up specific, evidence-backed claims rather than vague observations. I wouldn't expect there to be one 'right' number — I'd expect to be evaluated on whether my reasoning was sound, my evidence was concrete and checkable, and my conclusions were framed in terms of what the business should actually do, which is exactly the muscle this kind of open-ended exercise is meant to build."
+resources: []
+blocks:
+  - type: heading
+    text: "What's different about these 15 exercises"
+  - type: text
+    body: >
+      Every SQL and Python exercise elsewhere on this platform has a specific, checkable right answer — a
+      query result compared automatically against a known-correct solution. The 15 exercises attached to
+      this lesson are deliberately different. They're **DATA_INTERPRETATION** challenges: open-ended,
+      business-framed EDA questions with no single numeric answer being auto-graded. Your response gets
+      recorded as submitted, and the value comes from comparing your own reasoning against a model answer —
+      not from a pass/fail check.
+  - type: heading
+    text: "The workflow for each challenge"
+  - type: checklist
+    title: "Work through each of the 15 exercises in this order"
+    items:
+      - "Read the prompt and note exactly which tables and columns it points you toward"
+      - "Investigate the data yourself — in the EDA Workspace for a guided exploration, SQL Lab if the question is naturally a query, or Python Lab if it needs pandas — before writing anything down"
+      - "Write your own specific, evidence-backed answer to the prompt in your own words"
+      - "Only then, read the model solution and explanation, and compare your reasoning — not just your conclusion — against it"
+  - type: callout
+    variant: important
+    title: "There is no single correct number hiding behind these prompts"
+    body: >
+      A strong answer and the model solution can differ in specifics — which exact segment you chose to
+      compare, which specific column you flagged as most suspicious — and both still be strong, as long as
+      the reasoning is sound and the evidence is real and checkable. What's being built here is judgment,
+      not memorization of one number.
+  - type: heading
+    text: "What a strong answer actually looks like"
+  - type: comparison
+    title: "Weak vs. strong responses to the same kind of open-ended prompt"
+    columns: ["", "Weak answer", "Strong answer"]
+    rows:
+      - ["Specificity", "\"There could be some outliers in there worth checking\"", "\"payments.amount has a handful of values above roughly 3-4x the median order — I'd check whether they cluster on a single customer or are spread across many\""]
+      - ["Evidence", "No numbers, no named columns", "Names specific columns/tables and describes what a check would actually show"]
+      - ["Business framing", "Purely descriptive, no connection to a decision", "Connects the finding to something a specific team would do differently because of it"]
+  - type: text
+    body: >
+      Every challenge names specific real tables and columns from this dataset — categories, products,
+      customers, marketing_campaigns, sessions, orders, order_items, payments — so you can always go
+      verify a claim yourself rather than taking it on faith. That's deliberate: the model solutions in
+      this library describe real, checkable patterns in the actual data, the same way this whole platform's
+      other lessons have throughout.
+  - type: heading
+    text: "Where to do the actual investigating"
+  - type: table
+    headers: ["Tool", "Best fit for"]
+    rows:
+      - ["EDA Workspace", "A guided, structured exploration where you want to build up findings step by step"]
+      - ["SQL Lab", "Questions that are naturally a single query or a small number of them — aggregations, joins, filters"]
+      - ["Python Lab", "Questions needing more flexible exploration — distribution shapes, custom groupings, multi-step logic"]
+  - type: question
+    prompt: "You're partway through one of the 15 challenges and your investigation leads you to segment the data differently than the model solution eventually does. What should you conclude?"
+    choices:
+      - "Compare the reasoning, not just the specific choice — a different but well-justified segmentation, backed by real evidence and connected to a business implication, can be just as strong an answer as the model solution's approach"
+      - "Your answer is automatically wrong, since it doesn't match the model solution's exact segmentation"
+      - "You should discard your own investigation and simply restate the model solution's approach as your answer"
+    correct_index: 0
+    explanation: >
+      These challenges are open-ended by design — there's no single correct numeric answer being graded.
+      What matters is whether your reasoning is sound and your evidence is real and specific, not whether
+      you happened to pick the exact same segment or column the model solution used.

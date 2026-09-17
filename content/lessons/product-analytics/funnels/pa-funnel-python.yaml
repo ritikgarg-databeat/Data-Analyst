@@ -1,0 +1,128 @@
+slug: pa-funnel-python
+module_slug: funnels
+title: "Building a Funnel in Python with pandas"
+description: >
+  The same cumulative funnel and channel segmentation from the SQL lesson, rebuilt in pandas using
+  pivot_table and boolean masks — and confirmed to produce identical numbers.
+difficulty: INTERMEDIATE
+estimated_minutes: 20
+display_order: 3
+objectives:
+  - Turn a long events DataFrame into a wide, one-row-per-user boolean flag table with pivot_table
+  - Compute cumulative funnel counts and rates using boolean masks and & (not Python's and)
+  - Segment a pandas funnel by a user attribute with groupby, and reconcile it against the SQL version
+prerequisites: [pa-funnel-sql]
+skills: [product-analytics, pandas]
+datasets: [saas-product]
+tags: [product, saas, funnel, python, intermediate]
+key_takeaways:
+  - "pivot_table(index='user_id', columns='event_name', ...).notna() is the pandas equivalent of the SQL conditional-aggregation CTE — both turn a long events table into one row per user with a boolean flag per step."
+  - "Cumulative funnel conditions in pandas use the elementwise & operator on boolean Series (df['activated'] & df['engaged']), not Python's and/or, which only work on single boolean values and will raise on a Series."
+  - Getting the same numbers from two different tools (SQL and pandas) on the same raw data is the strongest evidence a funnel query is correct — a mismatch means one of the two has a bug, not that "the tools just work differently."
+common_mistakes:
+  - Using Python's `and`/`or` between two boolean Series instead of `&`/`|`, which raises a ValueError ("truth value of a Series is ambiguous") — a common first mistake when moving from single values to DataFrame columns.
+  - Forgetting parentheses around each condition when chaining boolean masks with `&` (e.g. `df.a & df.b == 1` instead of `(df.a) & (df.b == 1)`), which silently changes what gets evaluated due to Python operator precedence.
+blocks:
+  - type: text
+    body: >
+      Everything from the SQL lesson has a direct pandas equivalent. The events DataFrame here has
+      7,863 rows (one per event); the goal is the same two-stage transformation — pivot to one row
+      per user with a flag per step, then apply cumulative boolean masks.
+  - type: heading
+    text: "Stage 1: pivot events into a per-user flag table"
+  - type: code
+    language: python
+    caption: pivot_table + notna() turns event rows into per-user boolean flags
+    code: |
+      import pandas as pd
+
+      # events has columns: user_id, signup_date, event_name, event_timestamp
+      flags = events.pivot_table(
+          index="user_id", columns="event_name", values="event_timestamp", aggfunc="count"
+      ).notna()
+
+      for step in ["signup", "activated", "engaged", "upgraded"]:
+          if step not in flags.columns:
+              flags[step] = False
+      flags = flags[["signup", "activated", "engaged", "upgraded"]]
+  - type: text
+    body: >
+      `pivot_table` with `aggfunc="count"` puts a count (or NaN) in each user/event_name cell;
+      `.notna()` converts that into `True`/`False` — exactly the flag table the SQL CTE produced,
+      just built with pandas instead of `GROUP BY`.
+  - type: heading
+    text: "Stage 2: cumulative funnel counts with boolean masks"
+  - type: code
+    language: python
+    caption: Cumulative AND across steps, using & (not `and`) on boolean Series
+    code: |
+      signup    = flags["signup"].sum()
+      activated = (flags["signup"] & flags["activated"]).sum()
+      engaged   = (flags["signup"] & flags["activated"] & flags["engaged"]).sum()
+      upgraded  = (flags["signup"] & flags["activated"] & flags["engaged"] & flags["upgraded"]).sum()
+
+      print(signup, activated, engaged, upgraded)
+      # 3000 2074 1125 212
+  - type: callout
+    variant: warning
+    title: "& vs. and — this is not optional"
+    body: >
+      `flags["signup"] and flags["activated"]` raises `ValueError: The truth value of a Series is
+      ambiguous`, because Python's `and` expects a single True/False, not a column of thousands of
+      them. The elementwise `&` operator is what pandas needs for combining boolean Series — and each
+      side generally needs its own parentheses when mixed with comparisons, since `&` binds tighter
+      than `==` in Python.
+  - type: text
+    body: >
+      This reproduces the SQL result exactly: signup=3000, activated=2074, engaged=1125, upgraded=212
+      — the same cumulative funnel as the SQL lesson, confirmed independently.
+  - type: heading
+    text: "Segmenting by acquisition channel in pandas"
+  - type: code
+    language: python
+    caption: Merge in the channel, then groupby + apply the same cumulative logic per group
+    code: |
+      merged = flags.merge(users[["user_id", "acquisition_channel"]], left_index=True, right_on="user_id")
+
+      def funnel_counts(d):
+          return pd.Series({
+              "signup": d["signup"].sum(),
+              "activated": (d["signup"] & d["activated"]).sum(),
+              "engaged": (d["signup"] & d["activated"] & d["engaged"]).sum(),
+              "upgraded": (d["signup"] & d["activated"] & d["engaged"] & d["upgraded"]).sum(),
+          })
+
+      by_channel = merged.groupby("acquisition_channel").apply(funnel_counts)
+      by_channel["activation_rate"] = (by_channel["activated"] / by_channel["signup"]).round(4)
+      by_channel.sort_values("activation_rate", ascending=False)
+  - type: table
+    headers: ["acquisition_channel", "signup", "activated", "activation_rate"]
+    rows:
+      - ["organic", "913", "720", "0.7886"]
+      - ["referral", "435", "340", "0.7816"]
+      - ["content", "300", "216", "0.7200"]
+      - ["paid_search", "728", "449", "0.6168"]
+      - ["paid_social", "624", "349", "0.5593"]
+  - type: callout
+    variant: tip
+    title: Cross-checking two tools is a real workflow habit, not just a classroom exercise
+    body: >
+      This table is identical, to four decimal places, to the SQL version from the previous lesson.
+      In practice, when a SQL funnel and a pandas funnel disagree on the same raw data, the bug is
+      almost always in a join (a fan-out duplicating rows) or in a missed cumulative condition — not
+      in "SQL vs. Python being different." Reproducing a result in a second tool is one of the fastest
+      ways to catch a subtle mistake before it reaches a dashboard.
+  - type: question
+    prompt: >
+      `flags["activated"] and flags["engaged"]` raises `ValueError: The truth value of a Series is
+      ambiguous`. What's the correct fix?
+    choices:
+      - "Wrap the whole expression in bool(...)"
+      - "Replace `and` with the elementwise `&` operator: flags[\"activated\"] & flags[\"engaged\"]"
+      - "Convert both columns to strings before comparing them"
+      - "This error means the two columns have mismatched lengths and must be re-indexed first"
+    correct_index: 1
+    explanation: >
+      Python's `and`/`or` only work on single boolean values, not on a pandas Series of many boolean
+      values — pandas provides `&`/`|`/`~` specifically for elementwise boolean combination across an
+      entire column at once, which is what a cumulative funnel mask needs.

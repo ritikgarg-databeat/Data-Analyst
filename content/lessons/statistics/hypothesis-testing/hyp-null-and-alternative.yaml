@@ -1,0 +1,88 @@
+slug: hyp-null-and-alternative
+module_slug: hypothesis-testing
+title: Null & Alternative Hypotheses
+description: How to frame a business question as a testable pair of hypotheses, and why "we found a difference" always starts from assuming you didn't.
+difficulty: INTERMEDIATE
+estimated_minutes: 12
+display_order: 1
+objectives:
+  - Write a null hypothesis and alternative hypothesis for a real business comparison.
+  - Distinguish a two-sided test from a one-sided test and choose the appropriate one for a given business question.
+skills: [statistics, statistical-reasoning]
+datasets: [saas-product]
+tags: [statistics, intermediate, experimentation, ab-testing]
+prerequisites: [ci-interpreting-confidence-intervals]
+key_takeaways:
+  - "The null hypothesis (H0) is the 'nothing interesting is happening' baseline — usually 'no difference' or 'no effect'. The alternative hypothesis (H1) is what you'd conclude if the data gives you enough reason to reject H0."
+  - "A hypothesis test never 'proves H1 true' — it either finds enough evidence to reject H0, or it doesn't. Failing to reject H0 is not the same as proving H0 is true."
+  - "A two-sided test asks 'is there any difference, in either direction'; a one-sided test asks 'is it specifically better (or specifically worse)'. Pick based on what decision you'd actually make from each possible outcome — and pick it before looking at the data."
+common_mistakes:
+  - Switching from a two-sided to a one-sided test after seeing which direction the data leans, to make a borderline result look more significant — this must be decided before looking at results.
+  - Treating "we failed to reject H0" as equivalent to "we proved there's no difference," when it may simply mean the test was underpowered to detect a real but smaller difference.
+interview_questions:
+  - question: What is the null hypothesis, and why does a hypothesis test start by assuming it's true?
+    answer: >
+      The null hypothesis is the default, "nothing changed / no effect / no difference" baseline
+      claim. A test starts by assuming it's true and asks "how surprising would our observed data be
+      if that were actually the case?" — this framing (assume nothing, then ask how much evidence
+      it takes to argue otherwise) protects against declaring a difference "real" from data that's
+      actually just consistent with ordinary chance.
+blocks:
+  - type: heading
+    text: Framing a business question as two competing hypotheses
+  - type: text
+    body: >
+      A **null hypothesis (H0)** is the default assumption of "no effect" or "no difference" — it's
+      what you'd believe if nothing interesting were going on. The **alternative hypothesis (H1)**
+      is the claim you'd accept only if the data gives you strong enough evidence against H0. Every
+      hypothesis test is built around this pair, and the logic always starts from H0, not H1 — you
+      never set out to "prove H1"; you look for enough evidence to reject H0 in its favor.
+  - type: example
+    title: Framing the checkout_redesign experiment
+    body: >
+      Business question: "does the redesigned checkout convert better than the current one?"
+      Framed as hypotheses — H0: the true conversion rate is the same for both versions (p_treatment
+      = p_control). H1: the true conversion rates differ (p_treatment ≠ p_control). Note that H1 here
+      doesn't presuppose which direction is better; it just claims *some* difference exists. That
+      choice (rather than "H1: treatment is strictly better") is a two-sided framing, discussed next.
+  - type: heading
+    text: One-sided vs. two-sided
+  - type: text
+    body: >
+      A **two-sided** test's alternative hypothesis is "there is a difference, in either direction"
+      — appropriate when a genuinely worse outcome is just as actionable as a better one (you'd
+      still want to know if the redesign made things *worse*). A **one-sided** test's alternative is
+      directional — "treatment converts strictly higher than control" — appropriate only when you
+      would take the exact same action regardless of how a result in the opposite direction turned
+      out, which is rare in practice. The choice must be made *before* seeing the results.
+  - type: table
+    caption: Two-sided vs. one-sided framing for checkout_redesign
+    headers: ["", "Two-sided", "One-sided"]
+    rows:
+      - ["H1", "p_treatment ≠ p_control", "p_treatment > p_control"]
+      - ["Detects a worse result?", "Yes — flags it as significant too", "No — a worse result is just \"not significant\" under this framing"]
+      - ["When appropriate", "You'd act differently if the redesign hurt conversion", "You would ship the redesign regardless, and only care about proving it's better"]
+  - type: callout
+    variant: warning
+    title: Don't pick the framing after seeing the data
+    body: >
+      If a two-sided test comes back with p = 0.08 (not significant at the usual 0.05 threshold),
+      switching to a one-sided framing after the fact to get p down under 0.05 is a form of
+      p-hacking — it inflates the true false-positive rate of your conclusions. The one-sided vs.
+      two-sided decision belongs in the experiment's design document, decided before any results are
+      in.
+  - type: question
+    prompt: >
+      A team is testing a new checkout flow and says "we'll only care if it converts strictly
+      better than the old one — if it's worse, we're keeping the old flow either way, no further
+      action needed." Which framing fits, and what's the risk of choosing it after the fact?
+    choices:
+      - "A one-sided test fits this decision rule, but it must be chosen before seeing results, not selected afterward because the data leaned that way"
+      - "A two-sided test is always required by convention, regardless of the actual decision being made"
+      - "The framing doesn't matter since both give identical p-values"
+    correct_index: 0
+    explanation: >
+      A one-sided test genuinely matches this team's stated decision rule (only "better" changes
+      their action). But the choice has to be locked in during experiment design — choosing it after
+      seeing which direction the data leans, specifically to make a result look more significant, is
+      a form of p-hacking.

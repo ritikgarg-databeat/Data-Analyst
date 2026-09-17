@@ -1,0 +1,89 @@
+slug: from-business-question-to-decision
+module_slug: what-a-data-analyst-does
+title: From Business Question to Decision
+description: A worked example turning a vague stakeholder ask into a concrete analysis plan and a decision-ready recommendation.
+difficulty: BEGINNER
+estimated_minutes: 15
+display_order: 4
+objectives:
+  - Turn a vague stakeholder ask into a specific, answerable analysis plan
+  - Write a decision-ready recommendation instead of just reporting a finding
+prerequisites: [analytics-lifecycle]
+skills: [business-problem-solving, communication]
+tags: [foundations, beginner, real-world, business-analytics]
+key_takeaways:
+  - Almost every stakeholder ask arrives underspecified — clarifying it is part of the job, not a delay.
+  - A good analysis plan names the exact metric, the comparison, the time window, and the decision the answer will inform, before any query is written.
+  - A decision-ready recommendation states what to do, not just what happened.
+common_mistakes:
+  - Starting to write SQL the moment a request arrives, before agreeing on what question is actually being answered.
+  - Delivering a chart and a paragraph of description with no explicit recommendation, leaving the "so what" to the stakeholder.
+blocks:
+  - type: heading
+    text: The ask, as it actually arrives
+  - type: text
+    body: >
+      "Hey — can you take a look at why signups seem down? Feels like it's been slow this month."
+  - type: callout
+    variant: important
+    title: What's actually missing here
+    body: >
+      At least four things are unclear: which signup metric is meant (trial starts? completed signups?
+      for which product?), "down" compared to what baseline (last month? the same month last year? a
+      forecast?), what time window "this month" really means (a partial month to date, which is
+      misleading against a full prior month), and — most importantly — what decision hangs on the
+      answer.
+  - type: checklist
+    title: Clarifying questions to ask before writing a single query
+    items:
+      - Which specific signup event or metric is meant, and does that match what's actually in the data?
+      - Down compared to what baseline — same period last month, last year, or a forecast?
+      - Is this a like-for-like time window, not a partial month compared to a full one?
+      - What decision would this analysis inform, and by when does it need to land?
+  - type: heading
+    text: From clarified question to analysis plan
+  - type: example
+    title: Turning the ask into a plan
+    body: >
+      After a short clarifying thread, the ask becomes concrete: completed signups, first 20 days of
+      September vs. first 20 days of August, broken out by acquisition channel, because marketing is
+      deciding whether to pause spend on paid social next week. That version is answerable.
+    code: |
+      SELECT
+        acquisition_channel,
+        COUNT(*) FILTER (WHERE signup_date BETWEEN '2026-08-01' AND '2026-08-20') AS signups_aug,
+        COUNT(*) FILTER (WHERE signup_date BETWEEN '2026-09-01' AND '2026-09-20') AS signups_sep
+      FROM signups
+      WHERE signup_status = 'completed'
+      GROUP BY acquisition_channel
+      ORDER BY signups_aug DESC;
+    language: sql
+  - type: heading
+    text: From finding to decision-ready recommendation
+  - type: text
+    body: >
+      Suppose the query shows paid social signups down 22% while every other channel is flat. How that
+      gets written up matters as much as the finding itself.
+  - type: comparison
+    title: Reporting a finding vs. delivering a recommendation
+    columns: ["Weak version", "Decision-ready version"]
+    rows:
+      - ["States what happened: paid social signups are down 22% this month vs. last month.", "States what happened, why it likely happened, and what to do: paid social signups are down 22%, concentrated in the last 8 days, matching the timing of the ad platform's recent bid algorithm change — recommend pausing incremental spend there until delivery is confirmed fixed, and rechecking in 2 weeks."]
+      - ["Leaves the stakeholder to infer the \"so what.\"", "States a specific action, a likely reason, and a follow-up checkpoint."]
+  - type: callout
+    variant: common_mistake
+    title: Answering the literal question instead of the real one
+    body: >
+      Diving straight into "signups this month vs. last" without clarifying can produce hours of
+      technically correct work that doesn't actually inform the decision at hand.
+  - type: question
+    prompt: A stakeholder asks "why are signups down this month?" with no further context. What should the analyst do first?
+    choices:
+      - Pull total signups for the current month and compare to last month before responding
+      - Ask one or two clarifying questions to pin down the exact metric, comparison baseline, and decision at stake
+      - Assume they mean total signups vs. the same month last year, since that's the most common comparison
+    correct_index: 1
+    explanation: >
+      Skipping clarification risks answering a question nobody actually asked. A couple of minutes of
+      clarification is usually far faster than producing an answer that turns out to be the wrong
+      comparison.

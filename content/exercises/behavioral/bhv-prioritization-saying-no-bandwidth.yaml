@@ -1,0 +1,35 @@
+slug: bhv-prioritization-saying-no-bandwidth
+skill: behavioral-interviewing
+title: Saying No Due to Bandwidth
+description: Tell me about a time you had to say no to a request because you didn't have bandwidth.
+exercise_type: INTERVIEW_RESPONSE
+difficulty: INTERMEDIATE
+points: 10
+tags:
+- behavioral
+- star-method
+- prioritization
+prompt: Tell me about a time you had to say no to a request because you didn't have bandwidth.
+hints:
+- The STAR framework (Situation, Task, Action, Result) is a useful structure, not a script -- use it to
+  make sure you cover what actually happened, in what context, what you personally did, and what came
+  of it.
+- Interviewers are listening for a specific, real example -- a vague 'sometimes this happens on my team'
+  answer is much weaker than one concrete story with real details.
+rubric:
+- criterion: Describes one specific, real situation rather than a hypothetical or a generic pattern
+  points: 25
+- criterion: Clearly states the task or goal and the person's own specific role in it
+  points: 20
+- criterion: Explains concrete actions the person personally took, not just what the team did
+  points: 30
+- criterion: States a clear, ideally measurable outcome and what was learned from it
+  points: 25
+solution: A stakeholder asked for a deep-dive analysis while I was already committed to a time-sensitive
+  project for another team. I said no to taking it on immediately, but gave a specific date I could start
+  it and asked whether that timeline worked or whether it needed to be reassigned. It turned out their
+  need wasn't as time-critical as it sounded once they had a concrete date to plan around, and they were
+  fine waiting.
+explanation: Turning a bandwidth 'no' into a concrete alternative timeline, rather than an open-ended
+  refusal, usually resolves the tension -- most requesters mainly need to know when, not necessarily right
+  now.

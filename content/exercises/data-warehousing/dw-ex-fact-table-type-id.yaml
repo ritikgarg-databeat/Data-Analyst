@@ -1,0 +1,25 @@
+slug: dw-ex-fact-table-type-id
+lesson_slug: dw-four-types-of-fact-tables
+skill: dimensional-modeling
+title: Identify the Fact Table Type
+description: Classify a described fact table by when its rows are created and whether they change afterward.
+exercise_type: MULTIPLE_CHOICE
+difficulty: INTERMEDIATE
+points: 10
+tags: [fact-table, star-schema, intermediate]
+prompt: >
+  A team builds a fact table with one row per order. The row is inserted the moment the order is
+  placed, and the same row is later updated in place as milestone columns (paid_date, shipped_date,
+  delivered_date) get filled in over the following days. Which of the four fact table types is this?
+choices:
+  - "Transaction fact"
+  - "Periodic snapshot fact"
+  - "Accumulating snapshot fact"
+correct_answer: "Accumulating snapshot fact"
+explanation: >
+  A transaction fact's row is created once and essentially never updated afterward — this table's row
+  is explicitly updated in place across multiple milestones, which rules that out. A periodic
+  snapshot fact gets a new row per fixed time interval (like fct_daily_revenue's one row per calendar
+  day) — this table's grain is one row per order, not one row per period, which rules that out too.
+  Updating a single row in place as a multi-step process (order → paid → shipped → delivered)
+  progresses is the defining signature of an accumulating snapshot fact.

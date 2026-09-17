@@ -1,0 +1,132 @@
+slug: advanced-case-expressions
+module_slug: sql-functions-expressions
+title: Advanced CASE Expressions
+description: Multi-branch CASE for segmentation and bucketing, nested conditions, and CASE inside aggregate functions.
+difficulty: BEGINNER
+estimated_minutes: 13
+display_order: 4
+objectives:
+  - Bucket a continuous value (like lifetime spend) into named business tiers with a multi-branch CASE
+  - Combine more than one column inside a single WHEN condition to express a rule like "business customers who also spend a lot"
+  - Use CASE inside SUM/COUNT to compute several conditional counts in one pass over the data, instead of one query per condition
+prerequisites: [date-time-functions]
+skills: [sql-fundamentals]
+datasets: [ecommerce]
+tags: [sql, beginner]
+key_takeaways:
+  - "This lesson assumes you already know CASE WHEN...THEN...ELSE END from sql-fundamentals — it doesn't repeat the basics, it builds on them: bucketing a metric into tiers, combining multiple columns in one WHEN, and nesting CASE inside an aggregate."
+  - Segmentation is CASE applied to a computed metric (like a SUM) rather than a raw column — the branches still evaluate top to bottom and stop at the first match, exactly as before.
+  - "CASE WHEN condition THEN 1 ELSE 0 END, wrapped in SUM, is the standard pattern for a conditional count: it turns \"how many rows satisfy X\" into an aggregate over 1s and 0s, and it can be repeated with different conditions in the same SELECT to get several conditional counts side by side."
+common_mistakes:
+  - "Writing a WHEN condition that references an un-aggregated version of a metric that's being aggregated elsewhere in the same SELECT (e.g. checking order_total instead of SUM(order_total) once GROUP BY is involved) — the two need to agree on whether they're per-row or per-group."
+  - "Reaching for a separate query per condition (one query counting completed orders, another counting cancelled orders) instead of computing all of them in a single pass with several SUM(CASE WHEN ...) expressions — same data scanned repeatedly for no reason."
+blocks:
+  - type: heading
+    text: From basic CASE to segmentation
+  - type: text
+    body: >
+      sql-fundamentals covered the mechanics of CASE — WHEN/THEN/ELSE, top-to-bottom evaluation,
+      what happens with no ELSE. This lesson doesn't repeat any of that; it assumes it and moves
+      straight to what CASE is used for once real business questions get involved: turning a raw
+      number into a small set of meaningful labels, a pattern usually called segmentation or
+      bucketing.
+  - type: code
+    language: sql
+    caption: Bucketing customers into value tiers by lifetime spend
+    code: |
+      SELECT
+        c.customer_id,
+        SUM((oi.unit_price - oi.discount) * oi.quantity) AS lifetime_spend,
+        CASE
+          WHEN SUM((oi.unit_price - oi.discount) * oi.quantity) >= 2000 THEN 'high value'
+          WHEN SUM((oi.unit_price - oi.discount) * oi.quantity) >= 500  THEN 'mid value'
+          ELSE 'low value'
+        END AS value_tier
+      FROM customers c
+      JOIN orders o ON o.customer_id = c.customer_id
+      JOIN order_items oi ON oi.order_id = o.order_id
+      GROUP BY c.customer_id
+      ORDER BY lifetime_spend DESC;
+  - type: text
+    body: >
+      Notice that every WHEN condition here references the same aggregate expression,
+      SUM((oi.unit_price - oi.discount) * oi.quantity), not a plain column. Once GROUP BY collapses
+      rows into one per customer, that SUM is the per-customer value being tested — the branches
+      still stop at the first match, top to bottom, exactly as with a plain-column CASE.
+  - type: heading
+    text: Combining more than one column in a condition
+  - type: text
+    body: >
+      A WHEN condition isn't limited to one column. Combining a segment field with a spend threshold
+      with AND expresses a rule a single column could never capture on its own — "business customers
+      who also spend a lot" is a genuinely different group from "any customer who spends a lot,"
+      and the order of the branches still decides which label wins when a row could match more than
+      one.
+  - type: example
+    title: "A finer-grained tier: business customers get their own top bucket"
+    body: >
+      The 'key account' branch checks customer_segment = 'business' AND the spend threshold together.
+      Because it's listed first, a high-spending business customer gets 'key account' rather than
+      falling through to the more generic 'high value' branch below it — if the two branches were
+      swapped, every business customer above the threshold would incorrectly land in 'high value'
+      instead, since CASE stops at the first match.
+    code: |
+      SELECT
+        c.customer_id,
+        c.customer_segment,
+        SUM((oi.unit_price - oi.discount) * oi.quantity) AS lifetime_spend,
+        CASE
+          WHEN c.customer_segment = 'business'
+               AND SUM((oi.unit_price - oi.discount) * oi.quantity) >= 2000 THEN 'key account'
+          WHEN SUM((oi.unit_price - oi.discount) * oi.quantity) >= 2000 THEN 'high value'
+          WHEN SUM((oi.unit_price - oi.discount) * oi.quantity) >= 500  THEN 'mid value'
+          ELSE 'low value'
+        END AS value_tier
+      FROM customers c
+      JOIN orders o ON o.customer_id = c.customer_id
+      JOIN order_items oi ON oi.order_id = o.order_id
+      GROUP BY c.customer_id, c.customer_segment
+      ORDER BY lifetime_spend DESC;
+    language: sql
+  - type: heading
+    text: CASE inside an aggregate for conditional counting
+  - type: text
+    body: >
+      The examples above put CASE next to an aggregate. This next pattern nests it inside one.
+      SUM(CASE WHEN condition THEN 1 ELSE 0 END) turns "count only the rows where condition is true"
+      into a plain sum of 1s and 0s — and because it's just another expression inside SELECT, several
+      of them can run side by side in the same query, each with its own condition, without scanning
+      the table more than once.
+  - type: code
+    language: sql
+    caption: Completed vs. cancelled order counts, per channel, in one pass
+    code: |
+      SELECT
+        channel,
+        COUNT(*) AS total_orders,
+        SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) AS completed_orders,
+        SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) AS cancelled_orders
+      FROM orders
+      GROUP BY channel
+      ORDER BY channel;
+  - type: callout
+    variant: tip
+    title: This pattern has a name — conditional aggregation
+    body: >
+      SUM(CASE WHEN ... THEN 1 ELSE 0 END) is common enough to have its own name, conditional
+      aggregation, and it generalizes beyond counting — SUM(CASE WHEN status = 'completed' THEN
+      order_total ELSE 0 END) sums only the matching rows' values instead of counting them. The
+      aggregation module covers this pattern in more depth; the point here is that it's built from
+      exactly the CASE syntax already covered, nested one level deeper.
+  - type: question
+    prompt: "A query computes CASE WHEN customer_segment = 'business' AND lifetime_spend >= 2000 THEN 'key account' WHEN lifetime_spend >= 2000 THEN 'high value' ELSE 'low value' END AS value_tier. A business customer has lifetime_spend of 5000. Which label do they get?"
+    choices:
+      - "'key account', because that branch is listed first and both of its conditions are true for this row"
+      - "'high value', because spend-based rules always take priority over segment-based rules"
+      - "Both labels, concatenated together"
+    correct_index: 0
+    explanation: >
+      CASE always stops at the first WHEN that evaluates to true, regardless of whether a later
+      branch would also match. Since this customer satisfies the 'key account' branch's condition
+      (business AND spend >= 2000) and that branch appears first, it wins — the 'high value' branch
+      below it is never even evaluated for this row.

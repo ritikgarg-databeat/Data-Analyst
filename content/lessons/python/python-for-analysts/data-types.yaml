@@ -1,0 +1,102 @@
+slug: data-types
+module_slug: python-for-analysts
+title: Data Types
+description: Python's core data types — int, float, str, bool — and how to check and convert between them.
+difficulty: BEGINNER
+estimated_minutes: 12
+display_order: 2
+objectives:
+  - Identify Python's four core scalar types (int, float, str, bool) and when each shows up in analysis work
+  - Use type() to inspect a value's type
+  - Convert between types safely with int(), float(), str(), and bool()
+prerequisites: [variables]
+skills: [python-fundamentals]
+tags: [python, beginner, foundations]
+key_takeaways:
+  - "Every value in Python has a type, and that type determines what operations are legal on it — you can't add a string and an int without converting one of them first."
+  - type() tells you exactly what you're working with — use it liberally when debugging unexpected behavior.
+  - "Type conversion (casting) is common and necessary when reading data from files or APIs, since everything often arrives as text (str) even when it represents numbers."
+common_mistakes:
+  - "Trying to do math on a number that was read in as a string (e.g. from a CSV) — '47' + '3' concatenates to '473', it does not add to 50."
+  - "Assuming int() will round a float — int(4.9) truncates to 4, it does not round to 5."
+  - Forgetting that bool is technically a subtype of int in Python, so True + True evaluates to 2, which can produce confusing results when booleans sneak into arithmetic.
+blocks:
+  - type: text
+    body: >
+      Every value you work with in Python has a type, and that type governs what you're allowed to do
+      with it. Analysts hit this constantly: a column read in from a CSV that looks like a number but
+      behaves like text, or a boolean flag that quietly participates in a sum. Knowing the four core
+      scalar types — and how to move between them — heads off a large fraction of early bugs.
+  - type: heading
+    text: The four core types
+  - type: table
+    headers: ["Type", "Example", "Used for"]
+    rows:
+      - ["int", "42, -7, 1_000_000", "Whole numbers — row counts, IDs, counts of anything"]
+      - ["float", "3.14, 47.50, -0.02", "Decimal numbers — prices, rates, percentages, averages"]
+      - ["str", '"enterprise", "2024-01-15"', "Text — names, categories, dates before parsing, raw file contents"]
+      - ["bool", "True, False", "Binary flags — is_active, passed_qa, is_duplicate"]
+  - type: code
+    language: python
+    code: |
+      revenue = 84210          # int
+      growth_rate = 0.034      # float
+      region = "EMEA"          # str
+      is_churned = False       # bool
+
+      print(type(revenue))     # <class 'int'>
+      print(type(growth_rate)) # <class 'float'>
+    caption: "type() tells you exactly what you're holding"
+  - type: heading
+    text: Casting between types
+  - type: text
+    body: >
+      Converting a value from one type to another is called **casting**, and it's one of the most
+      common things an analyst does — especially right after reading a file, since values from CSVs,
+      APIs, and web forms usually arrive as strings even when they represent numbers.
+  - type: code
+    language: python
+    code: |
+      raw = "1284"          # a string, e.g. straight from a CSV cell
+      row_count = int(raw)  # 1284, now a real int you can do math with
+
+      price_str = "47.50"
+      price = float(price_str)  # 47.5
+
+      # str() goes the other way — useful for building messages
+      message = "Row count: " + str(row_count)
+
+      # int() truncates, it does NOT round
+      int(4.9)   # -> 4, not 5
+    caption: Casting with int(), float(), and str()
+  - type: callout
+    variant: common_mistake
+    title: "'47' + '3' is not 50"
+    body: >
+      If both values are strings, `+` concatenates text instead of adding numbers: `"47" + "3"`
+      produces `"473"`. This is one of the most common early-Python bugs for analysts coming from
+      Excel or SQL, where a column that "looks numeric" behaves numerically by default. In Python you
+      have to check — and cast — explicitly.
+  - type: example
+    title: Booleans are secretly integers
+    body: >
+      bool is technically a subtype of int in Python — True behaves like 1 and False behaves like 0 in
+      arithmetic. This is occasionally useful (e.g. summing a list of booleans to count how many are
+      True) but can also produce confusing results if it happens by accident, such as adding a flag
+      column into a total by mistake.
+    code: |
+      True + True        # 2
+      sum([True, True, False, True])  # 3 — counts the True values
+    language: python
+  - type: question
+    prompt: A column of order totals was loaded from a CSV and looks like "150.00", "89.99", "12.50". Before you can compute their average, what must you do?
+    choices:
+      - Nothing — Python treats any numeric-looking string as a number automatically
+      - Convert each value to a float with float(), since CSV values load as strings
+      - Convert each value to a bool, since averages only work on booleans
+    correct_index: 1
+    explanation: >
+      Values read from a CSV are strings by default, even when they look numeric. "150.00" is text, not
+      a number, until you explicitly cast it with float() (or int() if there are no decimals). Skipping
+      this step causes either a TypeError on arithmetic or, worse, silent string concatenation instead
+      of addition.

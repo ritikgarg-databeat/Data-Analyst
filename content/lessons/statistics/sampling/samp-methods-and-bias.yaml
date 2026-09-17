@@ -1,0 +1,101 @@
+slug: samp-methods-and-bias
+module_slug: sampling
+title: Sampling Methods & Sampling Bias
+description: The difference between a population and a sample, the main ways to draw one, and how a biased sample stays wrong no matter how large it gets.
+difficulty: INTERMEDIATE
+estimated_minutes: 14
+display_order: 1
+objectives:
+  - Distinguish a population from a sample, and name the main sampling methods (random, stratified, systematic, convenience).
+  - Identify sampling bias in a realistic business scenario and explain why collecting more biased data does not fix it.
+skills: [statistics, statistical-reasoning]
+datasets: [saas-product]
+tags: [statistics, intermediate, saas]
+key_takeaways:
+  - "A population is everyone/everything you actually care about; a sample is the subset you observed. Almost every real analysis works with a sample and infers about the population."
+  - "Random sampling (every member of the population has a known, typically equal, chance of selection) is the gold standard because it's the assumption every confidence interval and hypothesis test in this domain relies on."
+  - "Sampling bias — a systematic tendency to over- or under-represent part of the population — does not shrink as you collect more (biased) data. More rows from the same flawed collection process just gives you a more precise estimate of the wrong number."
+common_mistakes:
+  - Believing a larger sample automatically fixes a biased collection method — size fixes *sampling error* (random noise), not *bias* (a systematic skew in who or what got included).
+  - Calling a sample "random" just because it wasn't hand-picked, when the collection mechanism itself (e.g., "everyone who happened to open the app this week") still systematically excludes part of the population.
+interview_questions:
+  - question: Your team wants to survey users about satisfaction, and decides to email the survey only to users who logged in within the last 7 days. What's wrong with this approach, and does increasing the number of survey responses fix it?
+    answer: >
+      This is a convenience/self-selection sample biased toward currently engaged users — it
+      structurally excludes churned or inactive users, who are disproportionately likely to be
+      dissatisfied, before a single response is even collected. Sending the survey to more
+      recently-active users does not fix this: it only produces a larger, equally biased sample,
+      because the group being excluded (inactive/churned users) never had a chance to be included in
+      the first place. The fix is to change *who gets sampled* (e.g., include churned users too),
+      not to collect more responses from the same flawed pool.
+blocks:
+  - type: heading
+    text: Population vs. sample
+  - type: text
+    body: >
+      The **population** is the entire group you actually want to understand (e.g., "all SaaS
+      signups"). A **sample** is the subset you actually observe or measure. Almost everything an
+      analyst reports — an average, a conversion rate, a test result — is a sample statistic being
+      used to make a claim about the population it was drawn from.
+  - type: heading
+    text: Common sampling methods
+  - type: table
+    caption: The main ways to draw a sample
+    headers: ["Method", "How it works", "Example"]
+    rows:
+      - ["Simple random", "Every member has an equal, independent chance of selection", "Randomly select 500 user_ids uniformly from the full user table"]
+      - ["Stratified", "Split the population into subgroups (strata), then randomly sample within each", "Randomly sample 100 users from each acquisition_channel, so small channels aren't drowned out"]
+      - ["Systematic", "Select every k-th member from an ordered list", "Take every 20th row from a table ordered by signup_date"]
+      - ["Convenience", "Sample whoever is easiest to reach — not random at all", "Survey whoever happens to be logged in right now"]
+  - type: heading
+    text: Sampling bias — the kind more data can't fix
+  - type: text
+    body: >
+      **Sampling bias** happens when the way a sample was collected systematically over- or
+      under-represents part of the population — not by bad luck, but by design of the collection
+      process itself. The critical distinction from later lessons: bias is a property of *how you
+      collected*, and it does not shrink as sample size grows. Sampling *error* (random noise from
+      any finite sample) does shrink with size; bias does not.
+  - type: example
+    title: A biased satisfaction survey, made concrete
+    body: >
+      Suppose a SaaS team wants to measure customer satisfaction and emails a survey only to users
+      who logged in within the last 7 days. In the real subscriptions data behind this platform, 72
+      of 212 ever-subscribed users (about 34%) have already churned — and a churned user, by
+      definition, is far less likely to have logged in recently. That means the survey's sampling
+      frame structurally excludes a disproportionately dissatisfied 34% of the relevant population
+      before a single response comes in. No matter how many of the remaining active users respond,
+      the average satisfaction score will be biased upward.
+  - type: code
+    language: sql
+    code: |
+      SELECT
+        plan,
+        COUNT(*) AS n,
+        SUM(CASE WHEN status = 'churned' THEN 1 ELSE 0 END) AS churned,
+        ROUND(AVG(CASE WHEN status = 'churned' THEN 1.0 ELSE 0.0 END), 4) AS churn_rate
+      FROM subscriptions
+      GROUP BY plan;
+    caption: "34.0% of enterprise, 35.2% of pro, and 32.2% of starter subscriptions have churned — a substantial share a login-based survey would never reach."
+  - type: callout
+    variant: common_mistake
+    title: "\"We got 2,000 responses\" is not the same as \"we got an unbiased sample\""
+    body: >
+      A large response count sounds reassuring, but it says nothing about whether the *right*
+      people had a chance to respond. Before trusting a survey or metric, ask "who could never have
+      ended up in this sample, and does that group likely differ from who did?" — if the answer is
+      yes, no amount of additional responses from the same channel resolves it.
+  - type: question
+    prompt: >
+      A product team wants to understand why users churn, so they interview 50 currently active
+      power users about their experience. What's the core problem with this plan?
+    choices:
+      - "50 is too small a sample size to draw any conclusion"
+      - "The sampling frame (currently active power users) structurally excludes the churned users the team actually wants to understand, so no amount of interviews with this group will explain churn"
+      - "There is no problem — active users are the platform's most important users regardless of the research question"
+    correct_index: 1
+    explanation: >
+      The research question is about *why users churn*, but the sample is drawn entirely from users
+      who, by definition, haven't churned. This is a sampling frame mismatch, not a sample-size
+      problem — interviewing 500 active power users instead of 50 would not surface a single
+      churned user's perspective.

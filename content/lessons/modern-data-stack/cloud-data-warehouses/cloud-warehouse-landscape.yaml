@@ -1,0 +1,93 @@
+slug: cloud-warehouse-landscape
+module_slug: cloud-data-warehouses
+title: "BigQuery, Snowflake & Databricks: The Big Three"
+description: >-
+  The storage/compute separation all three modern cloud warehouses share,
+  how they differ in pricing and origin, and why the SQL and dbt-project
+  skills from modules 2-5 transfer to any of them largely unchanged.
+difficulty: INTERMEDIATE
+estimated_minutes: 20
+display_order: 1
+objectives:
+  - Describe the separation of storage and compute that BigQuery, Snowflake, and Databricks all share, and why that's the biggest architectural shift from older on-premises warehouses.
+  - Compare the three on origin, compute model, and pricing model.
+  - Explain why the SQL and dbt-project skills from modules 2-5 transfer to any of the three largely unchanged, and what does have to change to actually run there.
+skills: [cloud-data-warehouses, modern-data-stack]
+tags: [cloud, data-warehouse, architecture, modern-data-stack, intermediate]
+key_takeaways:
+  - "All three separate storage from compute: your data sits in cheap, durable storage, and independently-scalable compute reads it only when a query actually runs — a sharp break from older warehouses where storage and compute scaled together on one box."
+  - "The three differ mainly in compute model and pricing: BigQuery is serverless and bills by bytes scanned (or reserved slots), Snowflake bills by the second for named, start/stoppable 'virtual warehouses,' and Databricks bills per compute unit (DBU) on top of an open lakehouse table format."
+  - "This platform's real dbt project runs on DuckDB purely so it works locally with no cloud account — but its staging/intermediate/marts structure, ref()/source() usage, tests, and snapshots are exactly what would run against BigQuery, Snowflake, or Databricks too, with only the underlying adapter swapped out."
+common_mistakes:
+  - "Treating 'which warehouse is best' as a meaningful question in the abstract — the three are closer in what they let you do (SQL, dbt support, semi-structured data, scalable compute) than in how they're priced and operated, and the right choice depends on a company's existing cloud provider and workload shape more than any universal ranking."
+  - "Assuming a dbt project has to be rewritten to move between warehouses — the models, tests, and Jinja logic stay the same; only the dbt adapter (dbt-bigquery, dbt-snowflake, dbt-databricks, or this project's dbt-duckdb) and the connection profile change."
+interview_questions:
+  - question: "You've only ever run this platform's dbt project against DuckDB. How would you answer an interviewer who asks if you've 'worked with Snowflake'?"
+    answer: >
+      Be precise rather than overstating it: the actual hands-on skill — writing dbt staging/intermediate
+      /marts models, ref()-based dependencies, generic and singular tests, snapshots, incremental models —
+      transfers directly to Snowflake, BigQuery, or Databricks, since dbt's model of the world (a DAG of
+      SQL SELECT statements) is deliberately warehouse-agnostic; only the adapter and connection profile
+      change. The honest answer is "I've built and tested real dbt projects against DuckDB locally, and the
+      concepts and dbt workflow transfer directly — I haven't yet configured a Snowflake-specific
+      connection or dealt with its warehouse-sizing and credit-billing specifics," which shows real,
+      transferable skill without claiming operational experience you don't have.
+blocks:
+  - type: heading
+    text: "The shift that matters: storage and compute, separated"
+  - type: text
+    body: >
+      Older on-premises warehouses scaled storage and compute together, on the same physical machine — more
+      storage meant buying a bigger box, whether or not you needed more query power. All three modern cloud
+      warehouses separate the two: your data lives in cheap, durable, effectively unlimited storage, and
+      compute (the thing that actually executes a query) scales independently and is billed largely on its
+      own. This is the single biggest architectural idea behind "cloud data warehouse," and it's true of
+      BigQuery, Snowflake, and Databricks alike, even though each packages it differently.
+  - type: table
+    headers: ["", "BigQuery", "Snowflake", "Databricks"]
+    rows:
+      - ["Origin", "Google, serverless-first", "Independent vendor, warehouse-first", "Grew out of Spark, lakehouse-first"]
+      - ["Compute model", "No clusters to manage — auto-scaling 'slots' behind the scenes", "'Virtual warehouses' — named, T-shirt-sized compute clusters you start and stop", "Clusters / SQL warehouses running on an open table format (Delta Lake)"]
+      - ["Typical pricing", "Pay per bytes scanned (on-demand), or reserved slot capacity", "Per-second compute credits while a virtual warehouse is running", "Per-DBU (Databricks Unit) compute charge, plus storage"]
+      - ["Distinguishing feature", "Fully serverless, tight GCP integration", "Many independent virtual warehouses can hit the same shared storage without contending with each other", "Strongest native story for ML/Spark workloads alongside SQL"]
+  - type: heading
+    text: "What stays the same underneath all three"
+  - type: text
+    body: >
+      Despite those differences, all three speak SQL as their primary interface, all three have a mature
+      dbt adapter, and all three support the exact same conceptual layering this domain has been teaching —
+      raw data landed somewhere, staged and standardized, joined and enriched, then modeled into
+      BI-ready marts. A dbt project's models, ref() calls, tests, and Jinja logic don't change when the
+      target warehouse changes; only the adapter (dbt-bigquery, dbt-snowflake, dbt-databricks) and the
+      connection profile do.
+  - type: callout
+    variant: tip
+    title: "This platform's real project runs on DuckDB — and that's the point"
+    body: >
+      The dbt project in this repo (`dbt/`) uses `dbt-duckdb` specifically so it can run entirely locally,
+      with no cloud account, no credit card, and no setup friction — reading straight from CSV files via
+      `external_location`. Every concept from modules 2-5 (models, ref(), tests, snapshots, incremental
+      models, macros) is exactly what you'd write against BigQuery, Snowflake, or Databricks too; DuckDB is
+      simply standing in for "any SQL warehouse dbt can talk to," at zero cost and zero setup.
+  - type: heading
+    text: "Vocabulary worth recognizing"
+  - type: text
+    body: >
+      In a job posting or an engineer's sentence, these terms map to specific vendors: a "virtual
+      warehouse" almost always means Snowflake; "slots" or "on-demand bytes scanned" almost always means
+      BigQuery; "DBU" or "cluster" alongside "Delta Lake" almost always means Databricks. Recognizing which
+      vendor a term belongs to is the actual, practical goal of this lesson — not memorizing pricing
+      numbers, which change constantly, or picking a personal favorite.
+  - type: question
+    prompt: "A colleague mentions their team 'spins up a large virtual warehouse for the nightly dbt run, then suspends it.' Which vendor are they almost certainly describing?"
+    choices:
+      - "BigQuery"
+      - "Snowflake"
+      - "Databricks"
+      - "Any of the three equally"
+    correct_index: 1
+    explanation: >
+      "Virtual warehouse" — a named, sizeable, start/stoppable compute cluster billed per second while
+      running — is Snowflake's specific vocabulary. BigQuery's equivalent concept is a "slot" (and is often
+      serverless, with nothing to explicitly start/stop), and Databricks talks about clusters and DBUs
+      rather than "virtual warehouses."

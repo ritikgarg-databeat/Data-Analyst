@@ -1,0 +1,102 @@
+slug: de-reading-a-broken-pipeline
+module_slug: data-engineering-for-analysts
+title: What a Broken Pipeline Looks Like (and How to Flag It Well)
+description: The handful of symptoms a failing pipeline actually produces from an analyst's seat, and the specific details that turn a vague complaint into a fast fix.
+difficulty: INTERMEDIATE
+estimated_minutes: 15
+display_order: 2
+objectives:
+  - Recognize the small set of symptoms (stale data, partial data, schema drift) that indicate a pipeline problem, not a real business change
+  - Identify the specific pieces of information a well-written flag to a data engineering team should include
+  - Rewrite a vague bug report into a specific, actionable one, grounded in a real example
+prerequisites: [de-analyst-de-boundary]
+skills: [pipeline-troubleshooting]
+datasets: [ecommerce]
+tags: [pipelines, analyst-boundary, data-engineering, intermediate]
+key_takeaways:
+  - "Almost every pipeline failure an analyst encounters shows up as one of three symptoms: data that's stale (stopped updating), data that's partial (updated, but missing rows or segments it should have), or a schema that quietly changed (a column's meaning or values shifted)."
+  - "A useful flag names the specific table, the specific symptom, since when, and what's blocked downstream — \"the orders table looks wrong\" gets triaged far slower than \"orders.order_date hasn't had a new value since 2025-12-31, as of this morning; the daily revenue dashboard is stuck on that date too.\""
+  - "You don't need to diagnose the root cause yourself before flagging it — you need to describe the symptom precisely enough that whoever owns the pipeline can start investigating immediately instead of first having to figure out what you actually observed."
+common_mistakes:
+  - "Reporting \"the data looks wrong\" without specifying which table, which column, or what \"wrong\" actually means (missing? duplicated? out of range? stale?) — this forces the person triaging the issue to redo your own observation before they can even start on the actual fix."
+  - "Assuming a stale or missing number reflects a real business event (\"maybe sales actually dropped to zero\") without first ruling out the much more common explanation — the pipeline simply didn't run or partially failed."
+interview_questions:
+  - question: "A stakeholder tells you 'the revenue dashboard looks wrong today.' Walk through how you'd investigate and, if needed, escalate it."
+    answer: >
+      First, get specific about what "wrong" means — compare against a known-different source if one
+      exists, and check whether the number is simply unchanged from yesterday (a strong signal of
+      staleness rather than a real business swing). Check the underlying table directly: does
+      MAX(order_date) show today's date, or is it stuck on an earlier one? Check row counts against
+      a typical day — dramatically low or zero new rows also points to an ingestion or pipeline
+      problem rather than an analytical one. If it does look like a pipeline issue, escalate with the
+      specific table, the specific symptom (stale as of which date, or missing rows for which
+      segment), when it was last confirmed healthy, and what's blocked downstream (which dashboard,
+      whose decision is waiting on it) — enough for the data engineering team to start investigating
+      immediately rather than needing to reproduce your own observation first.
+blocks:
+  - type: heading
+    text: Three shapes a pipeline failure actually takes
+  - type: text
+    body: >
+      From an analyst's seat, you rarely see a pipeline's internal error logs. What you actually see
+      is a small set of recognizable symptoms in the data itself — and learning to recognize them
+      quickly is most of what "flagging a broken pipeline usefully" comes down to.
+  - type: table
+    headers: ["Symptom", "What it looks like", "Likely cause"]
+    rows:
+      - ["Stale data", "A table or metric simply stops updating — same value, same max date, day after day", "A scheduled pipeline run failed, or silently stopped being triggered"]
+      - ["Partial data", "The table updated, but a specific segment (a channel, a region, a status) is missing or undercounted", "One step of a multi-source pipeline failed while others succeeded, or a filter/join condition is unexpectedly excluding rows"]
+      - ["Schema drift", "A column's values or meaning quietly changed shape — new unexpected values in `status`, a numeric column suddenly showing a different scale", "The source system changed something (added a status, changed a column's units) without the pipeline being updated to match"]
+  - type: example
+    title: "Spotting staleness in the ecommerce dataset"
+    body: >
+      Picture the `orders` table normally gaining dozens of new rows every day, with `order_date`
+      values right up to the current date. If a quick check shows `MAX(order_date)` stuck three days
+      in the past while every other system (support tickets, a marketing platform, the storefront
+      itself) suggests the business kept operating normally, that gap is a strong signal of a
+      pipeline problem — not that the company genuinely stopped taking orders. The single fastest
+      diagnostic an analyst can run themselves, before escalating anything, is exactly this kind of
+      freshness check against the table in question.
+  - type: code
+    language: sql
+    code: |
+      -- The fastest self-service check before escalating: how stale is this
+      -- table, really, compared to when it's supposed to be refreshed?
+      SELECT MAX(order_date) AS most_recent_order_date,
+             COUNT(*) FILTER (WHERE order_date = CURRENT_DATE - 1) AS rows_yesterday
+      FROM orders;
+    caption: "A quick freshness and volume check — exactly the kind of thing worth running yourself before flagging anything upstream."
+  - type: heading
+    text: What turns a flag into something fast to act on
+  - type: checklist
+    title: "What to include when flagging a pipeline issue"
+    items:
+      - "The specific table and column where you noticed the problem (not \"the dashboard\" — the actual underlying table it queries)"
+      - "The specific symptom: stale (since when?), partial (which segment is missing?), or a schema/value change (what changed, and what did you expect instead?)"
+      - "When it last looked healthy, if you can tell — narrows the window of what to investigate considerably"
+      - "What's actually blocked downstream — which report, whose decision is waiting on it, and how urgent that is"
+      - "What you've already ruled out (e.g. \"I confirmed this isn't a real drop — a different report shows normal order volume\") so the investigation doesn't repeat your own first step"
+  - type: callout
+    variant: common_mistake
+    title: "\"The numbers look off\" is a start, not a report"
+    body: >
+      Compare "the revenue dashboard looks wrong" against "`fct_daily_revenue`'s `channel = 'web'`
+      row has shown exactly $0 for the last two days, while `mobile` and `marketplace` look normal —
+      `stg_orders` still shows plenty of `web` orders for those same two days, so the break looks
+      like it's somewhere in the aggregation step, not the source data." The second version lets
+      whoever owns that pipeline start investigating in the right place immediately, rather than
+      spending their first twenty minutes reconstructing what you already knew.
+  - type: question
+    prompt: >
+      Which of these observations is the most useful way to flag a suspected pipeline problem to a
+      data engineering team?
+    choices:
+      - "\"Something's wrong with the data, can someone take a look?\""
+      - "\"orders.order_date hasn't advanced past 2025-12-31 as of this morning (should be updating daily); the daily revenue dashboard is stuck on the same date, and Finance is waiting on today's number for a 2pm meeting.\""
+      - "\"The dashboard number seems lower than I expected.\""
+    correct_index: 1
+    explanation: >
+      The second option names the specific table and column, the specific symptom (stale, with a
+      date), what's blocked downstream, and the urgency — everything needed to start investigating
+      immediately. The other two require the recipient to first ask several clarifying questions
+      before they can even begin.

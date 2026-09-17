@@ -1,0 +1,129 @@
+slug: timed-practice-strategy
+module_slug: sql-interview-prep
+title: Timed Practice Strategy
+description: How to practice SQL under real time pressure, a triage plan for when you get stuck mid-interview, and how to sanity-check your own result before declaring victory.
+difficulty: INTERMEDIATE
+estimated_minutes: 11
+display_order: 4
+objectives:
+  - Structure a timed practice session so it builds interview-relevant skill, not just SQL fluency
+  - Apply a concrete triage plan for the moment you get stuck under time pressure
+  - Sanity-check a finished query's result before presenting it as done
+prerequisites: [communicating-your-query-approach]
+skills: [interview-sql]
+datasets: [ecommerce]
+tags: [sql, interview, intermediate]
+key_takeaways:
+  - "Practicing SQL untimed builds fluency with syntax; practicing under a clock builds the separate skill of managing time, noticing when you're stuck, and deciding when to change approach — and that second skill is what actually gets tested live."
+  - "When stuck, the fastest way out is almost never 'stare at the whole query harder' — it's narrowing the problem: run a smaller piece, check row counts, or restate the question, rather than silently re-reading the same broken query."
+  - "A query that runs without error is not the same as a query that's correct — checking row counts, a couple of known values, and whether the result's shape matches the question asked catches mistakes that 'it executed successfully' never will."
+common_mistakes:
+  - "Only ever practicing without a timer — it builds real SQL skill, but not the specific skill of noticing 'I've spent 6 minutes on this and I'm not converging' and changing approach, which is what actually breaks down under interview pressure."
+  - "Declaring a query done the moment it executes without an error — a query can run cleanly and still silently return the wrong thing, especially after a JOIN that fans out rows or a filter placed in the wrong clause."
+interview_questions:
+  - question: "You've been stuck on this query for 5 minutes. What do you do?"
+    answer: >
+      Stop trying to write the whole thing at once. Break the problem into its smallest testable piece
+      — usually the first CTE or subquery — and check whether just that piece returns what's expected.
+      If even that's unclear, restate the question out loud to the interviewer to confirm the goal
+      hasn't drifted, then rebuild from the last point that was verified correct.
+  - question: "How do you know your final query is actually right, not just running without errors?"
+    answer: >
+      Running without an error only proves the syntax is valid. I'd check the row count against a
+      rough expectation (e.g. does the result have more rows than customers exist, which would suggest
+      a join fan-out), spot-check one or two rows against values I could compute by hand, and confirm
+      the result's grain (one row per what?) matches what the question actually asked for.
+blocks:
+  - type: heading
+    text: Why practicing untimed isn't enough
+  - type: text
+    body: >
+      Writing SQL slowly, with unlimited time to think, mostly builds one skill: fluency with syntax and
+      patterns. That's necessary but it's not what breaks down in an actual interview. What breaks down
+      under a clock is a different skill entirely — noticing you're stuck, deciding whether to keep
+      pushing or change approach, and managing what to say while your hands are still typing. That
+      skill only gets built by practicing with an actual timer running.
+  - type: callout
+    variant: interview_tip
+    title: Structure a timed practice session like a real interview, not a quiz
+    body: >
+      Set a timer (20-30 minutes is realistic for a single meaty problem), start by restating the
+      prompt and asking clarifying questions out loud (even alone, say them aloud or write them down)
+      before touching SQL, build the query in narrated CTEs, and stop at the buzzer whether or not
+      you're done — reviewing an unfinished attempt teaches you exactly where your time actually went,
+      which a leisurely untimed session never reveals.
+  - type: heading
+    text: A triage plan for when you're stuck
+  - type: text
+    body: >
+      Getting stuck is normal and expected — it happens to strong candidates too. What separates a
+      recoverable stall from a wasted five minutes is having a default next move instead of re-reading
+      the same broken query hoping the bug jumps out.
+  - type: table
+    headers: ["Symptom", "Triage move"]
+    rows:
+      - ["Not sure the logic is even right", "Restate the question out loud in your own words — confirm you're still solving the right problem before debugging syntax"]
+      - ["Query is long and something's wrong somewhere", "Break it into its CTEs and check the earliest one first — the bug is often inherited from a step you stopped verifying"]
+      - ["Not sure which SQL feature to reach for", "Name the pattern (top-N-per-group, running total, dedup, self-join, exists/not-exists) — most prompts map to one of a small set of known shapes"]
+      - ["Totally blank on how to start", "Write the SELECT list and FROM clause for the simplest version of the answer first, even if incomplete — a partial, narrated start beats a frozen silence"]
+  - type: callout
+    variant: interview_tip
+    title: Saying "I'm stuck, let me think out loud" is a valid move
+    body: >
+      Freezing in silence looks worse than admitting you're stuck and narrating your recovery process:
+      "I'm not immediately sure how to filter this — let me check what the first CTE is actually
+      returning before I decide." That sentence alone demonstrates the exact debugging instinct
+      interviewers want to see, even before you've fixed anything.
+  - type: heading
+    text: Sanity-checking before calling it done
+  - type: text
+    body: >
+      A query that executes without an error has only cleared the lowest bar — it proves the syntax is
+      valid, nothing about whether the logic is correct. Before presenting a query as finished, a quick
+      sanity pass catches the mistakes that "it ran" never would.
+  - type: checklist
+    title: A 60-second sanity check before saying "done"
+    items:
+      - "Does the result's row count roughly make sense for the question? (e.g. a per-customer aggregate shouldn't return more rows than there are customers)"
+      - "Pick one or two rows and verify their values by reasoning about the raw data, if you can"
+      - "Does the grain of the result (one row per what?) actually match what was asked — one row per customer, per order, per month?"
+      - "Did a JOIN possibly fan out rows — e.g. joining orders to order_items and then aggregating at the order level without accounting for multiple line items per order?"
+  - type: example
+    title: Catching a join fan-out with a row-count check
+    body: >
+      A candidate asked "how many orders were placed in 2025?" might write a query joining orders to
+      order_items and running COUNT(*) — which counts line items, not orders, because the join
+      multiplies each order by its number of items.
+    code: |
+      -- Wrong: counts order_items rows, inflated by however many line items each order has
+      SELECT COUNT(*)
+      FROM orders o
+      JOIN order_items oi ON oi.order_id = o.order_id
+      WHERE o.order_date >= DATE '2025-01-01' AND o.order_date < DATE '2026-01-01';
+
+      -- Right: count distinct orders, or count from orders directly without the join
+      SELECT COUNT(*)
+      FROM orders
+      WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01';
+    language: sql
+  - type: text
+    body: >
+      A sanity check here is simple: does the join version's count look suspiciously large relative to
+      what "orders in 2025" should be? On this dataset the joined version returns roughly 3x the true
+      order count — noticing that mismatch, and knowing to look for a fan-out as the likely cause, is
+      exactly the kind of catch a 60-second sanity pass is meant to produce.
+  - type: question
+    prompt: >
+      You're 4 minutes into a 20-minute timed problem and realize you're not sure the logic in your
+      first CTE is even right. What's the best next move?
+    choices:
+      - "Keep building the remaining CTEs on top of it and hope the issue becomes clear later"
+      - "Pause, run (or mentally trace) just that first CTE to check its output against what you'd expect, before adding anything on top of it"
+      - "Scrap everything and start over from a blank query without figuring out what was wrong"
+    correct_index: 1
+    explanation: >
+      Checking the earliest uncertain step before building further is the core triage move: it's much
+      cheaper to find and fix a problem in one small, isolated CTE than to discover the same bug later
+      after two more layers have been built on top of a broken foundation. Restarting from scratch
+      without diagnosing the issue risks reproducing the same mistake; pushing forward on an unverified
+      base risks wasting the rest of the time debugging a much larger query.

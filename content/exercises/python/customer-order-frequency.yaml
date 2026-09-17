@@ -1,0 +1,67 @@
+slug: customer-order-frequency
+lesson_slug: agg
+skill: pandas
+dataset: ecommerce
+title: Customer Order Frequency
+description: For every customer with at least one order, find their order count and most recent order date.
+exercise_type: PYTHON
+difficulty: INTERMEDIATE
+points: 20
+tags: [python, intermediate, real-world, cross-training]
+business_context: >
+  The retention team wants a per-customer view of ordering activity — how many orders each
+  customer has placed in total, and when they last ordered — to help decide who's overdue for a
+  win-back email.
+prompt: >
+  Using `orders`, compute for every customer who has placed at least one order (any status) their
+  total order count and the date of their most recent order. Use `.groupby("customer_id").agg(...)`
+  with named aggregations. Store your answer in a variable named `result`: a DataFrame with
+  columns `customer_id`, `order_count`, and `last_order_date`.
+python_datasets: [orders]
+python_starter_code: |
+  # orders is already loaded as a DataFrame.
+  # Explore it first:
+  orders.head()
+python_solution_code: |
+  result = (
+      orders.groupby("customer_id")
+      .agg(
+          order_count=("order_id", "count"),
+          last_order_date=("order_date", "max"),
+      )
+      .reset_index()
+  )
+python_result_variable: result
+python_row_order_matters: false
+python_numeric_tolerance: 0.01
+python_hidden_tests:
+  - name: "Customer 1's order_count matches a live recomputation"
+    code: |
+      cust_id = 1
+      row = result[result["customer_id"] == cust_id].iloc[0]
+      recomputed_count = orders[orders["customer_id"] == cust_id].shape[0]
+      assert row["order_count"] == recomputed_count, (
+          f"Expected customer {cust_id} to have {recomputed_count} orders, got {row['order_count']}"
+      )
+hints:
+  - "`.groupby('customer_id').agg(order_count=('order_id', 'count'), last_order_date=('order_date', 'max'))` is named aggregation: each keyword argument becomes an output column, built from a (source_column, function) pair."
+  - "Every row in `orders` already belongs to some customer, so grouping by customer_id and counting rows automatically covers every customer who placed at least one order — no separate filter is needed. Don't forget `.reset_index()` so customer_id becomes a normal column instead of the index."
+solution: |
+  ```python
+  result = (
+      orders.groupby("customer_id")
+      .agg(
+          order_count=("order_id", "count"),
+          last_order_date=("order_date", "max"),
+      )
+      .reset_index()
+  )
+  ```
+explanation: >
+  Named aggregation (`.agg(new_col=(source_col, func), ...)`) is the cleanest way to compute
+  several different aggregates from different source columns in one pass — here, a `count` of
+  `order_id` and a `max` of `order_date`, both keyed by `customer_id`. Because `orders` has one
+  row per order, `groupby("customer_id")` naturally includes every customer who has ordered at
+  least once — there's nothing to filter out. `"max"` on a date column works directly as long as
+  the column sorts lexicographically the same as chronologically, which an ISO-format
+  `YYYY-MM-DD` string (as stored here) always does.

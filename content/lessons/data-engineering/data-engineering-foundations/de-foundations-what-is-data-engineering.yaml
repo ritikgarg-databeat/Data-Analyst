@@ -1,0 +1,97 @@
+slug: de-foundations-what-is-data-engineering
+module_slug: data-engineering-foundations
+title: What Is Data Engineering?
+description: The concrete problem data engineering solves — getting reliable, usable data from source systems to the people who need it — and how the role compares to a data analyst's.
+difficulty: BEGINNER
+estimated_minutes: 18
+display_order: 1
+objectives:
+  - Define data engineering in terms of the problem it solves, not just a list of tools
+  - Compare a data engineer's typical day-to-day concerns against a data analyst's, using a shared example
+  - Recognize the handoff points where a data analyst's work depends on decisions a data engineer made upstream
+skills: [data-engineering-fundamentals]
+datasets: [ecommerce]
+tags: [data-engineering, foundations, beginner, real-world]
+key_takeaways:
+  - "Data engineering is the discipline of moving, storing, and shaping data so that it lands somewhere reliable, structured, and trustworthy — before an analyst ever writes a SELECT against it."
+  - "The two roles solve different problems: a data engineer asks \"will this data arrive, on time, in the right shape, every single day?\"; a data analyst asks \"what does this data mean for the business, and what should we do about it?\""
+  - "Every analysis you've ever run sat on top of a decision a data engineer made — how often a table refreshes, what happens to a malformed row, whether history is kept or overwritten. You don't need to make those decisions yourself to benefit from understanding they exist."
+common_mistakes:
+  - "Treating \"data engineer\" as a more senior version of \"data analyst\" — they are adjacent specialties with different core skills (distributed systems and pipeline reliability vs. business framing and statistical reasoning), not rungs on the same ladder."
+  - "Assuming that because you only write SQL against already-built tables, pipeline reliability is someone else's problem you'll never need to think about. If a table is a day stale, or a column's meaning quietly changed, you inherit that problem the moment you query it."
+interview_questions:
+  - question: "In one or two sentences, how would you explain the difference between a data analyst and a data engineer to a non-technical stakeholder?"
+    answer: >
+      A data engineer builds and maintains the pipes that get raw data from source systems into a
+      reliable, queryable warehouse — their output is infrastructure. A data analyst uses that
+      warehouse to answer business questions and make recommendations — their output is an insight
+      or a decision. One makes the data trustworthy and available; the other makes it meaningful.
+blocks:
+  - type: heading
+    text: The problem underneath every dashboard
+  - type: text
+    body: >
+      Before a data analyst can run `SELECT * FROM orders`, a lot has to already be true: the
+      `orders` table has to exist, it has to be refreshed on some predictable schedule, its rows
+      have to reflect what actually happened in the source system, and its columns have to mean
+      what everyone assumes they mean. **Data engineering is the discipline responsible for making
+      all of that true, reliably, every day** — extracting data from wherever it's created,
+      moving it somewhere durable, and shaping it into a form other people can build on without
+      re-verifying it themselves each time.
+  - type: example
+    title: "From checkout button to orders table"
+    body: >
+      Imagine the `ecommerce` dataset's `orders` and `payments` tables. Somewhere, a customer clicks
+      "place order" on a website or app. That single click has to become a row in a production
+      database, get extracted out of that database on some schedule, land in raw storage, get
+      cleaned up and standardized, and finally arrive as a row in the `orders` table an analyst
+      queries — with `order_id`, `customer_id`, `order_date`, `status`, and `channel` populated
+      correctly. Every step between "click" and "queryable row" is data engineering's job. The
+      analyst's job starts once that row is trustworthy: is `channel = 'marketplace'` growing
+      faster than `web`? Why did `status = 'cancelled'` spike last month?
+  - type: heading
+    text: Same team, different core questions
+  - type: comparison
+    title: "What each role is fundamentally asking"
+    columns: ["Question", "Data Engineer", "Data Analyst"]
+    rows:
+      - ["Primary concern", "Will the data arrive, on time, in the right shape, every day?", "What does this data mean, and what should we do about it?"]
+      - ["Unit of work", "A pipeline, a table, a schema", "A question, a metric, a recommendation"]
+      - ["A bad day looks like", "A pipeline failed at 3am and every downstream table is stale", "A stakeholder asks a question the current tables can't answer well"]
+      - ["Core skills", "Distributed systems, orchestration, schema design, SQL/Python at scale", "Business framing, statistics, SQL, communication"]
+  - type: callout
+    variant: common_mistake
+    title: "\"Data engineer\" is not a senior \"data analyst\""
+    body: >
+      It's tempting to read the table above as a skill ladder — as if a data engineer just does
+      "more advanced" versions of an analyst's job. They don't. A data engineer who is excellent at
+      building a reliable, low-latency pipeline may have never framed a business question or
+      written a stakeholder recommendation in their career, and that's fine — it isn't their job.
+      The two roles are complementary specialties, not a hierarchy.
+  - type: heading
+    text: Where the two roles meet
+  - type: text
+    body: >
+      In practice, the boundary is rarely a hard wall. A data analyst who understands *roughly* how
+      the pipeline under their tables works — that `orders` refreshes nightly, that a "failed" run
+      means yesterday's numbers are stale, that a schema change upstream can silently break a
+      downstream column — debugs stale or wrong numbers far faster than one who treats every table
+      as a black box. This entire domain is built around that specific goal: not turning you into a
+      data engineer, but making you a much more effective analyst who knows what's happening one
+      layer below your queries. The final module in this domain, "Data Engineering for Analysts,"
+      draws that boundary explicitly.
+  - type: question
+    prompt: >
+      A stakeholder asks you, a data analyst, "can you just fix the pipeline so the orders table
+      updates every hour instead of once a night?" What's the most accurate response?
+    choices:
+      - "Yes — changing a refresh schedule is standard SQL work any analyst can do directly in the warehouse"
+      - "Recognize this as a data engineering request (it changes the pipeline's schedule and infrastructure), and route it to whoever owns that pipeline, while helping clarify why hourly data actually matters for the decision"
+      - "Explain that this is impossible — data can only ever be refreshed once per day"
+    correct_index: 1
+    explanation: >
+      Changing how and when a pipeline runs is a data engineering change — it affects orchestration,
+      cost, and possibly the source system's load, not just a query. The analyst's most valuable
+      contribution here is recognizing the request for what it is and helping clarify the actual
+      business need (why does the decision require hourly freshness?) so the request that reaches
+      the data engineer is well-justified, not just refusing or attempting to solve it directly.

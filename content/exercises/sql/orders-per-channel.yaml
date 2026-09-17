@@ -1,0 +1,51 @@
+slug: orders-per-channel
+skill: sql-fundamentals
+dataset: ecommerce
+title: Count Orders by Channel
+description: Write a query that counts orders per sales channel and sorts the channels from most to fewest orders.
+exercise_type: SQL
+difficulty: BEGINNER
+points: 15
+tags: [sql, beginner]
+business_context: >
+  Operations is reviewing where order volume is actually coming from — the web storefront, the mobile
+  app, or third-party marketplaces — so they can prioritize which channel's fulfillment workflow to
+  invest in next. They want order counts by channel, busiest channel first.
+prompt: >
+  Using the `orders` table, write a query that returns each `channel` together with the count of orders
+  placed through it (`order_count`), sorted from the most orders to the fewest.
+sql_tables: [orders]
+sql_starter_query: |
+  -- Explore the orders table first
+  SELECT * FROM orders LIMIT 20;
+sql_solution_query: |
+  SELECT channel, COUNT(*) AS order_count
+  FROM orders
+  GROUP BY channel
+  ORDER BY order_count DESC, channel ASC;
+sql_row_order_matters: true
+sql_numeric_tolerance: 0.01
+sql_hidden_tests:
+  - name: "Busiest channel is correct"
+    query: |
+      SELECT channel, COUNT(*) AS order_count
+      FROM orders
+      GROUP BY channel
+      ORDER BY order_count DESC, channel ASC
+      LIMIT 1
+    key_columns: 1
+hints:
+  - "You want one row per channel with a row count for each — that's a GROUP BY paired with COUNT(*)."
+  - "GROUP BY channel, COUNT(*) AS order_count, then ORDER BY order_count DESC so the busiest channel is listed first."
+solution: |
+  ```sql
+  SELECT channel, COUNT(*) AS order_count
+  FROM orders
+  GROUP BY channel
+  ORDER BY order_count DESC, channel ASC;
+  ```
+explanation: >
+  A strong answer groups orders by channel, counts rows per group with COUNT(*), and sorts by that count
+  descending so the busiest channel comes first — exactly what "most common first" is asking for. A
+  common mistake is sorting alphabetically by channel name instead of by the computed count, which
+  technically returns a sorted list but not the ranking by volume the operations team actually needs.

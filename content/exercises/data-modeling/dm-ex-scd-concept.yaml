@@ -1,0 +1,26 @@
+slug: dm-ex-scd-concept
+lesson_slug: dm-measures-vs-attributes
+skill: dimensional-modeling
+title: "Type 1 vs. Type 2: What dim_customers Actually Does"
+description: Naming the slowly-changing-dimension tradeoff this project's real dim_customers mart makes, and what it would take to answer a historical question instead.
+exercise_type: MULTIPLE_CHOICE
+difficulty: INTERMEDIATE
+points: 10
+tags: [dimension-table, data-modeling, intermediate]
+prompt: >
+  This project's real dim_customers mart always shows a customer's current customer_segment, overwritten on
+  every dbt run — there's no way to see what segment a customer was in for a specific order placed six months
+  ago. What is this design commonly called, and what would be needed to support that historical question
+  instead?
+choices:
+  - "This is a 'Type 1' dimension (no history kept); answering the historical question would require deliberately preserving old values as they change — a 'Type 2' slowly changing dimension"
+  - "This is a 'Type 2' dimension; Type 1 dimensions are the ones that would need extra history-tracking columns"
+  - "Dimension tables can never support historical questions at all, regardless of design, since dbt always overwrites them on every run"
+correct_answer: "This is a 'Type 1' dimension (no history kept); answering the historical question would require deliberately preserving old values as they change — a 'Type 2' slowly changing dimension"
+hints:
+  - "Ask what specifically happens to a customer's OLD segment value the moment dbt re-runs and the customer has since moved to a new segment."
+explanation: >
+  Overwriting a dimension's attributes on every run with no history kept is exactly what "Type 1" means in the
+  common slowly-changing-dimension vocabulary. Supporting "what was true as of a past order" requires a Type 2
+  design instead — deliberately preserving prior values as they change, typically with effective-dated rows —
+  a deeper technique beyond this domain's scope but useful to recognize by name.

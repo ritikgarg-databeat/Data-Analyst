@@ -1,0 +1,102 @@
+slug: exp-checkout-redesign-confidence-interval
+lesson_slug: exp-reading-p-values-and-confidence-intervals
+skill: statistical-reasoning
+dataset: saas-product
+title: "95% Confidence Interval for the Checkout Redesign Effect"
+description: Compute a 95% confidence interval for the difference in conversion rate between checkout_redesign's treatment and control groups.
+exercise_type: PYTHON
+difficulty: INTERMEDIATE
+points: 15
+tags: [python, statistics, experimentation, ab-testing, saas, intermediate]
+business_context: >
+  A single point estimate ("treatment converted 1.2 points higher") hides how much uncertainty is
+  around that number. A confidence interval gives the team a range of effect sizes the data is
+  consistent with, which is what actually informs whether to keep testing or move on.
+prompt: >
+  Using `experiment_assignments`, filter to `experiment_id == 'checkout_redesign'`, and compute a
+  95% confidence interval (using the normal/Wald approximation, with a critical value of 1.96) for the
+  difference in conversion rate (treatment rate minus control rate). Store your answer in a variable
+  named `result`: a dict with keys `diff`, `ci_low`, and `ci_high`, each the underlying proportion
+  difference rounded to 4 decimal places (e.g. a 1.2-percentage-point difference should be stored as
+  `0.012`, not `1.2`).
+python_datasets: [experiment_assignments]
+python_starter_code: |
+  import numpy as np
+
+  # experiment_assignments is already loaded as a DataFrame.
+  co = experiment_assignments[experiment_assignments["experiment_id"] == "checkout_redesign"]
+  co.head()
+python_solution_code: |
+  import numpy as np
+
+  co = experiment_assignments[experiment_assignments["experiment_id"] == "checkout_redesign"]
+  control = co[co["variant"] == "control"]
+  treatment = co[co["variant"] == "treatment"]
+
+  n_c, n_t = len(control), len(treatment)
+  p_c, p_t = control["converted"].mean(), treatment["converted"].mean()
+
+  diff = p_t - p_c
+  se = np.sqrt(p_c * (1 - p_c) / n_c + p_t * (1 - p_t) / n_t)
+  ci_low = diff - 1.96 * se
+  ci_high = diff + 1.96 * se
+
+  result = {
+      "diff": round(float(diff), 4),
+      "ci_low": round(float(ci_low), 4),
+      "ci_high": round(float(ci_high), 4),
+  }
+python_result_variable: result
+python_numeric_tolerance: 0.001
+python_hidden_tests:
+  - name: "diff, ci_low, ci_high match a live recomputation"
+    code: |
+      import numpy as np
+
+      co = experiment_assignments[experiment_assignments["experiment_id"] == "checkout_redesign"]
+      control = co[co["variant"] == "control"]
+      treatment = co[co["variant"] == "treatment"]
+      n_c, n_t = len(control), len(treatment)
+      p_c, p_t = control["converted"].mean(), treatment["converted"].mean()
+      diff_expected = p_t - p_c
+      se = np.sqrt(p_c * (1 - p_c) / n_c + p_t * (1 - p_t) / n_t)
+      lo_expected, hi_expected = diff_expected - 1.96 * se, diff_expected + 1.96 * se
+
+      assert abs(result["diff"] - diff_expected) < 0.001
+      assert abs(result["ci_low"] - lo_expected) < 0.001
+      assert abs(result["ci_high"] - hi_expected) < 0.001
+  - name: "ci_low should be below diff, which should be below ci_high"
+    code: |
+      assert result["ci_low"] < result["diff"] < result["ci_high"], "The interval should straddle the point estimate."
+hints:
+  - "The standard error of a difference between two independent proportions is sqrt(p1*(1-p1)/n1 + p2*(1-p2)/n2) — compute it from the two groups' own rates and sample sizes."
+  - "A 95% CI is the point estimate plus or minus 1.96 times the standard error — don't forget the difference (and the interval) are proportions between -1 and 1, not percentages between -100 and 100."
+solution: |
+  ```python
+  import numpy as np
+
+  co = experiment_assignments[experiment_assignments["experiment_id"] == "checkout_redesign"]
+  control = co[co["variant"] == "control"]
+  treatment = co[co["variant"] == "treatment"]
+
+  n_c, n_t = len(control), len(treatment)
+  p_c, p_t = control["converted"].mean(), treatment["converted"].mean()
+
+  diff = p_t - p_c
+  se = np.sqrt(p_c * (1 - p_c) / n_c + p_t * (1 - p_t) / n_t)
+  ci_low = diff - 1.96 * se
+  ci_high = diff + 1.96 * se
+
+  result = {
+      "diff": round(float(diff), 4),
+      "ci_low": round(float(ci_low), 4),
+      "ci_high": round(float(ci_high), 4),
+  }
+  ```
+explanation: >
+  Run on the real data, control converts at 11.3% and treatment at 12.5% (diff = 0.012), with a 95% CI
+  of roughly [-0.0164, 0.0404] — i.e. [-1.64 points, +4.04 points]. The interval includes zero, so "no
+  real difference" is one of the values the data is consistent with, but the interval also leans
+  positive and extends to a meaningfully large effect — a wide, zero-crossing interval like this is the
+  signature of an underpowered test (covered in the Statistical Power module), not proof that the
+  effect isn't real.

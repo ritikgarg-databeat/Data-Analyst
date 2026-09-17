@@ -1,0 +1,21 @@
+slug: pa-north-star-metric
+skill: product-metrics
+title: Choosing a North Star Metric
+description: Which is generally the best North Star metric candidate for a messaging app?
+exercise_type: MULTIPLE_CHOICE
+difficulty: INTERMEDIATE
+points: 5
+tags:
+- north-star-metric
+- product-analytics
+prompt: Which is generally the best North Star metric candidate for a messaging app?
+correct_answer: Number of messages sent between real, distinct users per week
+explanation: A North Star metric should reflect the core value the product delivers to users, be sensitive to what
+  the product team can actually influence, and correlate with long-term business success -- messages sent between
+  real users captures ongoing core value delivered, while downloads/signups/notifications-sent are either one-time,
+  output-side, or not user-value signals.
+choices:
+- Number of messages sent between real, distinct users per week
+- Total app downloads to date
+- Number of push notifications sent
+- Total signups since launch

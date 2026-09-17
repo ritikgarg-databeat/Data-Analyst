@@ -1,0 +1,24 @@
+slug: conversion-rate-denominator-trap
+lesson_slug: conversion-rate
+skill: business-metrics
+title: The Denominator Trap
+description: Identify why two conversion rate figures for the same store can both be correct despite looking wildly different.
+exercise_type: MULTIPLE_CHOICE
+difficulty: BEGINNER
+points: 10
+tags: [business-analytics, beginner]
+prompt: >
+  A checkout team reports "68% cart-to-purchase conversion," calculated as purchases divided by carts
+  that reached the payment page. A separate report shows "9% conversion" for the same store in the
+  same week, calculated as purchases divided by all site visitors. Which statement is most accurate?
+choices:
+  - "The 9% figure is wrong, since conversion rate should never be below 10%."
+  - "Both numbers can be correct at the same time — they measure conversion at different funnel stages, so they aren't directly comparable to each other."
+  - "The 68% figure is inflated and should be discarded in favor of the 9% figure."
+correct_answer: "Both numbers can be correct at the same time — they measure conversion at different funnel stages, so they aren't directly comparable to each other."
+explanation: >
+  Conversion rate is only meaningful relative to its denominator. "68%" measures a narrow, late-funnel
+  step (payment page to purchase), while "9%" measures the full funnel (all visitors to purchase).
+  Neither number is wrong on its own, but reporting either one without stating its denominator invites
+  exactly this kind of confusion — and lets a team quietly make their numbers look better by narrowing
+  the denominator.

@@ -1,0 +1,207 @@
+slug: common-sql-interview-patterns
+module_slug: sql-interview-prep
+title: Common SQL Interview Patterns
+description: A handful of query shapes that show up over and over in SQL interviews — top-N-per-group, running totals, dedup, self-join comparisons, and "customers who did X but not Y."
+difficulty: INTERMEDIATE
+estimated_minutes: 15
+display_order: 2
+objectives:
+  - Recognize a prompt as one of a small number of recurring query shapes
+  - Write the standard SQL pattern for top-N-per-group, running totals, dedup, self-join comparisons, and "did X but not Y"
+  - Explain why each pattern's standard solution works, not just recite the syntax
+prerequisites: [sql-interview-format-and-strategy]
+skills: [interview-sql]
+datasets: [ecommerce]
+tags: [sql, interview, intermediate]
+key_takeaways:
+  - "Most SQL interview prompts, however they're worded, map onto a small set of recurring shapes — recognizing which shape a prompt is describing is most of the battle."
+  - "Top-N-per-group is ROW_NUMBER() (or RANK()) partitioned by the group, filtered to rn <= N in an outer query — it can't be filtered directly in the same SELECT as the window function, because window functions apply after WHERE (execution order again)."
+  - "'Customers who did X but not Y' is the textbook use case for NOT EXISTS — it directly expresses the negative condition without the NULL-handling traps that a NOT IN version can fall into."
+common_mistakes:
+  - "Trying to filter on a window function's result in the same SELECT's WHERE clause — window functions are computed at the SELECT step, after WHERE has already run, so the filter has to happen in an outer query or a CTE wrapped around the window function."
+  - "Using NOT IN (subquery) instead of NOT EXISTS to express 'did not do Y' — if the subquery's column can return even one NULL, NOT IN silently returns zero rows for the entire query, a classic and hard-to-spot interview trap."
+interview_questions:
+  - question: "Find the top 2 highest-revenue products in each category."
+    answer: >
+      This is top-N-per-group: rank products within each category by revenue with ROW_NUMBER() OVER
+      (PARTITION BY category_id ORDER BY revenue DESC), then filter to rn <= 2 in an outer query, since
+      a window function's result can't be filtered in the same SELECT's WHERE clause.
+  - question: "Write a query to find customers who placed an order but never had a session marked as converted."
+    answer: >
+      This is the "did X but not Y" pattern: WHERE EXISTS (a matching order) AND NOT EXISTS (a matching
+      converted session), correlated to the same customer_id in both subqueries. NOT EXISTS is
+      preferred over NOT IN here because it isn't vulnerable to NULLs silently emptying the result.
+  - question: "How would you compute a running total of daily revenue?"
+    answer: >
+      SUM(daily_revenue) OVER (ORDER BY order_date) — a window function with no PARTITION BY accumulates
+      across the entire ordered result, adding each day's revenue to every prior day's running total.
+blocks:
+  - type: heading
+    text: "Pattern 1: Top-N per group"
+  - type: text
+    body: >
+      "Find the top N [things] per [group]" is one of the most common interview shapes — top 2 products
+      per category, top 3 customers per country, and so on. The standard solution ranks rows within
+      each group with a window function, then filters to the top N in a separate step (a window
+      function's result can't be filtered in the same SELECT's WHERE clause, since WHERE runs before
+      SELECT computes it).
+  - type: code
+    language: sql
+    caption: Top 2 products by revenue, within each category
+    code: |
+      WITH product_revenue AS (
+        SELECT
+          p.category_id,
+          p.product_name,
+          SUM(oi.quantity * (oi.unit_price - oi.discount)) AS revenue
+        FROM order_items oi
+        JOIN products p ON p.product_id = oi.product_id
+        GROUP BY p.category_id, p.product_name
+      ),
+      ranked AS (
+        SELECT
+          *,
+          ROW_NUMBER() OVER (PARTITION BY category_id ORDER BY revenue DESC) AS rn
+        FROM product_revenue
+      )
+      SELECT category_id, product_name, revenue
+      FROM ranked
+      WHERE rn <= 2
+      ORDER BY category_id, rn;
+  - type: callout
+    variant: interview_tip
+    title: Name the pattern out loud
+    body: >
+      Saying "this is a top-N-per-group question, so I'll rank with ROW_NUMBER() partitioned by the
+      group and filter in an outer layer" before writing anything signals to the interviewer that
+      you're pattern-matching from experience, not improvising from scratch — and it commits you to a
+      known-correct structure before you've typed a line of SQL.
+  - type: heading
+    text: "Pattern 2: Running totals"
+  - type: text
+    body: >
+      A running (cumulative) total is a SUM() window function with no PARTITION BY — every row's
+      running total is the sum of its own value plus every earlier row's, in whatever order the window
+      is ordered by.
+  - type: code
+    language: sql
+    caption: Running total of daily completed-order revenue
+    code: |
+      WITH daily_revenue AS (
+        SELECT
+          o.order_date,
+          SUM(oi.quantity * (oi.unit_price - oi.discount)) AS revenue
+        FROM orders o
+        JOIN order_items oi ON oi.order_id = o.order_id
+        WHERE o.status = 'completed'
+        GROUP BY o.order_date
+      )
+      SELECT
+        order_date,
+        revenue,
+        SUM(revenue) OVER (ORDER BY order_date) AS running_total
+      FROM daily_revenue
+      ORDER BY order_date;
+  - type: heading
+    text: "Pattern 3: De-duplication"
+  - type: text
+    body: >
+      "Remove duplicate rows, keeping [some rule for which one]" is dedup. The standard shape:
+      ROW_NUMBER() partitioned by whatever defines a duplicate, ordered to put the row you want to keep
+      first, then filter to rn = 1.
+  - type: code
+    language: sql
+    caption: Deduplicating rows that share the same order_id and event_date, keeping the lowest event_id
+    code: |
+      WITH deduped AS (
+        SELECT
+          *,
+          ROW_NUMBER() OVER (
+            PARTITION BY order_id, event_date
+            ORDER BY event_id
+          ) AS rn
+        FROM raw_events
+      )
+      SELECT event_id, order_id, event_date
+      FROM deduped
+      WHERE rn = 1;
+  - type: callout
+    variant: interview_tip
+    title: State your dedup rule explicitly
+    body: >
+      "Duplicate" always needs a definition: duplicate by which columns, and if there are multiple
+      copies, which one should survive (earliest by some timestamp? lowest ID? most complete row)?
+      Saying that rule out loud before writing PARTITION BY / ORDER BY shows you understand that dedup
+      logic is a judgment call being encoded, not a fixed syntax to recall.
+  - type: heading
+    text: "Pattern 4: Self-join comparisons"
+  - type: text
+    body: >
+      "Compare each [entity]'s Nth event to their Mth event" (their 1st order vs. their 2nd, this
+      month's value vs. last month's) is a self-join pattern: rank each entity's own rows, then join
+      the ranked table to itself matching on the entity plus a specific rank on each side.
+  - type: code
+    language: sql
+    caption: Days between each customer's first and second order
+    code: |
+      WITH ranked_orders AS (
+        SELECT
+          customer_id,
+          order_id,
+          order_date,
+          ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_date) AS rn
+        FROM orders
+      )
+      SELECT
+        a.customer_id,
+        a.order_date AS first_order,
+        b.order_date AS second_order,
+        DATE_DIFF('day', a.order_date, b.order_date) AS days_between
+      FROM ranked_orders a
+      JOIN ranked_orders b ON a.customer_id = b.customer_id AND a.rn = 1 AND b.rn = 2
+      ORDER BY days_between;
+  - type: heading
+    text: "Pattern 5: \"Customers who did X but not Y\""
+  - type: text
+    body: >
+      This shape is a textbook use for EXISTS / NOT EXISTS: find rows in the outer table where a
+      correlated subquery for condition X finds at least one match, and a correlated subquery for
+      condition Y finds none.
+  - type: code
+    language: sql
+    caption: Customers who placed an order but never had a converted session
+    code: |
+      SELECT c.customer_id
+      FROM customers c
+      WHERE EXISTS (
+        SELECT 1 FROM orders o WHERE o.customer_id = c.customer_id
+      )
+      AND NOT EXISTS (
+        SELECT 1 FROM sessions s
+        WHERE s.customer_id = c.customer_id AND s.converted = TRUE
+      );
+  - type: callout
+    variant: warning
+    title: Prefer NOT EXISTS over NOT IN here
+    body: >
+      `NOT IN (subquery)` has a well-known trap: if the subquery's column can return even one NULL
+      value, `NOT IN` returns an empty result for the *entire* outer query — not just skipping the NULL
+      row, silently zeroing out everything. `NOT EXISTS` doesn't have this problem, because it only
+      ever checks for the existence of a matching row rather than comparing against a list of values
+      that might contain NULL. Default to NOT EXISTS for "did not do Y" prompts.
+  - type: question
+    prompt: >
+      A prompt asks: "For each category, show the 2 products with the highest revenue." You write a
+      query with ROW_NUMBER() OVER (PARTITION BY category_id ORDER BY revenue DESC) AS rn in the SELECT
+      list, then add WHERE rn <= 2 to that same SELECT. What happens?
+    choices:
+      - "It works exactly as intended and returns the top 2 products per category"
+      - "It errors, because rn is a window function result and WHERE runs before SELECT computes it — rn doesn't exist yet at the point WHERE is evaluated"
+      - "It silently returns all products, ignoring the WHERE clause"
+    correct_index: 1
+    explanation: >
+      Window functions are computed at the SELECT step, which runs after WHERE in the logical execution
+      order. A WHERE clause in the same SELECT can't reference a window function's result because that
+      result doesn't exist yet when WHERE is evaluated. The fix is to compute rn in a CTE or subquery,
+      then filter WHERE rn <= 2 in an outer query wrapped around it — exactly the two-step shape used
+      throughout this lesson's top-N-per-group pattern.

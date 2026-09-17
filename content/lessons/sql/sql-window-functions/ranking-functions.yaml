@@ -1,0 +1,135 @@
+slug: ranking-functions
+module_slug: sql-window-functions
+title: ROW_NUMBER, RANK, and DENSE_RANK
+description: Three ways to number rows within a window, and exactly how each one handles ties differently.
+difficulty: ADVANCED
+estimated_minutes: 12
+display_order: 2
+objectives:
+  - Use ROW_NUMBER, RANK, and DENSE_RANK to number rows within a PARTITION BY / ORDER BY window
+  - Predict how each function behaves differently when two or more rows tie on the ORDER BY value
+  - Choose the right ranking function for a given requirement (unique numbering vs. meaningful ties)
+prerequisites: [window-function-basics]
+skills: [advanced-sql]
+datasets: [ecommerce]
+tags: [sql, advanced]
+key_takeaways:
+  - "ROW_NUMBER always assigns unique, sequential numbers (1, 2, 3, ...) with no regard for ties — two rows with identical ORDER BY values still get different numbers, arbitrarily broken."
+  - "RANK gives tied rows the same rank, then skips the numbers a tie 'used up' — three-way tie for 1st is followed by 4th, not 2nd."
+  - "DENSE_RANK also gives tied rows the same rank, but never skips a number afterward — a three-way tie for 1st is followed by 2nd."
+common_mistakes:
+  - "Using ROW_NUMBER to deduplicate or rank when ties should be treated as equal — ROW_NUMBER will arbitrarily pick a winner among tied rows, which can look inconsistent if the query is re-run and the tie-break happens to land differently."
+  - "Assuming RANK and DENSE_RANK are interchangeable — they only differ when there's a tie, so code that looks correct on tie-free test data can silently produce a gap in the numbering (RANK) that DENSE_RANK would never produce."
+practical_applications:
+  - "Deduplicating rows by keeping only the top-ranked row per group, e.g. ROW_NUMBER() OVER (PARTITION BY ... ORDER BY ...) = 1 to keep just the newest row per key."
+  - Building a leaderboard or top-N-per-category report where ties need to be visibly represented as ties rather than arbitrarily broken.
+blocks:
+  - type: heading
+    text: Three ways to number rows within a window
+  - type: text
+    body: >
+      ROW_NUMBER, RANK, and DENSE_RANK all do the same basic job: number the rows within each
+      partition, ordered by whatever ORDER BY inside OVER() specifies. They agree completely when
+      every row has a distinct value to order by — and diverge in three different ways the moment two
+      or more rows tie.
+  - type: code
+    language: sql
+    caption: All three ranking functions side by side, ranking products by price within category
+    code: |
+      SELECT
+        product_name,
+        category_id,
+        unit_price,
+        ROW_NUMBER() OVER (PARTITION BY category_id ORDER BY unit_price DESC) AS row_num,
+        RANK()       OVER (PARTITION BY category_id ORDER BY unit_price DESC) AS rnk,
+        DENSE_RANK() OVER (PARTITION BY category_id ORDER BY unit_price DESC) AS dense_rnk
+      FROM products
+      WHERE category_id = 1
+      ORDER BY unit_price DESC;
+  - type: text
+    body: >
+      Category 1's exact prices are all unique, so with true unit_price values these three functions
+      would agree. To actually *see* how they diverge, the example below rounds price into $100
+      tiers on purpose — several products land in the same tier, creating real ties to rank.
+  - type: code
+    language: sql
+    caption: Ranking by a rounded price tier, deliberately creating ties
+    code: |
+      SELECT
+        product_name,
+        ROUND(unit_price, -2) AS price_tier,
+        ROW_NUMBER() OVER (ORDER BY ROUND(unit_price, -2) DESC) AS row_num,
+        RANK()       OVER (ORDER BY ROUND(unit_price, -2) DESC) AS rnk,
+        DENSE_RANK() OVER (ORDER BY ROUND(unit_price, -2) DESC) AS dense_rnk
+      FROM products
+      WHERE category_id = 1
+      ORDER BY price_tier DESC, product_name;
+  - type: table
+    headers: ["product_name", "price_tier", "row_num", "rnk", "dense_rnk"]
+    rows:
+      - ["Compact Headphones", "500", "1", "1", "1"]
+      - ["Deluxe Blender", "500", "2", "1", "1"]
+      - ["Portable Garden Hose", "500", "3", "1", "1"]
+      - ["Wireless Water Bottle", "400", "4", "4", "2"]
+      - ["Classic Board Game", "300", "5", "5", "3"]
+      - ["Classic Notebook", "300", "6", "5", "3"]
+      - ["Premium Yoga Mat", "300", "7", "5", "3"]
+      - ["Pro Yoga Mat", "300", "8", "5", "3"]
+      - ["Wireless Backpack", "300", "9", "5", "3"]
+      - ["Pro Bluetooth Speaker", "200", "10", "10", "4"]
+  - type: text
+    body: >
+      All three tied products at the $500 tier get row_num values 1, 2, and 3 — ROW_NUMBER doesn't
+      care that they're tied, it just hands out the next integer to each row in whatever order the
+      database happens to encounter them. RANK gives all three of them rank 1, then jumps straight to
+      4 for the next distinct tier — leaving a gap where ranks 2 and 3 "would have been." DENSE_RANK
+      also gives the tied trio rank 1, but moves to 2 for the next tier with no gap at all.
+  - type: callout
+    variant: important
+    title: The gap is the whole point of RANK
+    body: >
+      RANK's gap isn't a bug — it reflects a real-world convention: if three runners tie for 1st
+      place, there is no 2nd or 3rd place, so the next runner is 4th. DENSE_RANK instead answers "how
+      many distinct tiers are there above or equal to this one?", ignoring how many rows occupied each
+      tier. Neither is "more correct" — they answer genuinely different questions, and the right choice
+      depends on whether skipped numbers should reflect tie sizes.
+  - type: heading
+    text: Choosing the right one
+  - type: text
+    body: >
+      ROW_NUMBER is the right tool when you need a guaranteed-unique number per row regardless of
+      ties — the most common use is deduplication, e.g. keeping only one row per customer by taking
+      `WHERE row_num = 1` after ordering by some tiebreaker. RANK and DENSE_RANK are the right tools
+      when ties are meaningful and should be visibly reported as ties, such as a leaderboard where two
+      products genuinely share the same rank.
+  - type: example
+    title: Using ROW_NUMBER to keep just the most recent order per customer
+    body: >
+      A frequent real pattern: get one row per customer_id, specifically their most recent order,
+      by ranking each customer's orders newest-first and keeping only rank 1. This has to be wrapped
+      in a CTE, since window function results can't be filtered directly in the same SELECT's WHERE
+      clause.
+    code: |
+      WITH ranked_orders AS (
+        SELECT
+          customer_id,
+          order_id,
+          order_date,
+          ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_date DESC) AS rn
+        FROM orders
+      )
+      SELECT customer_id, order_id, order_date
+      FROM ranked_orders
+      WHERE rn = 1;
+    language: sql
+  - type: question
+    prompt: "Three products tie for the highest price in their category. What rank does the next (fourth) product, with a distinct lower price, get under RANK() vs. DENSE_RANK()?"
+    choices:
+      - "RANK gives it 2; DENSE_RANK gives it 2 — they always agree on the row right after a tie"
+      - "RANK gives it 4, skipping over the ranks the tie 'used up'; DENSE_RANK gives it 2, with no gap"
+      - "RANK gives it 2; DENSE_RANK gives it 4"
+    correct_index: 1
+    explanation: >
+      RANK leaves a gap proportional to the tie's size — three rows tied for rank 1 means the next
+      distinct value gets rank 4 (1 + 3). DENSE_RANK never leaves gaps; it just counts up by one for
+      each new distinct value encountered, so the next distinct value after a tie for 1 is always 2.

@@ -1,0 +1,73 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://data-analyst-lab.local/schema/lesson.schema.json",
+  "title": "LessonContentFile",
+  "description": "Schema for content/lessons/<domain>/<module>/<lesson>.yaml. This file documents the shape; the actual enforced validation lives in apps/api/app/content/schema.py (Pydantic) run via `python -m app.content.validate`. Mirrored in TypeScript at packages/shared/src/content-types.ts.",
+  "type": "object",
+  "required": [
+    "slug", "module_slug", "title", "description", "difficulty",
+    "estimated_minutes", "display_order", "objectives", "key_takeaways", "blocks"
+  ],
+  "properties": {
+    "slug": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+    "module_slug": { "type": "string" },
+    "title": { "type": "string" },
+    "description": { "type": "string" },
+    "content_type": { "enum": ["READING", "VIDEO", "INTERACTIVE", "EXERCISE", "QUIZ"], "default": "READING" },
+    "difficulty": { "enum": ["BEGINNER", "INTERMEDIATE", "ADVANCED"] },
+    "estimated_minutes": { "type": "integer", "minimum": 1 },
+    "display_order": { "type": "integer", "minimum": 1 },
+    "objectives": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+    "prerequisites": { "type": "array", "items": { "type": "string" }, "default": [] },
+    "soft_prerequisites": { "type": "array", "items": { "type": "string" }, "default": [] },
+    "skills": { "type": "array", "items": { "type": "string" }, "default": [] },
+    "datasets": { "type": "array", "items": { "type": "string" }, "default": [] },
+    "tags": { "type": "array", "items": { "type": "string" }, "default": [] },
+    "related_lessons": { "type": "array", "items": { "type": "string" }, "default": [] },
+    "completion_criteria": {
+      "type": "object",
+      "properties": {
+        "type": { "enum": ["reading_percent", "exercise_score", "assessment_score"] },
+        "threshold": { "type": "number", "minimum": 0, "maximum": 100 }
+      },
+      "required": ["type", "threshold"]
+    },
+    "key_takeaways": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+    "common_mistakes": { "type": "array", "items": { "type": "string" }, "default": [] },
+    "practical_applications": { "type": "array", "items": { "type": "string" }, "default": [] },
+    "interview_questions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["question", "answer"],
+        "properties": { "question": { "type": "string" }, "answer": { "type": "string" } }
+      },
+      "default": []
+    },
+    "resources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["title", "url"],
+        "properties": { "title": { "type": "string" }, "url": { "type": "string" } }
+      },
+      "default": []
+    },
+    "blocks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["type"],
+        "properties": {
+          "type": {
+            "enum": [
+              "text", "heading", "callout", "code", "output", "table",
+              "formula", "image", "example", "question", "checklist", "comparison"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

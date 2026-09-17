@@ -1,0 +1,65 @@
+slug: excel-averageif-aov-by-region
+skill: excel-fundamentals
+title: Average Order Value for One Region with AVERAGEIF
+description: The `Data` sheet lists `Region` (A) and `Amount` (B). On `Summary`, fill in `B2` with an AVERAGEIF
+  formula for the average `Data!B2:B7` where `Data!A2:A7` is "West".
+exercise_type: EXCEL
+difficulty: BEGINNER
+points: 10
+tags:
+- excel
+business_context: Finance wants average order value for the West region only, to compare against East separately.
+prompt: The `Data` sheet lists `Region` (A) and `Amount` (B). On `Summary`, fill in `B2` with an AVERAGEIF formula
+  for the average `Data!B2:B7` where `Data!A2:A7` is "West".
+excel_starter_sheets:
+- name: Data
+  cells:
+    A1: Region
+    B1: Amount
+    A2: West
+    B2: '100'
+    A3: East
+    B3: '200'
+    A4: West
+    B4: '150'
+    A5: East
+    B5: '250'
+    A6: West
+    B6: '50'
+    A7: East
+    B7: '300'
+- name: Summary
+  cells:
+    A1: West Average Order Value
+    A2: Result
+excel_solution_sheets:
+- name: Data
+  cells:
+    A1: Region
+    B1: Amount
+    A2: West
+    B2: '100'
+    A3: East
+    B3: '200'
+    A4: West
+    B4: '150'
+    A5: East
+    B5: '250'
+    A6: West
+    B6: '50'
+    A7: East
+    B7: '300'
+- name: Summary
+  cells:
+    A1: West Average Order Value
+    A2: Result
+    B2: =AVERAGEIF(Data!A2:A7,"West",Data!B2:B7)
+excel_check_cells:
+- Summary!B2
+hints:
+- AVERAGEIF(range, criteria, [average_range]) -- if you omit average_range it averages the check range itself, so
+  here you need the third argument.
+- West orders are 100, 150, and 50 -- their average is 100.
+solution: '`=AVERAGEIF(Data!A2:A7,"West",Data!B2:B7)` evaluates to 100.'
+explanation: AVERAGEIF filters `Data!A2:A7` for "West" (rows 2, 4, 6) and averages the corresponding `Data!B2:B7`
+  values (100, 150, 50), giving (100+150+50)/3 = 100.

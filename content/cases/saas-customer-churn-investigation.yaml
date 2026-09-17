@@ -1,0 +1,129 @@
+slug: saas-customer-churn-investigation
+title: "The Churn Number That Won't Stop Coming Up"
+category: CUSTOMER_ANALYTICS
+difficulty: INTERMEDIATE
+estimated_minutes: 60
+
+company_context: >
+  Northlane is a mid-market B2B SaaS company selling a workflow-automation product on three
+  subscription tiers: Starter ($29/mo), Pro ($99/mo), and Enterprise ($299/mo). The company has
+  grown mostly through self-serve signups and a small outbound sales motion for larger accounts.
+stakeholder_name: "Renata Ibarra"
+stakeholder_role: "VP Customer Success"
+problem_statement: >
+  "Our churn rate feels high, and it's coming up in every leadership meeting lately. I don't have
+  a clean read on it myself — I just hear 'churn is a problem' from different directions and I
+  can't tell yet whether that's actually true, and if it is, where the fire actually is. Can you
+  dig into this and tell me what's really going on, and what I should do about it? I don't want a
+  single churn-rate number in a slide — I want to know where to point my team's limited time this
+  quarter."
+business_context: >
+  Customer Success has enough capacity to run proactive, high-touch retention outreach on only a
+  minority of the active subscriber base this quarter — not everyone. Renata needs a defensible,
+  specific basis for deciding where that limited outreach capacity goes, not a single company-wide
+  churn percentage.
+objective: >
+  Investigate Northlane's subscription data to determine whether churn is actually elevated,
+  where within the subscriber base it is concentrated, and what Customer Success should prioritize
+  given limited outreach capacity this quarter.
+initial_information: >
+  You have access to a `subscriptions` table with one row per subscription: subscription_id,
+  user_id, plan (starter/pro/enterprise), mrr, start_date, end_date, and status (active/churned).
+  There is no support-ticket history, product-usage data, or customer health score available for
+  this investigation — subscriptions is what you have.
+constraints:
+  - "Only the subscriptions table is available — no usage/engagement data, support tickets, or NPS scores."
+  - "Customer Success outreach capacity this quarter covers only a minority of the active base, so a recommendation of 'treat everyone the same' is not actionable."
+  - "Renata wants a specific, defensible priority order, not just a single overall churn rate."
+available_datasets: ["saas-product"]
+expected_deliverables:
+  - "An overall churn rate for context, plus churn rate broken out by a meaningful segment of the subscriber base"
+  - "A revenue-at-risk view that goes beyond headcount-based churn rate alone"
+  - "A specific, ranked recommendation for where Customer Success should focus this quarter's limited outreach capacity"
+  - "At least one clearly stated limitation of the analysis"
+learning_objectives:
+  - "Move from an ambiguous 'churn feels high' complaint to a specific, testable analytical question"
+  - "Segment a single aggregate metric to find where it is actually concentrated"
+  - "Combine a rate metric with volume and dollar-value to produce a revenue-at-risk view, not just a percentage"
+  - "Distinguish a headcount-based prioritization from a dollar-weighted one, and justify the choice"
+  - "Recognize and state the limits of a segment-level historical rate for predicting which specific accounts are at risk"
+stages: [CLARIFY, FRAME, EXPLORE, ANALYZE, INSIGHTS, RECOMMEND, SUBMIT]
+required_exercise_slugs: []
+tags: [saas, churn, customer-analytics, business-analytics, case-study, real-world, intermediate]
+skills: [business-metrics, business-problem-solving, data-interpretation, root-cause-analysis, decision-making]
+
+clarification_guidance:
+  - "A good clarifying question probes what 'high' is being compared against — high relative to what benchmark, prior period, or expectation?"
+  - "A good clarifying question asks whether 'churn' means logo churn (accounts), revenue churn (dollars), or both — these are not the same thing."
+  - "A good clarifying question asks whether all subscribers should be treated as one population, or whether there's reason to expect the problem is concentrated in a subset of the base."
+  - "A good clarifying question asks what decision this analysis needs to support (e.g., where to spend limited outreach capacity) rather than just 'what is the number.'"
+rubric:
+  - category: "Problem Framing & Clarification"
+    weight: 15
+    criteria:
+      - criterion: "Identifies that 'churn is high' is not itself an analyzable question and reframes it into specific, checkable sub-questions (e.g., churn relative to what, concentrated where, measured how)"
+        points: 10
+      - criterion: "Recognizes the need to segment the aggregate churn rate rather than reporting a single company-wide figure"
+        points: 10
+  - category: "Technical Analysis"
+    weight: 35
+    is_technical: true
+    criteria:
+      - criterion: "Computes an overall churn rate as context (churned subscriptions / total subscriptions)"
+        points: 10
+      - criterion: "Correctly computes churn rate broken out by subscription plan tier"
+        points: 15
+      - criterion: "Combines churn rate with each tier's active subscriber count and MRR into a revenue-at-risk figure per tier, not just a rate"
+        points: 15
+  - category: "Insight Quality"
+    weight: 20
+    criteria:
+      - criterion: "Correctly identifies the direction of the relationship between plan tier and churn rate, and states it clearly"
+        points: 10
+      - criterion: "Explains why a headcount-only view of the subscriber base would lead to a different, less useful conclusion than a dollar-weighted view"
+        points: 10
+  - category: "Recommendation & Business Judgment"
+    weight: 20
+    criteria:
+      - criterion: "Gives a specific, ranked prioritization for where limited-capacity outreach should go this quarter, not a generic 'focus on retention' statement"
+        points: 12
+      - criterion: "Justifies the ranking using the revenue-at-risk view rather than headcount alone"
+        points: 8
+  - category: "Communication"
+    weight: 10
+    criteria:
+      - criterion: "States at least one genuine limitation of using a historical, segment-level rate to guide this quarter's specific outreach targeting"
+        points: 10
+hints:
+  - "Before computing anything, decide what 'churn' should be measured against — a single company-wide rate can hide a lot. Try breaking it out by a natural grouping already present in the data."
+  - "A rate alone (percent churned) tells you how leaky a segment is, but not how much that leakiness costs. Consider what other two numbers, combined with the churn rate, would turn it into a dollar figure."
+  - "If you rank segments by number of active subscribers alone, you'll get one answer. If you rank by the dollar-weighted view instead, check whether the ranking actually changes — and if it does, that's worth explaining to Renata directly."
+  - "Whatever segment-level number you land on, ask yourself: does this tell Customer Success which specific accounts to call this week, or only which tier to focus on? Naming that gap is part of a complete answer."
+reference_solution:
+  summary: >
+    Churn is not uniform across the subscriber base, and the pattern runs counter to the common
+    assumption that larger, higher-value accounts are stickier. Computed from the subscriptions
+    table (212 total subscriptions, 140 active / 72 churned, overall churn rate 34.0%): churn rate
+    by plan tier is starter 32.2% (37 churned of 115 total), pro 35.2% (25 of 71), and enterprise
+    38.5% (10 of 26) — churn rate rises with plan tier rather than falling. Combining each tier's
+    churn rate with its currently active subscriber count (78 starter, 46 pro, 16 enterprise) and
+    its MRR ($29, $99, $299) gives an estimated monthly revenue at risk (active x churn_rate x mrr)
+    of roughly $728 for starter, $1,604 for pro, and $1,840 for enterprise — despite enterprise
+    having by far the fewest active accounts (16) of the three tiers.
+  key_insights:
+    - "Overall churn rate (34.0%) hides a real pattern: churn rate increases with plan tier (32.2% -> 35.2% -> 38.5% from starter to enterprise), the opposite of the common assumption that bigger accounts are more loyal."
+    - "A headcount-based prioritization would send outreach capacity mostly to starter (78 active accounts vs enterprise's 16) — the segment with both the lowest churn rate and the lowest per-account dollar value."
+    - "A dollar-weighted revenue-at-risk view (active subscribers x churn rate x MRR) reverses that ranking: enterprise ($1,840/mo at risk) and pro ($1,604/mo) each carry more at-risk revenue than starter ($728/mo), despite enterprise being the smallest segment by headcount."
+    - "Each individual enterprise cancellation is worth roughly 10x a starter cancellation in MRR terms, so even a modestly higher churn rate on a small enterprise base translates into an outsized revenue impact."
+  recommendation: >
+    Prioritize enterprise accounts first for this quarter's limited-capacity proactive outreach,
+    despite enterprise being the smallest segment by headcount (16 active accounts) — it carries
+    the highest revenue-at-risk of the three tiers (~$1,840/month) and the highest churn rate
+    (38.5%). Pro is the reasonable second priority (~$1,604/month at risk). Starter, despite having
+    by far the most active accounts (78), is the lowest priority on a dollar-weighted basis. A
+    headcount-only prioritization would have pointed at starter first and left the highest-value,
+    highest-churn segment essentially unprotected.
+  acceptable_alternatives:
+    - "A recommendation that prioritizes pro and enterprise jointly ahead of starter, provided it is justified with the dollar-weighted revenue-at-risk figures rather than headcount."
+    - "A recommendation that flags enterprise as highest priority but also proposes gathering usage/health-score data before finalizing outreach targeting within that tier, given the stated data limitation."
+version: 1

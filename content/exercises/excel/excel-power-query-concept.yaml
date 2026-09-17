@@ -1,0 +1,19 @@
+slug: excel-power-query-concept
+skill: excel-fundamentals
+title: What Power Query Is Actually For
+description: What is Power Query primarily used for in Excel?
+exercise_type: MULTIPLE_CHOICE
+difficulty: INTERMEDIATE
+points: 5
+tags:
+- excel
+prompt: What is Power Query primarily used for in Excel?
+correct_answer: Importing, cleaning, and reshaping data from one or more sources before it's analyzed
+explanation: 'Power Query is Excel''s ETL-style tool: connecting to one or more data sources (files, databases,
+  web), applying a recorded, repeatable sequence of cleaning/reshaping steps, and loading the result into the workbook
+  -- distinct from charting or formatting, which happen after the data is already in good shape.'
+choices:
+- Importing, cleaning, and reshaping data from one or more sources before it's analyzed
+- Creating charts and visualizations
+- Writing VBA macros
+- Applying conditional formatting rules

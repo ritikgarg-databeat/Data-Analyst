@@ -1,0 +1,47 @@
+slug: discounted-line-items
+skill: sql-fundamentals
+dataset: ecommerce
+title: Total Dollars Discounted Across Line Items
+description: Write a query that counts discounted order line items and sums the total dollar amount discounted.
+exercise_type: SQL
+difficulty: BEGINNER
+points: 15
+tags: [sql, foundations, easy]
+business_context: >
+  Pricing is investigating how much discounting is actually happening at the line-item level, and wants
+  two numbers: how many individual order line items had any discount applied at all, and the total
+  dollar amount that discounting represents across all of them.
+prompt: >
+  Using the `order_items` table, write a query that returns exactly one row with two columns:
+  `discounted_item_count` (the number of line items where `discount > 0`) and
+  `total_discount_amount` (the total dollar amount discounted across those line items, computed as
+  `discount * quantity` since `discount` is a per-unit dollar amount, rounded to 2 decimal places).
+sql_tables: [order_items]
+sql_starter_query: |
+  -- Explore the order_items table first
+  SELECT * FROM order_items LIMIT 20;
+sql_solution_query: |
+  SELECT
+    COUNT(*) AS discounted_item_count,
+    ROUND(SUM(discount * quantity), 2) AS total_discount_amount
+  FROM order_items
+  WHERE discount > 0;
+sql_row_order_matters: false
+sql_numeric_tolerance: 0.01
+hints:
+  - "Filter down to only the line items that actually had a discount first, then compute both requested numbers off that filtered set."
+  - "WHERE discount > 0 narrows the rows; COUNT(*) counts how many are left, and SUM(discount * quantity) totals the dollar impact — remember discount is a PER-UNIT amount, so it needs to be multiplied by quantity to get the line's total discount."
+solution: |
+  ```sql
+  SELECT
+    COUNT(*) AS discounted_item_count,
+    ROUND(SUM(discount * quantity), 2) AS total_discount_amount
+  FROM order_items
+  WHERE discount > 0;
+  ```
+explanation: >
+  A strong answer filters to discount > 0 with WHERE before aggregating, then reports both the row count
+  (COUNT(*)) and the dollar total (SUM(discount * quantity)) from that same filtered set in a single
+  query. The detail that separates a correct answer from a subtly wrong one is multiplying discount by
+  quantity: discount is stored as a per-unit dollar amount, so summing the raw discount column alone
+  understates the true dollar impact on any line item where quantity is greater than one.

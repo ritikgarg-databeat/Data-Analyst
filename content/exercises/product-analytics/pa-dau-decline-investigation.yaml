@@ -1,0 +1,66 @@
+slug: pa-dau-decline-investigation
+skill: product-metrics
+title: Why Did DAU Drop 12% This Week?
+description: 'Walk through how you would investigate this DAU decline: what you would clarify first, how you would
+  validate the number is real, how you would segment to localize it, what you would investigate as candidate causes,
+  how you would quantify the impact, and what you would recommend. State your reasoning at each step rather than
+  jumping straight to a conclusion.'
+exercise_type: BUSINESS_REASONING
+difficulty: ADVANCED
+points: 30
+tags:
+- dau
+- product-analytics
+- root-cause
+business_context: You're the analyst supporting a consumer app's growth team. This week's DAU dashboard shows a
+  12% week-over-week decline, and the head of growth wants an explanation before tomorrow's standup.
+prompt: 'Walk through how you would investigate this DAU decline: what you would clarify first, how you would validate
+  the number is real, how you would segment to localize it, what you would investigate as candidate causes, how
+  you would quantify the impact, and what you would recommend. State your reasoning at each step rather than jumping
+  straight to a conclusion.'
+stakeholder: null
+constraints:
+- You do not know in advance what caused the decline -- reason through the investigation process itself, not a single
+  guessed answer.
+- Assume you have access to raw event-level logs, platform/OS breakdowns, acquisition-channel data, and release/deploy
+  history.
+expected_deliverables:
+- Clarifying questions (comparison window, single-day vs sustained, any known releases/incidents)
+- A validation step confirming the drop is real and not a tracking artifact
+- A segmentation plan (platform, channel, tenure, geography) to localize where the drop concentrates
+- At least 2-3 concrete candidate causes to investigate, tied to what segmentation would reveal
+- A plan for quantifying the impact (e.g. in DAU, revenue, or downstream retention terms)
+- A recommendation appropriate to the (unknown, to-be-determined) root cause -- i.e. a decision process, not a guess
+rubric:
+- criterion: Asks the right clarifying questions before analyzing (exact comparison window, single-day spike vs.
+    multi-day sustained decline, recent releases/outages/marketing changes)
+  points: 20
+- criterion: Proposes verifying the decline is real (recomputing DAU from raw events) before trusting the dashboard
+    number
+  points: 15
+- criterion: Proposes a concrete segmentation plan (platform, acquisition channel, tenure/cohort, geography) to
+    localize where the decline concentrates, rather than treating it as uniform
+  points: 25
+- criterion: Names specific, plausible candidate causes tied to what each segmentation cut could reveal (e.g. a
+    platform-specific bug, a channel-specific traffic drop, a broad seasonal effect)
+  points: 20
+- criterion: Describes how to quantify business impact once a cause is found, and gives a recommendation process
+    appropriate to whatever the investigation turns up rather than a single premature guess
+  points: 20
+hints:
+- 'This question deliberately has no single ''correct'' root cause -- what''s being evaluated is the investigation
+  process: clarify, validate, segment, investigate, quantify, recommend, in roughly that order.'
+- Resist jumping straight to 'it's probably the new release' -- state what evidence would confirm or rule out each
+  candidate cause.
+solution: A strong answer clarifies the exact window and whether it's a single-day blip or sustained before analyzing
+  further; recomputes DAU from raw events to rule out a dashboard/tracking bug; segments by platform, acquisition
+  channel, tenure, and geography to see whether the decline is uniform (pointing toward something broad like seasonality
+  or an app-store-wide issue) or concentrated (pointing toward something specific like one platform's release or
+  one channel's traffic drop); cross-references the timing against release/deploy and marketing-spend history for
+  whichever segment looks most affected; quantifies the impact in DAU and, if relevant, downstream revenue/retention
+  terms; and recommends action calibrated to whatever the investigation actually finds (e.g. a rollback if a release
+  is implicated, a channel-spend conversation if one channel dried up, or standing down if it's a known seasonal
+  pattern) -- rather than guessing a cause upfront and working backward to justify it.
+explanation: 'This question is intentionally open-ended and process-focused: analysts who jump straight to a guessed
+  root cause without a validation/segmentation process are marked down even if they happen to guess right, since
+  the interview is testing the investigative method, not psychic root-cause guessing.'

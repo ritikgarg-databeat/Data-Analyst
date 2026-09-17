@@ -1,0 +1,105 @@
+slug: multi-table-joins
+module_slug: sql-joins
+title: Multi-Table Joins
+description: Chaining three or more joins together to connect a full chain of related tables.
+difficulty: INTERMEDIATE
+estimated_minutes: 13
+display_order: 6
+objectives:
+  - Chain three or more JOIN clauses together to connect a sequence of related tables
+  - Read a multi-table join by following the relationship chain one link at a time, rather than all at once
+  - Explain why listing joins in a readable relationship order matters, even though it doesn't change the result
+prerequisites: [self-joins]
+skills: [sql-fundamentals]
+datasets: [ecommerce]
+tags: [sql, intermediate]
+key_takeaways:
+  - "A query isn't limited to one JOIN — each additional JOIN...ON pulls in one more table, connected by its own condition, and they chain together into a single result."
+  - "Chained joins are easiest to read (and write) by following the natural relationship path — orders to order_items to products to categories — rather than jumping between unrelated tables."
+  - "The order tables are listed in FROM/JOIN doesn't change the result of an INNER JOIN chain — the database is free to execute it in whatever order is fastest. Listing order is purely a readability choice for the person writing and reading the query."
+common_mistakes:
+  - "Writing a long join chain in one pass without checking the row count or a few sample rows after each additional JOIN — a mistake in the third join's ON condition is much easier to isolate by building the query up one join at a time than by debugging all four at once."
+  - "Joining a table that isn't actually needed for the columns or filters in the query, just because it's \"in between\" two tables that are needed — every extra join is an extra chance for a fan-out or a subtly wrong condition, covered in the next lesson."
+blocks:
+  - type: heading
+    text: Following a chain of relationships
+  - type: text
+    body: >
+      A single JOIN connects two tables. Nothing stops a query from adding a second, third, or fourth
+      JOIN, each pulling in one more table connected by its own ON condition. "What category did each
+      completed order's items belong to?" needs four tables: orders (to filter by status), order_items
+      (the actual line items), products (to find each item's category_id), and categories (to turn
+      that id into a readable name).
+  - type: code
+    language: sql
+    caption: Revenue by category and channel, chaining four tables together
+    code: |
+      SELECT
+        cat.category_name,
+        o.channel,
+        SUM((oi.unit_price - oi.discount) * oi.quantity) AS revenue
+      FROM orders o
+      JOIN order_items oi ON oi.order_id = o.order_id
+      JOIN products p ON p.product_id = oi.product_id
+      JOIN categories cat ON cat.category_id = p.category_id
+      WHERE o.status = 'completed'
+      GROUP BY cat.category_name, o.channel
+      ORDER BY cat.category_name, o.channel;
+  - type: text
+    body: >
+      Read this the same way the relationships actually connect the tables, one link at a time:
+      orders to order_items on order_id (an order has many line items), order_items to products on
+      product_id (each line item is for one product), products to categories on category_id (each
+      product belongs to one category). Each JOIN...ON pair is a small, checkable statement about how
+      two tables relate — the whole chain is just those statements stacked up.
+  - type: heading
+    text: Why the listing order is a readability choice
+  - type: text
+    body: >
+      For an INNER JOIN chain like this one, the order tables appear in FROM/JOIN doesn't change what
+      rows come back — the database's query planner is free to actually execute the joins in whatever
+      order it estimates will be fastest, regardless of how the SQL is written. Listing them in
+      relationship order (orders, then order_items, then products, then categories) isn't a
+      performance requirement; it's what makes the query readable to the next person, because it
+      mirrors how the tables actually connect to each other instead of jumping around.
+  - type: example
+    title: Adding a fifth table to the chain
+    body: >
+      The same pattern extends further without changing shape — adding customers onto the front of
+      the chain (orders already connects to it) makes it possible to filter or group by something
+      about the customer, like country, alongside everything already available from the
+      products/categories side.
+    code: |
+      SELECT
+        c.country,
+        cat.category_name,
+        SUM((oi.unit_price - oi.discount) * oi.quantity) AS revenue
+      FROM customers c
+      JOIN orders o ON o.customer_id = c.customer_id
+      JOIN order_items oi ON oi.order_id = o.order_id
+      JOIN products p ON p.product_id = oi.product_id
+      JOIN categories cat ON cat.category_id = p.category_id
+      WHERE o.status = 'completed' AND c.country = 'Germany'
+      GROUP BY c.country, cat.category_name
+      ORDER BY revenue DESC;
+    language: sql
+  - type: callout
+    variant: tip
+    title: Build it up incrementally
+    body: >
+      When writing a chain like this from scratch, it rarely goes smoothly to type all four or five
+      joins at once. Add one JOIN, run the query, glance at the row count and a few sample rows, then
+      add the next one. A mistake in the fourth join's ON condition is obvious in isolation and much
+      harder to spot buried underneath three other joins that are all working correctly.
+  - type: question
+    prompt: "A query joins orders to order_items to products to categories using INNER JOIN throughout, then a second version of the same query lists the four tables in a different order in FROM/JOIN. What changes about the result?"
+    choices:
+      - "Nothing — for an INNER JOIN chain, the listing order doesn't affect which rows come back"
+      - "The row count will differ, because join order determines which rows survive"
+      - "The query will fail, because tables must be listed in relationship order"
+    correct_index: 0
+    explanation: >
+      For a chain of INNER JOINs, the result is the same regardless of the order the tables are
+      listed in — the database's query planner decides the actual execution order internally. Listing
+      order is a readability convention (following the natural relationship path is easier to follow),
+      not a correctness or performance requirement the query is forced into.

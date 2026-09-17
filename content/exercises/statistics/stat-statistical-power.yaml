@@ -1,0 +1,20 @@
+slug: stat-statistical-power
+skill: statistics
+title: What Increases Statistical Power
+description: Which of the following would INCREASE a test's statistical power (its ability to detect a true effect)?
+exercise_type: MULTIPLE_CHOICE
+difficulty: ADVANCED
+points: 5
+tags:
+- statistics
+- statistical-power
+prompt: Which of the following would INCREASE a test's statistical power (its ability to detect a true effect)?
+correct_answer: Increasing the sample size
+explanation: Power increases with larger sample size (less sampling noise), a larger true effect size, and a looser
+  (higher) alpha -- the opposite of options 2-4, which either reduce sample size, tighten alpha (making it harder
+  to reject the null), or shrink the effect being detected, all of which reduce power.
+choices:
+- Increasing the sample size
+- Decreasing the sample size
+- Making the significance threshold stricter (e.g. 0.01 instead of 0.05) with no other change
+- Reducing the effect size being tested for, with everything else held constant

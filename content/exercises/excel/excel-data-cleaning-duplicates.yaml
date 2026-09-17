@@ -1,0 +1,21 @@
+slug: excel-data-cleaning-duplicates
+skill: excel-fundamentals
+title: Handling Duplicate Rows Before Analysis
+description: Before computing any totals from an imported transaction list, you notice a small number of exact duplicate
+  rows (identical across every column) that would double-count those transactions. What's the correct first step?
+exercise_type: MULTIPLE_CHOICE
+difficulty: BEGINNER
+points: 5
+tags:
+- excel
+prompt: Before computing any totals from an imported transaction list, you notice a small number of exact duplicate
+  rows (identical across every column) that would double-count those transactions. What's the correct first step?
+correct_answer: Remove the duplicate rows before computing any summary formulas
+explanation: Exact duplicate rows should be identified and removed (Excel's Data > Remove Duplicates, or an equivalent
+  dedup step) before any SUM/COUNT/AVERAGE runs over the data -- formulas have no built-in awareness of duplication,
+  so leaving them in silently inflates every downstream total.
+choices:
+- Remove the duplicate rows before computing any summary formulas
+- Ignore them since Excel formulas automatically skip duplicates
+- Apply conditional formatting to color them and leave them in place
+- Double the affected totals manually to compensate

@@ -1,0 +1,108 @@
+slug: conditions
+module_slug: python-for-analysts
+title: Conditions
+description: Branching logic with if/elif/else, and the comparison and boolean operators that drive it.
+difficulty: BEGINNER
+estimated_minutes: 12
+display_order: 3
+objectives:
+  - Write if/elif/else chains to branch program logic
+  - Use comparison operators (==, !=, <, >, <=, >=) and boolean operators (and, or, not) correctly
+  - Recognize how Python's indentation-based blocks define what code runs under each branch
+prerequisites: [data-types]
+skills: [python-fundamentals]
+tags: [python, beginner, foundations]
+key_takeaways:
+  - "if/elif/else lets a script take a different path depending on data — the same logic you'd write as a CASE WHEN in SQL."
+  - Conditions are only ever evaluated top to bottom, and Python stops at the first True branch — order your elif checks from most specific to most general.
+  - "and/or/not combine conditions; indentation (not braces) is what defines which lines belong to which branch in Python."
+common_mistakes:
+  - "Using = instead of == inside a condition (if x = 5: is a syntax error in Python, which is a helpful guardrail, but the intent-level mistake still trips people up coming from other tools)."
+  - "Writing elif conditions that can never be reached because an earlier, broader condition already caught that case (e.g. checking > 0 before checking > 100)."
+  - Forgetting that indentation is syntactically meaningful in Python — inconsistent spacing (mixing tabs and spaces) causes an IndentationError rather than just a style warning.
+blocks:
+  - type: text
+    body: >
+      Most real analysis isn't a straight line — it depends on the data. "If this customer's total
+      spend is over $10,000, flag them as enterprise. Otherwise, if they've ordered in the last 30
+      days, flag them as active. Otherwise, flag them as dormant." That's branching logic, and in
+      Python you write it with `if`, `elif`, and `else` — the direct equivalent of a SQL `CASE WHEN`.
+  - type: heading
+    text: if / elif / else
+  - type: code
+    language: python
+    code: |
+      total_spend = 12500
+
+      if total_spend > 10000:
+          segment = "enterprise"
+      elif total_spend > 1000:
+          segment = "mid_market"
+      else:
+          segment = "small_business"
+
+      print(segment)  # "enterprise"
+    caption: A branching chain, evaluated top to bottom
+  - type: callout
+    variant: important
+    title: Indentation is the block
+    body: >
+      Python has no `{ }` or `BEGIN...END` to mark what belongs inside an if block — indentation
+      itself is the syntax. Every line indented under `if total_spend > 10000:` is part of that
+      branch. Mixing tabs and spaces, or indenting inconsistently, raises an IndentationError. Most
+      editors handle this for you, but it's worth knowing why Python is strict about it.
+  - type: heading
+    text: Comparison and boolean operators
+  - type: table
+    headers: ["Operator", "Meaning", "Example"]
+    rows:
+      - ["==", "equal to", 'status == "active"']
+      - ["!=", "not equal to", 'status != "cancelled"']
+      - ["<, >, <=, >=", "less/greater than (or equal)", "order_total > 100"]
+      - ["and", "both conditions must be True", "order_total > 100 and status == \"active\""]
+      - ["or", "at least one condition must be True", 'region == "US" or region == "CA"']
+      - ["not", "inverts a condition", "not is_cancelled"]
+  - type: example
+    title: Combining conditions for a real filter
+    body: >
+      This mirrors a SQL WHERE clause with AND/OR — the logic is identical, only the syntax differs.
+      Python evaluates `and`/`or` with normal short-circuiting, just like SQL: if the first condition
+      in an `and` is False, Python doesn't bother checking the second.
+    code: |
+      order_total = 250
+      status = "active"
+      is_first_order = False
+
+      if order_total > 100 and status == "active":
+          priority = "high"
+      elif is_first_order or order_total > 500:
+          priority = "medium"
+      else:
+          priority = "low"
+
+      print(priority)  # "high"
+    language: python
+  - type: heading
+    text: Order matters
+  - type: text
+    body: >
+      Python checks `if`/`elif` conditions in order and stops at the **first** one that's True. If you
+      check the broad case before the narrow one, the narrow branch becomes unreachable — a subtle bug
+      that produces no error, just silently wrong classification.
+  - type: comparison
+    title: Broad-first (buggy) vs. narrow-first (correct)
+    columns: ["Version", "Code shape", "Result for total_spend = 15000"]
+    rows:
+      - ["Broad-first (bug)", "if total_spend > 1000: ... elif total_spend > 10000: ...", 'Always lands in "mid_market" — the enterprise branch is unreachable']
+      - ["Narrow-first (correct)", "if total_spend > 10000: ... elif total_spend > 1000: ...", 'Correctly lands in "enterprise"']
+  - type: question
+    prompt: "Given this code, what does priority equal? order_total = 80; is_first_order = True — if order_total > 100 and is_first_order: priority = \"A\" — elif is_first_order: priority = \"B\" — else: priority = \"C\""
+    choices:
+      - "A"
+      - "B"
+      - "C"
+    correct_index: 1
+    explanation: >
+      The first condition requires BOTH order_total > 100 AND is_first_order to be True. order_total is
+      80, so that condition is False even though is_first_order is True — `and` requires both sides.
+      Python then checks the elif, `is_first_order`, which is True, so priority is set to "B".

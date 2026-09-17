@@ -1,0 +1,110 @@
+slug: de-elt-and-modern-warehouses
+module_slug: etl-vs-elt
+title: "ELT: Why Modern Warehouses Flipped the Order"
+description: How cheap, elastic cloud warehouse compute made it practical to load raw data first and transform it afterward — and why that's the default pattern behind tools like dbt today.
+difficulty: BEGINNER
+estimated_minutes: 20
+display_order: 2
+objectives:
+  - Explain what changed technologically to make ELT practical at scale
+  - Contrast ELT's ordering with ETL's, and state the concrete advantage ELT gains from loading raw data first
+  - Recognize dbt's role as a transformation tool that operates squarely in the "T" of ELT
+prerequisites: [de-etl-fundamentals]
+skills: [etl-elt, modern-data-stack]
+datasets: [ecommerce]
+tags: [etl, elt, data-engineering, modern-data-stack, beginner]
+key_takeaways:
+  - "ELT loads raw data into the warehouse first, then transforms it afterward using the warehouse's own compute — the same three verbs as ETL, in a different order."
+  - "This ordering became practical once cloud data warehouses (and lakehouses) made storage cheap and compute elastic, so running heavy transformations *inside* the warehouse stopped being wasteful."
+  - "Loading raw data first means the original, untransformed version is always still there — if a transformation rule turns out to be wrong, you can just re-run it against the preserved raw data instead of re-extracting from the source system."
+common_mistakes:
+  - "Assuming ELT means \"no transformation happens\" — it happens just as much as in ETL, only after loading, and usually expressed as SQL (often via a tool like dbt) that runs directly against the warehouse."
+  - "Assuming ELT is a strictly better replacement for ETL in every situation — a strict requirement to never persist certain raw data unmasked (e.g. some PII/compliance cases) can still favor transforming before load, even today."
+interview_questions:
+  - question: "Why did the industry broadly shift from ETL to ELT over the last decade or so?"
+    answer: >
+      Cloud data warehouses (and later lakehouses) made storage extremely cheap and made compute
+      elastic — you can spin up huge amounts of processing power for the duration of a
+      transformation job and pay only for that window, rather than provisioning a fixed, expensive
+      on-premise server. That made it practical to load all the raw data first (storage is cheap)
+      and run transformations as SQL directly inside the warehouse (compute is now cheap and
+      scalable too) — gaining the safety net of always having the original raw data preserved,
+      without the old cost penalty ETL was designed around.
+blocks:
+  - type: heading
+    text: Same three verbs, reversed order
+  - type: text
+    body: >
+      **ELT** is Extract, Load, Transform — the same three operations as ETL, but with Load and
+      Transform swapped. Raw data is extracted from the source and loaded into the warehouse
+      *immediately*, with little to no cleanup. Only afterward does a transformation step run —
+      but now that step runs as SQL executed directly inside the warehouse itself, against the raw
+      data that's already sitting there.
+  - type: example
+    title: "The same messy order data, handled as ELT"
+    body: >
+      Take the same messy raw order data from the ETL lesson — inconsistent status casing,
+      string-typed dates, a few duplicate rows. In ELT, all of that lands in the warehouse
+      *as-is*, typically into a raw or staging schema, exactly as it came from the source. Only
+      after it's loaded does a transformation step (commonly a dbt model, covered in the Modern
+      Data Stack domain) run SQL against that raw table to standardize statuses, parse dates, and
+      deduplicate — producing a clean `orders` table as a second, derived table, while the original
+      raw load still exists untouched right next to it.
+  - type: code
+    language: sql
+    code: |
+      -- Conceptual ELT transform step: this SQL runs *inside* the warehouse,
+      -- against data that was already loaded raw — this is the "T" a tool
+      -- like dbt is built to manage and version-control.
+      select
+          order_id,
+          customer_id,
+          order_date,
+          lower(trim(status)) as status,   -- standardize after the fact
+          channel
+      from raw.orders                       -- the untouched, already-loaded raw table
+      where order_id is not null;
+    caption: "In ELT, transformation is ordinary SQL running against already-loaded raw data — this is exactly the shape of a dbt model."
+  - type: heading
+    text: What made this practical
+  - type: text
+    body: >
+      ELT isn't a new idea so much as a newly *affordable* one. Cloud data warehouses (like
+      Snowflake, BigQuery, or Databricks) decoupled storage from compute and made both cheap and
+      elastic — you pay for storage by the gigabyte and for compute only while a query or
+      transformation is actually running. That combination made it economical to load every raw row
+      first, keep it around indefinitely, and spin up compute on demand to run transformations
+      directly against it — something that would have been prohibitively slow and expensive against
+      an older, fixed-capacity on-premise warehouse.
+  - type: comparison
+    title: "ETL vs. ELT, side by side"
+    columns: ["", "ETL", "ELT"]
+    rows:
+      - ["Order", "Extract → Transform → Load", "Extract → Load → Transform"]
+      - ["Where transformation runs", "A separate processing system", "Inside the destination warehouse itself"]
+      - ["Raw data preserved?", "Usually not", "Yes — it's loaded before anything is done to it"]
+      - ["Recovering from a wrong transformation rule", "Often requires re-extracting from the source", "Re-run the transformation against the raw data already in the warehouse"]
+      - ["Typical modern tooling", "Dedicated ETL/processing servers", "The warehouse's own SQL engine, often orchestrated by dbt"]
+  - type: callout
+    variant: important
+    title: "This is exactly where dbt lives"
+    body: >
+      When you build models in the dbt Lab later in this platform, you're working entirely inside
+      the "T" of ELT — writing SQL that transforms already-loaded raw tables into clean, tested,
+      documented models. dbt doesn't extract or load data itself; it assumes that's already
+      happened, and focuses entirely on making the transformation step version-controlled, testable,
+      and repeatable.
+  - type: question
+    prompt: >
+      What is the single biggest practical advantage ELT gains by loading raw data before
+      transforming it?
+    choices:
+      - "It uses less total storage than ETL"
+      - "The original, untransformed data is preserved in the warehouse, so a wrong or outdated transformation rule can be corrected and simply re-run without needing to re-extract from the source"
+      - "It removes the need for any transformation step at all"
+    correct_index: 1
+    explanation: >
+      Because the raw data is loaded first and kept, ELT pipelines have a built-in safety net: any
+      transformation logic can be revised and re-executed against the preserved raw tables. ETL
+      pipelines that discard the untransformed data don't have that option — an error discovered
+      later can require going all the way back to the original source system.

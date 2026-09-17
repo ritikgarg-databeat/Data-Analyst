@@ -1,0 +1,119 @@
+slug: dm-facts-and-dimensions
+module_slug: star-schema-design
+title: "Facts, Dimensions & the Shape of a Star"
+description: One fact table surrounded by its dimensions — the default shape of an analytical model — grounded in this project's real fct_orders, dim_customers, and dim_products marts.
+difficulty: INTERMEDIATE
+estimated_minutes: 24
+display_order: 1
+objectives:
+  - Classify a table as FACT, DIMENSION, BRIDGE, or OTHER, and explain what distinguishes a fact table's columns from a dimension table's columns.
+  - Explain, using this project's real fct_orders and fct_daily_revenue marts, why a single dimensional model can legitimately contain more than one fact table.
+skills: [dimensional-modeling, data-modeling]
+datasets: [ecommerce]
+tags: [star-schema, fact-table, dimension-table, data-modeling, intermediate]
+prerequisites: [dm-keys-and-relationships]
+key_takeaways:
+  - "A star schema is one fact table (numeric measures at a clearly stated grain) surrounded by dimension tables (the descriptive attributes you group and filter by), connected through keys — named literally after how it looks when you draw it: one table in the middle, dimensions radiating outward."
+  - "One dimensional model can hold more than one fact table at different grains for different questions. This project's real marts have both fct_orders (1 row = 1 order, a transaction fact) and fct_daily_revenue (1 row = 1 calendar day, a periodic snapshot fact re-derived from fct_orders) side by side."
+  - "The Data Modeler's table_type field (FACT / DIMENSION / BRIDGE / OTHER) is a declaration you make per table, and it's what turns on the right validator checks — fact_table_missing_grain only ever fires for a table typed FACT; dimension_looks_like_measure only ever fires for a table typed DIMENSION."
+common_mistakes:
+  - "Building a fact table that's too thin — only foreign keys, no measures — so every real question still needs a five-table join back to the source tables, defeating the entire reason to build a mart."
+  - "Labeling a plain reference/lookup table (like a channel-name lookup with no measures and nothing you'd typically group a report by) as FACT or DIMENSION when OTHER is the honest classification."
+interview_questions:
+  - question: "What makes a table a 'fact' table rather than a 'dimension' table?"
+    answer: >
+      A fact table holds the numeric measures of some business process or event, at a clearly stated grain —
+      its columns are mostly things you'd SUM or AVG (revenue, margin, item count). A dimension table holds the
+      descriptive attributes of an entity — its columns are mostly things you'd GROUP BY or filter on (segment,
+      category, country). The distinction is about what the columns are for, not which table "sounds" more
+      important: fct_orders is small in column count but grows every day; dim_customers has richer descriptive
+      detail but grows slowly, roughly with the customer count.
+blocks:
+  - type: heading
+    text: One table in the middle, dimensions radiating outward
+  - type: text
+    body: >
+      A star schema is named for how it looks once you draw it: one **fact table** in the center, holding the
+      numeric measures of some business process at a clearly stated grain, surrounded by **dimension tables**
+      that hold the descriptive attributes you'd group or filter that fact by. Every dimension connects back to
+      the fact table through a key. That's the whole shape — and it's the default answer to "how should an
+      analytical model be organized" for the overwhelming majority of business questions.
+  - type: example
+    title: "The real star behind this project's ecommerce revenue reporting"
+    body: >
+      `fct_orders` (grain: 1 row = 1 order) is the fact table: its columns are almost entirely measures —
+      item_count, total_quantity, gross_revenue, gross_margin, gross_margin_pct, amount_paid, amount_refunded —
+      plus the foreign key needed to connect outward (customer_id) and a few attributes that travel with the
+      order itself (order_date, status, channel). `dim_customers` (grain: 1 row = 1 customer) and
+      `dim_products` (grain: 1 row = 1 product) are the dimensions: almost entirely descriptive attributes —
+      customer_segment, country, category_name, is_active — that you'd GROUP BY or filter a revenue report on.
+  - type: comparison
+    title: "Fact table vs. dimension table"
+    columns: ["Aspect", "Fact table (e.g. fct_orders)", "Dimension table (e.g. dim_customers)"]
+    rows:
+      - ["What it holds", "Numeric measures of an event or process", "Descriptive attributes of an entity"]
+      - ["Grain", "Usually fine (1 row = 1 order) — stated explicitly", "Usually one row per entity instance"]
+      - ["Typical use in a query", "SUM / AVG / COUNT its measures", "GROUP BY / WHERE its attributes"]
+      - ["Row count over time", "Grows continuously as events happen", "Grows slowly, roughly with entity count"]
+      - ["Row count today", "4,205 (fct_orders, 1 per real order)", "1,500 (dim_customers, 1 per real customer)"]
+  - type: heading
+    text: A model can have more than one fact table
+  - type: text
+    body: >
+      It's a common misconception that a dimensional model has exactly one fact table. This project's real
+      marts have two, at deliberately different grains, answering different questions. `fct_orders` is a
+      **transaction fact** — one row is created the moment an order exists, and it never changes shape
+      afterward. `fct_daily_revenue` is a **periodic snapshot fact** — one row per calendar day, summarizing
+      that day's completed-order activity, re-derived from `fct_orders` itself.
+  - type: code
+    language: sql
+    code: |
+      -- dbt/models/marts/fct_daily_revenue.sql (real, working model in this project)
+      -- Periodic snapshot fact: 1 row = 1 calendar day, summarizing that day's
+      -- completed-order activity. Unlike fct_orders (one row per order, forever),
+      -- this grain is re-derived per period.
+      select
+          o.order_date,
+          count(distinct o.order_id) as completed_order_count,
+          count(distinct o.customer_id) as distinct_customer_count,
+          sum(o.gross_revenue) as total_gross_revenue,
+          sum(o.gross_margin) as total_gross_margin
+      from {{ ref('fct_orders') }} as o
+      where o.status = 'completed'
+      group by o.order_date
+    caption: "A day-grain fact built directly on top of the order-grain fact — both are legitimate fact tables in the same model, answering different questions (\"trend by day\" vs \"detail per order\")."
+  - type: heading
+    text: table_type in the Data Modeler
+  - type: text
+    body: >
+      Every table you create in the Data Modeler gets a `table_type`: **FACT** (a measured event or process, at
+      a stated grain), **DIMENSION** (a descriptive entity you'd group or filter by), **BRIDGE** (an
+      associative table resolving a many-to-many relationship — order_items plays exactly this role for
+      orders-and-products, even though this project's real marts pre-aggregate that detail into fct_orders
+      rather than exposing order_items as its own bridge in the star), or **OTHER** (anything that's neither —
+      a pure lookup table you'd never aggregate or group a report by, like a small channel-name lookup).
+      Getting this classification right matters beyond bookkeeping: it's what turns on the right validator
+      checks, covered fully in the validating-a-data-model module.
+  - type: callout
+    variant: common_mistake
+    title: "A fact table that's all keys and no measures"
+    body: >
+      If a "fact" table you're designing has nothing but foreign keys and no actual numbers to sum, ask whether
+      it's really a fact table at all, or whether it's better modeled as a bridge (if it's resolving a
+      many-to-many) or you simply haven't finished adding the measures the business question actually needs. A
+      fact table that forces every query back out to the source tables for the numbers isn't saving anyone
+      anything.
+  - type: question
+    prompt: >
+      A table has one row per (customer, product) pair a customer has ever purchased, with no numeric columns
+      at all — just the two foreign keys. What table_type best fits, assuming its only purpose is to let you
+      answer "which customers have bought which products" without a numeric measure attached?
+    choices:
+      - "FACT, because it has foreign keys connecting to other tables"
+      - "BRIDGE, because it resolves a many-to-many relationship (customers-to-products) without carrying its own measures"
+      - "DIMENSION, because every table that isn't clearly something else defaults to DIMENSION"
+    correct_index: 1
+    explanation: >
+      A table whose entire job is resolving a many-to-many relationship — here, which customers have bought
+      which products — with no measures of its own is the textbook case for BRIDGE. FACT specifically implies
+      measures at a stated grain, which this table doesn't have.

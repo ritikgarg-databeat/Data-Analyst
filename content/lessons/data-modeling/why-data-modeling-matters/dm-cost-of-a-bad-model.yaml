@@ -1,0 +1,106 @@
+slug: dm-cost-of-a-bad-model
+module_slug: why-data-modeling-matters
+title: "The Cost of a Bad Model"
+description: How joining tables at the wrong grain silently multiplies rows and produces a plausible-looking wrong number — demonstrated on the real ecommerce dataset.
+difficulty: BEGINNER
+estimated_minutes: 14
+display_order: 1
+objectives:
+  - "Recognize the concrete symptoms of a poorly modeled dataset: slow ad hoc queries, metrics that quietly disagree across dashboards, and counts/sums that are wrong without looking wrong."
+  - Reproduce, on the real ecommerce data, how joining a "one" table to a "many" table and then aggregating a column from the "one" side silently inflates the result — the classic fan-out trap.
+skills: [data-modeling]
+datasets: [ecommerce]
+tags: [data-modeling, beginner, foundations, real-world]
+key_takeaways:
+  - "A data model is the shape you give your tables before anyone asks a question of them. A bad shape doesn't just make queries slow — it makes them wrong in ways that look completely plausible."
+  - "The most common silent error is the 'fan-out': joining a one-row-per-X table to a many-rows-per-X table and then counting or summing a column that actually belongs to the one-row-per-X side. Every matching child row duplicates the parent row first."
+  - "The fix isn't a smarter query — it's giving every table an explicit, named grain up front, and building fact/dimension tables that already encode the right grain, so nobody has to re-derive it under deadline pressure."
+common_mistakes:
+  - "Writing COUNT(o.order_id) after joining `orders` to `order_items` without DISTINCT. On the real ecommerce data this returns 12,627 — one row per order *line* — even though the standalone `orders` table has exactly 4,205 real orders."
+  - "Assuming 'the numbers don't match' always means the underlying data is dirty. Very often the data is perfectly clean and the join shape is what's wrong — the two are easy to confuse under time pressure."
+interview_questions:
+  - question: "A teammate joins `orders` to `order_items` and reports 12,627 orders placed last quarter. Your dashboard says 4,205. Which is right, and what's the most likely cause of the discrepancy?"
+    answer: >
+      4,205 is right — that's the real row count of the standalone `orders` table. 12,627 is the row count of
+      `order_items` (one row per product line, and orders in this dataset carry 1-5 line items each), so
+      joining orders to order_items and counting the joined result counts order *lines*, not orders. The fix
+      is either COUNT(DISTINCT o.order_id) after the join, or better, don't join to a finer-grained table at
+      all if the question doesn't need product-line detail.
+blocks:
+  - type: heading
+    text: Same clean data, three different "order counts"
+  - type: text
+    body: >
+      The ecommerce dataset's `orders` table has exactly 4,205 rows — that's the real number of orders placed.
+      Nothing about that number is ambiguous; it's a single, standalone table with one row per order. But watch
+      what happens the moment you need a detail that only lives on another table, like which products were in
+      each order, and you join to get it.
+  - type: code
+    language: sql
+    code: |
+      -- The standalone orders table: exactly 4,205 rows.
+      SELECT COUNT(*) FROM orders;
+      -- 4205
+
+      -- Join to order_items to look at product-level detail, then count orders the "obvious" way:
+      SELECT COUNT(o.order_id) AS naive_order_count
+      FROM orders o
+      JOIN order_items oi ON o.order_id = oi.order_id;
+      -- 12627  <- not the number of orders. It's the number of order LINES.
+
+      -- The fix: DISTINCT the parent-table key after a fan-out join.
+      SELECT COUNT(DISTINCT o.order_id) AS correct_order_count
+      FROM orders o
+      JOIN order_items oi ON o.order_id = oi.order_id;
+      -- 4205  <- matches the standalone orders table exactly.
+    caption: "Verified against the real ecommerce data: orders carry 1 to 5 line items each, so a plain join to order_items multiplies every order row by its item count."
+  - type: text
+    body: >
+      Nothing here is a data quality bug — every one of those 12,627 rows is a real, valid order line. The
+      problem is entirely about **grain**: `orders` is one row per order, `order_items` is one row per product
+      *line within* an order, and the moment you join them without thinking about which grain you're now at,
+      any aggregate you compute from the "one" side (orders) gets multiplied by however many matching rows
+      exist on the "many" side (order_items). This is usually called a **fan-out**.
+  - type: callout
+    variant: common_mistake
+    title: "Fan-out doesn't announce itself"
+    body: >
+      12,627 isn't an obviously broken number — it's not negative, not null, not a crash. It's a plausible-looking
+      integer that happens to be almost exactly 3x too large (matching the ~3.0 average line items per order in
+      this dataset). That's what makes fan-out dangerous: the query runs fine, returns a real number, and the
+      mistake only surfaces later when someone compares it against a second, correctly-modeled source and the two
+      disagree.
+  - type: heading
+    text: Where the cost actually shows up
+  - type: text
+    body: >
+      A bad model's cost rarely shows up as an error message. It shows up as three related, harder-to-diagnose
+      symptoms further downstream. **Slow queries**, because every analyst re-derives the same seven-table join
+      from scratch instead of querying a table that's already shaped correctly. **Wrong numbers**, exactly like
+      the fan-out above, silently baked into a report someone presents in a meeting. And **dashboards that
+      disagree**, because two analysts joined the same raw tables two slightly different ways and got two
+      different "order counts" that are both technically the result of a valid-looking query.
+  - type: text
+    body: >
+      This platform's own real dbt project solves this for the ecommerce data by building `fct_orders` — a
+      table that is *already* aggregated to one row per order (`item_count`, `total_quantity`, `gross_revenue`
+      pre-summed across every order's line items), so an analyst querying `fct_orders` never has to solve the
+      fan-out problem themselves. That's the entire point of deliberate data modeling: push the grain decision
+      upstream, once, into a table everyone can trust, instead of leaving every analyst to rediscover it under
+      deadline pressure. The rest of this module and the next two build up exactly the vocabulary (grain, keys,
+      fact/dimension) needed to design that kind of table on purpose.
+  - type: question
+    prompt: >
+      You join `orders` to `payments` (each order in this dataset has at most one payment) and then separately
+      join the same query to `order_items` (each order has 1-5 line items) to compute both "number of orders"
+      and "total revenue" in one query. What's the safest way to get a correct order count in that query?
+    choices:
+      - "COUNT(o.order_id), since payments only ever contributes at most one row per order so it can't be the source of any fan-out"
+      - "COUNT(DISTINCT o.order_id), regardless of which joined table might be causing duplication"
+      - "SUM(order_items.quantity), since that already accounts for every line item"
+    correct_index: 1
+    explanation: >
+      COUNT(DISTINCT o.order_id) is the safe default the moment a query joins the orders table to *any*
+      one-to-many child table — here that's order_items (1-5 rows per order), which duplicates each order row
+      once per matching item regardless of what payments is doing. Reasoning about which specific join caused
+      the fan-out is fragile; deduplicating the parent key is not.

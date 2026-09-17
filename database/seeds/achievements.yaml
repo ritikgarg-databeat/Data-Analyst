@@ -1,0 +1,77 @@
+# Seed data for the `achievements` table (Phase 11 Career layer). A
+# deliberately short, non-excessive list — badges recognize real
+# deterministic milestones, never a substitute for the underlying
+# mastery/readiness scores. Earning logic lives in
+# app/services/achievement_service.py, not here.
+- slug: first-exercise-passed
+  title: First Steps
+  description: Passed your first exercise.
+  icon: footprints
+  criteria:
+    event: exercise_attempt_passed
+    count: 1
+- slug: ten-exercises-passed
+  title: Warming Up
+  description: Passed 10 exercises.
+  icon: flame
+  criteria:
+    event: exercise_attempt_passed
+    count: 10
+- slug: first-skill-mastered
+  title: Skill Mastered
+  description: Reached MASTERED level in a skill.
+  icon: award
+  criteria:
+    event: skill_mastery_level_reached
+    level: MASTERED
+    count: 1
+- slug: first-case-completed
+  title: Case Closed
+  description: Completed your first analytics case study.
+  icon: briefcase
+  criteria:
+    event: case_attempt_completed
+    count: 1
+- slug: first-project-completed
+  title: Project Shipper
+  description: Completed your first project.
+  icon: rocket
+  criteria:
+    event: project_completed
+    count: 1
+- slug: first-interview-completed
+  title: Interview Rep
+  description: Completed your first mock interview.
+  icon: mic
+  criteria:
+    event: interview_completed
+    count: 1
+- slug: resume-added
+  title: Resume Ready
+  description: Added a resume version for review.
+  icon: file-text
+  criteria:
+    event: resume_version_created
+    count: 1
+- slug: portfolio-item-published
+  title: Show and Tell
+  description: Marked a portfolio item PORTFOLIO or PUBLIC_READY.
+  icon: image
+  criteria:
+    event: portfolio_item_privacy_upgraded
+    count: 1
+- slug: behavioral-story-bank-started
+  title: Storyteller
+  description: Added 3 behavioral stories to your Story Bank.
+  icon: book-open
+  criteria:
+    event: behavioral_story_created
+    count: 3
+- slug: interview-ready-reached
+  title: Interview Ready
+  description: Reached the Interview-Ready career readiness level for a target role.
+  icon: check-circle
+  criteria:
+    event: career_readiness_level_reached
+    level: INTERVIEW_READY
+    count: 1

@@ -1,0 +1,48 @@
+# Seed data for the `datasets` table.
+- slug: orders-sample
+  name: Sample Orders
+  description: A small synthetic e-commerce orders dataset used in early SQL and Python exercises.
+  source: local
+  source_url: null
+  domain: business-analytics
+  file_path: data/sample/orders_sample.csv
+  file_format: csv
+  row_count: 10
+  column_count: 5
+  difficulty: BEGINNER
+  metadata:
+    columns: ["order_id", "customer_id", "order_date", "status", "order_total"]
+- slug: ecommerce
+  name: E-commerce Analytics
+  description: >
+    A realistic, deterministic synthetic e-commerce database (customers, products, orders,
+    order_items, payments, sessions, marketing_campaigns, categories) used by the SQL Lab for
+    exercises, analytical practice, and interview-style challenges.
+  source: generated
+  source_url: null
+  domain: sql
+  file_path: data/sample/ecommerce
+  file_format: csv
+  row_count: null
+  column_count: null
+  difficulty: INTERMEDIATE
+  metadata:
+    tables: ["categories", "products", "customers", "marketing_campaigns", "sessions", "orders", "order_items", "payments"]
+    generator: apps/api/app/sql/generate_dataset.py
+- slug: saas-product
+  name: SaaS Product Analytics
+  description: >
+    A realistic, deterministic synthetic SaaS product database (users, events, subscriptions,
+    experiment_assignments) used by the Phase 6 Statistics/Experimentation/Business/Product
+    Analytics curriculum — funnels, cohort retention, churn/MRR, and A/B test exercises.
+  source: generated
+  source_url: null
+  domain: product-analytics
+  file_path: data/sample/saas_product
+  file_format: csv
+  row_count: null
+  column_count: null
+  difficulty: INTERMEDIATE
+  metadata:
+    tables: ["users", "events", "subscriptions", "experiment_assignments"]
+    generator: apps/api/app/sql/generate_saas_dataset.py

@@ -1,0 +1,115 @@
+slug: exp-what-is-an-experiment
+module_slug: experiment-fundamentals
+title: What Is an Experiment?
+description: >
+  Why a randomized controlled experiment (an A/B test) lets you claim your change *caused* a metric to
+  move, when a plain before/after or segment comparison can't — plus the core vocabulary you'll use
+  throughout this domain.
+difficulty: INTERMEDIATE
+estimated_minutes: 15
+display_order: 1
+objectives:
+  - Explain why randomly assigning users to groups lets you attribute a metric difference to your change, not to something else that happened at the same time
+  - Define control, treatment, variant, unit of randomization, and conversion rate
+  - Identify when a "before vs. after" or "power users vs. everyone else" comparison is not a controlled experiment, and why that matters
+skills: [experimentation, statistical-reasoning]
+datasets: [saas-product]
+tags: [experimentation, ab-testing, saas, intermediate]
+key_takeaways:
+  - A randomized controlled experiment (A/B test) splits comparable users into a control group (sees the current experience) and one or more treatment groups (see the change), at the same time, so the only systematic difference between groups is the thing you changed.
+  - Random assignment is what earns you the word "caused" — without it, any difference you observe could be explained by who ended up in each group, or by anything else happening in the world at the same time.
+  - Before-vs-after and "users who did X vs. users who didn't" comparisons are common but are not controlled experiments, because groups differ in more than the one thing you're studying.
+common_mistakes:
+  - Comparing a metric before and after a launch and crediting the entire change to the launch, when seasonality, marketing spend, or an unrelated bug fix could explain some or all of it.
+  - Comparing users who adopted a feature to users who didn't, and treating the difference as the feature's effect — the two groups likely differed before the feature existed too (self-selection).
+blocks:
+  - type: heading
+    text: Why not just compare the numbers before and after?
+  - type: text
+    body: >
+      Suppose a SaaS company redesigns its checkout page and, the following month, conversion rate is
+      higher than it was the month before. Did the redesign work? Maybe — but the calendar also moved
+      into a higher-traffic season, a pricing page also changed, and a competitor also had an outage that
+      same month. A before/after comparison can't separate "the redesign helped" from "something else
+      changed at the same time." The fix is to run the old and new checkout **at the same time**, in
+      front of comparable groups of users, so the only systematic difference between the groups is the
+      checkout itself.
+  - type: heading
+    text: The vocabulary of an experiment
+    level: 3
+  - type: text
+    body: >
+      A randomized controlled experiment (commonly called an **A/B test**) randomly assigns each
+      **unit of randomization** — usually a user, sometimes a session or an account — to one of two or
+      more groups. The **control** group keeps the current experience; the **treatment** group(s) get the
+      change being tested. Which group a unit is in is called its **variant**. Whatever behavior you're
+      counting (did the user check out? did they click? did they upgrade?) is the **conversion event**,
+      and the **conversion rate** for a group is the fraction of units in that group where it happened.
+      Because assignment is random, the two groups are, on average, alike in every way *except* which
+      experience they saw — so if their conversion rates end up different, the experience is the most
+      credible explanation.
+  - type: example
+    title: "checkout_redesign: control vs. treatment, same two months"
+    body: >
+      A SaaS product ran exactly this test. 2,000 users were randomly split into two equal groups over
+      the same window of time: 1,000 saw the existing checkout flow (control) and 1,000 saw a redesigned
+      one (treatment). Because assignment was random and simultaneous, any difference in their conversion
+      rates isn't explained by seasonality, marketing, or which kind of user happened to show up when —
+      those forces hit both groups equally.
+  - type: code
+    language: sql
+    code: |
+      SELECT
+        variant,
+        COUNT(*) AS users,
+        SUM(converted) AS conversions,
+        ROUND(AVG(converted) * 100, 2) AS conversion_rate_pct
+      FROM experiment_assignments
+      WHERE experiment_id = 'checkout_redesign'
+      GROUP BY variant
+      ORDER BY variant;
+    caption: >
+      Real output against the saas-product dataset: control converted 113/1,000 users (11.3%);
+      treatment converted 125/1,000 users (12.5%).
+  - type: table
+    caption: Observational comparison vs. a randomized experiment
+    headers: ["", "Before/after or segment comparison", "Randomized controlled experiment"]
+    rows:
+      - ["Who's compared", "The same users at two points in time, or two naturally-occurring groups", "Two groups formed by a coin flip, at the same time"]
+      - ["What else differs between groups", "Season, other launches, macro trends, self-selection", "Nothing systematic — randomization balances it out"]
+      - ["Can you say the change caused the result?", "Not reliably — plausible alternative explanations exist", "Yes, with a stated level of statistical confidence"]
+  - type: callout
+    variant: common_mistake
+    title: A/B tests aren't the only rigorous option, but they're the default for a reason
+    body: >
+      Later in this domain you'll meet quasi-experimental methods (difference-in-differences, holdouts)
+      for the cases where you truly can't randomize. But whenever you *can* randomize, do — it's the
+      simplest, most defensible way to isolate cause and effect, and it's what stakeholders and
+      interviewers will expect you to reach for first.
+  - type: question
+    prompt: >
+      A team notices that customers who use a product's "advanced search" feature have a 40% higher
+      retention rate than customers who don't. A PM proposes forcing all users through advanced search
+      onboarding to raise retention. What's the issue with using this comparison to justify that decision?
+    choices:
+      - "There's no issue — a 40% gap is a large, clearly meaningful effect"
+      - "Users weren't randomly assigned to use advanced search, so more-engaged users may simply be more likely to both discover it and stick around — the comparison can't rule out self-selection"
+      - "The issue is that retention should be measured over a longer window before drawing any conclusion"
+    correct_index: 1
+    explanation: >
+      This is a classic self-selection problem: the kind of user who seeks out and adopts an advanced
+      feature is plausibly already more engaged, more likely to succeed with the product, and more likely
+      to stick around — independent of the feature itself. Without random assignment, you can't tell how
+      much of the 40% gap is the feature helping people versus already-engaged people finding the
+      feature. The only way to know is to randomly assign onboarding (an actual experiment).
+interview_questions:
+  - question: "Why does random assignment let you make a causal claim, when a simple before/after comparison doesn't?"
+    answer: >
+      Random assignment makes the control and treatment groups statistically comparable on every
+      dimension — known and unknown — except which experience they received, because every user had
+      the same chance of landing in either group regardless of their other characteristics or the timing
+      of external events. A before/after comparison instead compares the same population (or a
+      self-selected one) across two different points in time, so any other thing that changed alongside
+      your launch — seasonality, a concurrent campaign, a shift in user mix — becomes a competing
+      explanation you cannot rule out. Randomization is what lets you say "the treatment caused the
+      difference" rather than "the treatment is associated with the difference."

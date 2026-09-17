@@ -1,0 +1,105 @@
+slug: dm-reading-architecture-diagrams
+module_slug: architecture-diagrams-for-analysts
+title: "Reading a System Architecture Diagram"
+description: The same Data Modeler engine, repurposed to show where data lives and how it flows — SOURCE, STORAGE, WAREHOUSE, TRANSFORM, SERVICE, STREAM, and BI nodes connected by FLOW edges.
+difficulty: INTERMEDIATE
+estimated_minutes: 18
+display_order: 1
+objectives:
+  - Explain what each architecture node type (SOURCE, STORAGE, WAREHOUSE, TRANSFORM, SERVICE, STREAM, BI) typically represents, and read the direction of a FLOW relationship correctly.
+  - Trace this platform's own real data pipeline — from the ecommerce CSVs to the marts an analyst queries — as a concrete architecture diagram.
+skills: [data-lineage, data-engineering-fundamentals]
+datasets: [ecommerce]
+tags: [architecture, data-modeling, data-engineering, intermediate]
+prerequisites: [dm-facts-and-dimensions]
+key_takeaways:
+  - "The Architecture Diagram Builder is the exact same engine as the Data Modeler, with model_kind set to ARCHITECTURE instead of DIMENSIONAL — the same DataModelTable/DataModelRelationship shapes, just interpreted differently: table_type becomes SOURCE/STORAGE/WAREHOUSE/TRANSFORM/SERVICE/STREAM/BI/OTHER, and the relationship type becomes FLOW (\"data moves from -> to\") instead of ONE_TO_MANY/MANY_TO_ONE/etc."
+  - "A FLOW edge describes the direction data physically moves, not a key relationship the way ONE_TO_MANY does in a dimensional model — reading it backward is a common, real confusion between the two diagram types."
+  - "This platform's own real pipeline is a legitimate, traceable architecture diagram: the ecommerce CSVs (SOURCE) get loaded into a queryable warehouse (WAREHOUSE), a real dbt project transforms staging into marts (TRANSFORM), and analysts query the result through the SQL Lab and Data Modeler (BI)."
+common_mistakes:
+  - "Reading a FLOW arrow the way you'd read a ONE_TO_MANY relationship (as a key/cardinality statement) instead of as a direction data physically moves in."
+  - "Assuming missing_primary_key, fact_table_missing_grain, or dimension_looks_like_measure apply to an ARCHITECTURE model — they're DIMENSIONAL-only checks and simply never fire here, even if a SOURCE or WAREHOUSE node has no obvious \"key\"."
+interview_questions:
+  - question: "What does it mean architecturally if a diagram shows an arrow from a WAREHOUSE node to a TRANSFORM node, and then another arrow from that TRANSFORM node back to the same WAREHOUSE node?"
+    answer: >
+      It describes a warehouse that both feeds a transformation step and receives its output back — a common,
+      legitimate pattern (e.g. a dbt project that reads staging tables from the warehouse and writes marts back
+      into the same warehouse). It is not automatically a problem: circular_relationship would flag it as a
+      warning in an ARCHITECTURE model (an educational nudge to double check the diagram is drawn at the
+      intended level of detail), not as an error — that promotion to a hard error only happens for PIPELINE
+      graphs, where an edge means an execution dependency rather than a description of where data lives.
+blocks:
+  - type: heading
+    text: Same engine, different vocabulary
+  - type: text
+    body: >
+      The Architecture Diagram Builder is built on the identical underlying engine as the Data Modeler — the
+      same tables-and-relationships graph, saved with model_kind set to **ARCHITECTURE** instead of
+      **DIMENSIONAL**. What changes is what the fields mean: table_type now describes a kind of system rather
+      than FACT/DIMENSION/BRIDGE, and a relationship's type becomes **FLOW** ("data moves from -> to") rather
+      than ONE_TO_MANY/MANY_TO_ONE/ONE_TO_ONE/MANY_TO_MANY.
+  - type: table
+    caption: "Architecture node types and what they typically represent"
+    headers: ["table_type", "Typically represents"]
+    rows:
+      - ["SOURCE", "Where data originates — an application database, an event stream, a third-party API, a file drop"]
+      - ["STORAGE", "Raw or landing storage — a data lake, a bucket of CSVs, an unprocessed staging area"]
+      - ["WAREHOUSE", "The analytical database data lands in for querying — where this platform's own dbt marts actually live"]
+      - ["TRANSFORM", "A transformation layer — this platform's own real dbt project, turning staging into marts"]
+      - ["SERVICE", "An application or API that reads or writes data"]
+      - ["STREAM", "A streaming/event system moving data continuously rather than in batches"]
+      - ["BI", "The reporting/dashboard/analyst-facing layer — where a person actually looks at the result"]
+      - ["OTHER", "Anything that doesn't fit the above"]
+  - type: heading
+    text: Reading FLOW correctly
+  - type: text
+    body: >
+      A FLOW relationship describes the direction data physically moves — from a SOURCE toward a WAREHOUSE,
+      from a WAREHOUSE toward a TRANSFORM step and back, from a TRANSFORM step toward BI. It is not a key
+      relationship the way ONE_TO_MANY is in a dimensional model; it says nothing about cardinality between
+      rows, only about which direction data travels between two systems.
+  - type: callout
+    variant: common_mistake
+    title: "A FLOW arrow is not a key relationship"
+    body: >
+      Reading "SOURCE -> WAREHOUSE, FLOW" the way you'd read "customers -> orders, ONE_TO_MANY" is a real,
+      common confusion between the two diagram types. FLOW never implies "one row here becomes many rows
+      there" — it's purely about the direction data moves between systems, drawn at whatever level of detail is
+      useful for the diagram's purpose.
+  - type: heading
+    text: This platform's own real pipeline, as a diagram
+  - type: text
+    body: >
+      The ecommerce dataset this entire domain has been using is itself real data flowing through a real,
+      traceable pipeline in this project — a legitimate architecture diagram to sketch and validate using the
+      exact same tool.
+  - type: table
+    caption: "The real path the ecommerce data takes in this project"
+    headers: ["Stage", "Suggested table_type", "What it is here"]
+    rows:
+      - ["1", "SOURCE", "The generated CSVs in data/sample/ecommerce/ (orders, customers, order_items, payments, products, categories, ...)"]
+      - ["2", "WAREHOUSE", "The queryable database the CSVs are loaded into"]
+      - ["3", "TRANSFORM", "The real dbt project (dbt/models/staging -> intermediate -> marts), e.g. stg_orders -> int_order_items_priced -> fct_orders"]
+      - ["4", "BI", "The SQL Lab and Data Modeler themselves — where an analyst actually queries fct_orders, dim_customers, and dim_products"]
+  - type: heading
+    text: Which validator checks still apply
+  - type: text
+    body: >
+      duplicate_column, the foreign_key_* family, relationship_unknown_column, dangling_relationship, and
+      circular_relationship all still run for an ARCHITECTURE model, exactly as described in the
+      validating-a-data-model module. missing_primary_key, fact_table_missing_grain, and
+      dimension_looks_like_measure do not — those three are gated to DIMENSIONAL models only, since "grain" and
+      "primary key" aren't concepts that map cleanly onto a SOURCE or WAREHOUSE node.
+  - type: question
+    prompt: >
+      In an architecture diagram, you draw a FLOW relationship from a TRANSFORM node ("dbt marts") to a
+      WAREHOUSE node. What is the most accurate reading of that arrow?
+    choices:
+      - "One row in the dbt marts step corresponds to many rows in the warehouse"
+      - "The dbt transformation step writes its output data into the warehouse"
+      - "The warehouse must be validated before the dbt marts step can run"
+    correct_index: 1
+    explanation: >
+      FLOW describes the direction data moves between systems — here, the transformation step's output lands
+      in the warehouse. It carries no cardinality meaning (that's what ONE_TO_MANY et al. mean in a DIMENSIONAL
+      model) and no execution-order meaning (that's what DEPENDS_ON means in a PIPELINE model).

@@ -1,0 +1,22 @@
+slug: biz-revenue-vs-profit
+skill: business-metrics
+title: Revenue vs. Profit
+description: A company reports $10M in revenue this quarter, up 20% year-over-year, but its net profit actually
+  declined. What's the most likely explanation to investigate first?
+exercise_type: MULTIPLE_CHOICE
+difficulty: BEGINNER
+points: 5
+tags:
+- revenue
+- margin
+prompt: A company reports $10M in revenue this quarter, up 20% year-over-year, but its net profit actually declined.
+  What's the most likely explanation to investigate first?
+correct_answer: Costs (COGS and/or operating expenses) grew faster than revenue did
+explanation: Revenue growing doesn't guarantee profit growth if costs (cost of goods sold, headcount, marketing
+  spend, etc.) grew even faster -- this is a very common real pattern (e.g. a company buying growth with heavy discounting
+  or marketing spend) worth investigating via a cost breakdown, not assuming the revenue figure itself is wrong.
+choices:
+- Costs (COGS and/or operating expenses) grew faster than revenue did
+- Revenue and profit are always the same number
+- The revenue figure must be reported incorrectly
+- Growth in revenue always guarantees growth in profit

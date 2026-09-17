@@ -1,0 +1,110 @@
+slug: pa-sql-monthly-cohort-retention-matrix
+lesson_slug: pa-cohort-retention-sql
+skill: advanced-sql
+dataset: saas-product
+title: Build a Monthly Cohort Retention Matrix
+description: Compute cohort size and period-by-period active-user retention for four signup-month cohorts.
+exercise_type: SQL
+difficulty: ADVANCED
+points: 25
+tags: [sql, product, saas, cohort, advanced]
+business_context: >
+  Product leadership wants a cohort retention matrix for the first four months of 2025 to see how
+  each month's new users decay in activity over their first few months.
+prompt: >
+  Using the `events` table, build a monthly cohort retention matrix. Assign each user to a
+  `cohort_month` (the month of their `signup_date`), and compute a `period_number` for each event as
+  the number of calendar months between the user's cohort_month and the event's month (using
+  `event_timestamp`). Only consider events where `event_timestamp >= signup_date`. Return one row per
+  (cohort_month, period_number) with columns `cohort_month`, `n_users` (the cohort's total size,
+  i.e. distinct users active in period 0), `period_number`, `active_users` (distinct users active in
+  that period), and `retention_pct` (active_users / n_users, rounded to 4 decimals). Restrict to
+  `cohort_month` between 2025-01-01 and 2025-04-01 inclusive, and `period_number` between 0 and 4
+  inclusive. Order by cohort_month, then period_number.
+sql_tables: [events]
+sql_starter_query: |
+  -- Explore signup and event date ranges first
+  SELECT MIN(signup_date), MAX(signup_date), MIN(event_timestamp), MAX(event_timestamp) FROM events;
+sql_solution_query: |
+  WITH activity AS (
+    SELECT user_id,
+      DATE_TRUNC('month', signup_date) AS cohort_month,
+      DATEDIFF('month', DATE_TRUNC('month', signup_date), DATE_TRUNC('month', event_timestamp)) AS period_number
+    FROM events
+    WHERE event_timestamp >= signup_date
+  ),
+  cohort_size AS (
+    SELECT cohort_month, COUNT(DISTINCT user_id) AS n_users
+    FROM activity WHERE period_number = 0
+    GROUP BY cohort_month
+  ),
+  retention AS (
+    SELECT cohort_month, period_number, COUNT(DISTINCT user_id) AS active_users
+    FROM activity
+    GROUP BY cohort_month, period_number
+  )
+  SELECT
+    r.cohort_month,
+    cs.n_users,
+    r.period_number,
+    r.active_users,
+    ROUND(r.active_users::DOUBLE / cs.n_users, 4) AS retention_pct
+  FROM retention r
+  JOIN cohort_size cs USING (cohort_month)
+  WHERE r.period_number BETWEEN 0 AND 4
+    AND r.cohort_month BETWEEN DATE '2025-01-01' AND DATE '2025-04-01'
+  ORDER BY r.cohort_month, r.period_number;
+sql_row_order_matters: true
+sql_numeric_tolerance: 0.001
+sql_hidden_tests:
+  - name: 2025-02 cohort's period-2 active_users matches an independent recomputation
+    query: |
+      SELECT DATE '2025-02-01' AS cohort_month, 2 AS period_number,
+             COUNT(DISTINCT e.user_id) AS expected_active_users
+      FROM events e
+      WHERE DATE_TRUNC('month', e.signup_date) = DATE '2025-02-01'
+        AND DATE_TRUNC('month', e.event_timestamp) = DATE '2025-04-01'
+        AND e.event_timestamp >= e.signup_date
+    key_columns: 2
+hints:
+  - "Build the cohort/period assignment first as its own CTE: DATE_TRUNC('month', signup_date) for cohort_month, and DATEDIFF('month', that, DATE_TRUNC('month', event_timestamp)) for period_number — don't forget the WHERE event_timestamp >= signup_date filter."
+  - "Compute cohort_size as a separate CTE (COUNT(DISTINCT user_id) WHERE period_number = 0, grouped by cohort_month), then join it to a retention CTE (COUNT(DISTINCT user_id) grouped by cohort_month AND period_number) on cohort_month, and divide."
+solution: >
+  ```sql
+  WITH activity AS (
+    SELECT user_id,
+      DATE_TRUNC('month', signup_date) AS cohort_month,
+      DATEDIFF('month', DATE_TRUNC('month', signup_date), DATE_TRUNC('month', event_timestamp)) AS period_number
+    FROM events
+    WHERE event_timestamp >= signup_date
+  ),
+  cohort_size AS (
+    SELECT cohort_month, COUNT(DISTINCT user_id) AS n_users
+    FROM activity WHERE period_number = 0
+    GROUP BY cohort_month
+  ),
+  retention AS (
+    SELECT cohort_month, period_number, COUNT(DISTINCT user_id) AS active_users
+    FROM activity
+    GROUP BY cohort_month, period_number
+  )
+  SELECT
+    r.cohort_month, cs.n_users, r.period_number, r.active_users,
+    ROUND(r.active_users::DOUBLE / cs.n_users, 4) AS retention_pct
+  FROM retention r
+  JOIN cohort_size cs USING (cohort_month)
+  WHERE r.period_number BETWEEN 0 AND 4
+    AND r.cohort_month BETWEEN DATE '2025-01-01' AND DATE '2025-04-01'
+  ORDER BY r.cohort_month, r.period_number;
+  ```
+  Run against the real data, the 2025-01 cohort (126 users) retains at 100%/26.98%/19.84%/12.70%/7.14%
+  across periods 0-4; the 2025-04 cohort (140 users) retains notably higher at month 1 (34.29%).
+explanation: >
+  The two most common failure points are (1) computing `period_number` without first truncating both
+  dates to the same grain, which can produce inconsistent offsets, and (2) joining `cohort_size` back
+  to the retention counts on the wrong key — it must join on `cohort_month` alone, not on
+  `(cohort_month, period_number)`, since cohort_size is a per-cohort constant that every period row
+  for that cohort should share as its denominator. A strong solution verifies at least one cell by
+  hand — for example, independently counting how many of the 2025-02 cohort's users have an event in
+  April 2025 (period_number = 2) and confirming it matches the matrix's own count for that cell — since
+  a mismatch there almost always signals a join or grouping bug.

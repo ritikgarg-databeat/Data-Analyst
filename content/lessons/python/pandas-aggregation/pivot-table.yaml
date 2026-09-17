@@ -1,0 +1,128 @@
+slug: pivot-table
+module_slug: pandas-aggregation
+title: Pivot Tables
+description: Reshaping long data into a wide summary table with pd.pivot_table() — index, columns, values, aggfunc, and margins for row/column totals.
+content_type: READING
+difficulty: INTERMEDIATE
+estimated_minutes: 13
+display_order: 4
+objectives:
+  - Build a pivot table with pd.pivot_table() specifying index, columns, values, and aggfunc
+  - Read a pivot table's output as a reshaped, aggregated view of long-format data
+  - Add row and column totals to a pivot table with margins=True
+prerequisites: [transform]
+skills: [pandas]
+datasets: [ecommerce]
+tags: [python, intermediate, real-world]
+key_takeaways:
+  - "pd.pivot_table() reshapes long data (one row per observation) into a wide summary table, with one categorical column's values becoming the row index, another's values becoming the column headers, and a numeric column aggregated into the cells."
+  - "It's a spreadsheet-style pivot: index=rows, columns=columns, values=what to aggregate, aggfunc=how to aggregate — the same four decisions you'd make building a pivot table in Excel."
+  - "margins=True adds a 'Total' row and column, so you can read grand totals alongside the breakdown without a separate calculation."
+common_mistakes:
+  - "Forgetting to specify aggfunc — the default is 'mean', which silently gives you averages when you actually wanted sums."
+  - "Confusing pivot_table's index/columns arguments — index becomes the rows of the output, columns becomes the column headers, which is the reverse of what the names might suggest at first glance."
+  - "Not realizing margins=True changes both the shape (an extra row and column) and requires care when doing further math on the result, since the 'Total' row/column isn't a normal data row."
+practical_applications:
+  - "Building a revenue-by-status-and-channel summary table for a stakeholder report in one call, instead of several separate groupby aggregations glued together."
+  - "Quickly answering 'which combination of category and region drives the most revenue' by eyeballing a pivoted grid."
+interview_questions:
+  - question: "What are the four core arguments to pd.pivot_table(), and what does each control?"
+    answer: "index (which column's values become the row labels), columns (which column's values become the column headers), values (which numeric column gets aggregated into the cells), and aggfunc (how to aggregate — sum, mean, count, etc., defaulting to mean). Together they answer: rows by what, columns by what, aggregate what, using which function."
+  - question: "How is pd.pivot_table() related to .groupby()?"
+    answer: "pivot_table is built on top of groupby — pd.pivot_table(df, index='a', columns='b', values='c', aggfunc='sum') is roughly equivalent to df.groupby(['a', 'b'])['c'].sum().unstack('b'). pivot_table just packages that groupby-then-reshape pattern into one call with a spreadsheet-style pivot vocabulary, plus conveniences like margins=True for totals."
+blocks:
+  - type: text
+    body: >
+      A **pivot table** reshapes "long" data — one row per observation — into a "wide" summary grid,
+      with one column's values spread across the rows, another column's values spread across the
+      columns, and a numeric measure aggregated into each cell. If you've built a pivot table in
+      Excel or Google Sheets, `pd.pivot_table()` is the same idea, expressed in code.
+  - type: heading
+    text: The four core arguments
+  - type: table
+    headers: ["Argument", "Controls", "In our example"]
+    rows:
+      - ["index", "Which column's values become the row labels", "order status"]
+      - ["columns", "Which column's values become the column headers", "channel"]
+      - ["values", "Which numeric column gets aggregated into each cell", "line revenue"]
+      - ["aggfunc", "How to aggregate — defaults to 'mean' if not specified", "'sum'"]
+  - type: code
+    language: python
+    code: |2
+      import pandas as pd
+
+      orders = pd.read_csv("data/sample/ecommerce/orders.csv")
+      items = pd.read_csv("data/sample/ecommerce/order_items.csv")
+      items["line_revenue"] = (items["unit_price"] - items["discount"]) * items["quantity"]
+
+      merged = orders.merge(items, on="order_id")
+
+      pd.pivot_table(
+          merged,
+          index="status",
+          columns="channel",
+          values="line_revenue",
+          aggfunc="sum",
+      ).round(0)
+    caption: Revenue broken down by status (rows) and channel (columns)
+  - type: output
+    body: |2
+      channel    marketplace     mobile        web
+      status
+      cancelled      55638.0   240356.0   335912.0
+      completed     565261.0  2032898.0  3204469.0
+      pending        11973.0    68786.0   135952.0
+      refunded       30421.0   170171.0   244941.0
+  - type: callout
+    variant: warning
+    title: aggfunc defaults to 'mean'
+    body: >
+      If you omit aggfunc, pivot_table silently uses the mean of values, not the sum. This is one of
+      the most common pivot_table mistakes — always specify aggfunc explicitly when you want a total.
+  - type: heading
+    text: "margins=True — row and column totals"
+  - type: code
+    language: python
+    code: |2
+      pd.pivot_table(
+          merged,
+          index="status",
+          columns="channel",
+          values="line_revenue",
+          aggfunc="sum",
+          margins=True,
+          margins_name="Total",
+      ).round(0)
+    caption: Same pivot, with a Total row and Total column added
+  - type: output
+    body: |2
+      channel    marketplace     mobile        web      Total
+      status
+      cancelled      55638.0   240356.0   335912.0   631907.0
+      completed     565261.0  2032898.0  3204469.0  5802628.0
+      pending        11973.0    68786.0   135952.0   216712.0
+      refunded       30421.0   170171.0   244941.0   445532.0
+      Total         663294.0  2512211.0  3921275.0  7096779.0
+  - type: text
+    body: >
+      Read the grid two ways at once: each row's "Total" column gives that status's overall revenue
+      across all channels, each column's "Total" row gives that channel's overall revenue across all
+      statuses, and the bottom-right corner ($7,096,779) is the grand total across everything.
+  - type: callout
+    variant: tip
+    title: pivot_table is groupby in disguise
+    body: >
+      Under the hood, pivot_table is doing a multi-column groupby and then reshaping ("unstacking")
+      one of the grouping keys into columns. If you ever get stuck on what a pivot_table call is
+      actually doing, it can help to first write it as the equivalent groupby + unstack and compare.
+  - type: question
+    prompt: "You call pd.pivot_table(df, index='region', columns='product', values='units') without specifying aggfunc. What aggregation runs by default?"
+    choices:
+      - "sum"
+      - "mean"
+      - "count"
+    correct_index: 1
+    explanation: >
+      pivot_table's aggfunc defaults to 'mean' if you don't set it explicitly — a frequent source of
+      quietly wrong totals when someone expected a sum. Always pass aggfunc='sum' (or whatever's
+      appropriate) explicitly when it matters.

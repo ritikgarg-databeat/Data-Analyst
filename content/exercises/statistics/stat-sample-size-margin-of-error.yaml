@@ -1,0 +1,20 @@
+slug: stat-sample-size-margin-of-error
+skill: statistics
+title: Sample Size and Margin of Error
+description: All else equal, if you quadruple your sample size, what happens to the margin of error of your estimate?
+exercise_type: MULTIPLE_CHOICE
+difficulty: INTERMEDIATE
+points: 5
+tags:
+- statistics
+- sample-size
+prompt: All else equal, if you quadruple your sample size, what happens to the margin of error of your estimate?
+correct_answer: It roughly halves (margin of error shrinks with the square root of sample size)
+explanation: Standard error (and therefore margin of error) scales with 1/sqrt(n) -- quadrupling n means dividing
+  the margin of error by sqrt(4) = 2, i.e. roughly halving it, not quartering it. This square-root relationship
+  is why shrinking an already-tight interval further gets expensive fast.
+choices:
+- It roughly halves (margin of error shrinks with the square root of sample size)
+- It roughly quarters
+- It stays exactly the same
+- It roughly doubles

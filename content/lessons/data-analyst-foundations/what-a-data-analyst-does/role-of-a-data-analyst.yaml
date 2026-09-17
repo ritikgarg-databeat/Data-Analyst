@@ -1,0 +1,75 @@
+slug: role-of-a-data-analyst
+module_slug: what-a-data-analyst-does
+title: Role of a Data Analyst
+description: A realistic picture of what a Data Analyst does day to day, and what it means to own a metric or domain end to end.
+difficulty: BEGINNER
+estimated_minutes: 12
+display_order: 1
+objectives:
+  - Describe the day-to-day responsibilities of a Data Analyst at roughly the 2-year experience level
+  - Explain what it means to "own" a metric or a domain end to end
+skills: [business-problem-solving, communication]
+tags: [foundations, beginner, business-analytics]
+key_takeaways:
+  - The job is mostly answering business questions with data — SQL is a tool the analyst uses, not the deliverable itself.
+  - A large share of an experienced analyst's week is ad hoc requests and dashboard upkeep, not deep one-off analysis.
+  - "\"Owning\" a metric means being the person who can explain any change in it, catch data quality problems before anyone else notices, and know its edge-case definitions cold."
+  - Strong analysts develop judgment about which requests deserve deep analysis and which need a fast, good-enough answer.
+common_mistakes:
+  - Treating every request as equally important and spending three days on a question that needed a five-minute reply.
+  - Assuming "ownership" means writing the query once — it actually means noticing a number looks wrong before a stakeholder does.
+blocks:
+  - type: heading
+    text: What the job actually looks like
+  - type: text
+    body: >
+      At roughly two years of experience, a Data Analyst spends most of their week on a mix of ad hoc
+      requests, dashboard maintenance, and a smaller number of deeper analyses that actually feed a
+      decision. The stereotype of the job — writing a clever query and being done — undersells it. The
+      real skill is figuring out what question is actually worth answering, and how much rigor a given
+      answer needs.
+  - type: checklist
+    title: A typical week
+    items:
+      - Ad hoc requests from stakeholders — "can you pull...", "why did X change"
+      - Building and maintaining dashboards that others self-serve from
+      - A smaller number of deeper analyses that feed a specific decision, like a pricing change or a feature launch
+      - Data quality checks — sanity-checking numbers before they go into a deck or a dashboard
+      - Short meetings to understand the real business question behind a data request
+  - type: heading
+    text: Owning a metric or a domain
+  - type: text
+    body: >
+      By the two-year mark, a strong analyst is usually the go-to person for at least one metric or
+      business area. Ownership doesn't mean writing the dashboard query once and moving on — it means
+      knowing the metric's definition well enough to catch when it's being measured or interpreted
+      wrong, and having enough context to explain most changes in it within minutes, not days.
+  - type: example
+    title: Owning weekly active users (WAU)
+    body: >
+      The analyst who owns WAU knows exactly how "active" is defined for this product — which events
+      count, which don't, and which edge cases (bot traffic, internal test accounts) are already
+      excluded. When WAU dips 4% one Monday, they notice it before the VP asks, and within the hour
+      they've already ruled out a tracking or pipeline issue and can say whether the dip is real,
+      broad, or concentrated in one platform. That speed comes entirely from context built up over
+      time, not from a faster query.
+  - type: callout
+    variant: common_mistake
+    title: "\"Just SQL\" is a trap"
+    body: >
+      It's easy to measure yourself on technical polish — a clever CTE, a fast query — and forget that
+      none of it matters if it answers the wrong question or never reaches a decision. The technical
+      work is necessary but is rarely what separates a good analyst from a great one.
+  - type: question
+    prompt: >
+      A stakeholder asks why revenue dropped 10% last week. What should the analyst who "owns" the
+      revenue metric do first?
+    choices:
+      - Immediately re-run a full breakdown of revenue by every possible dimension to see what jumps out
+      - Check whether anything changed in how the metric is measured or defined recently — a pipeline change, a new discount code, a tracking gap — since an owner should already have that context
+      - Wait for the data engineering team to confirm the underlying numbers are correct before doing anything
+    correct_index: 1
+    explanation: >
+      An owner's real edge is exactly this kind of context. Checking for a measurement or definition
+      change first is usually the fastest way to either rule out or find a boring explanation, before
+      spending hours on a full segmentation that a non-owner would have to start with.

@@ -1,0 +1,35 @@
+name: 'personal_data_analyst_lab'
+version: '1.0.0'
+config-version: 2
+
+profile: 'personal_data_analyst_lab'
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+analysis-paths: ["analyses"]
+clean-targets: ["target", "dbt_packages"]
+
+models:
+  personal_data_analyst_lab:
+    staging:
+      +materialized: view
+      +schema: staging
+    intermediate:
+      +materialized: view
+      +schema: intermediate
+    marts:
+      +materialized: table
+      +schema: marts
+    exercises:
+      # dbt exercise submissions (see app/services/dbt_exercise_service.py) —
+      # a view so a broken submission fails fast at `dbt run` instead of
+      # silently materializing partial/wrong data as a table.
+      +materialized: view
+      +schema: exercises
+
+seeds:
+  personal_data_analyst_lab:
+    +schema: seeds

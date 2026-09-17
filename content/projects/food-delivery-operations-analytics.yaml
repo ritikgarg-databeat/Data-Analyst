@@ -1,0 +1,116 @@
+slug: food-delivery-operations-analytics
+title: Food Delivery Analytics
+category: OPERATIONS
+business_context: >
+  Note on framing: this project reuses the platform's e-commerce order dataset (orders, order_items,
+  products, categories) under a food-delivery / marketplace-operations framing rather than a literal
+  food-delivery dataset — treat the marketplace channel as the delivery-app channel and order
+  cancellations/refunds as operational friction, the same way a delivery platform would.
+
+  You're the analyst supporting Operations at a marketplace business where orders move through a
+  pending state before completing, and a meaningful share end up cancelled or refunded — the same
+  operational failure modes a food-delivery platform deals with when an order can't be fulfilled, a
+  restaurant runs out of stock, or a customer disputes a charge. The Head of Operations wants to know
+  how much of this friction is actually happening, where it concentrates, and what to fix first.
+objective: >
+  Analyze order completion, cancellation, and refund rates as core operational-efficiency metrics,
+  investigate how they vary by channel and product category, and recommend concrete operational
+  improvements, backed by an operations dashboard that the team can monitor going forward.
+requirements:
+  - "A data-discovery summary of the order lifecycle in this dataset — the order status values, how payments and refunds relate to orders, and any inconsistencies (e.g. refunded payments on non-refunded orders)"
+  - "An operational-efficiency analysis computing completion rate, cancellation rate, and refund rate overall and as trends over time"
+  - "A breakdown of completion/cancellation/refund rates by channel (web/mobile/marketplace) to identify which fulfillment channel has the most friction"
+  - "A breakdown of cancellation/refund rates by product category to identify which categories drive the most operational failure"
+  - "An operations dashboard with at least 4 charts covering completion rate, cancellation rate, refund rate, and their breakdowns by channel and category"
+  - "A written set of operational-improvement recommendations tied to the specific channels/categories identified as highest-friction"
+suggested_datasets:
+  - ecommerce
+milestones:
+  - title: Understand the Operation
+    description: Frame the order lifecycle as an operations problem, and clarify what "friction" (cancellations, refunds) is costing the business.
+  - title: Data Discovery
+    description: Profile orders, order_items, products, categories, and payments, and map out exactly how order status, payment status, and refunds relate to each other.
+  - title: Define Operational-Efficiency Metrics
+    description: Define and compute completion rate, cancellation rate, and refund rate as the project's core operational KPIs.
+  - title: Channel Friction Analysis
+    description: Analyze how completion, cancellation, and refund rates vary across the web, mobile, and marketplace channels.
+  - title: Category Friction Analysis
+    description: Analyze how cancellation and refund rates vary across product categories to find where operational failure concentrates.
+  - title: Trend Analysis
+    description: Analyze how operational-efficiency metrics have trended over time to identify whether friction is improving or worsening.
+  - title: Build the Operations Dashboard
+    description: Design and build a dashboard the Operations team can use to monitor completion, cancellation, and refund rates on an ongoing basis.
+  - title: Insights and Recommendations
+    description: Synthesize the findings into specific, channel- and category-targeted operational-improvement recommendations.
+  - title: Final Presentation
+    description: Present the operational-friction analysis and recommendations to the Head of Operations.
+required_skills:
+  - sql-fundamentals
+  - advanced-sql
+  - exploratory-data-analysis
+  - data-quality-engineering
+  - business-metrics
+  - data-visualization
+  - root-cause-analysis
+  - communication
+rubric:
+  - category: Business Understanding
+    weight: 10
+    criteria:
+      - criterion: Correctly translates the order-lifecycle data into meaningful operational-efficiency concepts
+        points: 10
+      - criterion: Is transparent about the food-delivery framing being an analogy over e-commerce order data, not literal delivery data
+        points: 10
+  - category: Data Quality Awareness
+    weight: 15
+    criteria:
+      - criterion: Identifies real inconsistencies in the order/payment/refund relationships
+        points: 10
+      - criterion: Explains how those inconsistencies were handled in the metric definitions
+        points: 10
+  - category: Technical Execution
+    weight: 20
+    is_technical: true
+    criteria:
+      - criterion: Completion/cancellation/refund rates are computed correctly and consistently
+        points: 10
+      - criterion: Channel and category breakdowns are computed correctly
+        points: 10
+  - category: Analytical Reasoning
+    weight: 20
+    criteria:
+      - criterion: Correctly identifies which channel(s) and categories concentrate the most operational friction
+        points: 10
+      - criterion: Distinguishes genuine operational problems from data artifacts or small-sample noise
+        points: 10
+  - category: Visualization
+    weight: 15
+    criteria:
+      - criterion: Dashboard clearly surfaces completion, cancellation, and refund rate trends and breakdowns
+        points: 10
+      - criterion: Chart choices make the highest-friction channels/categories immediately visible
+        points: 5
+  - category: Recommendations
+    weight: 20
+    criteria:
+      - criterion: Recommendations are specific to the highest-friction channels/categories identified
+        points: 10
+      - criterion: Recommendations are operationally realistic, not generic advice
+        points: 10
+learning_objectives:
+  - Translate an order-lifecycle dataset into operational-efficiency metrics
+  - Analyze cancellation and refund rates as indicators of operational friction
+  - Break down operational metrics by fulfillment channel and product category
+  - Design an operations-monitoring dashboard
+  - Recommend targeted operational improvements from a data-driven friction analysis
+estimated_hours: 6.5
+tags:
+  - sql
+  - operations
+  - e-commerce
+  - eda
+  - data-quality
+  - root-cause
+  - business-analytics
+  - intermediate
+version: 1

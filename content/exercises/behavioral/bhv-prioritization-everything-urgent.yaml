@@ -1,0 +1,35 @@
+slug: bhv-prioritization-everything-urgent
+skill: behavioral-interviewing
+title: Deciding What to Work On When Everything Is Urgent
+description: Describe how you decided what to work on when everything seemed urgent.
+exercise_type: INTERVIEW_RESPONSE
+difficulty: INTERMEDIATE
+points: 10
+tags:
+- behavioral
+- star-method
+- prioritization
+prompt: Describe how you decided what to work on when everything seemed urgent.
+hints:
+- The STAR framework (Situation, Task, Action, Result) is a useful structure, not a script -- use it to
+  make sure you cover what actually happened, in what context, what you personally did, and what came
+  of it.
+- Interviewers are listening for a specific, real example -- a vague 'sometimes this happens on my team'
+  answer is much weaker than one concrete story with real details.
+rubric:
+- criterion: Describes one specific, real situation rather than a hypothetical or a generic pattern
+  points: 25
+- criterion: Clearly states the task or goal and the person's own specific role in it
+  points: 20
+- criterion: Explains concrete actions the person personally took, not just what the team did
+  points: 30
+- criterion: States a clear, ideally measurable outcome and what was learned from it
+  points: 25
+solution: During a product launch, requests were coming in faster than I could complete them, all framed
+  as urgent. I started keeping a simple running list with each request's requester, stated deadline, and
+  estimated effort, and shared it openly with my manager and the requesters. That made the tradeoffs visible
+  instead of implicit -- when someone pushed for their item to jump the queue, they could see what would
+  slip as a result, which naturally cooled a lot of the 'everything is urgent' pressure.
+explanation: Making the tradeoff visible to requesters, rather than silently choosing an order, is the
+  key move -- it shifts prioritization disagreements into an informed conversation instead of a unilateral
+  decision the analyst has to defend alone.

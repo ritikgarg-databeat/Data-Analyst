@@ -1,0 +1,21 @@
+slug: dm-ex-bridge-table
+lesson_slug: dm-facts-and-dimensions
+skill: dimensional-modeling
+title: "Bridge Tables Resolve Many-to-Many Relationships"
+description: Confirming order_items' role as a bridge/associative table between the genuinely many-to-many orders and products.
+exercise_type: TRUE_FALSE
+difficulty: BEGINNER
+points: 5
+tags: [star-schema, relationships, data-modeling]
+prompt: >
+  True or False: In the ecommerce dataset, order_items plays the role of a bridge (associative) table because
+  it resolves the genuine many-to-many relationship between orders and products, pairing exactly one order_id
+  with one product_id per row.
+choices: ["True", "False"]
+correct_answer: "True"
+explanation: >
+  order_items resolves the many-to-many between orders and products (an order can have several products; a
+  product can appear on many different orders) by giving each order-product pairing its own row, plus its own
+  attributes (quantity, unit_price, discount) — the textbook definition of a bridge/associative table, and
+  exactly why a single foreign key column on either orders or products alone could never represent this
+  relationship correctly.

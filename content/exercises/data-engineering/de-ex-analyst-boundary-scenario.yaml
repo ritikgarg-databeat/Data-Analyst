@@ -1,0 +1,25 @@
+slug: de-ex-analyst-boundary-scenario
+lesson_slug: de-analyst-de-boundary
+skill: data-engineering-fundamentals
+title: "Own, Recognize, or Hand Off?"
+description: Sort a realistic request across the analyst/data-engineer boundary.
+exercise_type: MULTIPLE_CHOICE
+difficulty: INTERMEDIATE
+points: 10
+tags: [analyst-boundary, data-engineering, intermediate]
+prompt: >
+  A stakeholder asks a data analyst to "set up a change-data-capture stream off the production
+  orders database so the dashboard can update within seconds of a new order." Using the own /
+  recognize / hand off framework, what's the most appropriate way for the analyst to handle this?
+choices:
+  - "Own it — implementing CDC is well within standard SQL skills any analyst already has"
+  - "Recognize that this is a legitimate-sounding request worth understanding (what decision actually needs second-level freshness?), but hand off the actual implementation — standing up CDC infrastructure is a data engineering specialty, not something to attempt personally"
+  - "Refuse the request entirely and tell the stakeholder real-time data is never possible"
+correct_answer: "Recognize that this is a legitimate-sounding request worth understanding (what decision actually needs second-level freshness?), but hand off the actual implementation — standing up CDC infrastructure is a data engineering specialty, not something to attempt personally"
+explanation: >
+  Standing up CDC is squarely a "hand off" task — it involves infrastructure and specialized
+  operational knowledge outside a data analyst's core skill set. The analyst's valuable contribution
+  is in the "recognize" category: understanding what CDC would actually buy the business and
+  whether that latency is genuinely needed, then routing a well-justified, specific request to
+  whoever owns that infrastructure — not attempting to build it themselves, and not dismissing it
+  outright either.

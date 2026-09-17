@@ -1,0 +1,125 @@
+slug: interview-cac-spike-investigation
+title: Why Did CAC Spike 35% This Month?
+category: MARKETING_ANALYTICS
+difficulty: ADVANCED
+estimated_minutes: 30
+company_context: An online retailer running paid acquisition tracked via marketing_campaigns and sessions.
+stakeholder_name: Harper Singh
+stakeholder_role: VP Growth Marketing
+problem_statement: '"Our blended CAC jumped 35% this month and I need to know if we should pull back spend or if
+  this is something else."'
+business_context: Harper needs to know whether this is a real per-channel cost problem or just a shift in channel
+  mix, before making a spend decision.
+objective: Determine whether the CAC spike is driven by channel-mix shift or a genuine per-channel cost/conversion
+  deterioration, and recommend a spend action.
+initial_information: You have access to marketing_campaigns, sessions, orders, and customers.
+constraints:
+- Harper needs a specific, channel-level answer, not a blended-number restatement.
+available_datasets:
+- ecommerce
+expected_deliverables:
+- A channel-level CAC breakdown for the current and prior month
+- A determination of whether the spike is mix-driven or per-channel-driven
+- A spend recommendation
+learning_objectives:
+- Decompose a blended metric by channel before diagnosing a change in it
+- Distinguish a mix-shift effect from a genuine per-channel deterioration
+- Recommend a spend action appropriate to the specific cause found
+stages:
+- CLARIFY
+- ANALYZE
+- INSIGHTS
+- RECOMMEND
+- SUBMIT
+tags:
+- interview
+- cac
+- marketing
+- root-cause
+- case-study
+skills:
+- business-metrics
+- root-cause-analysis
+- business-problem-solving
+clarification_guidance:
+- A good clarifying question asks whether spend allocation across channels shifted this month.
+- A good clarifying question asks whether the spike is uniform across channels or concentrated in one.
+rubric:
+- category: Problem Framing & Clarification
+  weight: 20
+  criteria:
+  - criterion: Asks whether channel spend allocation shifted this month before analyzing
+    points: 20
+- category: Technical Analysis
+  weight: 35
+  is_technical: true
+  criteria:
+  - criterion: Computes CAC by channel for both the current and prior month
+    points: 20
+  - criterion: Checks whether the change in blended CAC is explained by mix shift or a per-channel change
+    points: 15
+- category: Insight Quality
+  weight: 20
+  criteria:
+  - criterion: Correctly distinguishes a mix-shift explanation from a genuine per-channel cost/conversion deterioration
+    points: 20
+- category: Recommendation & Business Judgment
+  weight: 15
+  criteria:
+  - criterion: Gives a spend recommendation tied to the specific cause found
+    points: 15
+- category: Communication
+  weight: 10
+  criteria:
+  - criterion: Explains the finding in terms Harper could use for a spend decision
+    points: 10
+hints:
+- Blended CAC can rise purely because spend shifted toward channels that were always more expensive -- check channel-level
+  CAC before concluding any individual channel got worse.
+- If a specific channel's CAC did rise, check whether it was driven by cost-per-click/impression or by a falling
+  conversion rate -- these need different fixes.
+reference_solution:
+  summary: The blended CAC spike does not trace to a genuine, isolable month-over-month channel-level cause --
+    sessions.marketing_campaign_id attribution is essentially decoupled from each campaign's actual flight dates --
+    4,694 of 4,830 attributed sessions (97.2%) occur outside their own campaign's start_date/end_date window, a
+    rate statistically indistinguishable from random assignment given campaign windows average ~26 days within a
+    2-year span. Because of this, allocating campaign budget to a calendar month and joining it to that month's
+    attributed conversions produces blended CAC swings of 30-100%+ in ordinary months with no repeating pattern --
+    for example, blended CAC rose 32% from April to May 2024, driven almost entirely by the social channel's
+    conversions falling to zero that month on an essentially unchanged ~35 sessions. Looking at the full two-year
+    history instead of any single month, blended CAC has actually trended DOWN as volume scaled, from $400-600+
+    through most of 2024 to $170-250 by late 2025; the two most recent months (November to December 2025) show only
+    a modest $186.62 to $204.80 rise (+9.8%), well inside the noise band seen throughout the series. What IS a
+    real, stable, full-history pattern -- display is consistently the most expensive channel per conversion ($282.71
+    CAC across 271 conversions and $76,614.79 of spend), while email is consistently the cheapest ($170.13 CAC
+    across 128 conversions and $21,776.99 of spend) -- a genuine per-channel cost gap driven by cost-per-session
+    (display $40.75 vs. email $22.22), not a spike specific to any one month.
+  key_insights:
+  - 97.2% of campaign-attributed sessions (4,694 of 4,830) fall outside their own campaign's start_date-end_date
+    window -- a rate consistent with essentially random attribution rather than real-time ad exposure -- which
+    makes any calendar-month cut of channel-level CAC unreliable as a this-month-vs-last-month signal.
+  - Blended CAC swings of 30% or more occur in multiple ordinary months across the two-year history (e.g. +32%
+    April to May 2024, driven by one channel's conversions falling to zero on a small sample) with no
+    follow-through trend, showing these swings are sampling noise rather than a genuine channel-level
+    deterioration.
+  - Full-history blended CAC has trended down, not up, as volume scaled (roughly $400-600 through 2024 to $170-250
+    by late 2025); the most recent month-over-month change (November to December 2025, $186.62 to $204.80, +9.8%)
+    is smaller than many other month-to-month moves in the series.
+  - The one real, persistent channel-level difference -- display's full-history CAC ($282.71, 271 conversions) is
+    meaningfully higher than email's ($170.13, 128 conversions), driven by cost-per-session (display $40.75 vs.
+    email $22.22) rather than a material conversion-rate gap (14.4% vs. 13.1%).
+  recommendation: Do not recommend a reactive spend pullback based on any single month's CAC reading -- at this
+    data's monthly grain, per-channel conversion counts are too small (often single digits) for a month-over-month
+    swing to be trusted, and the two-year trend shows CAC improving, not spiking, as the business scaled. Recommend
+    reporting CAC on a rolling 3-month basis rather than single-month, and separately, as a standing structural
+    matter rather than a reaction to any one month, gradually shifting incremental spend toward email (the cheapest
+    channel per conversion) and away from display (the most expensive), since that gap has held up consistently
+    across the full history.
+  acceptable_alternatives:
+  - A learner who allocates campaign budget to months using a different method (e.g. an even split across the
+    campaign's calendar dates) and still finds noisy, non-repeating swings with no reliable single-month signal
+    should receive full credit, even if their specific swing percentages differ from the ones above.
+  - A learner who leads with the display-vs-email full-history CAC gap as the actionable, evidence-backed
+    structural finding -- rather than trying to force a single-month spike story the data doesn't support -- should
+    receive full credit.
+version: 1

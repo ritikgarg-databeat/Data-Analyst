@@ -1,0 +1,98 @@
+slug: the-analyst-engineer-boundary-map
+module_slug: analyst-vs-data-engineer-boundary
+title: "What to Own, What to Understand, What to Hand Off"
+description: >-
+  This platform's own philosophy made explicit — a practical map of what a
+  data analyst should build directly, what to understand conceptually
+  without building, and what to hand off entirely, plus how to escalate a
+  broken pipeline well.
+difficulty: INTERMEDIATE
+estimated_minutes: 30
+display_order: 1
+soft_prerequisites: [dbt-snapshots-and-scd2, working-with-a-cloud-warehouse, streaming-and-distributed-processing]
+objectives:
+  - Articulate this platform's approach across this whole domain — teaching data engineering from a data analyst's perspective, not toward data-engineer mastery.
+  - Sort real tasks (writing a dbt model for your own domain, tuning a Spark cluster, reading a lineage graph, provisioning a warehouse account) into own, understand, or hand off.
+  - Recognize the symptoms of a broken pipeline well enough to escalate to the right person with the right, specific detail, even without being able to fix the underlying system yourself.
+skills: [modern-data-stack, data-engineering-fundamentals, pipeline-troubleshooting]
+datasets: [ecommerce]
+tags: [analyst-boundary, modern-data-stack, data-engineering, real-world, intermediate]
+key_takeaways:
+  - "Own: writing and maintaining dbt staging/marts models for your own domain, defining generic and singular tests for models you own, and reading a lineage graph to trace a wrong number back toward its source — this is exactly what modules 2-5's real dbt project and this platform's dbt Lab exercises have you practice."
+  - "Understand conceptually, without needing to build: Airflow DAG/operator mechanics, Kafka topics/consumer groups, Spark cluster tuning, and cloud warehouse cost/performance tuning — enough to follow a conversation, recognize a job-posting term, and reason about a symptom, without configuring any of it yourself."
+  - "Hand off entirely: provisioning infrastructure (a warehouse account, an Airflow deployment, a Kafka cluster), production deployment and CI/CD for a pipeline, cluster security/IAM, and capacity planning — these require ongoing operational ownership that sits outside an analyst's role by design, not by skill gap."
+common_mistakes:
+  - "Assuming an effective analyst needs deep hands-on mastery of every tool named in this domain — most job postings that list Airflow/Kafka/Spark expect an analyst to recognize and reason about them in context, not operate them; conflating the two overstates the bar and can make a genuinely qualified candidate under-sell themselves."
+  - "Escalating a broken pipeline with only 'the numbers look wrong' instead of the specific, lineage-grounded detail (which model or table, since when, what the lineage graph shows upstream) that lets the actual owner triage it in minutes instead of hours."
+interview_questions:
+  - question: "An interviewer asks: 'Have you worked with Airflow or Kafka?' You've studied both conceptually through this platform but never operated either. What's a strong, honest answer?"
+    answer: >
+      Name the real, transferable skill precisely rather than either overclaiming or underselling: "I
+      understand what each is for and its core vocabulary well enough to reason about where a pipeline
+      problem sits and to follow an engineer's explanation of one — for example, distinguishing whether a
+      stale dashboard is an ingestion, orchestration, or transformation problem. I haven't personally
+      configured an Airflow DAG or a Kafka cluster; the transformation layer (dbt: models, tests, lineage,
+      incremental models, snapshots) is where I've actually built things hands-on." That's more useful to
+      an interviewer than either "no" (undersells real conceptual fluency) or implying hands-on operational
+      experience that isn't there.
+blocks:
+  - type: heading
+    text: "This domain's actual philosophy, made explicit"
+  - type: text
+    body: >
+      This entire domain has been teaching data engineering, data warehousing, and dbt specifically *from a
+      data analyst's perspective* — not with the goal of turning you into a data engineer. That distinction
+      has shaped every module: modules 2-5 went genuinely hands-on with a real, runnable dbt project because
+      writing and testing transformation models is squarely inside an analyst's reach; modules 6-8 stayed
+      conceptual because operating a cloud warehouse account, an Airflow cluster, or a Kafka/Spark cluster
+      is not. This lesson makes that boundary explicit and practical.
+  - type: comparison
+    title: "Own / Understand / Hand off, by theme"
+    columns: ["Own", "Understand — don't build", "Hand off entirely"]
+    rows:
+      - ["Write and maintain dbt staging/marts models for your own domain (modules 2-5)", "How dbt compiles ref()/Jinja into a DAG and executes it in order", "Standing up the warehouse or compute environment the models run against"]
+      - ["Define generic tests (not_null/unique/accepted_values/relationships) and singular business-rule tests on your own models", "How a data-quality incident gets triaged and communicated across many teams' pipelines company-wide", "Building a company-wide data quality monitoring platform"]
+      - ["Read a lineage graph to trace a wrong dashboard number back toward its source", "Why a model failed at the infrastructure level (permissions, out-of-memory, cluster contention)", "Diagnosing and fixing infrastructure-level pipeline failures"]
+      - ["Know which scheduled job produces the data you depend on, and roughly when it finishes", "Airflow's DAG/operator/sensor mechanics well enough to read and reason about one", "Building and operating the orchestration platform itself"]
+      - ["Recognize when a business question actually needs streaming or distributed processing at all", "Kafka topics/consumer groups and Spark clusters/partitioning, at a job-posting-vocabulary level", "Operating a Kafka or Spark cluster, tuning partitions or executor sizing"]
+  - type: heading
+    text: "Recognizing a broken pipeline — and escalating it well"
+  - type: text
+    body: >
+      You don't need to be able to fix an infrastructure-level pipeline failure to add real value the
+      moment you notice one. The highest-leverage thing an analyst can do is turn a vague symptom into a
+      specific, lineage-grounded report — the difference between "the dashboard is broken" (which forces
+      whoever receives it to start the whole investigation from zero) and "fct_daily_revenue hasn't updated
+      since Tuesday, and stg_orders looks current, so the break is somewhere between those two models"
+      (which hands the owner a running start).
+  - type: checklist
+    title: "Before escalating a suspected broken pipeline"
+    items:
+      - "Confirm it's a real, isolated break rather than an unusual-but-legitimate business result — a blank or zero value for an entire period is a much stronger signal than a number that's merely lower than usual."
+      - "Check whether the underlying table or model actually rebuilt recently (a lineage/run-history view, or a 'last updated' timestamp) before assuming the data itself is wrong."
+      - "Walk the lineage graph backward from where the problem shows up, noting exactly which model is the last one that still looks right and the first one that looks wrong."
+      - "Escalate with that specific detail — which model, since when, what the lineage shows — rather than a general description of the symptom."
+  - type: callout
+    variant: important
+    title: "This boundary is about role design, not about ability"
+    body: >
+      Being asked to hand off warehouse provisioning or cluster security isn't a statement that an analyst
+      couldn't learn to do it — it's a statement about where responsibility and continuous operational
+      ownership sit in a well-run team. An analyst who deeply understands the transformation layer and can
+      reason clearly about everything upstream and downstream of it is already operating at a high level;
+      chasing operational mastery of every adjacent system usually trades away depth in the part of the
+      stack that's actually theirs to own.
+  - type: question
+    prompt: "A stakeholder reports 'the revenue dashboard looks wrong today.' Which of the following is the strongest first move for an analyst, given this module's map of what to own?"
+    choices:
+      - "Immediately escalate to the platform team, since anything pipeline-related is out of scope"
+      - "Trace the number back through the lineage graph to find which model's output actually looks wrong, then escalate with that specific detail if the cause is infrastructure-level"
+      - "Assume it's a one-off data issue and wait to see if it resolves itself tomorrow"
+      - "Rewrite the affected mart model from scratch to be safe"
+    correct_index: 1
+    explanation: >
+      Reading a lineage graph to localize where a number goes wrong is squarely inside what this lesson
+      places in the 'own' column — it's a skill an analyst can and should exercise directly. Only once
+      the investigation narrows the cause to something infrastructure-level (a failed job, a permissions
+      issue, a cluster problem) does it become appropriate to hand off — and even then, handing off with a
+      specific, lineage-grounded finding is far more valuable than an immediate, uninvestigated escalation.

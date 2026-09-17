@@ -1,0 +1,36 @@
+slug: bhv-incomplete-data-quality-problem
+skill: behavioral-interviewing
+title: Discovering a Data Quality Problem Mid-Analysis
+description: Describe a time you discovered a data quality problem mid-analysis. What did you do?
+exercise_type: INTERVIEW_RESPONSE
+difficulty: INTERMEDIATE
+points: 10
+tags:
+- behavioral
+- star-method
+- incomplete-data
+prompt: Describe a time you discovered a data quality problem mid-analysis. What did you do?
+hints:
+- The STAR framework (Situation, Task, Action, Result) is a useful structure, not a script -- use it to
+  make sure you cover what actually happened, in what context, what you personally did, and what came
+  of it.
+- Interviewers are listening for a specific, real example -- a vague 'sometimes this happens on my team'
+  answer is much weaker than one concrete story with real details.
+rubric:
+- criterion: Describes one specific, real situation rather than a hypothetical or a generic pattern
+  points: 25
+- criterion: Clearly states the task or goal and the person's own specific role in it
+  points: 20
+- criterion: Explains concrete actions the person personally took, not just what the team did
+  points: 30
+- criterion: States a clear, ideally measurable outcome and what was learned from it
+  points: 25
+solution: Midway through a churn analysis, I noticed a spike in customers with a 'cancelled' status on
+  the exact day a new deployment went out, far beyond any plausible real cancellation spike. I paused
+  the analysis, traced it back with the engineering team, and confirmed a bug had mis-classified a batch
+  of trial expirations as cancellations. I flagged it before delivering any numbers built on that data,
+  and re-ran the analysis after the data was corrected, even though it delayed my original timeline by
+  two days.
+explanation: The critical behavior is pausing and verifying an anomaly BEFORE it flows into a delivered
+  analysis, even at the cost of a deadline, rather than delivering a number built on data known to be
+  suspect.

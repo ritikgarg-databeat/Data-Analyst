@@ -1,0 +1,82 @@
+slug: mau
+module_slug: product-metrics
+title: Monthly Active Users (MAU)
+description: MAU as the widest-lens activity metric, the calendar-month vs. rolling-30-day trap, and how to avoid mistaking seasonality for a health problem.
+difficulty: BEGINNER
+estimated_minutes: 12
+display_order: 3
+objectives:
+  - Define MAU and choose between calendar-month and rolling-30-day windows deliberately
+  - Explain why calendar-month MAU comparisons can be distorted by month length alone
+  - Distinguish a seasonal MAU dip from a genuine decline in product health
+prerequisites: [wau]
+skills: [product-metrics]
+tags: [product-analytics, beginner, foundations]
+key_takeaways:
+  - MAU is the widest common activity window — useful for headline reporting, but the least sensitive to real day-to-day changes in engagement.
+  - Calendar-month MAU is subtly unfair to shorter months (28 vs. 31 days); a rolling 30-day window is usually the fairer choice for trend comparisons.
+  - A MAU dip that lines up with a known seasonal pattern (tax season ending, back-to-school, a holiday week) should be checked against last year's same period before anyone calls it a crisis.
+common_mistakes:
+  - Comparing February's calendar-month MAU directly to March's or May's without adjusting for the fact that February simply has fewer days to accumulate distinct active users.
+  - Treating every MAU dip as a churn signal, without first checking whether the same dip happened at the same point in the prior year (a seasonality check most teams skip).
+  - Reporting MAU as the sole engagement metric on an exec dashboard — MAU alone can stay flat while DAU and stickiness quietly erode underneath it, since MAU is the slowest metric to reflect a change in daily habits.
+blocks:
+  - type: text
+    body: >
+      Monthly Active Users (MAU) is the widest activity window in common use — distinct users active at
+      least once over a month. It's the metric most often quoted publicly ("50 million MAU") because
+      it's the most forgiving: a user only has to show up once in 30 days to count. That same property
+      makes MAU the *least* sensitive metric to real changes in engagement — a product's daily habit
+      can be eroding for weeks before MAU visibly moves.
+  - type: heading
+    text: Calendar month vs. rolling 30 days
+  - type: text
+    body: >
+      There are two common ways to define the MAU window, and they are not interchangeable. **Calendar
+      month** MAU counts distinct active users from the 1st to the last day of a named month (28-31
+      days depending on the month). **Rolling 30-day** MAU counts distinct active users in the trailing
+      30 days from any given date, regardless of calendar boundaries.
+  - type: comparison
+    title: Calendar-month vs. rolling 30-day MAU
+    columns: ["", "Calendar month", "Rolling 30-day"]
+    rows:
+      - ["Window length", "28-31 days depending on the month", "Always exactly 30 days"]
+      - ["Best for", "Aligning with monthly business reporting cycles", "Fair trend comparison day over day"]
+      - ["Main pitfall", "February (28 days) is structurally disadvantaged vs. a 31-day month", "Less intuitive to explain to non-technical stakeholders"]
+  - type: code
+    language: sql
+    caption: Rolling 30-day MAU as of a given date
+    code: |
+      SELECT COUNT(DISTINCT user_id) AS mau_rolling_30d
+      FROM events
+      WHERE event_type IN ('message_sent', 'message_read')
+        AND event_at >= DATE '2026-08-31' - INTERVAL '30 days'
+        AND event_at <  DATE '2026-08-31' + INTERVAL '1 day';
+  - type: callout
+    variant: common_mistake
+    title: Seasonality is not the same as decline
+    body: >
+      A tax-prep app's MAU cratering in May, right after filing season, is not a health crisis — it's
+      the expected shape of that business. The right check for any MAU dip is always the same period a
+      year earlier, not just last month. Skipping that check is how a normal seasonal pattern gets
+      escalated into a false alarm.
+  - type: example
+    title: Reading a seasonal MAU dip correctly
+    body: >
+      An education app sees MAU fall 30% every June and July, then recover in September. A team new to
+      the product panics at the June drop. An experienced analyst instead pulls the same June-July
+      window from the prior two years, sees the identical seasonal shape both times, and instead checks
+      whether *this* year's dip is deeper or shallower than the historical pattern — that comparison,
+      not the raw month-over-month change, is the real signal.
+  - type: question
+    prompt: A product's calendar-month MAU is 4% lower in February than in January. What should an analyst check before concluding engagement declined?
+    choices:
+      - Nothing — a 4% MAU drop always indicates a real engagement problem
+      - Whether the drop is explained by February simply having 3 fewer days to accumulate distinct active users
+      - Whether the marketing team ran fewer ads in February
+    correct_index: 1
+    explanation: >
+      February having 28 days versus January's 31 means there are structurally fewer days for a user to
+      show up and count toward calendar-month MAU — a purely mechanical effect, not a behavioral one. A
+      rolling 30-day comparison, or a same-period-last-year comparison, is needed before attributing the
+      drop to anything about the product or the users.

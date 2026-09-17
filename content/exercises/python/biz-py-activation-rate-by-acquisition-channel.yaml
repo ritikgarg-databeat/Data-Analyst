@@ -1,0 +1,87 @@
+slug: biz-py-activation-rate-by-acquisition-channel
+lesson_slug: biz-customer-acquisition-and-activation
+skill: pandas
+dataset: saas-product
+title: Activation Rate by Acquisition Channel
+description: Join signups to their activation events to compute activation rate for each acquisition channel.
+exercise_type: PYTHON
+difficulty: INTERMEDIATE
+points: 20
+tags: [python, business-analytics, intermediate, saas]
+business_context: >
+  Growth wants to know whether every acquisition channel converts signups into genuinely
+  activated users at a similar rate, or whether some channels bring in signups that mostly never
+  reach real product value.
+prompt: >
+  Using `users` and `events`, compute the share of each acquisition channel's signups that ever
+  reach the `activated` event. Store your answer in a variable named `result`: a DataFrame with
+  columns `acquisition_channel`, `n_users` (total signups in that channel), `activated_users`
+  (count of those users who have at least one `activated` row in `events`), and
+  `activation_rate_pct` (`ROUND(100 * activated_users / n_users, 2)`), sorted in descending order
+  by `activation_rate_pct`.
+python_datasets: [users, events]
+python_starter_code: |
+  # users and events are already loaded as DataFrames.
+  # Explore them first:
+  users.head()
+  events["event_name"].unique()
+python_solution_code: |
+  activated_user_ids = set(events.loc[events["event_name"] == "activated", "user_id"])
+  users2 = users.copy()
+  users2["activated"] = users2["user_id"].isin(activated_user_ids)
+  grp = users2.groupby("acquisition_channel").agg(
+      n_users=("user_id", "count"), activated_users=("activated", "sum")
+  ).reset_index()
+  grp["activation_rate_pct"] = (100 * grp["activated_users"] / grp["n_users"]).round(2)
+  result = (
+      grp[["acquisition_channel", "n_users", "activated_users", "activation_rate_pct"]]
+      .sort_values("activation_rate_pct", ascending=False)
+      .reset_index(drop=True)
+  )
+python_result_variable: result
+python_row_order_matters: true
+python_numeric_tolerance: 0.01
+python_hidden_tests:
+  - name: "Total signups across all channels matches len(users)"
+    code: |
+      assert result["n_users"].sum() == len(users), (
+          f"Expected n_users to sum to {len(users)} (every signup counted exactly once), "
+          f"got {result['n_users'].sum()}"
+      )
+  - name: "Best-activating channel matches a live recomputation"
+    code: |
+      activated_ids2 = set(events.loc[events["event_name"] == "activated", "user_id"])
+      users3 = users.copy()
+      users3["activated"] = users3["user_id"].isin(activated_ids2)
+      recompute = users3.groupby("acquisition_channel")["activated"].mean()
+      top_row = result.iloc[0]
+      assert top_row["acquisition_channel"] == recompute.idxmax(), (
+          f"Expected '{recompute.idxmax()}' to have the highest activation_rate_pct, "
+          f"got '{top_row['acquisition_channel']}'"
+      )
+hints:
+  - "Build the set of user_ids that ever appear with event_name == 'activated' in events, then check each user's membership in that set with .isin() — a user can have several event rows, so this is more direct than merging and risking duplicate rows per user."
+  - "Group the resulting boolean 'activated' column by acquisition_channel: COUNT gives total signups, and SUM of a boolean column gives the count of True values (activated users) directly."
+solution: |
+  ```python
+  activated_user_ids = set(events.loc[events["event_name"] == "activated", "user_id"])
+  users2 = users.copy()
+  users2["activated"] = users2["user_id"].isin(activated_user_ids)
+  grp = users2.groupby("acquisition_channel").agg(
+      n_users=("user_id", "count"), activated_users=("activated", "sum")
+  ).reset_index()
+  grp["activation_rate_pct"] = (100 * grp["activated_users"] / grp["n_users"]).round(2)
+  result = (
+      grp[["acquisition_channel", "n_users", "activated_users", "activation_rate_pct"]]
+      .sort_values("activation_rate_pct", ascending=False)
+      .reset_index(drop=True)
+  )
+  ```
+explanation: >
+  Building a set of activated user IDs and checking membership with `.isin()` sidesteps a common pitfall:
+  merging `users` directly to `events` (which has multiple rows per user — one per event type) would
+  duplicate each user once per event row before any aggregation happens, silently inflating `n_users` if
+  the group-by isn't handled carefully afterward. Working from a per-user boolean flag keeps one row per
+  user throughout. A common mistake is filtering `events` to `activated` rows and then computing
+  `activation_rate_pct` as `len(filtered_events) / len(users)` per channel without first restricting to
+  distinct users, which would overcount any user who somehow has more than one `activated` event logged.

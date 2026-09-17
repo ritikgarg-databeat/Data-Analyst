@@ -1,0 +1,720 @@
+# Seed data for the `modules` table. domain_slug must reference an existing Domain.
+# Module *shells* (structure) are seeded here; the rich lesson content that
+# belongs to each module lives under content/lessons/<domain>/<module>/*.yaml
+# and is synced in via `python -m app.content.sync` (see docs/architecture.md).
+- domain_slug: data-analyst-foundations
+  slug: how-to-use-this-lab
+  title: How to Use This Lab
+  description: Orientation to the learning loop this platform is built around.
+  difficulty: BEGINNER
+  estimated_minutes: 20
+  display_order: 1
+- domain_slug: data-analyst-foundations
+  slug: what-a-data-analyst-does
+  title: What a Data Analyst Does
+  description: A realistic picture of the role, how it differs from adjacent roles, and the analytics lifecycle.
+  difficulty: BEGINNER
+  estimated_minutes: 45
+  display_order: 2
+- domain_slug: data-analyst-foundations
+  slug: analytical-thinking
+  title: Analytical Thinking
+  description: The reasoning toolkit behind every good analysis — framing, hypotheses, metrics, segmentation.
+  difficulty: BEGINNER
+  estimated_minutes: 60
+  display_order: 3
+- domain_slug: sql
+  slug: sql-fundamentals
+  title: SQL Fundamentals
+  description: SELECT, filtering, sorting, and the core building blocks of every SQL query.
+  difficulty: BEGINNER
+  estimated_minutes: 90
+  display_order: 1
+- domain_slug: sql
+  slug: sql-functions-expressions
+  title: Functions & Expressions
+  description: String, numeric, date, and conditional functions for shaping values inside a query.
+  difficulty: BEGINNER
+  estimated_minutes: 75
+  display_order: 2
+- domain_slug: sql
+  slug: sql-aggregation
+  title: Aggregation
+  description: GROUP BY, HAVING, and summarizing data with aggregate functions.
+  difficulty: BEGINNER
+  estimated_minutes: 80
+  display_order: 3
+- domain_slug: sql
+  slug: sql-joins
+  title: Joins
+  description: Combining rows across tables — INNER, LEFT, RIGHT, FULL, CROSS, and self joins.
+  difficulty: INTERMEDIATE
+  estimated_minutes: 100
+  display_order: 4
+- domain_slug: sql
+  slug: sql-subqueries-ctes
+  title: Subqueries & CTEs
+  description: Nesting queries and naming intermediate results with WITH to break down complex logic.
+  difficulty: INTERMEDIATE
+  estimated_minutes: 90
+  display_order: 5
+- domain_slug: sql
+  slug: sql-window-functions
+  title: Window Functions
+  description: Ranking, running totals, and row-to-row comparisons without collapsing rows away.
+  difficulty: ADVANCED
+  estimated_minutes: 110
+  display_order: 6
+- domain_slug: sql
+  slug: sql-analytical-sql
+  title: Analytical SQL
+  description: Cohort, retention, funnel, and segmentation query patterns analysts use every day.
+  difficulty: ADVANCED
+  estimated_minutes: 100
+  display_order: 7
+- domain_slug: sql
+  slug: sql-performance
+  title: Query Performance
+  description: How a query actually executes, reading EXPLAIN plans, and writing queries that scale.
+  difficulty: ADVANCED
+  estimated_minutes: 70
+  display_order: 8
+- domain_slug: sql
+  slug: sql-interview-prep
+  title: SQL Interview Prep
+  description: Timed, business-framed practice covering the patterns that come up most in SQL interviews.
+  difficulty: INTERMEDIATE
+  estimated_minutes: 90
+  display_order: 9
+- domain_slug: python
+  slug: python-for-analysts
+  title: Python for Analysts
+  description: Core Python fundamentals an analyst needs before touching pandas.
+  difficulty: BEGINNER
+  estimated_minutes: 100
+  display_order: 1
+- domain_slug: python
+  slug: numpy-for-analytics
+  title: NumPy for Analytics
+  description: Arrays, vectorization, and the numerical foundation pandas itself is built on.
+  difficulty: BEGINNER
+  estimated_minutes: 90
+  display_order: 2
+- domain_slug: python
+  slug: pandas-dataframes-fundamentals
+  title: "Pandas: DataFrames Fundamentals"
+  description: Series, DataFrames, reading files, and the core selecting/filtering/indexing operations.
+  difficulty: BEGINNER
+  estimated_minutes: 90
+  display_order: 3
+- domain_slug: python
+  slug: pandas-data-cleaning
+  title: "Pandas: Data Cleaning"
+  description: Missing values, duplicates, messy types, string cleaning, date parsing, and outliers.
+  difficulty: BEGINNER
+  estimated_minutes: 100
+  display_order: 4
+- domain_slug: python
+  slug: pandas-transformation
+  title: "Pandas: Transformation"
+  description: Reshaping values in place — assign, apply, map, replace/rename, sort, conditional columns.
+  difficulty: INTERMEDIATE
+  estimated_minutes: 80
+  display_order: 5
+- domain_slug: python
+  slug: pandas-aggregation
+  title: "Pandas: Aggregation"
+  description: groupby, agg, transform, pivot_table, and crosstab for summarizing data.
+  difficulty: INTERMEDIATE
+  estimated_minutes: 80
+  display_order: 6
+- domain_slug: python
+  slug: pandas-combining-data
+  title: "Pandas: Combining Data"
+  description: merge, join, concat, and the row-duplication pitfalls that come with combining tables.
+  difficulty: INTERMEDIATE
+  estimated_minutes: 60
+  display_order: 7
+- domain_slug: python
+  slug: pandas-time-series
+  title: "Pandas: Time Series"
+  description: Datetime handling, resampling, rolling windows, and period-over-period analysis.
+  difficulty: INTERMEDIATE
+  estimated_minutes: 80
+  display_order: 8
+- domain_slug: python
+  slug: pandas-advanced
+  title: "Pandas: Advanced"
+  description: MultiIndex, categorical data, vectorized performance, and memory optimization.
+  difficulty: ADVANCED
+  estimated_minutes: 70
+  display_order: 9
+- domain_slug: python
+  slug: polars-for-analysts
+  title: Polars for Analysts
+  description: A modern, fast DataFrame library — the essentials, and when it's worth reaching for over pandas.
+  difficulty: INTERMEDIATE
+  estimated_minutes: 70
+  display_order: 10
+- domain_slug: python
+  slug: exploratory-data-analysis
+  title: Exploratory Data Analysis
+  description: The systematic workflow for getting to know a new dataset before trusting any analysis of it.
+  difficulty: INTERMEDIATE
+  estimated_minutes: 90
+  display_order: 11
+- domain_slug: data-analyst-foundations
+  slug: dataset-fundamentals
+  title: Dataset Fundamentals
+  description: What a dataset actually is, and the vocabulary you need before profiling or analyzing one.
+  difficulty: BEGINNER
+  estimated_minutes: 50
+  display_order: 4
+- domain_slug: data-analyst-foundations
+  slug: data-profiling-quality
+  title: Data Profiling & Quality
+  description: Reading a schema, spotting missing values and duplicates, and judging whether a dataset is trustworthy enough to analyze.
+  difficulty: BEGINNER
+  estimated_minutes: 55
+  display_order: 5
+- domain_slug: data-analyst-foundations
+  slug: eda-challenge-library
+  title: EDA Challenge Library
+  description: Fifteen open-ended exploratory data analysis challenges against the ecommerce dataset — practice asking and answering real analytical questions.
+  difficulty: INTERMEDIATE
+  estimated_minutes: 20
+  display_order: 6
+- domain_slug: data-visualization
+  slug: visualization-with-python
+  title: Visualization with Python
+  description: Choosing and building the right chart for a business question — matplotlib, seaborn, and plotly.
+  difficulty: BEGINNER
+  estimated_minutes: 90
+  display_order: 1
+- domain_slug: data-visualization
+  slug: visualization-and-storytelling
+  title: Visualization & Data Storytelling
+  description: Choosing the right chart, avoiding common mistakes, and turning a chart into a business narrative.
+  difficulty: BEGINNER
+  estimated_minutes: 55
+  display_order: 2
+- domain_slug: statistics
+  slug: statistical-foundations
+  title: Statistical Foundations
+  description: The descriptive statistics vocabulary used in every analysis.
+  difficulty: BEGINNER
+  estimated_minutes: 80
+  display_order: 1
+- domain_slug: statistics
+  slug: probability
+  title: Probability
+  description: Conditional probability, independence, expected value, and Bayes' theorem for business reasoning.
+  difficulty: INTERMEDIATE
+  estimated_minutes: 70
+  display_order: 2
+- domain_slug: statistics
+  slug: distributions
+  title: Distributions
+  description: Normal, binomial, and Poisson distributions, sampling distributions, and the Central Limit Theorem.
+  difficulty: INTERMEDIATE
+  estimated_minutes: 70
+  display_order: 3
+- domain_slug: statistics
+  slug: sampling
+  title: Sampling
+  description: Sampling methods, bias, sample size, and sampling error.
+  difficulty: INTERMEDIATE
+  estimated_minutes: 50
+  display_order: 4
+- domain_slug: statistics
+  slug: statistical-inference
+  title: Statistical Inference
+  description: Confidence intervals — what they mean, and the interpretation mistake almost everyone makes.
+  difficulty: INTERMEDIATE
+  estimated_minutes: 45
+  display_order: 5
+- domain_slug: statistics
+  slug: hypothesis-testing
+  title: Hypothesis Testing
+  description: Null/alternative hypotheses, p-values, Type I/II errors, and power.
+  difficulty: INTERMEDIATE
+  estimated_minutes: 70
+  display_order: 6
+- domain_slug: statistics
+  slug: statistical-tests
+  title: Statistical Tests
+  description: Choosing the right test, checking its assumptions, and running t-tests, chi-square, and more.
+  difficulty: ADVANCED
+  estimated_minutes: 90
+  display_order: 7
+- domain_slug: statistics
+  slug: correlation-regression
+  title: Correlation & Regression
+  description: Measuring association, avoiding causal traps, and interpreting regression coefficients.
+  difficulty: ADVANCED
+  estimated_minutes: 80
+  display_order: 8
+- domain_slug: statistics
+  slug: statistics-experimentation-bridge
+  title: Experimentation, Briefly
+  description: A short bridge from statistical inference to running real experiments — the full curriculum lives in the Experimentation & A/B Testing domain.
+  difficulty: INTERMEDIATE
+  estimated_minutes: 20
+  display_order: 9
+- domain_slug: statistics
+  slug: statistics-for-interviews
+  title: Statistics for Interviews
+  description: The statistics questions that come up most often in analyst interviews.
+  difficulty: ADVANCED
+  estimated_minutes: 40
+  display_order: 10
+
+- domain_slug: experimentation
+  slug: experiment-fundamentals
+  title: Experiment Fundamentals
+  description: What an experiment is, and the end-to-end design flow from business problem to decision.
+  difficulty: INTERMEDIATE
+  estimated_minutes: 40
+  display_order: 1
+- domain_slug: experimentation
+  slug: hypothesis-design
+  title: Hypothesis Design
+  description: Writing a testable hypothesis and choosing primary, secondary, and guardrail metrics.
+  difficulty: INTERMEDIATE
+  estimated_minutes: 40
+  display_order: 2
+- domain_slug: experimentation
+  slug: experiment-metrics
+  title: Experiment Metrics
+  description: Picking metrics that are sensitive, trustworthy, and hard to game.
+  difficulty: INTERMEDIATE
+  estimated_minutes: 30
+  display_order: 3
+- domain_slug: experimentation
+  slug: randomization
+  title: Randomization
+  description: How randomization creates comparable groups, and what breaks it in practice.
+  difficulty: INTERMEDIATE
+  estimated_minutes: 35
+  display_order: 4
+- domain_slug: experimentation
+  slug: sample-size-for-experiments
+  title: Sample Size
+  description: Effect size, baseline conversion, and the sample-size calculator, explained.
+  difficulty: ADVANCED
+  estimated_minutes: 50
+  display_order: 5
+- domain_slug: experimentation
+  slug: statistical-power
+  title: Statistical Power
+  description: Why underpowered tests are dangerous, made intuitive with simulation.
+  difficulty: ADVANCED
+  estimated_minutes: 45
+  display_order: 6
+- domain_slug: experimentation
+  slug: ab-test-analysis
+  title: A/B Test Analysis
+  description: Reading an A/B test result — significance, confidence intervals, and practical significance.
+  difficulty: ADVANCED
+  estimated_minutes: 55
+  display_order: 7
+- domain_slug: experimentation
+  slug: experiment-pitfalls
+  title: Experiment Pitfalls
+  description: Peeking, sample ratio mismatch, novelty effects, and the other ways experiments go wrong.
+  difficulty: ADVANCED
+  estimated_minutes: 60
+  display_order: 8
+- domain_slug: experimentation
+  slug: advanced-experimentation
+  title: Advanced Experimentation
+  description: Sequential testing, multi-variant tests, and network effects, at an introductory level.
+  difficulty: ADVANCED
+  estimated_minutes: 40
+  display_order: 9
+
+- domain_slug: business-analytics
+  slug: business-metrics
+  title: Business Metrics
+  description: The core KPIs used to describe the health of a business.
+  difficulty: BEGINNER
+  estimated_minutes: 80
+  display_order: 1
+- domain_slug: business-analytics
+  slug: business-fundamentals
+  title: Business Fundamentals
+  description: Business models, unit economics, margin, and how a business actually makes money.
+  difficulty: BEGINNER
+  estimated_minutes: 55
+  display_order: 2
+- domain_slug: business-analytics
+  slug: revenue-analytics
+  title: Revenue Analytics
+  description: Growth rates, AOV/ARPU, recurring revenue, and margin analysis.
+  difficulty: INTERMEDIATE
+  estimated_minutes: 60
+  display_order: 3
+- domain_slug: business-analytics
+  slug: customer-analytics
+  title: Customer Analytics
+  description: Acquisition, activation, engagement, retention, churn, and lifetime value.
+  difficulty: INTERMEDIATE
+  estimated_minutes: 65
+  display_order: 4
+- domain_slug: business-analytics
+  slug: marketing-analytics
+  title: Marketing Analytics
+  description: CAC, ROAS, channel performance, and deciding whether marketing performance actually improved.
+  difficulty: INTERMEDIATE
+  estimated_minutes: 50
+  display_order: 5
+- domain_slug: business-analytics
+  slug: sales-analytics
+  title: Sales Analytics
+  description: Pipeline, win rate, sales cycle, and forecasting concepts.
+  difficulty: INTERMEDIATE
+  estimated_minutes: 45
+  display_order: 6
+- domain_slug: business-analytics
+  slug: operations-analytics
+  title: Operations Analytics
+  description: Throughput, utilization, cycle time, and fulfillment/SLA metrics.
+  difficulty: INTERMEDIATE
+  estimated_minutes: 45
+  display_order: 7
+- domain_slug: business-analytics
+  slug: financial-analytics
+  title: Financial Analytics
+  description: Gross margin, contribution margin, and the difference between revenue and profit.
+  difficulty: INTERMEDIATE
+  estimated_minutes: 35
+  display_order: 8
+- domain_slug: business-analytics
+  slug: root-cause-analysis
+  title: Root Cause Analysis
+  description: A repeatable methodology for tracing a metric change back to its real driver.
+  difficulty: ADVANCED
+  estimated_minutes: 50
+  display_order: 9
+- domain_slug: business-analytics
+  slug: decision-making
+  title: Decision Making
+  description: Turning analysis into a clear, well-justified business recommendation.
+  difficulty: ADVANCED
+  estimated_minutes: 35
+  display_order: 10
+
+- domain_slug: product-analytics
+  slug: product-metrics
+  title: Product Metrics
+  description: The core metrics used to describe how people use a digital product.
+  difficulty: BEGINNER
+  estimated_minutes: 90
+  display_order: 1
+- domain_slug: product-analytics
+  slug: user-journey
+  title: User Journey
+  description: Mapping the path a user takes from first touch to habitual use.
+  difficulty: BEGINNER
+  estimated_minutes: 25
+  display_order: 2
+- domain_slug: product-analytics
+  slug: funnels
+  title: Funnels
+  description: Step conversion, drop-off, and segment differences in a product funnel.
+  difficulty: INTERMEDIATE
+  estimated_minutes: 55
+  display_order: 3
+- domain_slug: product-analytics
+  slug: product-activation
+  title: Activation
+  description: Defining and measuring the "aha moment" that predicts long-term retention.
+  difficulty: INTERMEDIATE
+  estimated_minutes: 35
+  display_order: 4
+- domain_slug: product-analytics
+  slug: product-engagement
+  title: Engagement
+  description: Engagement depth, frequency, and what a single engagement number hides.
+  difficulty: INTERMEDIATE
+  estimated_minutes: 35
+  display_order: 5
+- domain_slug: product-analytics
+  slug: product-retention
+  title: Retention
+  description: Classic vs. rolling retention, and why the definition you pick changes the story.
+  difficulty: INTERMEDIATE
+  estimated_minutes: 45
+  display_order: 6
+- domain_slug: product-analytics
+  slug: cohorts
+  title: Cohorts
+  description: Cohort definitions and building a cohort retention matrix from raw event data.
+  difficulty: ADVANCED
+  estimated_minutes: 55
+  display_order: 7
+- domain_slug: product-analytics
+  slug: product-churn
+  title: Churn
+  description: Customer vs. logo vs. revenue churn, and voluntary vs. involuntary churn.
+  difficulty: INTERMEDIATE
+  estimated_minutes: 35
+  display_order: 8
+- domain_slug: product-analytics
+  slug: feature-adoption
+  title: Feature Adoption
+  description: Adoption rate, repeat usage, and measuring whether a feature found its audience.
+  difficulty: INTERMEDIATE
+  estimated_minutes: 35
+  display_order: 9
+- domain_slug: product-analytics
+  slug: product-experiments
+  title: Product Experiments
+  description: Running and reading product experiments — a bridge into the Experimentation domain.
+  difficulty: ADVANCED
+  estimated_minutes: 30
+  display_order: 10
+- domain_slug: product-analytics
+  slug: product-cases
+  title: Product Analytics Cases
+  description: End-to-end product analytics case walkthroughs.
+  difficulty: ADVANCED
+  estimated_minutes: 40
+  display_order: 11
+
+# --- Phase 7: Data Engineering, Data Warehousing, Data Modeling & dbt Lab ---
+
+- domain_slug: data-engineering
+  slug: data-engineering-foundations
+  title: Data Engineering Foundations
+  description: What data engineering is, how it differs from data analysis, and where the two roles meet.
+  difficulty: BEGINNER
+  estimated_minutes: 40
+  display_order: 1
+- domain_slug: data-engineering
+  slug: sources-and-ingestion
+  title: Data Sources & Ingestion
+  description: Where data comes from — databases, APIs, files, events — and how it gets ingested.
+  difficulty: BEGINNER
+  estimated_minutes: 45
+  display_order: 2
+- domain_slug: data-engineering
+  slug: etl-vs-elt
+  title: ETL vs ELT
+  description: Two orders of the same three verbs, and why modern warehouses shifted the transform step.
+  difficulty: BEGINNER
+  estimated_minutes: 40
+  display_order: 3
+- domain_slug: data-engineering
+  slug: batch-vs-streaming
+  title: Batch vs Streaming Processing
+  description: Processing data on a schedule vs as it arrives, and how to tell which a problem needs.
+  difficulty: INTERMEDIATE
+  estimated_minutes: 40
+  display_order: 4
+- domain_slug: data-engineering
+  slug: data-quality-fundamentals
+  title: Data Quality Fundamentals
+  description: Completeness, uniqueness, validity, consistency, and freshness — the five checks worth automating.
+  difficulty: INTERMEDIATE
+  estimated_minutes: 45
+  display_order: 5
+- domain_slug: data-engineering
+  slug: pipelines-and-orchestration
+  title: Pipelines & Orchestration
+  description: How individual transformation steps become a scheduled, dependency-aware pipeline.
+  difficulty: INTERMEDIATE
+  estimated_minutes: 45
+  display_order: 6
+- domain_slug: data-engineering
+  slug: modern-data-architecture
+  title: Modern Data Architecture
+  description: How data lakes, warehouses, and lakehouses fit together in a real analytics stack.
+  difficulty: INTERMEDIATE
+  estimated_minutes: 40
+  display_order: 7
+- domain_slug: data-engineering
+  slug: data-engineering-for-analysts
+  title: Data Engineering for Analysts
+  description: What a data analyst should know deeply, what to recognize, and what to leave to a data engineer.
+  difficulty: INTERMEDIATE
+  estimated_minutes: 35
+  display_order: 8
+
+- domain_slug: data-warehousing
+  slug: oltp-vs-olap
+  title: OLTP vs OLAP
+  description: Transactional systems vs analytical systems, and why a warehouse isn't just "a bigger database."
+  difficulty: BEGINNER
+  estimated_minutes: 35
+  display_order: 1
+- domain_slug: data-warehousing
+  slug: the-data-warehouse
+  title: The Data Warehouse
+  description: What a data warehouse is for, and the properties (structured, integrated, historical) that define one.
+  difficulty: BEGINNER
+  estimated_minutes: 40
+  display_order: 2
+- domain_slug: data-warehousing
+  slug: the-data-lake
+  title: The Data Lake
+  description: Storing raw data cheaply and flexibly, and the schema-on-read tradeoffs that come with it.
+  difficulty: BEGINNER
+  estimated_minutes: 35
+  display_order: 3
+- domain_slug: data-warehousing
+  slug: the-lakehouse
+  title: The Lakehouse
+  description: Combining a lake's storage economics with a warehouse's structure and reliability guarantees.
+  difficulty: INTERMEDIATE
+  estimated_minutes: 35
+  display_order: 4
+- domain_slug: data-warehousing
+  slug: warehouse-architecture
+  title: Warehouse Architecture
+  description: Raw, staging, and mart layers — why data moves through stages instead of being transformed once.
+  difficulty: INTERMEDIATE
+  estimated_minutes: 40
+  display_order: 5
+- domain_slug: data-warehousing
+  slug: dimensional-modeling-fundamentals
+  title: Dimensional Modeling Fundamentals
+  description: Star schemas, grain, and why dimensional models are built for question-answering, not storage efficiency.
+  difficulty: INTERMEDIATE
+  estimated_minutes: 50
+  display_order: 6
+- domain_slug: data-warehousing
+  slug: facts-and-dimensions
+  title: Facts & Dimensions
+  description: The two building blocks of a star schema, and the four types of fact tables.
+  difficulty: INTERMEDIATE
+  estimated_minutes: 50
+  display_order: 7
+- domain_slug: data-warehousing
+  slug: slowly-changing-dimensions
+  title: Slowly Changing Dimensions
+  description: What happens when a dimension's attributes change over time — SCD types 0 through 2.
+  difficulty: ADVANCED
+  estimated_minutes: 45
+  display_order: 8
+- domain_slug: data-warehousing
+  slug: data-marts
+  title: Data Marts
+  description: Department- or domain-scoped subsets of a warehouse, and when they earn their extra layer.
+  difficulty: INTERMEDIATE
+  estimated_minutes: 30
+  display_order: 9
+- domain_slug: data-warehousing
+  slug: analytical-layers-and-serving
+  title: Analytical Layers & Serving
+  description: How marts get served to BI tools, dashboards, and analysts — the last mile of the warehouse.
+  difficulty: INTERMEDIATE
+  estimated_minutes: 35
+  display_order: 10
+
+- domain_slug: data-modeling
+  slug: why-data-modeling-matters
+  title: Why Data Modeling Matters
+  description: The cost of a bad model — slow queries, wrong numbers, broken dashboards — and what a good one buys you.
+  difficulty: BEGINNER
+  estimated_minutes: 30
+  display_order: 1
+- domain_slug: data-modeling
+  slug: entities-grain-relationships
+  title: Entities, Grain & Relationships
+  description: Naming what one row means, and how tables connect to each other through keys.
+  difficulty: BEGINNER
+  estimated_minutes: 40
+  display_order: 2
+- domain_slug: data-modeling
+  slug: star-schema-design
+  title: Star Schema Design
+  description: Designing a fact table surrounded by its dimensions — the default shape of an analytical model.
+  difficulty: INTERMEDIATE
+  estimated_minutes: 50
+  display_order: 3
+- domain_slug: data-modeling
+  slug: building-your-first-dimensional-model
+  title: Building Your First Dimensional Model
+  description: A hands-on walkthrough in the Data Modeler — from a business question to a validated star schema.
+  difficulty: INTERMEDIATE
+  estimated_minutes: 55
+  display_order: 4
+- domain_slug: data-modeling
+  slug: validating-a-data-model
+  title: Validating a Data Model
+  description: The mistakes a validator can catch — missing keys, ungrounded facts, circular references — and why they matter.
+  difficulty: INTERMEDIATE
+  estimated_minutes: 35
+  display_order: 5
+- domain_slug: data-modeling
+  slug: architecture-diagrams-for-analysts
+  title: Architecture Diagrams for Analysts
+  description: Reading and sketching a system architecture diagram well enough to reason about where data lives.
+  difficulty: INTERMEDIATE
+  estimated_minutes: 35
+  display_order: 6
+
+- domain_slug: modern-data-stack
+  slug: modern-data-stack-landscape
+  title: The Modern Data Stack Landscape
+  description: How ingestion, transformation, warehousing, and BI tools fit together in a typical modern stack.
+  difficulty: BEGINNER
+  estimated_minutes: 35
+  display_order: 1
+- domain_slug: modern-data-stack
+  slug: dbt-fundamentals
+  title: "dbt Fundamentals: Models & the DAG"
+  description: What a dbt model is, how `ref()` builds a dependency graph, and how `dbt run` executes it.
+  difficulty: INTERMEDIATE
+  estimated_minutes: 50
+  display_order: 2
+- domain_slug: modern-data-stack
+  slug: dbt-tests-and-data-quality
+  title: dbt Tests & Data Quality
+  description: Generic and singular tests, and how dbt turns data quality checks into a version-controlled suite.
+  difficulty: INTERMEDIATE
+  estimated_minutes: 45
+  display_order: 3
+- domain_slug: modern-data-stack
+  slug: dbt-docs-lineage-and-macros
+  title: dbt Docs, Lineage & Jinja Macros
+  description: Generated documentation, the lineage graph, and using Jinja/macros to keep SQL DRY.
+  difficulty: INTERMEDIATE
+  estimated_minutes: 45
+  display_order: 4
+- domain_slug: modern-data-stack
+  slug: dbt-incremental-models-and-snapshots
+  title: dbt Incremental Models & Snapshots
+  description: Building models that don't rescan all history every run, and capturing SCD Type 2 history with snapshots.
+  difficulty: ADVANCED
+  estimated_minutes: 50
+  display_order: 5
+- domain_slug: modern-data-stack
+  slug: cloud-data-warehouses
+  title: Cloud Data Warehouses
+  description: BigQuery, Snowflake, and Databricks — how they differ, and what stays the same conceptually.
+  difficulty: INTERMEDIATE
+  estimated_minutes: 40
+  display_order: 6
+- domain_slug: modern-data-stack
+  slug: cloud-storage-and-compute
+  title: Cloud Storage & Compute
+  description: Object storage and managed compute across AWS, GCP, and Azure — conceptual, no account required.
+  difficulty: INTERMEDIATE
+  estimated_minutes: 35
+  display_order: 7
+- domain_slug: modern-data-stack
+  slug: orchestration-streaming-and-distributed-processing
+  title: Orchestration, Streaming & Distributed Processing
+  description: What Airflow, Kafka, and Spark are each for — conceptually, without needing to run a cluster.
+  difficulty: INTERMEDIATE
+  estimated_minutes: 45
+  display_order: 8
+- domain_slug: modern-data-stack
+  slug: analyst-vs-data-engineer-boundary
+  title: The Analyst vs Data Engineer Boundary
+  description: What to own, what to understand, and what to hand off — a practical map of the two roles.
+  difficulty: INTERMEDIATE
+  estimated_minutes: 30
+  display_order: 9

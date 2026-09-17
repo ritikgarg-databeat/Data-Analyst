@@ -1,0 +1,176 @@
+slug: ecommerce-margin-compression-analysis
+title: "Case: What's Actually Driving Our Margin Below Target?"
+category: BUSINESS_ANALYTICS
+difficulty: ADVANCED
+
+estimated_minutes: 100
+company_context: >
+  Meridian Retail Co. is a multi-category online retailer (apparel, electronics, home goods, and
+  seven other categories) selling through web, mobile, and marketplace channels. Every product in
+  the catalog has a list price and a cost recorded by merchandising, and finance uses those to set
+  a target blended gross margin for the business. The company is preparing its quarterly
+  profitability report.
+stakeholder_name: Marcus Whitfield
+stakeholder_role: Head of Finance
+problem_statement: >
+  "When I average the margin across everything in our product catalog — price versus cost, product
+  by product — I get to right around 48%. But when I compute our actual realized gross margin from
+  completed orders, weighting by what people actually bought, it's coming in under that, closer to
+  47.5-47.7%. That gap might sound small, but at our order volume it's real money, and I need to
+  understand it before it gets worse as we scale. Is this just noise, or is something specific
+  eating into margin that I should be worried about? I don't have a category or product breakdown
+  yet — that's what I need from you."
+business_context: >
+  Finance's target margin is based on a simple average across the ~150 products in the active
+  catalog. The realized, sales-weighted margin has consistently landed a bit below that target for
+  as long as anyone has checked, by roughly half a percentage point to a full point depending on
+  the period. Nobody has drilled into which categories or products are responsible, or whether the
+  gap is stable, worsening, or concentrated in a specific part of the catalog.
+objective: >
+  Determine whether the gap between catalog-average margin and realized (sales-weighted) margin is
+  driven by a broad, structural mix effect, a specific underperforming category, or a specific
+  underperforming product — and quantify exactly how much gross profit is at stake.
+initial_information: >
+  The products table has a list unit_price and a cost for every SKU, and categories groups
+  products into 10 categories. order_items records what was actually sold (quantity per line item),
+  so a sales-weighted margin can be computed directly. No target margin, budget, or category-level
+  benchmark exists elsewhere in the data — only the raw price/cost/quantity fields.
+constraints:
+  - "Compute gross margin using products.unit_price and products.cost, weighted by order_items.quantity for completed orders — this is the methodology Finance already uses and expects to see reproduced, not a different margin definition."
+  - "The Head of Finance wants a specific category or product identified if one exists, not just a restatement of the overall percentage gap."
+  - "Some product names in the catalog are reused across different underlying SKUs (different product_id values) — any finding must be traceable to a specific product_id, not just a product name."
+available_datasets:
+  - ecommerce
+expected_deliverables:
+  - "Realized gross margin by category, to check whether the gap is broad-based or concentrated"
+  - "A time trend of overall realized margin (by quarter) to establish whether it's stable, worsening, or noisy"
+  - "A product-level (not just category-level) drill-down identifying which SKU(s), if any, disproportionately drag down the blended margin, combining thin margin with high sales volume"
+  - "A quantified estimate of the gross-profit impact of the worst-performing SKU(s), and a specific recommendation"
+learning_objectives:
+  - "Compute a sales-weighted (realized) margin and distinguish it from a simple unweighted catalog average"
+  - "Recognize when a category-level view is too coarse to surface a real problem and drill to the product/SKU level"
+  - "Quantify the dollar impact of a specific product's margin gap relative to a blended benchmark, not just report a percentage"
+  - "Handle a real data-quality wrinkle (non-unique product names across distinct SKUs) without misattributing a finding"
+stages:
+  - CLARIFY
+  - FRAME
+  - EXPLORE
+  - ANALYZE
+  - VALIDATE
+  - INSIGHTS
+  - RECOMMEND
+  - COMMUNICATE
+  - SUBMIT
+required_exercise_slugs: []
+tags:
+  - business-analytics
+  - e-commerce
+  - finance
+  - sql
+  - python
+  - case-study
+  - real-world
+  - advanced
+  - root-cause
+  - aggregation
+skills:
+  - business-analytics
+  - exploratory-data-analysis
+  - advanced-sql
+  - business-metrics
+  - root-cause-analysis
+  - data-interpretation
+  - communication
+clarification_guidance:
+  - "Asks for the exact margin methodology Finance uses (list price and cost, or something else — e.g. net of discounts) before recomputing anything"
+  - "Asks whether the gap has been getting worse over time or has been roughly stable, since that changes whether this is urgent or already priced in"
+  - "Asks whether the concern is one category, one product, or a broad mix-shift effect across many products"
+  - "Asks whether product identifiers (product_id) or product names should be used to group results, given that names may not be unique"
+rubric:
+  - category: "Problem Framing"
+    weight: 15
+    criteria:
+      - criterion: "Correctly distinguishes the unweighted catalog-average margin from the sales-weighted realized margin as two different numbers"
+        points: 10
+      - criterion: "Frames the investigation as needing both a time-trend check and a category/product breakdown, not just one or the other"
+        points: 10
+  - category: "Analytical Approach"
+    weight: 15
+    criteria:
+      - criterion: "Checks the overall margin trend by quarter before concluding whether compression is worsening or stable"
+        points: 8
+      - criterion: "Deliberately drills from category level to product level rather than stopping once category-level margins look reasonable"
+        points: 7
+  - category: "Technical Analysis"
+    weight: 30
+    is_technical: true
+    criteria:
+      - criterion: "Correctly computes sales-weighted (quantity-weighted) margin by category using products.unit_price and products.cost"
+        points: 10
+      - criterion: "Correctly computes margin at the individual product_id level (not conflating same-named products across categories)"
+        points: 10
+      - criterion: "Correctly quantifies the gross-profit gap for the identified product(s) relative to the company-wide blended margin"
+        points: 10
+  - category: "Insight Quality"
+    weight: 25
+    criteria:
+      - criterion: "Correctly concludes that no single category shows a worsening margin trend over time, and that category-level margins are all within a reasonably tight band"
+        points: 10
+      - criterion: "Identifies a specific high-volume, thin-margin product_id as the largest single driver of the blended-margin gap, and states its margin and volume"
+        points: 15
+  - category: "Recommendation"
+    weight: 15
+    criteria:
+      - criterion: "Recommends a specific action targeted at the identified product (e.g., repricing, renegotiating cost, or reducing promotional exposure) rather than a generic margin-improvement statement"
+        points: 8
+      - criterion: "Recommends adding product/SKU-level margin monitoring going forward, not just category-level"
+        points: 7
+hints:
+  - "Compute both numbers explicitly: the simple average of margin_pct across every product in the catalog, and the sales-weighted margin using order_items quantities. They won't be the same number, and the gap between them is itself a clue."
+  - "Check whether overall realized margin has actually been trending down over time, or whether it's been sitting in a fairly narrow, stable band — that changes whether you're looking for a worsening trend or a persistent structural gap."
+  - "Break margin down by category first. If every category's margin looks reasonable on its own, the problem may not be a category-level mix issue — it may be hiding inside one category, at the product level."
+  - "When you find a product-level outlier, double check you're looking at a single product_id, not a product_name — some names in this catalog are reused across multiple different SKUs with very different margins."
+reference_solution:
+  summary: >
+    The catalog-average (unweighted) margin across products is about 48.0%, while the actual
+    sales-weighted realized margin from completed orders is 47.7% — a real but modest ~30 basis
+    point gap from mix. Checked by quarter, overall realized margin has NOT been steadily worsening:
+    it has stayed in a tight 46.5%-48.0% band for eight straight quarters (peaking at 47.96% in Q1
+    2025, sitting at 47.69% in Q4 2025), and no individual category shows a clear declining trend
+    either. Category-level margins all fall in a reasonable 43.2%-49.8% range (Books lowest at
+    43.2%, Apparel highest at 49.75%), so a category-level view alone would not raise a flag.
+    Drilling to the individual product_id level, however, surfaces a clear outlier: product_id 10,
+    "Wireless Board Game" in the Pet Supplies category (list price $409.97, cost $280.26, margin
+    31.6%), sits nearly 16 points below the 47.7% company-wide blended margin. It is simultaneously
+    one of the highest-volume SKUs in the entire catalog — 228 units sold, $93,473 in revenue (top
+    6 of roughly 141 actively-selling products by revenue) — making it the single largest per-SKU
+    drag on blended margin of any product: an estimated $14,982 in gross profit "missing" relative
+    to what that revenue would have contributed at the 47.7% company-average margin. This is
+    invisible at the category level because Pet Supplies as a whole actually carries an
+    above-average 48.4% blended margin — its other SKUs are high-margin enough to mask this one
+    outlier in a category-level report. Note also that "Wireless Board Game" is not a unique name:
+    three other product_id values share that exact name across Beauty (58.4% margin), Garden &
+    Outdoor (42.2%), and a second, cheaper Pet Supplies SKU (62.0%) — only product_id 10 is the
+    actual outlier, and a name-based (rather than product_id-based) analysis would misattribute or
+    dilute the finding.
+  key_insights:
+    - "Realized (sales-weighted) margin, 47.7%, sits about 30 basis points below the unweighted catalog-average margin of 48.0% — a real but modest mix effect, not a large or alarming gap on its own."
+    - "Overall realized margin has been stable, not worsening: it has stayed within a 46.5%-48.0% band for all eight quarters of available history, with no clear downward trend."
+    - "Every one of the 10 product categories has a blended margin between 43.2% (Books, the lowest) and 49.75% (Apparel, the highest) — no category looks alarming on its own."
+    - "Product_id 10, 'Wireless Board Game' (Pet Supplies), has a 31.6% margin against a $409.97 list price and $280.26 cost, is a top-6 product by revenue ($93,473, 228 units), and is the single largest individual product driver of the blended-margin gap — about $14,982 in gross profit relative to the company-average rate."
+    - "The Pet Supplies category overall has an above-average 48.4% blended margin, which fully masks the product_id 10 outlier in any category-level report — this problem is only visible at the SKU level."
+    - "The product name 'Wireless Board Game' is reused across 4 different product_id values with very different margins (31.6%, 42.2%, 58.4%, 62.0%) — grouping by name instead of product_id would misidentify or dilute the finding."
+  recommendation: >
+    Escalate product_id 10 ('Wireless Board Game', Pet Supplies) specifically for a pricing or cost
+    review — either renegotiate its cost with the supplier or adjust its list price, since it is
+    both unusually thin-margin and unusually high-volume, making it the single largest identifiable
+    lever on blended margin. Do not treat this as a category-level or catalog-wide problem: overall
+    margin has been stable, not deteriorating, and every category's blended margin looks reasonable
+    on its own — this is a single-SKU issue hiding inside an otherwise healthy category. Recommend
+    adding a recurring product-level (not just category-level) margin outlier report to Finance's
+    regular reviews, flagging any product that combines below-average margin with above-average
+    sales volume, so a similar issue is caught before it compounds.
+  acceptable_alternatives:
+    - "A learner who flags Books as a secondary finding (lowest category-level margin, 43.2%, and the single largest-revenue category at $832,796) deserves partial credit for a legitimate, real, but coarser-grained observation — it is a defensible secondary insight, though less actionable than the product_id 10 finding since Books' margin has been stable, not worsening, and no single Books SKU stands out to the same degree."
+    - "A learner who identifies a different high-volume, low-margin product_id (e.g., 'Pro Yoga Mat' at 31.9% margin, or 'Wireless Desk Lamp' at 33.9% margin, both real secondary outliers with meaningfully smaller gross-profit gaps than product_id 10) has found a real pattern and should receive credit proportional to correctly quantifying that product's actual impact, even if it is not the single largest one."
+version: 1

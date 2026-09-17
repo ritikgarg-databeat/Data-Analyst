@@ -1,0 +1,102 @@
+slug: pa-product-experiments-bridge
+module_slug: product-experiments
+title: "When a Product Question Needs an Actual Experiment"
+description: >
+  Two real A/B tests from this dataset's raw conversion rates, showing exactly where descriptive
+  product analytics stops being enough and a formal significance test (the Experimentation domain)
+  has to take over.
+difficulty: ADVANCED
+estimated_minutes: 20
+display_order: 1
+objectives:
+  - Recognize when an observed gap between two groups is small enough that eyeballing raw rates cannot tell you whether it's real
+  - Explain what a formal significance test adds that a simple percentage comparison cannot
+  - Know what inputs (sample size, both group rates, a chosen significance threshold) an experiment analysis needs before you can trust its conclusion
+prerequisites: [pa-churn-drivers, pa-feature-adoption-decision]
+skills: [product-analytics, experimentation]
+datasets: [saas-product]
+tags: [product, saas, experimentation, ab-testing, advanced]
+key_takeaways:
+  - "This dataset's checkout_redesign experiment shows treatment converting at 12.5% versus control's 11.3% (n=1,000 each) — treatment looks better, but a 1.2-point gap on a ~11-12% base rate is exactly the size of gap that needs a real significance test before anyone should trust it as a true effect."
+  - "The onboarding_email experiment shows the opposite pattern from what a team might hope for: treatment converts slightly *lower* than control (31.4% vs. 32.4%, n=500 each) — small differences like this can go either direction by chance alone, which is precisely why 'eyeballing the rates' is not a substitute for a real test."
+  - "Everything this domain has covered so far (funnels, cohorts, segmentation, churn drivers) is observational — it finds real patterns in data that already happened. An experiment is different: it's a controlled comparison built specifically to support a causal claim, which is why \"is this segment different\" and \"did this change cause an improvement\" require different tools."
+common_mistakes:
+  - Looking at a raw percentage gap between a treatment and control group (e.g. "12.5% vs. 11.3%, treatment wins") and declaring a winner without checking whether that gap is large enough, given the sample size, to be distinguishable from random chance.
+  - Assuming that because product-analytics segmentation (like the activation-rate-by-channel findings elsewhere in this domain) found a real, large, defensible gap, an A/B test's much smaller raw gap can be read with the same confidence — sample size and gap size both matter, and a channel segmentation with hundreds of users per group and a 23-point gap is a very different statistical situation from a two-point gap on similarly sized groups.
+blocks:
+  - type: text
+    body: >
+      Every analysis so far in this domain — funnels, cohort retention, churn segmentation, feature
+      adoption — has been **observational**: it describes patterns in data that already happened,
+      without controlling who ended up in which group. The `experiment_assignments` table in this
+      dataset is different — it records real, controlled A/B tests, where users were deliberately
+      split into `control` and `treatment` groups. That controlled split is what makes a *causal*
+      claim ("this change caused the improvement") possible in a way pure segmentation never can.
+  - type: heading
+    text: "Two real experiments from this dataset"
+  - type: code
+    language: sql
+    caption: Conversion rate by variant, for both experiments in this dataset
+    code: |
+      SELECT
+        experiment_id,
+        variant,
+        COUNT(*)                              AS n_users,
+        SUM(converted)                        AS n_converted,
+        ROUND(AVG(converted * 1.0), 4)        AS conversion_rate
+      FROM experiment_assignments
+      GROUP BY experiment_id, variant
+      ORDER BY experiment_id, variant;
+  - type: table
+    headers: ["Experiment", "Variant", "n", "Converted", "Conversion rate"]
+    rows:
+      - ["checkout_redesign", "control", "1,000", "113", "11.3%"]
+      - ["checkout_redesign", "treatment", "1,000", "125", "12.5%"]
+      - ["onboarding_email", "control", "500", "162", "32.4%"]
+      - ["onboarding_email", "treatment", "500", "157", "31.4%"]
+  - type: heading
+    text: Why you can't just eyeball these gaps
+  - type: text
+    body: >
+      checkout_redesign's treatment (12.5%) beats control (11.3%) by 1.2 points. onboarding_email's
+      treatment (31.4%) actually trails control (32.4%) by 1.0 point. Both gaps are small relative to
+      the group sizes (1,000 and 500 users per arm) — small enough that random variation alone, with
+      no real underlying effect at all, could plausibly produce a gap this size in either direction.
+      Compare this to the product-activation module's channel finding — a 23-point gap between
+      organic (78.9%) and paid_social (55.9%) on groups of 913 and 624 users — which is far too large
+      to be explained by chance alone. These experiment gaps are nowhere near that clear-cut.
+  - type: callout
+    variant: important
+    title: This is exactly where a formal significance test earns its keep
+    body: >
+      A real answer to "did the checkout redesign actually improve conversion" requires more than
+      comparing 12.5% to 11.3% — it requires a formal test (a two-proportion z-test or equivalent)
+      that accounts for both groups' sample sizes and produces a p-value or confidence interval,
+      telling you how likely a gap this size (or larger) would be to occur by chance alone if there
+      were truly no difference. That full machinery — power analysis, significance testing,
+      guardrail metrics, novelty effects — is exactly what the separate **Experimentation** domain
+      covers in depth. This lesson's job is only to show you *when* you need to reach for it.
+  - type: heading
+    text: What product analytics contributes before an experiment even runs
+  - type: checklist
+    title: Where descriptive product-analytics work (this domain) feeds into an experiment (the Experimentation domain)
+    items:
+      - "Funnel and segmentation analysis (like the paid_social activation gap) generates the hypothesis worth testing — it doesn't test it"
+      - "Baseline conversion rates from historical data (like this dataset's own funnel numbers) inform how big a sample size an experiment will need to detect a realistic effect"
+      - "Knowing which metric actually matters for the business (activation, upgrade rate, retention) — established through the metric-definition work in this domain — determines what the experiment should even measure as its success metric"
+      - "After an experiment concludes, the same segmentation skills from this domain (by channel, by cohort) are what let you check whether an effect was uniform or concentrated in one segment"
+  - type: question
+    prompt: >
+      checkout_redesign's treatment group converts at 12.5% versus control's 11.3%, each with 1,000
+      users. What's the most defensible next step before declaring the redesign a win?
+    choices:
+      - "Ship the redesign immediately, since treatment's number is higher"
+      - "Run a formal statistical significance test on the two conversion rates, accounting for both sample sizes, before concluding the gap reflects a real effect rather than chance"
+      - "Ignore the result entirely, since a 1.2-point gap is never meaningful in any experiment"
+      - "Re-run the experiment with the same two groups to see if the same users convert differently a second time"
+    correct_index: 1
+    explanation: >
+      A raw percentage gap on its own can't distinguish a real effect from ordinary sampling
+      variation — that distinction is exactly what a formal significance test provides. A 1.2-point
+      gap on 1,000-user groups might or might not be statistically significant, and the only way to
+      know is to run the actual test rather than eyeballing the two percentages.

@@ -1,0 +1,55 @@
+slug: products-never-ordered
+lesson_slug: inner-joins
+skill: sql-fundamentals
+dataset: ecommerce
+title: Find Products That Have Never Been Ordered
+description: Write a query that finds catalog products with zero matching rows in order_items.
+exercise_type: SQL
+difficulty: BEGINNER
+points: 15
+tags: [sql, foundations, easy]
+business_context: >
+  Merchandising suspects some catalog products have been sitting on the site without ever actually
+  selling, and wants the exact list so they can consider delisting them and freeing up shelf space for
+  better performers.
+prompt: >
+  Using the `products` and `order_items` tables, write a query that returns the `product_id` and
+  `product_name` of every product that has never appeared in a single `order_items` row.
+sql_tables: [products, order_items]
+sql_starter_query: |
+  -- Every product SHOULD show up in order_items at least once if it's ever sold — check which don't
+  SELECT * FROM products LIMIT 20;
+sql_solution_query: |
+  SELECT p.product_id, p.product_name
+  FROM products p
+  LEFT JOIN order_items oi ON oi.product_id = p.product_id
+  WHERE oi.product_id IS NULL;
+sql_row_order_matters: false
+sql_numeric_tolerance: 0.01
+sql_hidden_tests:
+  - name: "A known never-ordered product is correctly identified"
+    query: |
+      SELECT p.product_id, p.product_name
+      FROM products p
+      LEFT JOIN order_items oi ON oi.product_id = p.product_id
+      WHERE oi.product_id IS NULL
+      ORDER BY p.product_id ASC
+      LIMIT 1
+    key_columns: 1
+hints:
+  - "You're looking for products with zero matches on the other side of a relationship — a plain INNER JOIN can only show you products that DO have order_items rows, so you need something that can also surface the absence of a match."
+  - "LEFT JOIN products to order_items on product_id, then filter to WHERE the order_items side is NULL — those are the products for which the join found nothing to attach. (A NOT IN or NOT EXISTS subquery against order_items works too.)"
+solution: |
+  ```sql
+  SELECT p.product_id, p.product_name
+  FROM products p
+  LEFT JOIN order_items oi ON oi.product_id = p.product_id
+  WHERE oi.product_id IS NULL;
+  ```
+explanation: >
+  A strong answer recognizes that "never ordered" is fundamentally an absence-of-a-match question, which
+  a LEFT JOIN followed by an IS NULL check on the right-hand table's key handles directly (a NOT EXISTS
+  or NOT IN subquery against order_items.product_id is an equally valid way to express the same idea). A
+  common mistake is using an INNER JOIN and expecting the missing products to show up with a NULL
+  quantity — an INNER JOIN only ever returns rows that DID find a match, so a never-ordered product would
+  simply be dropped entirely rather than appearing with nulls.

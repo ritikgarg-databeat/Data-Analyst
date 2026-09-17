@@ -1,0 +1,19 @@
+slug: pa-feature-adoption-rate
+skill: product-metrics
+title: Measuring Feature Adoption
+description: How is 'feature adoption rate' for a specific new feature typically defined?
+exercise_type: MULTIPLE_CHOICE
+difficulty: BEGINNER
+points: 5
+tags:
+- product-analytics
+prompt: How is 'feature adoption rate' for a specific new feature typically defined?
+correct_answer: The percentage of eligible active users who have used the feature at least once in a given period
+explanation: Adoption rate is a percentage of the RELEVANT user base (those who could plausibly use it), not a raw
+  click count -- a raw count conflates a small number of power users clicking many times with broad adoption across
+  the user base, which are very different situations.
+choices:
+- The percentage of eligible active users who have used the feature at least once in a given period
+- The total raw count of feature clicks
+- The percentage of the codebase the feature represents
+- The number of support tickets related to the feature

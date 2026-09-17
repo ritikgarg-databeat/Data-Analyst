@@ -1,0 +1,115 @@
+slug: dbt-jinja-and-macros
+module_slug: dbt-docs-lineage-and-macros
+title: "Jinja & Macros: Keeping SQL DRY with pct_of"
+description: >-
+  Jinja templating basics, this repo's real pct_of macro and the null/zero
+  problem it solves, and why calling it beats copy-pasting a CASE WHEN into
+  every mart that needs a percentage.
+difficulty: INTERMEDIATE
+estimated_minutes: 20
+display_order: 2
+prerequisites: [dbt-docs-and-lineage]
+objectives:
+  - Distinguish Jinja expression syntax ({{ }}) from Jinja statement syntax ({% %}), and explain that both compile away into plain SQL before anything runs.
+  - Read this repo's real pct_of macro and explain the null/zero-safe division problem it solves.
+  - Trace pct_of's real call site inside fct_orders.sql and explain why centralizing this logic in one macro beats copy-pasting the same CASE WHEN into every mart that needs it.
+skills: [dbt, modern-data-stack]
+datasets: [ecommerce]
+tags: [dbt, macros, jinja, modern-data-stack, real-execution, intermediate]
+key_takeaways:
+  - "{{ }} substitutes a value (a ref() call, a macro call, a variable) directly into the compiled SQL; {% %} runs control-flow logic (config, if, for, snapshot blocks) that doesn't itself appear in the output — both compile away entirely before dbt executes anything against the warehouse."
+  - "A macro is a parameterized snippet of SQL, called like a function — dbt expands the call into the macro's actual SQL body at compile time, so what the warehouse ultimately runs is always plain, ordinary SQL with zero Jinja left in it."
+  - "This project's pct_of macro exists because 100.0 * numerator / denominator breaks (divides by zero, or truncates in integer division) whenever the denominator is zero or null — centralizing the fix in one macro means every mart that needs a safe percentage calls the same tested logic instead of re-deriving its own CASE WHEN."
+common_mistakes:
+  - "Assuming Jinja is a separate language the warehouse has to understand — it isn't; dbt fully renders every {{ }} and {% %} into plain SQL text *before* sending anything to the warehouse, so the warehouse never sees a single curly brace."
+  - "Copy-pasting a working CASE WHEN into a second, then a third mart instead of extracting it into a macro the first time a percentage is needed twice — the moment that logic needs a fix (e.g. rounding, or handling a new edge case), every copy has to be found and fixed separately instead of one macro definition."
+blocks:
+  - type: heading
+    text: "Two kinds of curly braces"
+  - type: text
+    body: >
+      Jinja, the templating language dbt uses inside .sql files, has two forms you'll see throughout this
+      project. `{{ ... }}` is an *expression* — it's replaced with a value, such as the resolved table name
+      from a `ref()` call, or the expanded SQL body of a macro call. `{% ... %}` is a *statement* — it runs
+      control flow (a `config()` call, an `if` block, a `for` loop, a `snapshot`/`endsnapshot` pair) that
+      doesn't itself produce output. Both are fully resolved by dbt at compile time; the SQL dbt actually
+      sends to the warehouse never contains a curly brace.
+  - type: heading
+    text: "The real pct_of macro"
+  - type: code
+    language: sql
+    code: |
+      {#
+          Null/zero-safe percentage: 100.0 * numerator / denominator, or null when
+          the denominator is zero (instead of dbt-duckdb raising a divide-by-zero
+          error). Centralizing this in one macro avoids every mart re-writing the
+          same `case when x = 0 then null else ... end` guard.
+
+          Usage: {{ pct_of('gross_margin', 'gross_revenue') }}
+      #}
+      {% macro pct_of(numerator, denominator) %}
+          case
+              when {{ denominator }} = 0 or {{ denominator }} is null then null
+              else 100.0 * {{ numerator }} / {{ denominator }}
+          end
+      {% endmacro %}
+    caption: "dbt/macros/pct_of.sql — the real, unedited macro. {# ... #} is a Jinja comment, stripped entirely at compile time."
+  - type: text
+    body: >
+      `pct_of` takes two arguments — column expressions passed in as plain strings — and expands into a
+      `CASE WHEN` guard: if the denominator is zero or null, the result is null (avoiding a divide-by-zero
+      error or a nonsensical result); otherwise it computes `100.0 * numerator / denominator`, using
+      `100.0` specifically so the division happens in floating point rather than silently truncating to an
+      integer.
+  - type: heading
+    text: "Its one real call site"
+  - type: code
+    language: sql
+    code: |
+      -- dbt/models/marts/fct_orders.sql (excerpt)
+      {{ pct_of('oi.gross_margin', 'oi.gross_revenue') }} as gross_margin_pct,
+    caption: "The call, exactly as it appears in fct_orders.sql."
+  - type: example
+    title: "What that line compiles to"
+    body: >
+      Before dbt sends anything to the warehouse, that one line expands into the macro's full body, with
+      the two arguments substituted in — this is the actual compiled SQL dbt runs.
+    code: |
+      case
+          when oi.gross_revenue = 0 or oi.gross_revenue is null then null
+          else 100.0 * oi.gross_margin / oi.gross_revenue
+      end as gross_margin_pct,
+    language: sql
+  - type: callout
+    variant: important
+    title: "Why one macro beats one CASE WHEN per mart"
+    body: >
+      If a second mart also needed a safe percentage — say, a refund rate — writing its own
+      `CASE WHEN amount_refunded = 0 ...` from scratch would work today, but it duplicates logic that now
+      lives in two places. If a bug were later found (say, the guard needs to also handle a negative
+      denominator), fixing it would mean finding and editing every copy. Calling `{{ pct_of(...) }}` a
+      second time instead means the fix happens once, in `pct_of.sql`, and every caller gets it
+      automatically the next time the project runs.
+  - type: heading
+    text: "Other Jinja you'll recognize from this project"
+  - type: text
+    body: >
+      Beyond macros, this project uses Jinja statements you'll see named directly in module 5:
+      `{{ config(materialized='incremental', ...) }}` configures how a model is built,
+      `{% if is_incremental() %} ... {% endif %}` changes a model's SQL only on incremental runs, and
+      `{% snapshot customer_segment_snapshot %} ... {% endsnapshot %}` wraps an entire snapshot definition.
+      All of it follows the same rule as `pct_of`: Jinja controls what SQL gets generated, but what
+      actually runs against the warehouse is always plain SQL with no Jinja left in it.
+  - type: question
+    prompt: "Why does pct_of use 100.0 (not 100) as the multiplier in its CASE WHEN?"
+    choices:
+      - "It has no effect either way — 100 and 100.0 compile to identical SQL"
+      - "100.0 forces the division to happen in floating point, avoiding integer-division truncation"
+      - "100.0 is required Jinja syntax for numeric macro arguments"
+      - "It rounds the result to one decimal place"
+    correct_index: 1
+    explanation: >
+      In many SQL engines, dividing two integers (or an integer literal like 100 times an integer column)
+      truncates to an integer result — 1/3 would come out as 0, not 0.333. Writing 100.0 forces the
+      calculation into floating-point arithmetic before the division happens, so gross_margin_pct comes
+      out as an actual percentage like 34.7, not a truncated integer.

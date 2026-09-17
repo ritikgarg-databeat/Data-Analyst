@@ -1,0 +1,42 @@
+version: 2
+
+sources:
+  - name: raw
+    description: >
+      The ecommerce practice dataset's CSVs, read directly (no separate
+      load step — dbt-duckdb's `external_location` lets a source point
+      straight at a file). `DBT_DATA_DIR` is set by the API process to the
+      absolute path of data/sample/ecommerce at invocation time.
+    meta:
+      external_location: "'{{ env_var('DBT_DATA_DIR') }}/{name}.csv'"
+    tables:
+      - name: orders
+        description: "1 row = 1 order."
+        columns:
+          - name: order_id
+            tests: [unique, not_null]
+      - name: customers
+        description: "1 row = 1 customer."
+        columns:
+          - name: customer_id
+            tests: [unique, not_null]
+      - name: order_items
+        description: "1 row = 1 product line within an order."
+        columns:
+          - name: order_item_id
+            tests: [unique, not_null]
+      - name: payments
+        description: "1 row = 1 payment transaction for an order."
+        columns:
+          - name: payment_id
+            tests: [unique, not_null]
+      - name: products
+        description: "1 row = 1 product."
+        columns:
+          - name: product_id
+            tests: [unique, not_null]
+      - name: categories
+        description: "1 row = 1 product category."
+        columns:
+          - name: category_id
+            tests: [unique, not_null]

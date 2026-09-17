@@ -1,0 +1,35 @@
+slug: bhv-failure-query-mistake
+skill: behavioral-interviewing
+title: A Query Mistake With Real Consequences
+description: Tell me about a mistake you made in a SQL query or analysis that had real consequences.
+exercise_type: INTERVIEW_RESPONSE
+difficulty: INTERMEDIATE
+points: 10
+tags:
+- behavioral
+- star-method
+- failure
+prompt: Tell me about a mistake you made in a SQL query or analysis that had real consequences.
+hints:
+- The STAR framework (Situation, Task, Action, Result) is a useful structure, not a script -- use it to
+  make sure you cover what actually happened, in what context, what you personally did, and what came
+  of it.
+- Interviewers are listening for a specific, real example -- a vague 'sometimes this happens on my team'
+  answer is much weaker than one concrete story with real details.
+rubric:
+- criterion: Describes one specific, real situation rather than a hypothetical or a generic pattern
+  points: 25
+- criterion: Clearly states the task or goal and the person's own specific role in it
+  points: 20
+- criterion: Explains concrete actions the person personally took, not just what the team did
+  points: 30
+- criterion: States a clear, ideally measurable outcome and what was learned from it
+  points: 25
+solution: I wrote a query to compute refund rate that used a LEFT JOIN where an INNER JOIN was needed,
+  which silently inflated the denominator with orders that had no payment record at all, understating
+  the refund rate. That number went into a vendor-performance report. Once I caught it (a follow-up question
+  about a vendor's numbers not matching their own records led me to re-check the join), I corrected the
+  report, notified everyone who'd seen the wrong number, and added a hidden test to that query's exercise-equivalent
+  check going forward -- comparing row counts before and after each join as a sanity check.
+explanation: The answer shows the mistake's mechanism precisely (join type, not just 'a bug'), how it
+  was caught, and a durable process change (a row-count sanity check) rather than just a one-time fix.

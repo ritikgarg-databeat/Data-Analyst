@@ -1,0 +1,154 @@
+slug: dbt-models-refs-and-sources
+module_slug: dbt-fundamentals
+title: "What a dbt Model Actually Is"
+description: >-
+  A dbt model is a SELECT statement in a .sql file — source(), ref(), and
+  the staging/intermediate/marts layers this repo's real dbt project uses,
+  read straight from the actual files.
+difficulty: INTERMEDIATE
+estimated_minutes: 25
+display_order: 1
+prerequisites: [mds-landscape-overview]
+objectives:
+  - Define a dbt model precisely — a named SELECT statement in a .sql file that dbt materializes as a view or a table.
+  - Distinguish source() from ref(), and explain why using them instead of hardcoded table names is what lets dbt build a dependency graph automatically.
+  - Read this repo's real staging models and dbt_project.yml to identify the staging/intermediate/marts layering convention and each layer's default materialization.
+skills: [dbt, modern-data-stack]
+datasets: [ecommerce]
+tags: [dbt, models, ref, modern-data-stack, real-execution, intermediate]
+key_takeaways:
+  - "A dbt model is nothing more than a .sql file containing a SELECT statement, named by its filename — dbt wraps it in a `create view/table as` (or similar) and runs it against the warehouse. There is no separate 'model definition language' to learn."
+  - "source() points at raw data that ingestion (or, in this project, a plain CSV) already landed; ref() points at another dbt model. Using these functions instead of a hardcoded schema.table name is the entire trick that lets dbt discover a project's dependency graph automatically."
+  - "This project's staging/intermediate/marts folders aren't a dbt requirement — they're a convention, configured in dbt_project.yml, that maps each layer to a materialization (staging/intermediate as views, marts as tables) matching how heavily each layer is reused and queried."
+common_mistakes:
+  - "Hardcoding a schema-qualified table name (e.g. `analytics.stg_orders`) inside a model instead of `{{ ref('stg_orders') }}` — this breaks dbt's ability to see the dependency, silently removes that edge from the DAG, and stops working the moment the project is deployed to a different schema/environment."
+  - "Confusing source() and ref() — source() is only ever used to point at raw, not-yet-transformed data declared in a sources.yml file; every other dbt model is always referenced with ref(), never source()."
+interview_questions:
+  - question: "What's the practical difference between using {{ ref('stg_orders') }} and just writing analytics.stg_orders directly in a model's SQL?"
+    answer: >
+      Functionally, once compiled, they often resolve to the same physical table. The difference is that
+      `ref()` tells dbt about the dependency *before* compilation — dbt parses every `ref()`/`source()`
+      call across the whole project to build its dependency graph, decide what order to run models in,
+      and know what a model's actual lineage is. A hardcoded table name is invisible to dbt: the model
+      might still run, but it would run in whatever order dbt guessed for unrelated reasons, could break
+      silently if the target environment's schema name changes, and would show up in the lineage graph
+      and docs with a phantom missing edge.
+blocks:
+  - type: heading
+    text: "A model is just a SELECT statement"
+  - type: text
+    body: >
+      Strip away the tooling and a dbt model is exactly one thing: a `.sql` file containing a single
+      `SELECT` statement, named by its filename. When dbt runs, it wraps that `SELECT` in the appropriate
+      DDL for how the model is configured to materialize — commonly `create view ... as (select ...)` or
+      `create table ... as (select ...)` — and executes it against the warehouse. There's no separate
+      modeling language, no extra syntax to memorize beyond ordinary SQL plus a small amount of Jinja
+      templating (covered in module 4).
+  - type: code
+    language: sql
+    code: |
+      -- dbt/models/staging/stg_orders.sql
+      -- 1 row = 1 order, standardized (column renames, trimmed status).
+      select
+          order_id,
+          customer_id,
+          order_date,
+          trim(lower(status)) as status,
+          channel
+      from {{ source('raw', 'orders') }}
+    caption: "The full, real stg_orders.sql from this repo's dbt project — a plain SELECT, standardizing one raw source table."
+  - type: heading
+    text: "source() vs. ref()"
+  - type: text
+    body: >
+      `{{ source('raw', 'orders') }}` points at *raw, not-yet-transformed* data — specifically, a table
+      declared under a named source group (`raw`) in a `sources.yml` file, which documents where that raw
+      data actually lives. `{{ ref('stg_orders') }}` points at *another dbt model* — dbt resolves it to
+      that model's actual materialized table or view at compile time. Every dbt model always uses one or
+      the other instead of ever writing a literal table name — that's what lets dbt trace every single
+      dependency in the project automatically, without a human maintaining a separate dependency list
+      anywhere.
+  - type: code
+    language: yaml
+    code: |
+      # dbt/models/staging/sources.yml
+      sources:
+        - name: raw
+          tables:
+            - name: orders
+              description: "1 row = 1 order."
+              columns:
+                - name: order_id
+                  tests: [unique, not_null]
+    caption: "The 'raw' source group stg_orders.sql's source('raw', 'orders') call resolves against."
+  - type: example
+    title: "ref() chaining two staging models into an intermediate model"
+    body: >
+      `int_order_items_priced.sql` joins two staging models together with two separate `ref()` calls —
+      this is exactly how dbt learns that this intermediate model depends on both `stg_order_items` and
+      `stg_products`, without either dependency being written down anywhere else.
+    code: |
+      -- dbt/models/intermediate/int_order_items_priced.sql
+      select
+          oi.order_item_id,
+          oi.order_id,
+          oi.product_id,
+          oi.quantity,
+          oi.unit_price,
+          oi.discount,
+          oi.line_revenue,
+          p.category_id,
+          p.cost as unit_cost,
+          (oi.quantity * p.cost) as line_cost,
+          oi.line_revenue - (oi.quantity * p.cost) as line_margin
+      from {{ ref('stg_order_items') }} as oi
+      left join {{ ref('stg_products') }} as p
+          on oi.product_id = p.product_id
+    language: sql
+  - type: heading
+    text: "Layers are a convention, materializations are a config"
+  - type: text
+    body: >
+      This repo's project organizes models into three folders — `staging/`, `intermediate/`, and
+      `marts/` — which is a widely-used dbt convention, not something dbt enforces on its own. What *is*
+      enforced is the materialization each folder defaults to, configured once in `dbt_project.yml` and
+      inherited by every model inside that folder unless overridden.
+  - type: code
+    language: yaml
+    code: |
+      # dbt/dbt_project.yml
+      models:
+        personal_data_analyst_lab:
+          staging:
+            +materialized: view
+            +schema: staging
+          intermediate:
+            +materialized: view
+            +schema: intermediate
+          marts:
+            +materialized: table
+            +schema: marts
+    caption: "Staging and intermediate models default to views (thin, no storage cost — recomputed on every query); marts default to tables (heavier to build, but fast to query repeatedly from a BI tool)."
+  - type: callout
+    variant: tip
+    title: "Why marts are tables but staging is just a view"
+    body: >
+      A view stores no data — it's a saved query, recomputed every time something selects from it. That's
+      fine for staging models, which are usually cheap, thin transformations queried mostly *by other dbt
+      models* rather than directly by a dashboard. Marts, on the other hand, are usually what a BI tool
+      queries repeatedly and needs to be fast — materializing them as tables means the heavier
+      joins/aggregations in `fct_orders` or `dim_customers` only run once per `dbt run`, not once per
+      dashboard refresh.
+  - type: question
+    prompt: "A new mart model needs data from the existing stg_customers staging model. What should its SQL contain?"
+    choices:
+      - "A hardcoded reference to analytics.staging.stg_customers"
+      - "{{ source('raw', 'stg_customers') }}"
+      - "{{ ref('stg_customers') }}"
+      - "A copy-paste of stg_customers.sql's own SELECT statement"
+    correct_index: 2
+    explanation: >
+      stg_customers is a dbt model (not raw, undocumented data), so it's always referenced with
+      `ref()`, never `source()` — `source()` is reserved for the raw tables declared in a sources.yml
+      file. Using ref() is also what lets dbt know this new mart depends on stg_customers and must run
+      after it.

@@ -1,0 +1,34 @@
+slug: validating-an-activation-event
+lesson_slug: activation
+skill: experimentation
+title: Validating a Candidate Activation Event
+description: Reason through how to check whether a proposed "aha moment" actually predicts retention, rather than just correlating with it.
+exercise_type: BUSINESS_REASONING
+difficulty: INTERMEDIATE
+points: 15
+tags: [product-analytics, intermediate]
+prompt: >
+  An analyst at a project-management tool finds that new users who create 3+ tasks and assign at least
+  one to a teammate within their first 3 days are retained at day-30 much more often than users who
+  don't. The team wants to declare "create 3+ tasks and assign one" the official activation event and
+  redesign onboarding to push every new user toward it. What would you check before signing off on that
+  decision, and why?
+hints:
+  - "Correlation between an early action and later retention doesn't prove the early action caused the retention — what else could explain both?"
+  - "Think about who is likely to reach that milestone naturally: could it be capturing users who were already going to stick around for other reasons, like signing up as part of an existing team?"
+solution: >
+  Before adopting the metric, check: (1) whether the correlation holds after accounting for obvious
+  confounders — users who invite a teammate within 3 days may simply be higher-intent or already
+  coordinating with a team, which could drive retention regardless of task creation; (2) whether the
+  relationship is causal by running an experiment — nudge a randomized subset of new users toward the
+  proposed action (e.g. via an onboarding prompt) and compare their retention against a control group
+  that isn't nudged; (3) whether the event is reachable by enough of the user base to be a useful lever
+  — if only a small fraction of users are ever on a team plan, this can't be the sole activation event;
+  (4) whether the relationship holds across segments (solo users vs. team users) instead of only in the
+  aggregate, where it may be driven entirely by one segment.
+explanation: >
+  A strong answer moves past "the correlation looks strong" and names concrete ways the relationship
+  could be non-causal (selection effects, confounding by user intent or team size), plus a concrete way
+  to test causation — a randomized onboarding experiment comparing nudged vs. non-nudged new users. A
+  weak answer treats the correlation itself as sufficient proof and jumps straight to redesigning
+  onboarding around it without any plan to validate the causal claim.

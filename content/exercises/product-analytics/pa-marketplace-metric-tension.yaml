@@ -1,0 +1,25 @@
+slug: pa-marketplace-metric-tension
+skill: product-metrics
+title: Two-Sided Marketplace Metric Tension
+description: A ride-sharing marketplace wants to optimize a single metric. Why is optimizing only for 'rides completed'
+  risky?
+exercise_type: MULTIPLE_CHOICE
+difficulty: ADVANCED
+points: 5
+tags:
+- product-analytics
+- marketplace
+prompt: A ride-sharing marketplace wants to optimize a single metric. Why is optimizing only for 'rides completed'
+  risky?
+correct_answer: It can be improved by policies that help riders at drivers' expense (or vice versa), so a healthy
+  marketplace needs metrics for BOTH sides plus a matching/liquidity metric
+explanation: A single aggregate metric like rides completed can be pushed up by decisions that quietly harm supply
+  (drivers) or demand (riders) -- e.g. surge pricing changes that boost completed rides short-term while driving
+  away one side long-term -- so marketplace health typically needs paired supply-side and demand-side metrics plus
+  a matching-efficiency metric.
+choices:
+- It can be improved by policies that help riders at drivers' expense (or vice versa), so a healthy marketplace
+  needs metrics for BOTH sides plus a matching/liquidity metric
+- Rides completed is a perfectly complete metric with no blind spots
+- Two-sided marketplaces should only track driver-side metrics
+- This concern only applies to advertising marketplaces, not ride-sharing

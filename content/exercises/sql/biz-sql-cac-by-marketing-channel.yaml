@@ -1,0 +1,101 @@
+slug: biz-sql-cac-by-marketing-channel
+lesson_slug: biz-cac-by-channel
+skill: business-metrics
+dataset: ecommerce
+title: Compute Customer Acquisition Cost by Marketing Channel
+description: Join campaign spend to attributed session conversions to compute Customer Acquisition Cost (CAC) per marketing channel.
+exercise_type: SQL
+difficulty: ADVANCED
+points: 25
+tags: [sql, business-analytics, advanced, marketing, e-commerce]
+business_context: >
+  The marketing team is reviewing next quarter's channel budget and needs real, per-channel CAC
+  — not a single blended average — to see which channels are efficiently acquiring customers and
+  which are burning budget for comparatively few conversions.
+prompt: >
+  Using `marketing_campaigns` and `sessions`, write a query that computes Customer Acquisition
+  Cost (CAC) per marketing channel. For each `channel`, compute `channel_budget`
+  (`ROUND(SUM(budget), 2)` across all campaigns of that channel), `acquired_customers`
+  (`COUNT(DISTINCT customer_id)` of sessions where `converted = true` and the session's
+  `marketing_campaign_id` belongs to a campaign of that channel), and `cac`
+  (`ROUND(channel_budget / acquired_customers, 2)`). Order the result by `cac` ascending. Row
+  order matters.
+sql_tables: [marketing_campaigns, sessions]
+sql_starter_query: |
+  -- Explore the tables first
+  SELECT * FROM marketing_campaigns LIMIT 20;
+sql_solution_query: |
+  WITH channel_budget AS (
+    SELECT channel, SUM(budget) AS channel_budget
+    FROM marketing_campaigns
+    GROUP BY 1
+  ),
+  channel_acquisitions AS (
+    SELECT camp.channel, COUNT(DISTINCT s.customer_id) AS acquired_customers
+    FROM sessions s
+    JOIN marketing_campaigns camp ON s.marketing_campaign_id = camp.campaign_id
+    WHERE s.converted = true
+    GROUP BY 1
+  )
+  SELECT
+    b.channel,
+    ROUND(b.channel_budget, 2) AS channel_budget,
+    a.acquired_customers,
+    ROUND(b.channel_budget / a.acquired_customers, 2) AS cac
+  FROM channel_budget b
+  JOIN channel_acquisitions a USING (channel)
+  ORDER BY cac;
+sql_row_order_matters: true
+sql_numeric_tolerance: 0.01
+sql_hidden_tests:
+  - name: "Email channel's CAC matches an independent recomputation"
+    query: |
+      WITH channel_budget AS (
+        SELECT channel, SUM(budget) AS channel_budget FROM marketing_campaigns GROUP BY 1
+      ),
+      channel_acquisitions AS (
+        SELECT camp.channel, COUNT(DISTINCT s.customer_id) AS acquired_customers
+        FROM sessions s
+        JOIN marketing_campaigns camp ON s.marketing_campaign_id = camp.campaign_id
+        WHERE s.converted = true
+        GROUP BY 1
+      )
+      SELECT b.channel, ROUND(b.channel_budget / a.acquired_customers, 2) AS cac
+      FROM channel_budget b JOIN channel_acquisitions a USING (channel)
+      WHERE b.channel = 'email'
+    key_columns: 1
+hints:
+  - "Split the problem into two independent pieces first: total budget per channel from marketing_campaigns, and distinct acquired customers per channel from sessions joined to marketing_campaigns on marketing_campaign_id = campaign_id, filtered to converted = true."
+  - "Use COUNT(DISTINCT customer_id), not COUNT(*), for acquired_customers — a customer could have more than one converting session attributed to the same channel's campaigns, and should only be counted once toward that channel's acquisition count."
+solution: >
+  ```sql
+  WITH channel_budget AS (
+    SELECT channel, SUM(budget) AS channel_budget
+    FROM marketing_campaigns
+    GROUP BY 1
+  ),
+  channel_acquisitions AS (
+    SELECT camp.channel, COUNT(DISTINCT s.customer_id) AS acquired_customers
+    FROM sessions s
+    JOIN marketing_campaigns camp ON s.marketing_campaign_id = camp.campaign_id
+    WHERE s.converted = true
+    GROUP BY 1
+  )
+  SELECT
+    b.channel,
+    ROUND(b.channel_budget, 2) AS channel_budget,
+    a.acquired_customers,
+    ROUND(b.channel_budget / a.acquired_customers, 2) AS cac
+  FROM channel_budget b
+  JOIN channel_acquisitions a USING (channel)
+  ORDER BY cac;
+  ```
+explanation: >
+  CAC requires two genuinely separate aggregations joined together at the end, not one combined query —
+  computing budget and acquisitions in the same GROUP BY would fan out campaign budget rows across every
+  matching session (or vice versa), silently inflating one side of the ratio. Aggregating each side to
+  one row per channel first, in its own CTE, and joining only at the last step keeps both numbers correct
+  independently. A common mistake is joining `sessions` to `marketing_campaigns` and then summing
+  `budget` directly in that joined result — since a channel typically has several campaigns and many
+  sessions, that sum would count each campaign's budget once per matching session row instead of once per
+  campaign, producing a wildly inflated "budget" figure.

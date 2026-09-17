@@ -1,0 +1,133 @@
+slug: ecommerce-refund-rate-spike-investigation
+title: "Are Refunds Actually a Growing Problem?"
+category: OPERATIONS
+difficulty: INTERMEDIATE
+estimated_minutes: 60
+
+company_context: >
+  Brightcart is a mid-sized direct-to-consumer online retailer selling across ten product
+  categories (electronics, apparel, home goods, and more) through its website, mobile app, and a
+  third-party marketplace listing. Orders are tracked with a status of completed, cancelled,
+  refunded, or pending, and payments are tracked separately with their own status of success or
+  refunded.
+stakeholder_name: "Priya Nair"
+stakeholder_role: "Operations Manager"
+problem_statement: >
+  "Refunds seem to be eating into our numbers lately, can you look into it? Finance keeps flagging
+  the refund total whenever we review monthly numbers, and it feels like it's gotten worse. I don't
+  know if this is a real operational problem we need to fix, or if it's just noise that comes with
+  us being a bigger business than we used to be. Can you tell me what's actually going on with
+  refunds?"
+business_context: >
+  Operations tracks refunds because they affect net revenue, restocking costs, and customer
+  satisfaction. Leadership wants to know whether refunds justify a targeted remediation program
+  (for example, a quality review of a specific category or a checkout-flow fix for a specific
+  channel) or whether the current pattern doesn't warrant a big response.
+objective: >
+  Determine whether refunds represent a genuine, worsening, and localized problem, or a broad and
+  largely expected pattern, and recommend whether operational action is warranted and where.
+initial_information: >
+  You have access to the full e-commerce schema: orders (including a status field of completed,
+  cancelled, refunded, or pending, and a channel field of web, mobile, or marketplace), order_items,
+  products, categories, payments (including a status field of success or refunded, and a
+  payment_method field), customers, sessions, and marketing_campaigns.
+constraints:
+  - "An order's status='refunded' and a payment's status='refunded' are two related but distinct signals — decide which one (or both) you are using, and be explicit about it in your analysis."
+  - "Compare refund rates (percentages), not just raw refund counts or refund dollar totals, since overall order volume has grown substantially over the period covered by the data."
+  - "Discount values in order_items are dollar amounts already subtracted per unit (unit_price minus discount gives the net unit price), not percentages."
+available_datasets: ["ecommerce"]
+expected_deliverables:
+  - "The overall refund rate, computed on both an order-count basis and a payment-dollar basis"
+  - "A breakdown of refund rate across at least three dimensions (for example, channel, category, payment method, or time period) to test whether the pattern is localized or broad-based"
+  - "An explicit read on whether the 'refunds are eating into our numbers' perception is driven by a rising rate, by rising order volume, or both"
+  - "A specific recommendation on whether operational action is warranted, and if so, where it should be targeted"
+learning_objectives:
+  - "Distinguish between absolute-dollar growth and rate change when investigating a stakeholder's 'growing problem' complaint"
+  - "Slice a metric across multiple dimensions (channel, category, payment method, time) to test whether a pattern is concentrated or broad"
+  - "Compute a rate correctly from two related but different signals (order status vs. payment status)"
+  - "Recommend a proportionate, evidence-based response instead of forcing a dramatic narrative onto a modest pattern"
+stages: [CLARIFY, FRAME, EXPLORE, ANALYZE, INSIGHTS, RECOMMEND, SUBMIT]
+required_exercise_slugs: []
+tags: [e-commerce, operations, business-analytics, root-cause, case-study, real-world, intermediate]
+skills: [business-metrics, exploratory-data-analysis, data-interpretation, root-cause-analysis, decision-making]
+
+clarification_guidance:
+  - "A good clarifying question asks what 'eating into our numbers' means concretely — a refund rate, a refund dollar total, or a specific line in finance's report."
+  - "A good clarifying question asks what time window 'lately' covers, since order volume itself has grown a lot over the data's history."
+  - "A good clarifying question asks whether 'refund' should be measured from orders.status='refunded' or payments.status='refunded' (and whether those two should be expected to agree)."
+  - "A good clarifying question asks whether Priya already suspects a specific category, channel, or payment method, or whether this is a fully open-ended look."
+rubric:
+  - category: "Problem Framing & Clarification"
+    weight: 15
+    criteria:
+      - criterion: "Distinguishes refund rate from refund dollar total, and clarifies which signal (order status vs. payment status) is being measured"
+        points: 8
+      - criterion: "Establishes a specific time comparison (e.g., year-over-year or quarter-over-quarter) rather than treating 'lately' as self-evident"
+        points: 7
+  - category: "Technical Analysis"
+    weight: 35
+    is_technical: true
+    criteria:
+      - criterion: "Correctly computes the overall refund rate on both an order-count basis and a payment-dollar basis"
+        points: 10
+      - criterion: "Breaks refund rate down by at least three dimensions (e.g., channel, category, payment method, time) using correct joins and aggregation"
+        points: 13
+      - criterion: "Compares refund rate trend over time (year or quarter) against absolute refund dollar/count trend to separate rate change from volume growth"
+        points: 12
+  - category: "Insight Quality"
+    weight: 20
+    criteria:
+      - criterion: "Correctly identifies whether refunds are concentrated in a specific dimension or spread broadly across the business"
+        points: 10
+      - criterion: "Correctly attributes the perceived 'spike' to rate change, volume growth, or a mix of both, with supporting numbers"
+        points: 10
+  - category: "Recommendation & Business Judgment"
+    weight: 20
+    criteria:
+      - criterion: "Gives a specific, proportionate recommendation (targeted investigation, monitoring-only, or a defined remediation) matched to how strong the evidence actually is"
+        points: 12
+      - criterion: "Avoids recommending a large program aimed at a single category/channel when the data does not support a dramatic concentration there"
+        points: 8
+  - category: "Communication"
+    weight: 10
+    criteria:
+      - criterion: "States at least one limitation of the analysis (e.g., small sample sizes in some slices, or that order-status and payment-status refunds can diverge slightly)"
+        points: 10
+hints:
+  - "Start with the two simplest numbers: refunded orders divided by total orders, and refunded payment dollars divided by total payment dollars. These can tell different stories, so compute both."
+  - "Before concluding that a category or channel is 'the problem,' check how many orders back that slice's rate — a slice with few orders will swing much more than a slice with thousands."
+  - "Compare refund rate across full years or quarters, not just the most recent single month, to see whether any increase is sustained or is just quarter-to-quarter noise."
+  - "If no single dimension stands out as a big, localized driver, that is itself a legitimate and useful finding — it should change your recommendation rather than push you to force a narrative."
+reference_solution:
+  summary: >
+    Refunds are not a concentrated, worsening problem in any single part of the business — they are
+    a broad, modest pattern that looks alarming mostly because of scale. Of 4,205 orders, 258 are
+    refunded (6.14% on an order-count basis); on a dollar basis, $445,532.35 of $6,248,160.50 in
+    processed payments were refunded (7.13%). By channel, the order-count refund rate ranges from
+    4.56% (marketplace) to 6.76% (mobile), with web at 6.02% — a roughly 2-point spread. By product
+    category, refund rate ranges from 5.19% (Electronics) to 7.50% (Office Supplies) across all ten
+    categories, with no dramatic outlier. By payment method (dollar basis), credit_card is mildly
+    highest at 7.64%, versus 6.04% for gift_card and 5.95% for PayPal. Year-over-year, the
+    order-count refund rate rose from 5.17% in 2024 to 6.31% in 2025 — a real but modest ~1.1-point
+    increase that sits comfortably within the roughly 4%-8.5% band seen quarter to quarter across the
+    whole dataset. Meanwhile, refund dollars in absolute terms grew enormously (roughly $4,300 in
+    2024 Q1 versus roughly $185,800 in 2025 Q4) almost entirely because total order volume itself
+    grew about 9x over the same span. In short: the "refunds are eating into our numbers" feeling is
+    mostly a volume-scale effect with a modest, broad-based rate uptick layered on top — not a
+    localized problem in one category, channel, or payment method.
+  key_insights:
+    - "Overall refund rate is 6.14% of orders (258/4,205) and 7.13% of payment dollars ($445,532.35/$6,248,160.50)."
+    - "Refund rate is broad and even across channel (4.56%-6.76%), category (5.19%-7.50%), and payment method (5.95%-7.64%) — no dimension shows a dramatic outlier."
+    - "Year-over-year order-count refund rate rose modestly from 5.17% (2024) to 6.31% (2025), while refund dollars grew far faster (roughly 40x from 2024 Q1 to 2025 Q4) — almost entirely a volume effect, since total order count grew about 9x over the same period."
+    - "Mobile (6.76% by orders, 7.72% by dollars) and credit_card (7.64% by dollars) are the mildest 'highest' cuts — worth a light look, but the gap over other slices is only about 1-2 points."
+  recommendation: >
+    Recommend tracking refund RATE, not just the refund dollar total, as the primary operational KPI
+    so that volume growth stops being mistaken for a worsening problem. Since no dimension shows a
+    dramatic concentration, do not fund a large, narrowly targeted remediation program. Instead, run
+    a lightweight review of the mobile checkout/return flow and credit-card dispute patterns (the
+    mildly highest cuts), and re-assess after another one to two quarters to see whether the modest
+    year-over-year rate increase continues or levels off.
+  acceptable_alternatives:
+    - "Prioritizing a closer look at mobile or credit_card given they are modestly the highest slices, as long as the recommendation frames the gap as modest rather than dramatic."
+    - "Recommending a monitoring-only response (no new remediation program) given how flat the pattern is across every dimension checked."
+version: 1

@@ -1,0 +1,43 @@
+slug: exp-spot-sample-ratio-mismatch
+lesson_slug: exp-peeking-multiple-testing-underpowered-srm
+skill: data-interpretation
+dataset: saas-product
+title: "10,000 Users, an Intended 50/50 Split, and a Suspicious Count"
+description: Decide whether an assignment split is a sample ratio mismatch, and what to do about it, before trusting the primary metric.
+exercise_type: DATA_INTERPRETATION
+difficulty: INTERMEDIATE
+points: 15
+tags: [experimentation, ab-testing, statistics, real-world, intermediate]
+prompt: >
+  An experiment is configured to randomly assign users 50/50 between control and treatment. After the
+  test finishes, the logged assignment counts are 5,412 control and 4,588 treatment, out of 10,000 total
+  users. On this same data, the primary metric (conversion rate) is significantly higher in treatment
+  than control, p = 0.01. A PM says: "Great, conversion is up and it's significant — let's ship it." Is
+  that the right call? Walk through how you'd check the assignment split itself, what you'd conclude, and
+  what you'd tell the PM.
+hints:
+  - "5,412 vs. 4,588 might look 'roughly balanced' at a glance out of 10,000 — the question is whether a formal test (a chi-square goodness-of-fit test against the expected 50/50 split) says this is a plausible chance deviation or not."
+  - "If the split itself turns out to be broken, think about what that implies for whether the treatment group you're analyzing is really a random, comparable sample of users at all."
+solution: >
+  This is not the right call yet — the split itself needs to be checked before trusting the significant
+  primary-metric result. Running a chi-square goodness-of-fit test on the observed counts (5,412 vs.
+  4,588) against the expected 50/50 split (5,000 vs. 5,000) gives a p-value on the order of 10^-16 —
+  astronomically smaller than any reasonable threshold, meaning a split this lopsided is essentially
+  impossible to explain by chance alone if assignment were truly a fair coin flip. This is a sample ratio
+  mismatch (SRM), and it's a serious red flag: it means something upstream of the metric comparison —
+  assignment logic, event logging, or a filtering step — is broken, and whichever mechanism is causing
+  users to be misassigned or dropped is very likely correlated with the kind of user affected (which is
+  exactly the kind of hidden bias that invalidates a "random" comparison). The right message to the PM
+  is: don't ship based on this result yet. The conversion-rate significance is not trustworthy until the
+  root cause of the SRM is found and fixed (or the affected users are correctly accounted for), because
+  there's no way to know whether the same bug that skewed the assignment counts also skewed who ended up
+  converting.
+explanation: >
+  A strong answer runs (or describes running) the actual statistical check rather than eyeballing "5,412
+  vs. 4,588 looks close enough," and correctly concludes that this specific split is not a plausible
+  chance deviation from 50/50. It also connects the SRM finding to *why* it matters for the primary
+  metric specifically — an SRM means the groups may no longer be a clean random comparison, so any
+  metric difference computed on top of it (even a "significant" one) is suspect until the root cause is
+  identified. A weaker answer either declares the split "close enough" without a formal check, or
+  correctly flags the SRM but doesn't connect it to why the significant conversion result can't be
+  trusted as-is.

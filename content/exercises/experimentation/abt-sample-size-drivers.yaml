@@ -1,0 +1,21 @@
+slug: abt-sample-size-drivers
+skill: experimentation
+title: What Increases Required Sample Size
+description: Which of the following would INCREASE the sample size required to reliably detect an effect in an A/B
+  test?
+exercise_type: MULTIPLE_CHOICE
+difficulty: INTERMEDIATE
+points: 5
+tags:
+- ab-testing
+- sample-size
+prompt: Which of the following would INCREASE the sample size required to reliably detect an effect in an A/B test?
+correct_answer: Wanting to detect a smaller minimum detectable effect (MDE)
+explanation: Smaller effects are inherently harder to distinguish from noise, so detecting them reliably requires
+  more data -- the other three options (larger MDE, lower desired power, lower baseline variance) all REDUCE the
+  required sample size, not increase it.
+choices:
+- Wanting to detect a smaller minimum detectable effect (MDE)
+- Accepting a larger minimum detectable effect
+- Lowering your desired statistical power
+- Testing on a metric with very low baseline variance

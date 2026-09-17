@@ -1,0 +1,152 @@
+slug: inconsistent-categories
+module_slug: pandas-data-cleaning
+title: Inconsistent Categories
+description: "Spotting messy categorical values like 'USA' vs 'US' vs 'United States' with .value_counts(), standardizing them with .replace()/.map(), and verifying the fix with .unique()."
+difficulty: BEGINNER
+estimated_minutes: 11
+display_order: 7
+objectives:
+  - Use .value_counts() to spot inconsistent variants of what should be the same category
+  - Standardize messy category values with .replace() or .map() and a lookup dictionary
+  - Verify a cleanup is complete with .unique()
+prerequisites: [outliers-in-pandas]
+skills: [pandas]
+datasets: [ecommerce]
+tags: [python, beginner, real-world]
+key_takeaways:
+  - "A categorical column that's actually messy often hides in plain sight — .value_counts() surfaces every distinct value along with its count, which is usually all it takes to spot that 'USA' and 'US' are being tracked as two separate categories when they mean the same thing."
+  - "A lookup dictionary mapping every messy variant to its one standardized value, applied with .replace() or .map(), is the standard fix — build the dictionary from what .value_counts() actually showed you, not from what you assume the data contains."
+  - ".replace() only touches the keys it recognizes and leaves everything else untouched (safer if your dictionary is incomplete); .map() replaces EVERY value using the dictionary and turns anything with no matching key into NaN, which makes gaps in your mapping impossible to miss."
+  - "Re-run .unique() after cleaning as a verification step, not an afterthought — it's the fastest way to confirm the standardization actually collapsed every variant down to the value you intended."
+common_mistakes:
+  - "Manually eyeballing a column for messy values instead of running .value_counts() first — inconsistent categories are often infrequent, and it's easy to miss a rare variant that only shows up a handful of times."
+  - "Building the lookup dictionary from memory or assumption rather than from the column's actual .unique() values, and missing a variant that wasn't anticipated (an unexpected abbreviation, a typo, different capitalization)."
+  - "Using .map() with an incomplete dictionary and not noticing the NaNs it silently introduces for every unmatched value — .isna().sum() right after a .map() catches this immediately."
+blocks:
+  - type: text
+    body: >
+      Categorical columns break in a specific, common way: the same real-world thing gets written down
+      multiple different ways. "USA," "US," and "United States" are the same country to a human reading
+      them, but to pandas they're three unrelated strings — which means a groupby, a filter, or a chart
+      built on that column silently splits one category into several.
+  - type: heading
+    text: "Spotting the problem with .value_counts()"
+  - type: code
+    language: python
+    code: |
+      import pandas as pd
+
+      # A country field the way it might arrive from a manually-entered form
+      raw_country = pd.Series(
+          ["USA", "US", "United States", "usa", "U.S.A.", "Canada", "CANADA", "Mexico"]
+      )
+      print(raw_country.value_counts())
+    caption: "Eight rows, but really only three distinct countries — you can't tell that from this view alone"
+  - type: output
+    body: |
+      USA              1
+      US               1
+      United States    1
+      usa              1
+      U.S.A.           1
+      Canada            1
+      CANADA            1
+      Mexico            1
+      Name: count, dtype: int64
+  - type: callout
+    variant: warning
+    title: "value_counts() shows you the messiness — it doesn't fix it"
+    body: >
+      This is exactly the signal to look for: a categorical column with far more distinct values than
+      there are real-world categories it's supposed to represent. Five different spellings of "United
+      States" and two of "Canada," each counted as its own category, is a strong sign the column needs
+      standardizing before it's used in any groupby, filter, or chart.
+  - type: heading
+    text: "Building a lookup dictionary and applying it"
+  - type: code
+    language: python
+    code: |
+      mapping = {
+          "USA": "United States",
+          "US": "United States",
+          "usa": "United States",
+          "U.S.A.": "United States",
+          "CANADA": "Canada",
+      }
+      print(raw_country.replace(mapping))
+    caption: "Every key in mapping gets swapped for its value; 'United States', 'Canada', and 'Mexico' — already correct — pass through untouched"
+  - type: output
+    body: |
+      0    United States
+      1    United States
+      2    United States
+      3    United States
+      4    United States
+      5           Canada
+      6           Canada
+      7           Mexico
+      dtype: str
+  - type: heading
+    text: ".replace() vs .map() — an important difference"
+  - type: code
+    language: python
+    code: |
+      print(raw_country.map(lambda x: mapping.get(x, x)))
+    caption: "A plain .map(mapping) would turn every unmatched value into NaN — .map(lambda x: mapping.get(x, x)) preserves anything not in the dictionary"
+  - type: output
+    body: |
+      0    United States
+      1    United States
+      2    United States
+      3    United States
+      4    United States
+      5           Canada
+      6           Canada
+      7           Mexico
+      dtype: str
+  - type: callout
+    variant: important
+    title: "Same result here, very different failure modes"
+    body: >
+      .replace(mapping) only substitutes the keys it recognizes and leaves every other value exactly as
+      it was — safe by default, even with an incomplete dictionary. Plain .map(mapping), on the other
+      hand, replaces the ENTIRE Series using the dictionary, and any value with no matching key becomes
+      NaN. That makes .map() a good verification tool (gaps in your mapping become impossible to miss as
+      NaNs) but a dangerous default for a cleanup you haven't fully audited yet — it can silently erase
+      data you forgot to account for.
+  - type: heading
+    text: "Verifying the fix with .unique()"
+  - type: code
+    language: python
+    code: |
+      cleaned = raw_country.replace(mapping)
+      print(cleaned.unique())
+    caption: Confirm the cleanup actually collapsed every variant
+  - type: output
+    body: |
+      <ArrowStringArray>
+      ['United States', 'Canada', 'Mexico']
+      Length: 3, dtype: str
+  - type: text
+    body: >
+      Eight raw values, three real categories — exactly what `.unique()` now shows. This is the check to
+      run every time: if the number of distinct values after cleaning doesn't match the number of real
+      categories you expect, something in the mapping is still incomplete.
+  - type: table
+    headers: ["Step", "Tool", "Purpose"]
+    rows:
+      - ["1. Detect", ".value_counts() or .unique()", "See every distinct value actually present in the column"]
+      - ["2. Standardize", ".replace(mapping) or .map(lambda x: mapping.get(x, x))", "Collapse variants down to one canonical value each"]
+      - ["3. Verify", ".unique()", "Confirm the count of distinct values now matches the real number of categories"]
+  - type: question
+    prompt: "A column has {'usa': 40, 'USA': 12, 'US': 3} among its value_counts(). You run col.map({'usa': 'United States'}) to fix it. What happens to the rows containing 'USA' and 'US'?"
+    choices:
+      - "They become NaN, because .map() replaces the whole Series and 'USA'/'US' aren't keys in the dictionary"
+      - "They're left unchanged, since only 'usa' was explicitly targeted"
+      - ".map() automatically treats 'USA' and 'US' as the same key as 'usa'"
+    correct_index: 0
+    explanation: >
+      Plain .map(dictionary) replaces every value in the Series using the dictionary as a lookup — any
+      value without a matching key (here, 'USA' and 'US', which differ from 'usa' by case) becomes NaN.
+      .replace() would have left them untouched instead; catching this difference is the point of the
+      lesson.

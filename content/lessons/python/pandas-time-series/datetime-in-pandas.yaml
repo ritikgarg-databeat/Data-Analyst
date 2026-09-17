@@ -1,0 +1,134 @@
+slug: datetime-in-pandas
+module_slug: pandas-time-series
+title: Datetimes in Pandas
+description: Converting text dates with pd.to_datetime(), pulling date parts with the .dt accessor, and setting a datetime column as the index.
+content_type: READING
+difficulty: INTERMEDIATE
+estimated_minutes: 11
+display_order: 1
+objectives:
+  - Convert a text date column to a real datetime dtype with pd.to_datetime()
+  - Extract date parts (year, month, day name, quarter) with the .dt accessor
+  - Set a datetime column as the DataFrame's index with .set_index()
+prerequisites: [merge-fan-out-and-duplication]
+skills: [pandas]
+datasets: [ecommerce]
+tags: [python, intermediate, real-world]
+key_takeaways:
+  - "CSV dates load as plain strings — pd.to_datetime() converts them to a real datetime64 dtype, unlocking date-aware operations that string comparison can't do correctly (like sorting or filtering by actual chronological order)."
+  - "Once a column is a datetime dtype, the .dt accessor exposes date parts as vectorized operations — .dt.year, .dt.month, .dt.day_name(), .dt.quarter, and many more — all computed without a loop."
+  - "Setting a datetime column as the index with .set_index() is the prerequisite for the calendar-aware operations in the rest of this module — resampling and rolling windows both expect a datetime index."
+common_mistakes:
+  - "Comparing or sorting date columns while they're still plain strings — 'string sorted' and 'chronologically sorted' happen to agree for ISO-format dates (YYYY-MM-DD) but this is a coincidence of that format, not something you can rely on in general."
+  - "Calling .dt on a column that hasn't been converted with pd.to_datetime() yet — .dt is only available on an actual datetime dtype, not on strings, and raises an error otherwise."
+  - "Forgetting to sort_index() after set_index() on a datetime column — resampling and rolling windows (covered next in this module) expect a sorted datetime index to behave correctly."
+practical_applications:
+  - "Extracting order year, month, and day-of-week to analyze seasonal or weekday patterns in order volume."
+  - "Preparing a payments table for monthly revenue reporting by converting payment_date and setting it as the index."
+interview_questions:
+  - question: "Why does pd.to_datetime() matter if a date column already 'looks like' dates when printed?"
+    answer: "A column loaded from CSV is just text, even if it displays as '2025-10-18' — pandas has no idea it represents a date until you convert it. Without conversion, .dt accessor methods aren't available, sorting relies on string comparison (which only happens to match chronological order for zero-padded ISO dates), and date arithmetic like subtracting two date columns isn't possible at all. pd.to_datetime() converts the column to a real datetime64 dtype, which is the prerequisite for every date-aware operation in pandas."
+  - question: "What's the .dt accessor, and why is it needed?"
+    answer: ".dt is pandas' namespace for datetime-specific vectorized operations on a Series with datetime dtype — .dt.year, .dt.month, .dt.day_name(), .dt.quarter, and more. It exists because a datetime Series' normal vectorized operations (arithmetic, comparison) work directly, but extracting a component like 'just the year' needs a dedicated accessor, the same way string columns use .str for things like .str.upper(). Without it you'd be stuck writing a slow per-row Python loop."
+blocks:
+  - type: text
+    body: >
+      Dates loaded from a CSV are just **text** to pandas, no matter how date-like they look when
+      printed. `pd.to_datetime()` converts a column to a real `datetime64` dtype — the prerequisite
+      for everything else in this module, from extracting the month to resampling to computing date
+      differences.
+  - type: heading
+    text: "pd.to_datetime() — text to real dates"
+  - type: code
+    language: python
+    code: |2
+      import pandas as pd
+
+      orders = pd.read_csv("data/sample/ecommerce/orders.csv")
+      orders.dtypes["order_date"]        # dtype('O') — plain object/string
+
+      orders["order_date"] = pd.to_datetime(orders["order_date"])
+      orders.dtypes["order_date"]        # datetime64[us] — now a real date
+    caption: order_date goes from object (string) to datetime64
+  - type: output
+    body: |2
+      before: object
+      after:  datetime64[us]
+  - type: callout
+    variant: warning
+    title: "Why this matters beyond just the dtype label"
+    body: >
+      As plain strings, "2025-10-18" and "2025-9-3" would sort incorrectly against each other
+      (string comparison goes character by character), and there's no way to ask "how many days
+      between these two dates" at all. As a real datetime64 column, both problems disappear —
+      sorting is chronological and subtraction produces a proper Timedelta (covered in the
+      date-differences lesson later in this module).
+  - type: heading
+    text: "The .dt accessor — pulling out date parts"
+  - type: text
+    body: >
+      Once a column has a datetime dtype, `.dt` exposes its components as vectorized properties and
+      methods — no loop required.
+  - type: code
+    language: python
+    code: |2
+      sample = orders.head(3).copy()
+      sample["year"] = sample["order_date"].dt.year
+      sample["month"] = sample["order_date"].dt.month
+      sample["day_name"] = sample["order_date"].dt.day_name()
+      sample["quarter"] = sample["order_date"].dt.quarter
+
+      sample[["order_id", "order_date", "year", "month", "day_name", "quarter"]]
+    caption: Four different date parts, extracted in four vectorized lines
+  - type: output
+    body: |2
+         order_id order_date  year  month  day_name  quarter
+      0         1 2025-10-18  2025     10  Saturday        4
+      1         2 2025-12-16  2025     12   Tuesday        4
+      2         3 2025-09-29  2025      9    Monday        3
+  - type: table
+    headers: [".dt property/method", "Returns"]
+    rows:
+      - [".dt.year / .dt.month / .dt.day", "The numeric year, month (1-12), or day of month"]
+      - [".dt.day_name()", "The weekday name as a string, e.g. 'Saturday'"]
+      - [".dt.quarter", "The calendar quarter (1-4)"]
+      - [".dt.dayofweek", "Weekday as an integer, Monday=0 through Sunday=6"]
+      - [".dt.is_month_end / .dt.is_quarter_end", "Boolean — is this date the last day of its month/quarter"]
+  - type: heading
+    text: Setting a datetime column as the index
+  - type: text
+    body: >
+      Many time-aware operations — resampling and rolling windows especially, covered in the next two
+      lessons — expect the DataFrame's **index** to be a datetime, not just one of its columns.
+      `.set_index()` makes that switch.
+  - type: code
+    language: python
+    code: |2
+      orders_by_date = orders.set_index("order_date").sort_index()
+      orders_by_date.head(3)
+    caption: order_date is now the index, sorted chronologically
+  - type: output
+    body: |2
+                  order_id  customer_id     status channel
+      order_date
+      2024-01-12       150           57  completed  mobile
+      2024-01-18      3178         1110  completed     web
+      2024-01-27      2509          858  completed     web
+  - type: callout
+    variant: tip
+    title: Always sort_index() after set_index() on a date column
+    body: >
+      CSV rows aren't guaranteed to arrive in chronological order. .sort_index() after .set_index()
+      ensures the datetime index is actually sorted — the resampling and rolling-window operations
+      coming up in this module assume a sorted datetime index to work correctly.
+  - type: question
+    prompt: "A column loaded from CSV shows dates like '2025-10-18' when printed. What dtype does it have before you call pd.to_datetime() on it?"
+    choices:
+      - "datetime64, since pandas recognizes the date format automatically on read_csv"
+      - "object (plain text/string) — pandas treats it as text until you explicitly convert it"
+      - "int64, since the dashes get stripped out automatically"
+    correct_index: 1
+    explanation: >
+      pd.read_csv() does not infer datetime dtypes by default — a column of date-looking strings
+      loads as plain object dtype. It stays that way, with no .dt accessor available and only
+      string-based comparison, until you explicitly call pd.to_datetime() on it.

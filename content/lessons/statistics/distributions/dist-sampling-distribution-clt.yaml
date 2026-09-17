@@ -1,0 +1,101 @@
+slug: dist-sampling-distribution-clt
+module_slug: distributions
+title: Sampling Distributions & the Central Limit Theorem
+description: Why the average of a sample behaves more predictably than any individual value in it — even when the underlying data is skewed — and why that fact underpins almost everything in inferential statistics.
+difficulty: INTERMEDIATE
+estimated_minutes: 15
+display_order: 3
+objectives:
+  - Explain what a sampling distribution is and how the standard error shrinks as sample size grows.
+  - State the Central Limit Theorem and explain why it lets analysts treat sample means as approximately normal even when the underlying data is skewed.
+skills: [statistics, statistical-reasoning]
+datasets: [ecommerce]
+tags: [statistics, intermediate, e-commerce]
+prerequisites: [dist-normal-distribution]
+key_takeaways:
+  - "A sampling distribution is the distribution of a statistic (like a sample mean) across many hypothetical repeated samples — it is not the same thing as the distribution of the raw data."
+  - "The Central Limit Theorem says that as sample size n grows, the distribution of the sample mean approaches a normal distribution, regardless of the shape of the original data — this is what makes confidence intervals and hypothesis tests work on real, messy, skewed business data."
+  - "Standard error (the sampling distribution's spread) shrinks with the square root of n — quadrupling your sample size only halves your standard error, not eliminates it."
+common_mistakes:
+  - Confusing the standard deviation of the raw data (how spread out individual values are) with the standard error of the mean (how spread out the *average* is expected to be across repeated samples) — they answer different questions and the second is always smaller.
+  - Assuming the Central Limit Theorem means individual data points become normally distributed — it only applies to the sampling distribution of a summary statistic like the mean, not to the raw values themselves.
+interview_questions:
+  - question: The distribution of individual order values is heavily right-skewed. Why can you still use a normal-distribution-based confidence interval for the *average* order value?
+    answer: >
+      The Central Limit Theorem guarantees that the sampling distribution of the sample mean
+      becomes approximately normal as sample size grows, even when the underlying individual values
+      are skewed. With even a moderately large sample (order values here number in the thousands),
+      the average is well-approximated by a normal distribution, which is what justifies using
+      normal-based confidence intervals and z/t-tests on skewed real-world data.
+blocks:
+  - type: heading
+    text: "Two different distributions: the data, and the average of the data"
+  - type: text
+    body: >
+      So far, "distribution" has meant the spread of individual values in a dataset. A **sampling
+      distribution** is different: it's the distribution you'd get if you repeatedly drew a sample
+      of size n from the population, computed the mean of each sample, and looked at how those many
+      sample means are spread out. You never actually draw thousands of samples in practice — the
+      Central Limit Theorem tells you what that distribution looks like without doing so.
+  - type: heading
+    text: The Central Limit Theorem
+  - type: text
+    body: >
+      The **Central Limit Theorem (CLT)** states that as sample size n grows, the distribution of
+      the sample mean approaches a normal distribution — centered at the true population mean —
+      *regardless of the shape of the original data's distribution*. This is the single fact that
+      makes most of inferential statistics (confidence intervals, hypothesis tests) work on real
+      business data, which is almost never normally distributed itself.
+  - type: formula
+    expression: "standard_error = population_standard_deviation / sqrt(n)"
+    description: The standard error is the standard deviation of the sampling distribution of the mean — it shrinks as n grows, but only at the rate of the square root of n.
+  - type: example
+    title: Payment amounts are skewed, but their average stabilizes
+    body: >
+      Individual successful payment amounts in the ecommerce dataset are right-skewed (mean
+      $1,686.32, median $1,569.11, standard deviation $1,078.58 — see the Normal Distribution
+      lesson). Yet if you repeatedly sampled, say, 100 payments and averaged each sample, those
+      sample averages would cluster in an approximately normal, bell-shaped pattern around
+      $1,686.32 — the CLT in action, despite the raw data's skew.
+  - type: table
+    caption: How standard error shrinks as sample size grows (population std. dev. = $1,078.58)
+    headers: ["Sample size (n)", "Standard error of the mean"]
+    rows:
+      - ["25", "$215.72"]
+      - ["100", "$107.86"]
+      - ["400", "$53.93"]
+      - ["1,600", "$26.96"]
+  - type: code
+    language: python
+    code: |
+      import numpy as np
+
+      pop_std = 1078.58
+      for n in [25, 100, 400, 1600]:
+          se = pop_std / np.sqrt(n)
+          print(n, round(se, 2))
+      # 25 -> 215.72, 100 -> 107.86, 400 -> 53.93, 1600 -> 26.96
+    caption: Quadrupling n halves the standard error — the square-root relationship, not a linear one.
+  - type: callout
+    variant: important
+    title: Why this matters for every confidence interval you'll build next
+    body: >
+      Every confidence interval and hypothesis test in the lessons that follow leans on this exact
+      idea: the sample mean (or sample proportion) has its own, tighter, approximately-normal
+      distribution around the true population value, with a spread of `standard_error`. That's the
+      machinery that turns "here's one sample average" into "here's a defensible range for the true
+      average," even when the raw data itself looks nothing like a bell curve.
+  - type: question
+    prompt: >
+      You quadruple your sample size from 100 to 400 to try to get a more precise estimate of the
+      average order value. How much smaller does the standard error get?
+    choices:
+      - "It becomes 4 times smaller"
+      - "It becomes 2 times smaller (standard error scales with the square root of n)"
+      - "It stays the same, since only the raw data's spread matters"
+    correct_index: 1
+    explanation: >
+      Standard error is population standard deviation divided by the square root of n. Quadrupling
+      n multiplies the square root by 2, so standard error is cut in half, not to a quarter — a
+      common and costly miscalculation when planning how much more data collection actually buys you
+      in precision.

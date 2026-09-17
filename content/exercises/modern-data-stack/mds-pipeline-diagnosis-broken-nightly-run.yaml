@@ -1,0 +1,39 @@
+slug: mds-pipeline-diagnosis-broken-nightly-run
+lesson_slug: mds-landscape-overview
+skill: pipeline-troubleshooting
+dataset: ecommerce
+title: "Diagnose: The Revenue Dashboard Is Completely Blank"
+description: Given evidence from a nightly pipeline's logs, determine which stage most likely broke and why the extract/load step can be ruled out.
+exercise_type: MULTIPLE_CHOICE
+difficulty: INTERMEDIATE
+points: 10
+tags: [pipelines, data-engineering, real-world, case-study, intermediate]
+prompt: >
+  A company's nightly pipeline works like this: an extract-and-load job pulls yesterday's orders and
+  customers from the production database into the warehouse's raw schema; a transformation job then
+  builds staging and mart tables (including a daily revenue mart) on top of that raw data; a BI tool
+  refreshes a revenue dashboard from the mart every morning at 7am.
+
+  This morning, the revenue dashboard shows a completely blank chart for yesterday — not a low number,
+  no bar at all. You check the extract-and-load job's log: it completed successfully, and the row counts
+  it reported loading into the raw schema match a typical day almost exactly.
+
+  Given only this evidence, where is the most likely place the problem actually occurred?
+choices:
+  - "The production source database, since the extract job probably pulled corrupted rows"
+  - "The transformation step that builds the mart tables, or the BI tool's refresh reading from it — since extract-and-load already reported a normal, successful run"
+  - "The BI tool's chart configuration, since dashboards commonly break due to unrelated filter changes"
+  - "Nothing is actually wrong — a completely blank day is a normal, expected outcome and requires no investigation"
+correct_answer: "The transformation step that builds the mart tables, or the BI tool's refresh reading from it — since extract-and-load already reported a normal, successful run"
+explanation: >
+  The evidence given actively rules out the extract-and-load step: it reported success and a normal row
+  count, meaning yesterday's raw data genuinely landed in the warehouse. A *completely* blank chart (not
+  merely a low number) points to something further downstream failing to run at all, or running against
+  empty output — most likely the transformation job that builds the mart failed partway (leaving the mart
+  table empty or stale) or the BI tool's refresh pointed at an empty/failed result. The source database and
+  the BI chart configuration are both plausible-sounding distractors, but nothing in the evidence given
+  points at either of them, and a blank-not-wrong result is a stronger signal of a downstream stage failing
+  outright than of a data quality problem earlier in the chain.
+hints:
+  - "Work through the pipeline in order and ask which stages the evidence actually rules out, versus which stages it says nothing about either way."
+  - "A dashboard that's wrong (bad numbers) and a dashboard that's blank (no numbers at all) are different symptoms that usually point to different kinds of failures."

@@ -1,0 +1,125 @@
+slug: biz-revenue-growth-rate
+module_slug: revenue-analytics
+title: "Revenue Growth Rate: MoM, QoQ, and the Trap of a Single Snapshot"
+description: How to compute month-over-month growth correctly, why a single growth number can be deeply misleading, and how to read a real, noisy growth series.
+difficulty: INTERMEDIATE
+estimated_minutes: 14
+display_order: 1
+objectives:
+  - Compute month-over-month (MoM) revenue growth rate using a prior-period comparison
+  - Explain why a single month's growth rate can mislead without the surrounding trend
+  - Distinguish genuine deceleration from ordinary period-to-period noise
+prerequisites: [biz-business-models-and-revenue]
+skills: [business-analytics, business-metrics]
+datasets: [ecommerce]
+tags: [business-analytics, intermediate, e-commerce, window-functions]
+key_takeaways:
+  - "MoM growth rate = (this period's revenue − prior period's revenue) / prior period's revenue × 100 — always stated relative to a specific, named prior period."
+  - A single month's growth rate is noisy on its own; this platform's real ecommerce data swings from -14.1% to +58.2% between adjacent months within one six-month stretch, even while the underlying business is growing strongly overall.
+  - The right response to a single bad month is to look at the surrounding trend (3+ consecutive periods) before concluding anything is actually wrong.
+common_mistakes:
+  - Reacting to one month's negative growth rate as a crisis without checking whether it's within the normal noise band the metric already displays.
+  - Comparing growth rates computed over different-length periods (e.g. a 28-day month vs. a 31-day month) without normalizing, which can manufacture an apparent slowdown or acceleration that isn't real.
+interview_questions:
+  - question: "Revenue grew 3.9% last month after growing 58.2% the month before. Is this a problem?"
+    answer: >
+      Not necessarily — a deceleration from an unusually large positive month is often just reversion
+      toward a more typical growth rate rather than a sign of trouble, especially if the prior month's
+      spike was itself due to something one-off (e.g. a promotion, a seasonal peak). The right move is to
+      look at 3-6 consecutive months of growth rates rather than react to any single data point, and to
+      check whether the two-month combined trend still looks healthy relative to the months before them.
+blocks:
+  - type: heading
+    text: Growth rate is always relative to something
+  - type: formula
+    expression: "MoM Growth Rate (%) = (Revenue_this_month − Revenue_prior_month) / Revenue_prior_month × 100"
+    description: >
+      Growth rate has no meaning without a stated comparison period. "20% growth" means nothing until you
+      know: 20% compared to what — last month, the same month last year, the prior quarter? Always name
+      the baseline explicitly.
+  - type: text
+    body: >
+      Month-over-month (MoM) is the most common baseline for a fast-moving business because it reacts
+      quickly to recent changes — but that speed is exactly what makes it noisy. Quarter-over-quarter
+      (QoQ) and year-over-year (YoY) smooth out more short-term wobble at the cost of reacting more slowly
+      to a genuine, recent change.
+  - type: example
+    title: A real, noisy growth series
+    body: >
+      Computing month-over-month growth on this platform's ecommerce completed-order revenue produces a
+      series that is genuinely choppy even during a period of strong overall growth. Revenue climbed from
+      $244,303 in June 2025 to $973,958 in December 2025 — roughly a 4x increase over six months — yet the
+      individual month-over-month rates swing wildly: +58.2% (July), +3.9% (August), +28.3% (September),
+      +10.0% (October), +12.7% (November), +52.5% (December). Anyone reacting to August's "only 3.9%
+      growth" as a slowdown, in isolation, would have missed that the surrounding trend was strongly
+      positive throughout.
+    code: |
+      WITH monthly AS (
+        SELECT
+          DATE_TRUNC('month', o.order_date) AS order_month,
+          SUM(i.quantity * (i.unit_price - i.discount)) AS net_revenue
+        FROM orders o
+        JOIN order_items i USING (order_id)
+        WHERE o.status = 'completed'
+        GROUP BY 1
+      )
+      SELECT
+        order_month,
+        ROUND(net_revenue, 2) AS net_revenue,
+        ROUND(
+          100.0 * (net_revenue - LAG(net_revenue) OVER (ORDER BY order_month))
+          / LAG(net_revenue) OVER (ORDER BY order_month),
+          1
+        ) AS mom_growth_pct
+      FROM monthly
+      ORDER BY order_month;
+    language: sql
+  - type: output
+    body: |
+      order_month  net_revenue  mom_growth_pct
+      2025-06-01   244303.08    -14.1
+      2025-07-01   386436.77     58.2
+      2025-08-01   401649.13      3.9
+      2025-09-01   515278.19     28.3
+      2025-10-01   566782.57     10.0
+      2025-11-01   638547.04     12.7
+      2025-12-01   973957.53     52.5
+    caption: Actual month-over-month growth rates, June-December 2025 (completed-order net revenue).
+  - type: callout
+    variant: important
+    title: One data point is an anecdote, three-plus is a trend
+    body: >
+      Before concluding a single month's growth rate means anything, look at the two or three months
+      before and after it. A -14.1% month followed immediately by a +58.2% month is far more consistent
+      with normal order-timing noise (some orders landing in one month vs. the next by a few days) than
+      with any real change in underlying demand.
+  - type: heading
+    text: MoM, QoQ, and YoY answer different questions
+    level: 3
+  - type: comparison
+    title: Choosing a Growth-Rate Window
+    columns: ["Window", "Best for", "Weakness"]
+    rows:
+      - ["Month-over-month (MoM)", "Catching a recent, fast-moving change quickly", "High noise — a single month can swing sharply for reasons unrelated to underlying health"]
+      - ["Quarter-over-quarter (QoQ)", "A steadier read on medium-term direction", "Slower to reflect a change that started only 3-4 weeks ago"]
+      - ["Year-over-year (YoY)", "Removing seasonality (e.g. comparing this December to last December)", "Can't detect a change that started this year until 12 months have accumulated"]
+  - type: checklist
+    title: Before reporting a growth rate, confirm
+    items:
+      - Which baseline period it's measured against, stated explicitly (not just "growth")
+      - Whether you've looked at the surrounding 2-3 periods, not just the single most recent one
+      - Whether the metric being grown (gross vs. net revenue, completed vs. all orders) matches what the audience expects
+  - type: question
+    prompt: >
+      Looking only at last month's -14.1% MoM growth rate, a stakeholder wants to know "what went wrong."
+      What's the most defensible first response?
+    choices:
+      - "Immediately investigate every team that touches revenue, since any negative month signals a real problem."
+      - "Show the surrounding 3-6 months of growth rates first, to establish whether this dip is unusual relative to the metric's normal noise band."
+      - "Recompute the same number with a different rounding method until it looks less alarming."
+    correct_index: 1
+    explanation: >
+      A single negative MoM data point, on its own, can't distinguish a real problem from ordinary
+      period-to-period noise — this platform's own data shows adjacent months swinging from -14.1% to
+      +58.2% during a period of clear overall growth. The responsible first step is always to place the
+      number in its recent trend context before treating it as a signal worth investigating further.

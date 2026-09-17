@@ -1,0 +1,99 @@
+slug: revenue-growth
+module_slug: business-metrics
+title: Revenue Growth
+description: How to measure month-over-month and year-over-year revenue growth, and why percentage growth and absolute dollar growth can tell opposite stories.
+difficulty: BEGINNER
+estimated_minutes: 12
+display_order: 2
+objectives:
+  - Calculate month-over-month (MoM) and year-over-year (YoY) revenue growth
+  - Explain why percentage growth and absolute dollar growth can lead to different conclusions
+  - Choose the right growth framing for a given business question
+prerequisites: [revenue]
+skills: [business-metrics]
+datasets: [orders-sample]
+tags: [business-analytics, beginner]
+key_takeaways:
+  - MoM growth is sensitive to seasonality; YoY growth controls for it by comparing the same period a year apart.
+  - Percentage growth and absolute dollar growth can disagree — a high growth rate on a small base can add fewer real dollars than a modest rate on a large base.
+  - Always report the underlying base alongside a growth rate ("+40%, from $50K to $70K") so the number can't be misread on its own.
+common_mistakes:
+  - Reacting to a scary-looking MoM decline that is actually just normal seasonality (e.g., a January dip after a December peak, every year).
+  - Reporting only a percentage without the underlying dollar base, letting a tiny or huge base distort the story.
+blocks:
+  - type: heading
+    text: Measuring growth, not just revenue
+  - type: text
+    body: >
+      A single revenue number only tells you where the business is. Growth tells you where it's
+      *heading*, which is usually the question stakeholders actually care about. But "growth" isn't
+      one number either — the two most common framings are month-over-month (MoM) and year-over-year
+      (YoY), and they answer different questions.
+  - type: formula
+    expression: "MoM Growth % = (Revenue this month − Revenue last month) / Revenue last month × 100"
+    description: "YoY growth uses the identical formula, but compares this month/quarter to the same period exactly one year earlier instead of the prior month."
+  - type: comparison
+    title: MoM vs. YoY Growth
+    columns: ["Framing", "Best for", "Watch out for"]
+    rows:
+      - ["Month-over-Month (MoM)", "Catching a recent momentum shift quickly", "Highly sensitive to seasonality — a normal seasonal dip can look like a crisis"]
+      - ["Year-over-Year (YoY)", "Comparing like-for-like performance with seasonality controlled for", "Slower to reveal a fresh trend break — you wait a full year to see the same comparison again"]
+  - type: example
+    title: Same growth rate, very different reality
+    body: >
+      A small subscription add-on grows from $10,000 to $15,000 in revenue this quarter — 50% growth.
+      The company's core product grows from $10,000,000 to $10,500,000 — 5% growth. The core product's
+      "smaller" growth rate added $500,000 in new revenue; the add-on's "huge" growth rate added
+      $5,000. Reporting only the percentages, without the base, makes the add-on look like the bigger
+      win when it's the opposite.
+    code: |
+      SELECT
+        DATE_TRUNC('month', order_date) AS month,
+        SUM(order_total) AS monthly_revenue
+      FROM orders
+      WHERE status = 'completed'
+      GROUP BY 1
+      ORDER BY 1;
+    language: sql
+  - type: code
+    language: sql
+    caption: Computing MoM absolute and percentage growth with a window function
+    code: |
+      WITH monthly AS (
+        SELECT
+          DATE_TRUNC('month', order_date) AS month,
+          SUM(order_total) AS monthly_revenue
+        FROM orders
+        WHERE status = 'completed'
+        GROUP BY 1
+      )
+      SELECT
+        month,
+        monthly_revenue,
+        monthly_revenue - LAG(monthly_revenue) OVER (ORDER BY month) AS absolute_growth,
+        ROUND(
+          100.0 * (monthly_revenue - LAG(monthly_revenue) OVER (ORDER BY month))
+          / LAG(monthly_revenue) OVER (ORDER BY month), 1
+        ) AS pct_growth
+      FROM monthly
+      ORDER BY month;
+  - type: callout
+    variant: warning
+    title: A tiny base makes any percentage possible
+    body: >
+      Going from 2 customers to 4 customers is "100% growth" and means almost nothing on its own. When
+      a growth percentage looks dramatic, always ask what the starting base was before reacting to it.
+  - type: question
+    prompt: >
+      Revenue grew 3% month-over-month in November but fell 20% month-over-month in December, every
+      single year for the past five years. What is the most likely explanation, and what growth
+      metric would avoid the false alarm?
+    choices:
+      - The business is failing and December's 20% drop is a genuine crisis
+      - This is a recurring seasonal pattern, and year-over-year growth for December would be the more reliable signal
+      - MoM growth should never be calculated in December
+    correct_index: 1
+    explanation: >
+      A pattern that repeats identically every year is seasonality, not a trend. Comparing this
+      December to last December (YoY) removes the seasonal effect and reveals whether the business is
+      actually growing or shrinking, while MoM alone would trigger a false alarm every December.

@@ -1,0 +1,112 @@
+slug: shapes
+module_slug: numpy-for-analytics
+title: Array Shapes
+description: .shape, .ndim, and reshape() — thinking of a 2D array as rows and columns, and a first look toward DataFrames.
+difficulty: BEGINNER
+estimated_minutes: 9
+display_order: 2
+objectives:
+  - Read an array's .shape and .ndim to understand its dimensionality
+  - Reshape an array with .reshape(), including using -1 to let NumPy infer one dimension
+  - Describe a 2D array as rows x columns, the same mental model a DataFrame uses
+prerequisites: [arrays]
+skills: [pandas]
+datasets: []
+tags: [python, beginner, foundations]
+key_takeaways:
+  - ".shape returns a tuple of the array's size along each dimension; .ndim returns how many dimensions there are — a plain 1D array has ndim 1 and a shape like (6,), a grid has ndim 2 and a shape like (2, 3)."
+  - ".reshape(rows, cols) rearranges the same underlying data into a new shape, as long as the total element count matches — it doesn't add or remove any values."
+  - "A 2D array's shape is naturally read as (rows, columns) — this is exactly the mental model a pandas DataFrame is built on, which is why this lesson foreshadows it directly."
+common_mistakes:
+  - "Trying to .reshape() into a shape whose total element count doesn't match the original — reshape(2, 3) works on a 6-element array, but reshape(2, 4) raises a ValueError because 8 != 6."
+  - "Confusing .shape (a tuple describing size per dimension) with .ndim (a single integer counting the number of dimensions) — a (4,) shape has ndim 1, not 4."
+  - "Forgetting the shape of a 1D array is written (n,) with a trailing comma, not (n) — the comma is what makes Python read it as a one-element tuple rather than just the number n in parentheses."
+blocks:
+  - type: text
+    body: >
+      Every NumPy array has a **shape** — the size of the array along each of its dimensions — and a
+      number of dimensions, **ndim**. Understanding shape is essential before doing any real work with
+      arrays, because most NumPy operations (and the pandas DataFrames built on top of arrays) care
+      deeply about it.
+  - type: heading
+    text: ".shape and .ndim"
+  - type: code
+    language: python
+    code: |
+      import numpy as np
+
+      a = np.array([1, 2, 3, 4, 5, 6])
+      a.shape   # (6,)   — one dimension, 6 elements
+      a.ndim    # 1
+
+      grid = np.array([[1, 2, 3], [4, 5, 6]])
+      grid.shape   # (2, 3)   — 2 rows, 3 columns
+      grid.ndim    # 2
+    caption: ".shape is a tuple (one number per dimension); .ndim is how many dimensions there are"
+  - type: heading
+    text: ".reshape() — rearranging the same data"
+  - type: text
+    body: >
+      `.reshape()` returns the same underlying values arranged into a new shape — it never adds, removes,
+      or changes any values, only how they're grouped. The new shape's total element count must exactly
+      match the original's.
+  - type: code
+    language: python
+    code: |
+      a = np.array([1, 2, 3, 4, 5, 6])
+
+      a.reshape(2, 3)
+      # array([[1, 2, 3],
+      #        [4, 5, 6]])
+
+      a.reshape(3, 2)
+      # array([[1, 2],
+      #        [3, 4],
+      #        [5, 6]])
+
+      a.reshape(-1)   # array([1, 2, 3, 4, 5, 6])  — -1 flattens back to 1D
+    caption: "Passing -1 for one dimension tells NumPy to compute that size automatically"
+  - type: callout
+    variant: tip
+    title: "-1 means 'figure this dimension out for me'"
+    body: >
+      `.reshape(-1)` on a 2D array flattens it back to 1D — NumPy infers the single remaining dimension
+      from the total element count. This pattern (`-1` for "whatever makes the reshape work") shows up
+      constantly, not just for full flattening but for any reshape where you know one dimension and want
+      NumPy to compute the other, e.g. `.reshape(-1, 1)` for a single column.
+  - type: heading
+    text: "1D vs. 2D — thinking of a 2D array as rows x columns"
+  - type: text
+    body: >
+      A 1D array is a single row (or column) of values — a shape like `(6,)`. A 2D array's shape,
+      `(rows, cols)`, is naturally read the same way you'd read a spreadsheet or a database table: the
+      first number is how many rows, the second is how many columns. This is exactly the mental model a
+      pandas DataFrame is built on — a DataFrame is, underneath, a 2D array of values (plus row and
+      column labels), which is why getting comfortable with 2D array shape now pays off directly once
+      you reach pandas.
+  - type: example
+    title: "A small sales grid: 4 orders x 3 metrics"
+    body: >
+      Reading .shape as (rows, cols) makes a 2D array's structure concrete: this array holds 4 orders
+      (rows), each with 3 numeric metrics (columns) — quantity, unit price, discount, say.
+    code: |
+      order_metrics = np.array([
+          [2, 19.99, 0.0],
+          [1, 45.00, 5.0],
+          [3, 12.50, 0.0],
+          [1, 88.00, 10.0],
+      ])
+      print(order_metrics.shape)   # (4, 3) — 4 rows (orders), 3 columns (metrics)
+    language: python
+  - type: question
+    prompt: "An array a has shape (4, 3). What does a.reshape(2, 6) produce?"
+    choices:
+      - "A ValueError, because the new shape doesn't match the original"
+      - "A new array with the same 12 values rearranged into 2 rows of 6 columns each"
+      - "The original array unchanged, since reshape only works on 1D arrays"
+    correct_index: 1
+    explanation: >
+      4 x 3 = 12 total elements, and 2 x 6 = 12 as well, so the reshape is valid — it succeeds and
+      returns the same 12 underlying values regrouped into 2 rows of 6 columns. reshape() works on
+      arrays of any dimensionality as long as the total element count matches between the old and new
+      shape.

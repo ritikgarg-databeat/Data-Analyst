@@ -1,0 +1,103 @@
+slug: hyp-type-i-type-ii-errors-power
+module_slug: hypothesis-testing
+title: "Type I/II Errors and Statistical Power"
+description: The two ways a hypothesis test can fail, why an underpowered test can hide a real effect, and how to compute the sample size a real business effect actually needed.
+difficulty: INTERMEDIATE
+estimated_minutes: 15
+display_order: 3
+objectives:
+  - Define Type I error (false positive) and Type II error (false negative), and explain the tradeoff between them.
+  - Compute the approximate sample size needed to reliably detect a given effect size, and use it to correctly interpret a real underpowered test result.
+skills: [statistics, statistical-reasoning]
+datasets: [saas-product]
+tags: [statistics, intermediate, experimentation, ab-testing]
+prerequisites: [hyp-p-values]
+key_takeaways:
+  - "A Type I error is rejecting H0 when it's actually true (a false positive — you conclude there's an effect when there isn't). A Type II error is failing to reject H0 when it's actually false (a false negative — you miss a real effect)."
+  - "Statistical power (1 minus the Type II error rate) is the probability a test correctly detects a real effect of a given size, at a given sample size. Power depends on effect size, sample size, and the significance threshold together — not on sample size alone."
+  - "A non-significant result from an underpowered test is genuinely ambiguous: it may mean there's no effect, or it may mean the test simply didn't have enough data to detect a real, smaller effect. Don't report the second possibility as if it were the first."
+common_mistakes:
+  - "Reporting a non-significant, underpowered result as \"we proved there's no effect,\" when a proper power calculation shows the test only had, say, a 40% chance of detecting the effect size actually being tested for."
+  - Reducing Type I error risk (a stricter significance threshold) without acknowledging this simultaneously increases Type II error risk (more real effects get missed) — the two trade off against each other for a fixed sample size.
+interview_questions:
+  - question: "The checkout_redesign experiment (10% baseline, hoped-for lift to 12.5%) ran with 1,000 users per arm and came back non-significant (p = 0.41). Was this test well-designed?"
+    answer: >
+      No — a proper sample-size calculation for detecting a 10%→12.5% conversion lift at 80% power
+      and a 0.05 significance threshold requires roughly 2,500 users per arm, not 1,000. At 1,000
+      users per arm, this test's power to detect that real effect size is only around 43% — meaning
+      even if the true effect were exactly as hoped, there was roughly a 57% chance the test would
+      fail to reach significance purely from being underpowered. The non-significant result here is
+      genuinely ambiguous between "no real effect" and "real effect, insufficient sample" — the
+      right next step is running a longer test with the calculated sample size, not concluding the
+      redesign doesn't work.
+blocks:
+  - type: heading
+    text: The two ways a hypothesis test can be wrong
+  - type: table
+    caption: Type I and Type II error
+    headers: ["", "H0 is actually true", "H0 is actually false"]
+    rows:
+      - ["Test rejects H0", "Type I error (false positive) — probability = alpha, usually 0.05", "Correct decision"]
+      - ["Test fails to reject H0", "Correct decision", "Type II error (false negative) — probability = beta"]
+  - type: text
+    body: >
+      **Type I error** (rate = alpha, typically set at 0.05) is declaring an effect real when it
+      isn't. **Type II error** (rate = beta) is missing a real effect. **Statistical power** is
+      1 - beta: the probability the test correctly detects a real effect of a given size, at a given
+      sample size and alpha. These trade off — for a fixed sample size, making alpha stricter (to
+      reduce false positives) increases beta (more real effects get missed), and vice versa. The only
+      way to reduce both simultaneously is a larger sample size.
+  - type: heading
+    text: "Was checkout_redesign's non-significant result actually informative?"
+  - type: text
+    body: >
+      The `checkout_redesign` experiment ran 1,000 users per arm, control at 11.3% and treatment at
+      12.5%, and returned p = 0.407 — not significant at the 0.05 threshold. Before concluding "the
+      redesign doesn't work," check how much power this test actually had to detect the effect it
+      was designed around.
+  - type: formula
+    expression: "n per arm ≈ (z_alpha/2 + z_beta)^2 * [p1(1-p1) + p2(1-p2)] / (p2 - p1)^2"
+    description: Standard sample-size formula for comparing two proportions at 80% power (z_beta ≈ 0.84) and alpha = 0.05 (z_alpha/2 = 1.96).
+  - type: example
+    title: How much sample size did detecting a 10%→12.5% lift actually need?
+    body: >
+      Plugging in p1 = 0.10, p2 = 0.125, z_alpha/2 = 1.96, z_beta = 0.84: n ≈ (2.80)^2 x
+      [0.09 + 0.109] / (0.025)^2 ≈ 7.84 x 0.199 / 0.000625 ≈ 2,500 users per arm needed for 80%
+      power. The actual test ran with only 1,000 per arm — meaning even if the hoped-for effect were
+      exactly real, this test had only roughly 43% power to detect it. A close-to-coin-flip chance
+      of catching a real effect is a strong candidate explanation for the non-significant result.
+  - type: code
+    language: python
+    code: |
+      from statsmodels.stats.power import NormalIndPower
+      from statsmodels.stats.proportion import proportion_effectsize
+
+      effect_size = proportion_effectsize(0.125, 0.10)
+      analysis = NormalIndPower()
+      n_needed = analysis.solve_power(effect_size, power=0.8, alpha=0.05, ratio=1)
+      power_at_1000 = analysis.solve_power(effect_size, nobs1=1000, alpha=0.05, ratio=1)
+      print(round(n_needed), round(power_at_1000, 2))  # ~2500, ~0.43
+    caption: "~2,500 users per arm needed for 80% power; at the actual 1,000 per arm, power was only about 43%."
+  - type: callout
+    variant: important
+    title: "\"Not significant\" and \"no effect\" are not the same conclusion"
+    body: >
+      With only ~43% power, this test was more likely to fail to detect the hoped-for effect than
+      to catch it, even if the effect is completely real. The defensible business conclusion is
+      "this test was underpowered to reach a confident verdict — extend the test or plan for the
+      ~2,500-per-arm sample the effect size actually requires," not "the redesign doesn't improve
+      conversion."
+  - type: question
+    prompt: >
+      A test is designed with only 35% statistical power to detect the effect size it's targeting,
+      and it comes back non-significant. What's the most defensible conclusion?
+    choices:
+      - "The intervention definitely has no effect, since the test found nothing"
+      - "The test result is largely uninformative about whether the effect is real — with only 35% power, failing to detect it was the more likely outcome even if the effect exists"
+      - "The test should be re-run with the exact same sample size until it becomes significant"
+    correct_index: 1
+    explanation: >
+      With 35% power, the test was more likely to miss a real effect than to catch it — a
+      non-significant result here doesn't distinguish "no effect" from "real effect, underpowered
+      test." The fix is a properly sized test, not repeating an underpowered one or declaring the
+      question settled.

@@ -1,0 +1,108 @@
+slug: pa-sql-month1-retention-by-cohort
+lesson_slug: pa-cohort-retention-sql
+skill: advanced-sql
+dataset: saas-product
+title: Month-1 Retention Trend Across All Cohorts
+description: Compute the classic month-1 retention rate for every signup-month cohort with complete data, to check for a trend.
+exercise_type: SQL
+difficulty: ADVANCED
+points: 20
+tags: [sql, product, saas, cohort, retention, advanced]
+business_context: >
+  Before investing in a retention-improvement project, the team wants to see whether month-1
+  retention has actually been trending up, down, or bouncing around noise, across every cohort with
+  enough elapsed time to measure it.
+prompt: >
+  Using the `events` table, compute classic month-1 retention (active in exactly the calendar month
+  after signup) for every signup-month cohort between 2024-07-01 and 2025-12-01 inclusive (this range
+  is chosen because these are the cohorts old enough to have a complete month-1 window in the data).
+  Return one row per cohort with columns `cohort_month`, `n_users` (cohort size), `retained_month1`
+  (distinct users active in exactly period 1), and `month1_retention` (retained_month1 / n_users,
+  rounded to 4 decimals). Include cohorts even if `retained_month1` would be 0 (use COALESCE to avoid
+  dropping them via an inner join). Order by cohort_month ascending.
+sql_tables: [events]
+sql_starter_query: |
+  -- Explore cohort sizes by signup month first
+  SELECT DATE_TRUNC('month', signup_date) AS cohort_month, COUNT(DISTINCT user_id)
+  FROM events GROUP BY 1 ORDER BY 1;
+sql_solution_query: |
+  WITH activity AS (
+    SELECT user_id,
+      DATE_TRUNC('month', signup_date) AS cohort_month,
+      DATEDIFF('month', DATE_TRUNC('month', signup_date), DATE_TRUNC('month', event_timestamp)) AS period_number
+    FROM events
+    WHERE event_timestamp >= signup_date
+  ),
+  cohort_size AS (
+    SELECT cohort_month, COUNT(DISTINCT user_id) AS n_users
+    FROM activity WHERE period_number = 0
+    GROUP BY cohort_month
+  ),
+  month1 AS (
+    SELECT cohort_month, COUNT(DISTINCT user_id) AS retained_month1
+    FROM activity WHERE period_number = 1
+    GROUP BY cohort_month
+  )
+  SELECT
+    cs.cohort_month,
+    cs.n_users,
+    COALESCE(m1.retained_month1, 0) AS retained_month1,
+    ROUND(COALESCE(m1.retained_month1, 0)::DOUBLE / cs.n_users, 4) AS month1_retention
+  FROM cohort_size cs
+  LEFT JOIN month1 m1 ON m1.cohort_month = cs.cohort_month
+  WHERE cs.cohort_month BETWEEN DATE '2024-07-01' AND DATE '2025-12-01'
+  ORDER BY cs.cohort_month;
+sql_row_order_matters: true
+sql_numeric_tolerance: 0.001
+sql_hidden_tests:
+  - name: 2025-09 cohort's month1_retention matches an independent recomputation
+    query: |
+      SELECT DATE '2025-09-01' AS cohort_month,
+             ROUND(
+               COUNT(DISTINCT CASE WHEN DATE_TRUNC('month', event_timestamp) = DATE '2025-10-01' THEN user_id END) * 1.0
+               / COUNT(DISTINCT CASE WHEN DATE_TRUNC('month', signup_date) = DATE '2025-09-01' THEN user_id END), 4
+             ) AS expected_month1_retention
+      FROM events
+      WHERE DATE_TRUNC('month', signup_date) = DATE '2025-09-01' AND event_timestamp >= signup_date
+    key_columns: 1
+hints:
+  - "Use a LEFT JOIN (not an inner join) between cohort_size and the month-1 activity counts — an inner join would silently drop any cohort that happens to have zero month-1 retained users, which is exactly the edge case worth protecting against."
+  - "COALESCE(retained_month1, 0) turns a NULL from the left join's unmatched side into an explicit 0 before it's used in the division, so a cohort with no month-1 activity still gets a correct 0.0 retention rate row instead of being silently excluded."
+solution: >
+  ```sql
+  WITH activity AS (
+    SELECT user_id,
+      DATE_TRUNC('month', signup_date) AS cohort_month,
+      DATEDIFF('month', DATE_TRUNC('month', signup_date), DATE_TRUNC('month', event_timestamp)) AS period_number
+    FROM events
+    WHERE event_timestamp >= signup_date
+  ),
+  cohort_size AS (
+    SELECT cohort_month, COUNT(DISTINCT user_id) AS n_users
+    FROM activity WHERE period_number = 0 GROUP BY cohort_month
+  ),
+  month1 AS (
+    SELECT cohort_month, COUNT(DISTINCT user_id) AS retained_month1
+    FROM activity WHERE period_number = 1 GROUP BY cohort_month
+  )
+  SELECT
+    cs.cohort_month, cs.n_users,
+    COALESCE(m1.retained_month1, 0) AS retained_month1,
+    ROUND(COALESCE(m1.retained_month1, 0)::DOUBLE / cs.n_users, 4) AS month1_retention
+  FROM cohort_size cs
+  LEFT JOIN month1 m1 ON m1.cohort_month = cs.cohort_month
+  WHERE cs.cohort_month BETWEEN DATE '2024-07-01' AND DATE '2025-12-01'
+  ORDER BY cs.cohort_month;
+  ```
+  Run against the real data, month-1 retention bounces between roughly 21.8% (2025-03 and 2025-08) and
+  34.3% (2025-04) across 18 cohorts, with no clear upward or downward trend visible.
+explanation: >
+  The retained_month1 CTE only contains a row for cohorts that actually have at least one user active
+  in period 1 — any cohort with genuinely zero month-1 retention would be missing entirely. Joining
+  with an INNER JOIN instead of a LEFT JOIN would silently drop that cohort from the results rather
+  than showing it with a correct 0.0 rate, which would understate how many cohorts exist and could
+  mislead someone counting rows. The COALESCE then converts the LEFT JOIN's NULL (for an unmatched
+  cohort) into an explicit 0 before the division, so the rate itself is also computed correctly rather
+  than becoming NULL. Restricting to cohorts through 2025-12-01 (not later) matters too — later
+  cohorts don't yet have a complete month-1 window given this dataset's data cutoff, and including them
+  would show an artificially low, partial-month rate.

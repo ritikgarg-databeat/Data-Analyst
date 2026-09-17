@@ -1,0 +1,79 @@
+slug: discount-impact-by-category
+lesson_slug: merge-fan-out-and-duplication
+skill: pandas
+dataset: ecommerce
+title: Discount Impact by Category
+description: Merge order_items through products to categories to find which category discounts the most per unit.
+exercise_type: PYTHON
+difficulty: INTERMEDIATE
+points: 20
+tags: [python, intermediate, real-world]
+business_context: >
+  Pricing wants to know which product category is being discounted most heavily on a per-unit
+  basis, to check whether promotional discounting is concentrated where it's intended or has
+  crept into categories that shouldn't need it.
+prompt: >
+  Using `order_items`, `products`, and `categories`, merge `order_items` to `products` on
+  `product_id`, then to `categories` on `category_id`, and compute the average per-unit discount
+  (`order_items.discount`, a dollar amount) for each category. Store your answer in a variable
+  named `result`: a DataFrame with columns `category_name` and `avg_discount` (rounded to 2
+  decimal places), sorted in descending order by `avg_discount`.
+python_datasets: [order_items, products, categories]
+python_starter_code: |
+  # order_items, products, and categories are already loaded as DataFrames.
+  # Explore them first:
+  order_items.head()
+python_solution_code: |
+  merged = order_items.merge(products, on="product_id").merge(categories, on="category_id")
+  result = (
+      merged.groupby("category_name")["discount"]
+      .mean()
+      .round(2)
+      .reset_index(name="avg_discount")
+      .sort_values("avg_discount", ascending=False)
+      .reset_index(drop=True)
+  )
+python_result_variable: result
+python_row_order_matters: true
+python_numeric_tolerance: 0.01
+python_hidden_tests:
+  - name: "Top category matches a live recomputation"
+    code: |
+      recompute = (
+          order_items.merge(products, on="product_id")
+          .merge(categories, on="category_id")
+          .groupby("category_name")["discount"]
+          .mean()
+          .round(2)
+      )
+      top_row = result.iloc[0]
+      assert top_row["category_name"] == recompute.idxmax(), (
+          f"Expected '{recompute.idxmax()}' to have the highest avg_discount, got '{top_row['category_name']}'"
+      )
+      assert abs(top_row["avg_discount"] - recompute.max()) < 0.01, (
+          "The top category's avg_discount doesn't match a fresh recomputation."
+      )
+hints:
+  - "Chain two merges: `order_items.merge(products, on='product_id').merge(categories, on='category_id')`. Each order_item is one row, and this fans it out with its product's category attached — no row duplication happens here since product_id and category_id are each single-valued per row."
+  - "Group the merged table by 'category_name' and take the mean of the 'discount' column (each row is one per-unit discount value from an order line), then sort descending."
+solution: |
+  ```python
+  merged = order_items.merge(products, on="product_id").merge(categories, on="category_id")
+  result = (
+      merged.groupby("category_name")["discount"]
+      .mean()
+      .round(2)
+      .reset_index(name="avg_discount")
+      .sort_values("avg_discount", ascending=False)
+      .reset_index(drop=True)
+  )
+  ```
+explanation: >
+  Chaining `order_items.merge(products, ...).merge(categories, ...)` walks the relationship from
+  the most granular table (one row per order line) up through two many-to-one joins to reach
+  `category_name` — each order item has exactly one product, and each product has exactly one
+  category, so neither merge duplicates rows (a genuine fan-out only happens when the "right"
+  side of a merge has more than one matching row per key, which isn't the case here). Averaging
+  `discount` per category after that gives the typical per-unit dollar discount applied to items
+  in that category, which is the number Pricing actually wants — a category-level average, not a
+  total, since categories can have very different order volumes.

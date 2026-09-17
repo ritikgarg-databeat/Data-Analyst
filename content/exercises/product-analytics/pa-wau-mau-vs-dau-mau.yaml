@@ -1,0 +1,25 @@
+slug: pa-wau-mau-vs-dau-mau
+skill: product-metrics
+title: WAU/MAU vs. DAU/MAU
+description: A product's DAU/MAU is low (10%) but WAU/MAU is high (70%). What does this combination suggest about
+  usage pattern?
+exercise_type: MULTIPLE_CHOICE
+difficulty: INTERMEDIATE
+points: 5
+tags:
+- dau
+- product-analytics
+prompt: A product's DAU/MAU is low (10%) but WAU/MAU is high (70%). What does this combination suggest about usage
+  pattern?
+choices:
+- Users engage regularly but not every day -- e.g. a weekly-cadence product (like a weekly planning tool), rather
+  than a daily-habit product
+- The product has almost no engaged users at all
+- The metrics are contradictory and one of them must be a measurement error
+- This combination is only possible for B2B products
+correct_answer: Users engage regularly but not every day -- e.g. a weekly-cadence product (like a weekly planning
+  tool), rather than a daily-habit product
+explanation: High WAU/MAU alongside low DAU/MAU is a healthy signature for products with a naturally weekly-ish
+  usage cadence (e.g. weekly meal planning, weekly team standups) -- daily stickiness (DAU/MAU) is the wrong lens
+  for a product that isn't meant to be used every single day, so reading both ratios together avoids misjudging
+  engagement using a mismatched cadence.

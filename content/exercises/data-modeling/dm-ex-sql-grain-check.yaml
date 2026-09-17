@@ -1,0 +1,35 @@
+slug: dm-ex-sql-grain-check
+lesson_slug: dm-entities-and-grain
+skill: dimensional-modeling
+dataset: ecommerce
+title: "Verify the Grain of dim_customers"
+description: Writing the real SQL check that would surface a grain violation in the customers table, if the stated grain "1 row = 1 customer" were actually broken.
+exercise_type: SQL
+difficulty: BEGINNER
+points: 10
+tags: [grain, data-modeling]
+business_context: >
+  Before trusting a table's stated grain, it's worth actually checking it against the real data rather than
+  taking it on faith.
+sql_tables: [customers]
+prompt: >
+  The customers table is registered with the grain "1 row = 1 customer." Write a query that would surface any
+  customer_id appearing more than once, if the stated grain were actually violated. Your query should return
+  one row per duplicated customer_id along with how many times it appears.
+sql_starter_query: |
+  SELECT customer_id
+  FROM customers
+  -- your query here
+sql_solution_query: |
+  SELECT customer_id, COUNT(*) AS n
+  FROM customers
+  GROUP BY customer_id
+  HAVING COUNT(*) > 1;
+sql_row_order_matters: false
+hints:
+  - "GROUP BY the column the grain statement claims is unique, then HAVING COUNT(*) > 1 to surface any violations."
+explanation: >
+  Against the real ecommerce data, this query returns zero rows — every customer_id in the 1,500-row customers
+  table appears exactly once, confirming the stated grain ("1 row = 1 customer") actually holds. This is the
+  general pattern for verifying any table's claimed grain: GROUP BY the stated key and HAVING COUNT(*) > 1;
+  anything returned is a real grain violation worth investigating.

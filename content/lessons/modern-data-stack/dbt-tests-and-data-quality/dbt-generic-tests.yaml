@@ -1,0 +1,135 @@
+slug: dbt-generic-tests
+module_slug: dbt-tests-and-data-quality
+title: "Generic Tests: unique, not_null, accepted_values, relationships"
+description: >-
+  The four generic tests this repo's real dbt project runs, read straight
+  from staging.yml, and the exact failure mode each one is built to catch.
+difficulty: INTERMEDIATE
+estimated_minutes: 25
+display_order: 1
+prerequisites: [dbt-dag-and-running-models]
+objectives:
+  - Name the four generic tests this repo's real project uses and the specific failure mode each one catches.
+  - Read staging.yml and explain how a `tests:` block on a column becomes an actual query dbt runs.
+  - State the real accepted_values enforced on orders.status, orders.channel, payments.status/payment_method, and customers.customer_segment.
+skills: [dbt, data-quality-engineering]
+datasets: [ecommerce]
+tags: [dbt, tests, relationships, data-quality, validation, intermediate]
+key_takeaways:
+  - "A generic test is reusable and parameterized — one test definition (unique, not_null, accepted_values, relationships) gets applied to any column across the project just by listing it in a schema.yml file, with no new SQL written per use."
+  - "Under the hood, every generic test compiles to a query that should return zero rows; a test 'passes' when its query returns nothing, and 'fails' by returning the offending rows."
+  - "relationships only checks non-null values by default — pairing it with not_null (exactly as this project's staging.yml does on order_id and product_id) is what actually guarantees a foreign key is both present and valid, since a null foreign key value passes a relationships check trivially."
+common_mistakes:
+  - "Assuming a relationships test alone guarantees referential integrity — a null value in the child column passes a relationships check (there's nothing invalid to compare), so a missing not_null test on the same column would let genuinely broken rows (with no order_id at all) through undetected."
+  - "Confusing not_null (checks for missing values) with unique (checks for duplicates) — a column can pass not_null while still containing the same value twice, and it can pass unique while still containing nulls (most warehouses don't count nulls as duplicates of each other)."
+interview_questions:
+  - question: "This project's stg_order_items model tests order_id with both not_null and a relationships test against stg_orders. Why not just relationships alone?"
+    answer: >
+      dbt's relationships test only evaluates rows where the column being tested is non-null — it checks
+      "does every non-null order_id in stg_order_items exist in stg_orders," which says nothing about rows
+      where order_id is null in the first place. A row with a null order_id would pass the relationships
+      test trivially (there's no value to look up) while still being a genuinely broken row — an order
+      item with no order at all. Pairing not_null with relationships closes that gap: not_null catches the
+      missing-value case, relationships catches the wrong-value case, and together they guarantee the
+      foreign key is both present and points at something real.
+blocks:
+  - type: heading
+    text: "Four tests, four failure modes"
+  - type: table
+    headers: ["Test", "Failure mode it catches", "Real example from this project"]
+    rows:
+      - ["unique", "The same value appears more than once in a column that should identify one row", "order_id on stg_orders, order_item_id on stg_order_items"]
+      - ["not_null", "A value is missing where one is required", "customer_id on stg_orders, email on stg_customers"]
+      - ["accepted_values", "A value falls outside a known, fixed list", "status on stg_orders must be one of refunded/pending/completed/cancelled"]
+      - ["relationships", "A foreign key value doesn't exist in the table it's supposed to reference", "product_id on stg_order_items must exist in stg_products"]
+  - type: code
+    language: yaml
+    code: |
+      # dbt/models/staging/staging.yml (abridged)
+      models:
+        - name: stg_orders
+          columns:
+            - name: order_id
+              tests: [unique, not_null]
+            - name: customer_id
+              tests: [not_null]
+            - name: status
+              tests:
+                - accepted_values:
+                    arguments:
+                      values: ["refunded", "pending", "completed", "cancelled"]
+            - name: channel
+              tests:
+                - accepted_values:
+                    arguments:
+                      values: ["mobile", "web", "marketplace"]
+
+        - name: stg_order_items
+          columns:
+            - name: order_id
+              tests:
+                - not_null
+                - relationships:
+                    arguments:
+                      to: ref('stg_orders')
+                      field: order_id
+    caption: "The real, unedited test definitions for stg_orders and stg_order_items in this project's staging.yml."
+  - type: text
+    body: >
+      Every one of these is declarative — you never write the SQL that actually checks uniqueness or
+      membership in a list. dbt ships each generic test as a small, reusable SQL template with
+      placeholders for the column and table involved; listing `tests: [unique, not_null]` under
+      `order_id` fills in that template and produces a real, runnable query, compiled and executed exactly
+      like any model. A test "passes" when its compiled query returns zero rows, and "fails" by returning
+      the specific offending rows — which is exactly what powers the dbt Lab's test-results viewer.
+  - type: heading
+    text: "The real accepted_values enforced across this project"
+  - type: table
+    headers: ["Model", "Column", "Accepted values"]
+    rows:
+      - ["stg_orders", "status", "refunded, pending, completed, cancelled"]
+      - ["stg_orders", "channel", "mobile, web, marketplace"]
+      - ["stg_payments", "payment_method", "gift_card, credit_card, paypal"]
+      - ["stg_payments", "status", "success, refunded"]
+      - ["stg_customers", "customer_segment", "consumer, business"]
+  - type: callout
+    variant: common_mistake
+    title: "not_null and relationships are a pair, not a substitute for each other"
+    body: >
+      Look again at `stg_order_items.order_id`: it carries both `not_null` and `relationships`, not
+      `relationships` alone. That's deliberate — `relationships` only evaluates non-null values, so a null
+      `order_id` would silently pass it. The `not_null` test is what actually guarantees every row has a
+      value in the first place; only together do the two tests guarantee "every order_item has an
+      order_id, and it points at a real order."
+  - type: example
+    title: "Reading a relationships test as a plain-English sentence"
+    body: >
+      `stg_products.category_id` carries a relationships test pointing at `stg_categories.category_id`.
+      Read the YAML as a sentence: "every non-null category_id value in stg_products must exist as a
+      category_id value in stg_categories." That's the entire semantic of a relationships test — no
+      SQL join was written by hand to express it.
+    code: |
+      - name: stg_products
+        columns:
+          - name: category_id
+            tests:
+              - not_null
+              - relationships:
+                  arguments:
+                    to: ref('stg_categories')
+                    field: category_id
+    language: yaml
+  - type: question
+    prompt: "stg_payments.status passed its accepted_values test on every run for months. One day it starts failing. What does that tell you happened?"
+    choices:
+      - "A payment_method value that isn't gift_card/credit_card/paypal showed up in the raw data"
+      - "A status value outside success/refunded showed up in the raw data"
+      - "A duplicate payment_id was inserted"
+      - "A null value appeared in the payment_id column"
+    correct_index: 1
+    explanation: >
+      The accepted_values test on the status column checks specifically that every value falls inside
+      its declared list — for stg_payments.status, that's success or refunded. A failure there means a
+      value outside that list appeared (e.g. a new status like 'pending' or 'disputed' the source system
+      started emitting). A payment_method issue, a duplicate, or a null would each trip a different test
+      (accepted_values on payment_method, unique on payment_id, or not_null on payment_id, respectively).

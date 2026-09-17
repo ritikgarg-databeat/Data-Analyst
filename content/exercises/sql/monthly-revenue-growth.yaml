@@ -1,0 +1,93 @@
+slug: monthly-revenue-growth
+lesson_slug: period-over-period-growth
+skill: advanced-sql
+dataset: ecommerce
+title: Calculate Month-over-Month Revenue Growth
+description: Write a query that computes each calendar month's revenue and its percent change versus the previous month using LAG().
+exercise_type: SQL
+difficulty: ADVANCED
+points: 25
+tags: [sql, advanced, window-functions]
+business_context: >
+  Finance is putting together the board deck and wants more than a flat revenue trend line — they want
+  to see month-over-month growth so they can immediately spot acceleration, slowdowns, and one-off
+  spikes without doing the arithmetic by hand.
+prompt: >
+  Using the `payments` table, write a query that returns one row per calendar month of successful
+  payments (`status = 'success'`), with columns `payment_month` (the month, via
+  `DATE_TRUNC('month', payment_date)`), `monthly_revenue` (`ROUND(SUM(amount), 2)` for that month), and
+  `pct_change` — the percent change in revenue versus the immediately preceding month, computed as
+  `100.0 * (this_month_revenue - previous_month_revenue) / previous_month_revenue` and rounded to 1
+  decimal place. The earliest month has no preceding month, so its `pct_change` should be NULL. Order
+  the result chronologically from earliest month to latest.
+sql_tables: [payments]
+sql_starter_query: |
+  -- Explore the payments table first
+  SELECT * FROM payments LIMIT 20;
+sql_solution_query: |
+  WITH monthly AS (
+    SELECT
+      DATE_TRUNC('month', payment_date) AS payment_month,
+      SUM(amount) AS monthly_revenue
+    FROM payments
+    WHERE status = 'success'
+    GROUP BY DATE_TRUNC('month', payment_date)
+  )
+  SELECT
+    payment_month,
+    ROUND(monthly_revenue, 2) AS monthly_revenue,
+    ROUND(
+      100.0 * (monthly_revenue - LAG(monthly_revenue) OVER (ORDER BY payment_month))
+      / LAG(monthly_revenue) OVER (ORDER BY payment_month),
+      1
+    ) AS pct_change
+  FROM monthly
+  ORDER BY payment_month;
+sql_row_order_matters: true
+sql_numeric_tolerance: 0.5
+sql_hidden_tests:
+  - name: "Earliest month's revenue is correct"
+    query: |
+      SELECT
+        DATE_TRUNC('month', payment_date) AS payment_month,
+        ROUND(SUM(amount), 2) AS monthly_revenue
+      FROM payments
+      WHERE status = 'success'
+      GROUP BY DATE_TRUNC('month', payment_date)
+      ORDER BY payment_month ASC
+      LIMIT 1
+    key_columns: 1
+hints:
+  - "This is a period-over-period comparison: for every month you need that month's total alongside the PREVIOUS month's total. A window function that can look at a prior row within an ordered sequence — without a self-join — is exactly the tool for this."
+  - "First build a CTE that aggregates monthly revenue with GROUP BY DATE_TRUNC('month', payment_date). Then, on top of that CTE, use LAG(monthly_revenue) OVER (ORDER BY payment_month) to get the previous month's total, and compute 100.0 * (this - prev) / prev — the 100.0 (not 100) keeps the division from truncating to an integer."
+solution: >
+  ```sql
+  WITH monthly AS (
+    SELECT
+      DATE_TRUNC('month', payment_date) AS payment_month,
+      SUM(amount) AS monthly_revenue
+    FROM payments
+    WHERE status = 'success'
+    GROUP BY DATE_TRUNC('month', payment_date)
+  )
+  SELECT
+    payment_month,
+    ROUND(monthly_revenue, 2) AS monthly_revenue,
+    ROUND(
+      100.0 * (monthly_revenue - LAG(monthly_revenue) OVER (ORDER BY payment_month))
+      / LAG(monthly_revenue) OVER (ORDER BY payment_month),
+      1
+    ) AS pct_change
+  FROM monthly
+  ORDER BY payment_month;
+  ```
+explanation: >
+  A strong answer separates the two concerns cleanly: a CTE first collapses payments down to one row per
+  month with SUM(amount), and only then does LAG() OVER (ORDER BY payment_month) reach back to the
+  previous row to compute growth — trying to do both in one pass invites mistakes. Using 100.0 (a float
+  literal) rather than 100 in the growth formula avoids silent integer-division truncation, and leaving
+  the first month's LAG() result as NULL (rather than coalescing it to 0, which would imply a fabricated
+  "-100% then +∞%" swing) correctly represents that there is no prior month to compare against. A common
+  mistake is grouping by the raw payment_date instead of DATE_TRUNC('month', payment_date), which
+  produces one row per exact date rather than per month and makes LAG() compare the wrong periods
+  entirely.

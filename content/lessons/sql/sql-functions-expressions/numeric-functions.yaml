@@ -1,0 +1,101 @@
+slug: numeric-functions
+module_slug: sql-functions-expressions
+title: Numeric Functions
+description: ROUND, CEIL/FLOOR, ABS, and the math operators used to compute derived values like margin.
+difficulty: BEGINNER
+estimated_minutes: 10
+display_order: 2
+objectives:
+  - Compute a derived numeric value (like margin) from existing columns using arithmetic operators
+  - Control decimal precision with ROUND, and round toward a whole number deliberately with CEIL and FLOOR
+  - Explain what ABS does and why negative differences show up in the first place
+prerequisites: [string-functions]
+skills: [sql-fundamentals]
+datasets: [ecommerce]
+tags: [sql, beginner]
+key_takeaways:
+  - "Arithmetic operators (+, -, *, /, %) work directly on numeric columns in SELECT, producing a new derived value per row — no function call required."
+  - ROUND controls how many decimal places display; CEIL and FLOOR round to the nearest whole number in a fixed direction (always up, always down) regardless of which side is closer.
+  - ABS strips the sign off a number, which is useful once a calculation like unit_price - cost can legitimately go negative (a product sold at a loss) and you only care about the size of the gap.
+common_mistakes:
+  - "Assuming / always does integer division. Some databases truncate the decimal when both operands are integers; this lab's engine (DuckDB) always returns a float from /, so relying on truncation isn't portable — use CAST or floor division (//) if a whole-number result is specifically what's needed."
+  - "Rounding a value in the middle of a multi-step calculation (e.g. rounding margin before computing margin_pct from it) instead of only at the final displayed output — this compounds small rounding errors instead of eliminating them."
+blocks:
+  - type: heading
+    text: Deriving new numbers with arithmetic
+  - type: text
+    body: >
+      Every product in this dataset has a unit_price and a cost. Neither column tells you the margin
+      directly — that's a value computed from the two, not one that's stored. SQL's math operators
+      (+, -, *, /, %) work on numeric columns exactly like they would on plain numbers, and they run
+      once per row, producing a new derived value alongside the columns it was built from.
+  - type: code
+    language: sql
+    caption: Margin per product
+    code: |
+      SELECT
+        product_id,
+        product_name,
+        unit_price,
+        cost,
+        unit_price - cost AS margin
+      FROM products
+      LIMIT 5;
+  - type: text
+    body: >
+      Margin as a raw dollar amount is useful, but margin as a percentage of price is often more
+      comparable across products with very different price points. That's a slightly longer
+      expression — divide the margin by unit_price, multiply by 100 — but it's still just arithmetic
+      combined in one SELECT.
+  - type: example
+    title: Margin percentage, rounded for display
+    body: >
+      ROUND(value, decimal_places) rounds to a fixed number of decimal places. It's purely a display
+      transformation on the value SQL returns for that expression — it doesn't rewrite anything
+      stored in the products table. Wrapping the whole margin_pct calculation in ROUND at the end (not
+      partway through) keeps a full-precision number for as long as possible and only trims it once,
+      right before it's shown.
+    code: |
+      SELECT
+        product_id,
+        unit_price,
+        cost,
+        ROUND((unit_price - cost) / unit_price * 100, 1) AS margin_pct
+      FROM products
+      LIMIT 5;
+    language: sql
+  - type: text
+    body: >
+      CEIL and FLOOR also round to a whole number, but unlike ROUND they always round in one fixed
+      direction: CEIL(4.1) is 5 (always up), FLOOR(4.9) is 4 (always down). They show up whenever a
+      business rule needs a deliberate direction rather than "nearest" — rounding a required shipment
+      quantity up (you can't ship 4.2 boxes, so CEIL) or a loyalty-points calculation down (never grant
+      a fractional point, so FLOOR).
+  - type: callout
+    variant: tip
+    title: ABS handles the case where a difference can go either way
+    body: >
+      unit_price - cost is normally positive, but if a product is priced below its cost (a
+      clearance item, a data-entry mistake), the result is negative. ABS(unit_price - cost) returns
+      the size of that gap regardless of direction — useful when a report cares "how far off is this
+      number" and not which side of zero it landed on.
+  - type: table
+    headers: ["Function/operator", "What it does", "Example → result"]
+    rows:
+      - ["ROUND(x, n)", "Rounds x to n decimal places", "ROUND(43.876, 1) → 43.9"]
+      - ["CEIL(x)", "Rounds up to the nearest whole number", "CEIL(4.1) → 5"]
+      - ["FLOOR(x)", "Rounds down to the nearest whole number", "FLOOR(4.9) → 4"]
+      - ["ABS(x)", "Absolute value; drops the sign", "ABS(-12.5) → 12.5"]
+      - ["x % y", "Remainder after dividing x by y", "17 % 5 → 2"]
+  - type: question
+    prompt: "A products query computes ROUND((unit_price - cost) / unit_price * 100, 1) AS margin_pct. For a product where cost is slightly higher than unit_price, what does margin_pct look like?"
+    choices:
+      - "It errors out, because SQL can't compute a negative percentage"
+      - "It's a negative number, correctly reflecting that the product sells at a loss"
+      - "It's automatically converted to 0, since margins can't be negative"
+    correct_index: 1
+    explanation: >
+      There's nothing in the arithmetic that prevents a negative result — if cost exceeds unit_price,
+      unit_price - cost is negative, and dividing and multiplying preserve that sign. SQL doesn't
+      clamp values to a "sensible" range on its own; a negative margin_pct is a real signal that a
+      product is being sold below cost, not an error to suppress.

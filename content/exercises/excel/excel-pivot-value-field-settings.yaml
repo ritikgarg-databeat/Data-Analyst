@@ -1,0 +1,21 @@
+slug: excel-pivot-value-field-settings
+skill: excel-fundamentals
+title: Changing a Pivot Table's Summary Statistic
+description: A Pivot Table is currently showing "Sum of Revenue" for each region, but you want "Average of Revenue"
+  instead. What's the correct way to change this?
+exercise_type: MULTIPLE_CHOICE
+difficulty: INTERMEDIATE
+points: 5
+tags:
+- excel
+prompt: A Pivot Table is currently showing "Sum of Revenue" for each region, but you want "Average of Revenue" instead.
+  What's the correct way to change this?
+correct_answer: Open Value Field Settings for that field and change the summary function
+explanation: Value Field Settings (accessible from the field's dropdown in the Values area, or right-clicking a
+  value cell) is exactly where the summary statistic (Sum/Average/Count/Max/Min/etc.) for a Pivot Table field is
+  changed, with no rebuild or source-data change needed.
+choices:
+- Open Value Field Settings for that field and change the summary function
+- Delete the pivot table and rebuild it from scratch
+- Manually edit the underlying source data
+- Apply a conditional formatting rule to the pivot table

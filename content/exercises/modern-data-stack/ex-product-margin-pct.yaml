@@ -1,0 +1,51 @@
+slug: ex-product-margin-pct
+skill: dbt
+dataset: ecommerce
+title: "dbt Exercise: Reusing a Macro"
+description: Use the project's own pct_of Jinja macro instead of writing a fresh divide-by-zero guard.
+exercise_type: DBT
+difficulty: INTERMEDIATE
+points: 15
+tags: [dbt, macros, jinja, real-execution]
+business_context: >
+  Every margin-percentage calculation in this project needs the same null/zero-safe guard — that's
+  exactly why `pct_of(numerator, denominator)` already exists as a macro (`dbt/macros/pct_of.sql`),
+  used for real in `fct_orders.sql`. Reusing it here avoids copy-pasting the same `case when` logic
+  into yet another model.
+prompt: >
+  Write a dbt model named `ex_product_margin_pct` that selects `product_id`, `product_name`,
+  `unit_price`, `cost`, and a `margin_pct` column from `{{ ref('stg_products') }}` — using the
+  project's existing `{{ pct_of(...) }}` macro to compute `margin_pct` as the percentage that
+  `(unit_price - cost)` is of `unit_price`. Do not write your own `case when` divide-by-zero guard —
+  the macro already handles it.
+hints:
+  - "{{ pct_of('unit_price - cost', 'unit_price') }} as margin_pct — same call shape as fct_orders.sql uses for gross_margin_pct."
+  - "unit_price and cost are both real columns on stg_products."
+dbt_model_name: ex_product_margin_pct
+dbt_starter_sql: |
+  select
+      product_id,
+      product_name,
+      unit_price,
+      cost
+      -- TODO: add margin_pct using the pct_of macro
+  from {{ ref('stg_products') }}
+dbt_schema_yml: |
+  columns:
+    - name: product_id
+      tests: [unique, not_null]
+    - name: margin_pct
+      tests: [not_null]
+solution: |
+  select
+      product_id,
+      product_name,
+      unit_price,
+      cost,
+      {{ pct_of('unit_price - cost', 'unit_price') }} as margin_pct
+  from {{ ref('stg_products') }}
+explanation: >
+  `{{ pct_of(...) }}` compiles down to the same `case when denominator = 0 or denominator is null then
+  null else 100.0 * numerator / denominator end` every hand-written version of this calculation would
+  need — the macro exists specifically so that guard is written once and reused, which is exactly what
+  this model does.

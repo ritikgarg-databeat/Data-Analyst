@@ -1,0 +1,24 @@
+slug: exp-mc-what-does-a-p-value-mean
+lesson_slug: exp-reading-p-values-and-confidence-intervals
+skill: statistical-reasoning
+title: What Does a P-Value of 0.04 Actually Mean?
+description: A quick concept check on the correct interpretation of a p-value, versus the two most common misreadings.
+exercise_type: MULTIPLE_CHOICE
+difficulty: INTERMEDIATE
+points: 10
+tags: [statistics, experimentation, ab-testing, intermediate]
+prompt: >
+  An A/B test's primary metric comes back with p = 0.04. Which of the following is the correct
+  interpretation of that number?
+choices:
+  - "There is a 4% chance that the null hypothesis (no real difference) is true"
+  - "If there were truly no difference between control and treatment, there'd be about a 4% chance of seeing a difference at least this large purely from random sampling noise — which is below the conventional 5% threshold, so the result is called statistically significant"
+  - "There is a 96% chance that the treatment causes the observed difference"
+correct_answer: "If there were truly no difference between control and treatment, there'd be about a 4% chance of seeing a difference at least this large purely from random sampling noise — which is below the conventional 5% threshold, so the result is called statistically significant"
+explanation: >
+  A p-value is always computed under the assumption that the null hypothesis is true — it describes how
+  surprising the observed data would be under that assumption, not the probability that the assumption
+  itself is true or false. Reading "p = 0.04" as "4% chance the null is true" or "96% chance the effect
+  is real" reverses what's actually being conditioned on. The correct reading treats the p-value as a
+  statement about how the data would behave *if* there were no real effect, which is evidence against
+  that scenario when the p-value is small, but never a direct probability on the hypothesis itself.

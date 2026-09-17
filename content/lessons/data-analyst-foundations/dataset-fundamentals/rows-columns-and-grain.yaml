@@ -1,0 +1,129 @@
+slug: rows-columns-and-grain
+module_slug: dataset-fundamentals
+title: "Rows, Columns, and Grain: The One Thing to Establish First"
+description: What grain means, why it's the single most important thing to know about a dataset before running any number on it, and a real worked example of getting it wrong.
+difficulty: BEGINNER
+estimated_minutes: 12
+display_order: 2
+objectives:
+  - Define grain as "what one row represents" and state the grain of a table in one sentence
+  - Explain why a join between tables at different grains can silently inflate a sum or count
+  - Trace a real, concrete example of a join fanning out and multiplying a dollar figure by 3.67x
+prerequisites: [what-is-a-dataset]
+skills: [exploratory-data-analysis]
+datasets: [ecommerce]
+tags: [foundations, beginner, real-world]
+key_takeaways:
+  - "Grain answers exactly one question: what does one row of this table represent? Everything else about analyzing a dataset correctly follows from getting this answer right first."
+  - "Two tables about 'the same' business object can have different grains — orders has 4,205 rows (one per order), order_items has 12,627 rows (one per line item) — and joining them without accounting for that difference is one of the most common ways a real analysis silently produces a wrong number."
+  - "Joining a coarser-grain table (like payments, roughly one row per order) to a finer-grain table (like order_items, several rows per order) multiplies every coarse-grain value by however many fine-grain rows that order has — a real, worked example in this lesson inflates true total revenue of $6,248,160.50 to a fabricated $22,917,161.75, a 3.67x overstatement, from exactly this mistake."
+  - "The fix is always the same shape: aggregate the finer-grain table down to the grain you actually need BEFORE joining it to anything else, rather than joining first and hoping the aggregation afterward fixes it."
+common_mistakes:
+  - "Joining tables at different grains and then summing a column from the coarser-grain side, without first collapsing the finer-grain side down to one row per join key — this is the exact mechanism behind the $22.9M fabricated total in this lesson's worked example."
+  - "Assuming 'more rows' always means 'more detail, no downside' — extra rows from a finer grain are only safe once you know they're there and aggregate deliberately before combining with anything else."
+  - "Describing a table's grain vaguely ('it's about orders') instead of precisely ('one row per order' vs. 'one row per line item within an order') — the vague version hides exactly the ambiguity that causes the bug."
+practical_applications:
+  - "Before writing a single JOIN or merge in SQL or pandas, stating out loud what grain each table is at and what grain the final result needs to be at."
+  - "Diagnosing a suspiciously large revenue or count number by asking whether a join fanned a coarser-grain value out across a finer-grain table before it got summed."
+interview_questions:
+  - question: "What does 'grain' mean, and why does it matter before you write a query?"
+    answer: "Grain is what one row in a table represents — one order, one order line item, one payment. It matters because joining tables at different grains without accounting for that difference causes a coarser-grain value to get repeated once per row on the finer-grain side, which silently inflates any SUM or COUNT computed after the join. Establishing each table's grain, and the grain the final answer needs, is the first thing I do before writing a join, not an afterthought."
+  - question: "How would you sanity-check whether a revenue number you just computed is at the right grain?"
+    answer: "I'd compare it against an independently-computed total from the least-joined, most trustworthy source of that number — here, summing `payments.amount` directly, with no joins at all, versus the number produced by whatever join-heavy query I wrote. If the join-based number is a suspiciously round multiple of the simple total (like roughly 3-4x, matching an average of 3 line items per order), that's a strong signal of a fan-out from joining at mismatched grains, not a real number."
+resources:
+  - title: "Mode Analytics — Fan traps and other join pitfalls"
+    url: "https://mode.com/sql-tutorial/sql-joins/"
+blocks:
+  - type: heading
+    text: "The single question that comes before any other"
+  - type: text
+    body: >
+      Before you compute a single average, sum, or count from a dataset, there's one question that has to
+      be answered first, because every other number you compute depends on the answer: **what does one row
+      of this table represent?** That's grain. Get it wrong, and every subsequent calculation can be
+      confidently, silently wrong — not because of a typo in your code, but because you were counting or
+      summing the wrong thing all along.
+  - type: callout
+    variant: important
+    title: "State grain as one sentence, every time"
+    body: >
+      A good grain statement takes the shape "one row = one ___." For this course's ecommerce dataset:
+      orders is "one row = one order." order_items is "one row = one line item within an order." payments
+      is "one row = one payment attempt against an order." Notice these are three different sentences
+      about data that's all clearly related to "orders" — which is exactly the trap.
+  - type: heading
+    text: "Same business object, three different grains"
+  - type: table
+    headers: ["Table", "Grain (one row =)", "Row count", "Rows per order (typical)"]
+    rows:
+      - ["orders", "one order", "4,205", "1, by definition"]
+      - ["order_items", "one line item within an order", "12,627", "About 3 (ranges 1 to 5)"]
+      - ["payments", "one payment attempt for an order", "3,699", "0 or 1 (no payment row for pending/cancelled orders)"]
+  - type: text
+    body: >
+      All three tables are legitimately "about orders." None of them is wrong. But if you don't track which
+      one you're looking at, and especially what happens when you join two of them together, you can
+      produce a number that looks completely plausible and is badly wrong.
+  - type: heading
+    text: "A real worked example: how a join fans a value out"
+  - type: text
+    body: >
+      Order #9 (customer 3, completed, mobile channel, placed 2025-10-31) has exactly one payment of
+      $897.72 and three line items:
+  - type: table
+    headers: ["order_item_id", "product_id", "quantity", "unit_price", "discount"]
+    rows:
+      - ["24", "80", "1", "$413.08", "$0.00"]
+      - ["25", "126", "4", "$131.53", "$13.15"]
+      - ["26", "111", "1", "$11.12", "$0.00"]
+  - type: text
+    body: >
+      Now suppose you want total revenue, and you write a query that joins `orders` to `order_items` (to
+      pull in, say, product detail) and also to `payments` (to get the actual dollar amount), then sums
+      `payments.amount`. Because `order_items` has 3 rows for order #9, the join produces 3 output rows for
+      that order — and `payments.amount` ($897.72) gets copied onto all 3 of them. Summing it now doesn't
+      give you $897.72. It gives you $2,693.16 — nearly 3x the real number, for this one order alone.
+  - type: example
+    title: "The same mistake, at the whole-dataset scale"
+    body: >
+      Run this exact fan-out across the entire dataset — joining orders to order_items to payments, then
+      summing payments.amount over the joined result — and the effect compounds. The true total across all
+      3,699 payments is $6,248,160.50, computed with zero joins, straight from the payments table alone.
+      The fanned-out version, summing payments.amount after the order_items join, comes out to
+      $22,917,161.75 — a 3.67x overstatement, almost exactly matching the ~3 line items per order average.
+      Nothing in that query is a syntax error. It runs, returns a number, and that number is fictional.
+  - type: callout
+    variant: warning
+    title: "This is one of the most common real-world SQL/pandas bugs — and it never throws an error"
+    body: >
+      A grain mismatch during a join doesn't crash, doesn't warn you, and doesn't look wrong at a glance —
+      $22.9M can look like a perfectly reasonable revenue figure if you don't already have a strong
+      independent sense of what the real number should be. This is exactly why establishing grain before
+      you join anything matters more than almost any other single habit in this course.
+  - type: heading
+    text: "The fix: aggregate down to the target grain before joining"
+  - type: text
+    body: >
+      The general fix is always the same shape: figure out what grain your final answer needs to be at,
+      collapse every finer-grain table down to that grain FIRST (with a GROUP BY / groupby), and only then
+      join it to anything else. If you need order-level revenue, sum order_items down to one row per
+      order_id before joining to payments or orders — never join first and aggregate as an afterthought.
+  - type: checklist
+    title: "Before writing any join, answer these"
+    items:
+      - "What is the grain of each table involved in this join?"
+      - "What grain does my final answer need to be at — order, customer, day, line item?"
+      - "Does any table in this join have a finer grain than my target? If so, aggregate it down first."
+      - "Does my row count after the join roughly match what I'd expect at my target grain, or did it balloon?"
+  - type: question
+    prompt: "You join orders to order_items and payments, then run SUM(payments.amount), and get a number that's roughly 3-4x larger than a simple SUM(amount) run directly on the payments table with no joins. What's the most likely cause?"
+    choices:
+      - "The join fanned payments out to the order_items grain, so each order's payment amount got counted once per line item on that order"
+      - "There must be a currency conversion bug somewhere in the pipeline"
+      - "The payments table itself has duplicate rows that need to be removed"
+    correct_index: 0
+    explanation: >
+      A ~3-4x inflation lining up with the average number of line items per order is the signature of a
+      grain-mismatch fan-out: the coarser-grain payments value gets repeated once for every row it's joined
+      against on the finer-grain order_items side, and summing after that join adds up those repeats as if
+      they were separate payments.

@@ -1,0 +1,78 @@
+slug: stats-business-vs-consumer-ttest
+lesson_slug: test-t-tests
+skill: statistics
+dataset: ecommerce
+title: "Do Business Customers Spend Differently? A Two-Sample T-Test"
+description: Merge orders, payments, and customers to compare average order value between business and consumer segments with an independent two-sample t-test.
+exercise_type: PYTHON
+difficulty: ADVANCED
+points: 25
+tags: [python, statistics, advanced, e-commerce]
+business_context: >
+  A segmentation team believes business customers place larger orders than consumer customers and
+  wants that assumption checked with a real statistical test before it's used to justify separate
+  account-management treatment for the two segments.
+prompt: >
+  Using `orders`, `payments`, and `customers`, merge successful payments (`status == "success"`) to
+  orders and then to customers, and run a Welch's independent two-sample t-test
+  (`scipy.stats.ttest_ind` with `equal_var=False`) comparing `amount` between `customer_segment`
+  values `"business"` and `"consumer"`. Store your answer in a variable named `result`: a dict with
+  keys `business_mean`, `consumer_mean` (each rounded to 2 decimals), `t_stat` (rounded to 3
+  decimals), and `p_value` (rounded to 4 decimals).
+python_datasets: [orders, payments, customers]
+python_starter_code: |
+  # orders, payments, and customers are already loaded as DataFrames.
+  # Explore them first:
+  payments["status"].value_counts()
+python_solution_code: |
+  from scipy import stats
+
+  success = payments[payments.status == "success"]
+  merged = orders.merge(success, on="order_id").merge(customers, on="customer_id")
+  business = merged.loc[merged.customer_segment == "business", "amount"]
+  consumer = merged.loc[merged.customer_segment == "consumer", "amount"]
+
+  t_stat, p_value = stats.ttest_ind(business, consumer, equal_var=False)
+  result = {
+      "business_mean": round(business.mean(), 2),
+      "consumer_mean": round(consumer.mean(), 2),
+      "t_stat": round(t_stat, 3),
+      "p_value": round(p_value, 4),
+  }
+python_result_variable: result
+python_numeric_tolerance: 0.01
+python_hidden_tests:
+  - name: "This difference should not be statistically significant"
+    code: |
+      assert result["p_value"] > 0.05, (
+          "This difference in average order value should not reach conventional significance."
+      )
+      assert abs(result["business_mean"] - result["consumer_mean"]) < 100, (
+          "Sanity check: the two group means shouldn't be wildly far apart given the real data."
+      )
+hints:
+  - "Filter `payments` to `status == 'success'` first, then chain two merges: `orders.merge(success_payments, on='order_id').merge(customers, on='customer_id')`."
+  - "`scipy.stats.ttest_ind(group1, group2, equal_var=False)` runs Welch's t-test, which doesn't assume the two groups have equal variance — the safer default when you haven't checked that assumption."
+solution: |
+  ```python
+  from scipy import stats
+
+  success = payments[payments.status == "success"]
+  merged = orders.merge(success, on="order_id").merge(customers, on="customer_id")
+  business = merged.loc[merged.customer_segment == "business", "amount"]
+  consumer = merged.loc[merged.customer_segment == "consumer", "amount"]
+
+  t_stat, p_value = stats.ttest_ind(business, consumer, equal_var=False)
+  result = {
+      "business_mean": round(business.mean(), 2),
+      "consumer_mean": round(consumer.mean(), 2),
+      "t_stat": round(t_stat, 3),
+      "p_value": round(p_value, 4),
+  }
+  ```
+explanation: >
+  Business orders average $1,659.80 (n=1,022) and consumer orders average $1,697.53 (n=2,419) — a
+  roughly $38 gap. The t-test returns t = -0.947, p = 0.344, well above 0.05: this data does not
+  provide strong evidence the two segments actually spend differently on average. The correct
+  takeaway for the segmentation team is that this particular metric doesn't support treating the two
+  segments differently — not that a difference has been disproven outright.

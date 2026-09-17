@@ -1,0 +1,178 @@
+slug: inspecting-a-new-dataset
+module_slug: exploratory-data-analysis
+title: "The First Five Minutes With a New Dataset"
+description: The fast, disciplined routine for getting oriented in an unfamiliar table — shape, dtypes, a look at real rows, and a sanity check against what you already know about the business.
+difficulty: INTERMEDIATE
+estimated_minutes: 10
+display_order: 2
+objectives:
+  - Run a fast, repeatable first-look routine on any new dataset (shape, dtypes, head, a business sanity check)
+  - Read pandas' .info() output and know what to check it for
+  - Sanity-check a dataset's scale against independent domain knowledge, not just its own internal statistics
+prerequisites: [the-eda-workflow]
+skills: [pandas]
+datasets: [ecommerce]
+tags: [python, intermediate, real-world]
+key_takeaways:
+  - "The first five minutes with a new dataset should answer four questions: how big is it, what type is each column, what do a few real rows actually look like, and does the scale of this data make business sense?"
+  - ".shape and .info() together tell you row/column counts, memory footprint, and non-null counts per column in one glance — before you've written a single line of analysis logic."
+  - "A sanity check against domain knowledge catches problems .describe() can't — 4,205 orders over roughly 2 years works out to about 5.8 orders/day, which is either obviously right or obviously wrong depending on what you already know about the business, and no statistic computed purely from the table itself can tell you which."
+  - "This routine is fast on purpose — the goal in the first five minutes isn't to fully understand the data, it's to catch the loud, obvious problems before you invest real time in deeper analysis."
+common_mistakes:
+  - "Jumping straight to analysis logic (a groupby, a merge, a chart) before ever running .shape or .info() — the first sign of a wrong join key or a misparsed date column is almost always visible in this first-five-minutes pass, if you look."
+  - "Reading .info()'s non-null counts and not converting them into a percentage — '4,174 non-null out of 12,000 rows' is much easier to misjudge at a glance than '65% populated, 35% missing.'"
+  - "Trusting a dataset's internal statistics as the only sanity check — a dataset can be perfectly internally consistent (no nulls, no type errors) and still be wrong in a way only someone with outside business knowledge would catch, like a customer count that's an order of magnitude off from what the business actually has."
+practical_applications:
+  - "Running this exact routine on any new CSV export, warehouse table, or API response before writing a single line of real analysis logic against it."
+  - "Catching a load bug early — e.g. a merge that silently dropped rows, visible immediately as a shape that doesn't match expectations — before it propagates into a chart or report."
+interview_questions:
+  - question: "You're handed a dataset you've never seen before and asked to explore it. What are the very first things you do?"
+    answer: "I check its shape (row and column counts), then .info() or .dtypes to see each column's type and how much of it is populated, then .head() to actually look at real rows rather than just summary statistics. Then I sanity-check the overall scale — row counts, date ranges, key totals — against anything I already know about the business, since a dataset can look perfectly clean internally and still be wrong in a way only outside knowledge would catch."
+  - question: "Why check dtypes before doing any analysis, rather than just trying operations and seeing what breaks?"
+    answer: "Because a wrong dtype doesn't always break loudly — a numeric column read as text will fail obviously on arithmetic, but a date column left as text will silently sort and compare as a string (which happens to work for ISO-format dates, but breaks other date logic) rather than raising an error. Checking dtypes upfront catches both the loud and the quiet failure modes before they contaminate downstream results."
+resources:
+  - title: "Pandas documentation — DataFrame.info"
+    url: "https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.info.html"
+blocks:
+  - type: text
+    body: >
+      Every EDA pass starts the same way, regardless of what the dataset actually is: get oriented,
+      fast. This lesson is that first five minutes — a small, repeatable routine you should run on
+      *every* new table before writing a single line of real analysis logic, using the real `orders`
+      table from this course's ecommerce dataset as the running example.
+  - type: heading
+    text: "Step 1: Shape — how big is this, really?"
+  - type: code
+    language: python
+    code: |
+      import pandas as pd
+
+      orders = pd.read_csv("data/sample/ecommerce/orders.csv")
+      print(orders.shape)
+    caption: The first line of code to run on any new dataset
+  - type: output
+    body: |
+      (4205, 5)
+    caption: "Real output — 4,205 rows, 5 columns"
+  - type: text
+    body: >
+      `.shape` costs nothing and tells you immediately whether you're dealing with hundreds of rows or
+      hundreds of millions — which changes how you approach everything downstream, including whether
+      pandas is even the right tool (see the Polars module if this number were in the tens of millions).
+  - type: heading
+    text: "Step 2: dtypes — is each column what it should be?"
+  - type: code
+    language: python
+    code: |
+      print(orders.info())
+    caption: ".info() combines dtypes, non-null counts, and memory usage in one call"
+  - type: output
+    body: |
+      <class 'pandas.DataFrame'>
+      RangeIndex: 4205 entries, 0 to 4204
+      Data columns (total 5 columns):
+       #   Column       Non-Null Count  Dtype
+      ---  ------       --------------  -----
+       0   order_id     4205 non-null   int64
+       1   customer_id  4205 non-null   int64
+       2   order_date   4205 non-null   str
+       3   status       4205 non-null   str
+       4   channel      4205 non-null   str
+      dtypes: int64(2), str(3)
+      memory usage: 261.9 KB
+    caption: Real output
+  - type: callout
+    variant: warning
+    title: "order_date is a str, not a datetime — and .info() is exactly how you'd notice"
+    body: >
+      order_date reads in as text (str/object dtype depending on pandas version), even though every
+      value looks like a date. Left this way, sorting, filtering by date range, and extracting a month
+      or year would either fail or silently do the wrong thing (string comparison happens to sort
+      ISO-format dates correctly, which is a trap — it hides the bug on this exact column while setting
+      you up to be burned on a differently-formatted one later). Converting it explicitly with
+      pd.to_datetime() belongs early in almost any EDA pass. .info()'s Dtype column is where you'd
+      catch this in the first five minutes, before it causes a downstream bug.
+  - type: text
+    body: >
+      Also notice the Non-Null Count column: every column here shows 4205 out of 4205 — no missing
+      values in `orders` itself. That's worth registering now; the next lesson will show a table
+      (`sessions`) where this number tells a much more interesting story.
+  - type: heading
+    text: "Step 3: head() — look at actual rows, not just statistics"
+  - type: code
+    language: python
+    code: |
+      print(orders.head(5))
+    caption: Never skip this — summary statistics can hide problems that are obvious in raw rows
+  - type: output
+    body: |
+      order_id  customer_id  order_date     status channel
+      0         1            1  2025-10-18  completed  mobile
+      1         2            1  2025-12-16  completed     web
+      2         3            2  2025-09-29  completed     web
+      3         4            2  2024-12-23  cancelled     web
+      4         5            2  2025-04-30  completed     web
+    caption: Real output
+  - type: text
+    body: >
+      This is the moment you'd catch things `.info()` can't tell you — a `channel` value that's
+      obviously a typo, a `status` value you didn't expect to exist, an `order_id` that isn't actually
+      unique. Looking at 5-10 real rows takes seconds and catches problems no summary statistic
+      surfaces on its own.
+  - type: heading
+    text: "Step 4: does this pass a business sanity check?"
+  - type: text
+    body: >
+      This is the step that's easy to skip and the one that catches the most expensive mistakes,
+      because it's the only step that checks the data against something *outside* the data itself.
+  - type: code
+    language: python
+    code: |
+      orders["order_date"] = pd.to_datetime(orders["order_date"])
+      date_span_days = (orders["order_date"].max() - orders["order_date"].min()).days
+      orders_per_day = len(orders) / date_span_days
+
+      customers = pd.read_csv("data/sample/ecommerce/customers.csv")
+      orders_per_customer = len(orders) / len(customers)
+
+      print(f"Date range: {orders['order_date'].min().date()} to {orders['order_date'].max().date()}")
+      print(f"Orders per day (avg): {orders_per_day:.2f}")
+      print(f"Orders per customer (avg): {orders_per_customer:.2f}")
+    caption: Converting orders and customers into rates a human can actually judge
+  - type: output
+    body: |
+      Date range: 2024-01-12 to 2025-12-31
+      Orders per day (avg): 5.85
+      Orders per customer (avg): 2.80
+    caption: Real output
+  - type: callout
+    variant: important
+    title: "This is where domain knowledge, not more pandas, does the work"
+    body: >
+      "5.85 orders/day" and "2.80 orders per customer, on average, over two years" are either
+      completely reasonable or wildly wrong depending entirely on what you know about this business —
+      its size, its traffic, how long it's operated. No statistic computed from the table itself can
+      make that call; only outside knowledge can. This is exactly the check that catches things like "a
+      warehouse export that's silently missing half the date range" or "a join that fan-out duplicated
+      every row 3x" — problems that leave the data internally consistent (no nulls, valid types) while
+      being scale-wrong in a way only a human who knows the business would notice.
+  - type: checklist
+    title: "The first-five-minutes routine, as a checklist"
+    items:
+      - "df.shape — how many rows, how many columns?"
+      - "df.info() — is every column the dtype it should be, and how much of each is populated?"
+      - "df.head() — do 5-10 real rows look like what I'd expect?"
+      - "Convert any obviously-mistyped columns (dates stored as text, numbers stored as text) right away"
+      - "Compute one or two rates or totals and ask: does this number make business sense given what I already know?"
+  - type: question
+    prompt: "orders.info() shows order_date with dtype str/object, even though every value in the column looks like a date. What's the risk of leaving it that way?"
+    choices:
+      - "Date-based operations (sorting by true chronological order, extracting month/year, filtering a date range) may silently behave like string operations instead of date operations, which happens to work for some formats and not others"
+      - "There's no real risk — pandas treats any date-like string as a date automatically"
+      - "The column would fail to load at all if left as text"
+    correct_index: 0
+    explanation: >
+      A text column that looks like dates will often "work" for simple cases (ISO-format strings do
+      happen to sort correctly as text), which is precisely what makes this trap dangerous — it hides
+      until you hit a case (a different date format, a true date-math operation) where string behavior
+      and date behavior diverge. Converting explicitly with pd.to_datetime() removes the ambiguity.

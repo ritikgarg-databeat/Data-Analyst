@@ -1,0 +1,45 @@
+slug: seasonality-in-order-volume-over-time
+lesson_slug: welcome-to-the-challenge-library
+skill: exploratory-data-analysis
+dataset: ecommerce
+title: "A 200x Growth in Monthly Orders: Real Trend or Data Artifact?"
+description: Investigate a dramatic month-over-month growth trend in order volume and decide whether it reflects real business growth or an artifact of how the dataset was generated.
+exercise_type: DATA_INTERPRETATION
+difficulty: ADVANCED
+points: 25
+tags: [eda, real-world, advanced]
+prompt: >
+  Using `orders` and `customers`, monthly order counts grow dramatically across the dataset's two-year
+  window — from 3 orders in January 2024 to 713 orders in December 2025, roughly a 200x increase. If this
+  were a real trend, you'd expect it to be driven by growth in the customer base. But `customers.signup_date`
+  shows new signups holding roughly flat throughout the same window (40-80 new customers per month, every
+  month, with no clear upward trend). What does this combination of facts suggest about the order-volume
+  growth, and what would you check next before reporting it as "the business grew 200x"?
+hints:
+  - "If the number of customers acquired each month isn't growing, but the number of orders placed each month IS growing dramatically, the growth has to be coming from somewhere else — either existing customers ordering much more often over time, or something about how the dataset itself was assembled."
+  - "Think about how a dataset like this might get built: if each customer's order history is generated across their full available lifetime up to 'today,' a customer who signed up in January 2024 has two full years to accumulate orders, while a customer who signed up in November 2025 has had only weeks — which would make the most RECENT calendar months look busier for a reason that has nothing to do with true month-over-month business momentum."
+solution: >
+  Flat signups alongside dramatic order growth rules out the simplest explanation (more customers ->
+  proportionally more orders) — something else has to be driving it. Two real candidates, and they call for
+  different responses. First, a genuine trend: existing customers could simply be ordering more frequently
+  over time (rising engagement, a successful retention effort). Second, and more likely given how
+  synthetic/generated datasets like this one are typically built: an accumulation artifact from the
+  observation window itself. If each customer's simulated order history is spread across their own
+  lifetime between signup and "today" (the dataset's generation date), a customer who signed up in January
+  2024 has roughly two years in which to accumulate orders, while a customer who signed up in November 2025
+  has had only a few weeks — so the most recent calendar months look busier simply because they're the only
+  months where EVERY active customer, regardless of signup date, could have possibly ordered. That's not
+  business growth, it's a mechanical consequence of how the window was constructed. What I'd check next: the
+  distribution of orders-per-customer split by signup cohort (do customers who signed up in 2024 show a
+  similarly dramatic ramp-up in THEIR OWN order rate over time, or is their order rate roughly flat once you
+  account for how long they've had an account?), and specifically whether recent months' order counts are
+  disproportionately made up of long-tenured customers rather than a broad mix. I would not report "200x
+  growth" as a business fact without ruling out the observation-window explanation first.
+explanation: >
+  A strong answer treats the flat-signups-vs-growing-orders combination as a specific clue pointing away
+  from the naive "the business is growing" story, and proposes the accumulation-window artifact as a
+  concrete, checkable alternative explanation — exactly the kind of skepticism the correlation-and-causation
+  lesson trains, applied to a trend instead of a correlation. It also proposes a specific next check (order
+  rate by signup cohort, adjusted for tenure) rather than stopping at "it's probably an artifact." A weaker
+  answer reports the 200x figure as a genuine business insight without questioning why the flat customer
+  base wouldn't produce a much flatter order trend too.

@@ -1,0 +1,134 @@
+slug: ecommerce-marketing-campaign-roi-investigation
+title: "One of These Campaigns Isn't Earning Its Keep"
+category: MARKETING_ANALYTICS
+difficulty: INTERMEDIATE
+estimated_minutes: 60
+
+company_context: >
+  Verdant Home & Goods runs paid marketing across several channels — display, social, email, and
+  search — using a mix of campaigns of varying size and budget throughout the year. Site visits are
+  logged as sessions, some of which are attributed to a specific marketing campaign.
+stakeholder_name: "Renee Castillo"
+stakeholder_role: "VP Marketing"
+problem_statement: >
+  "I've got a feeling one of our campaigns isn't paying for itself, but honestly I'm not sure which
+  one, or even how to prove it cleanly with what we track. Before I go to finance and ask to cut a
+  campaign's budget, I want an actual analysis behind it — which campaign is the weak link, and
+  what makes you confident it's that one and not another? I'd also like to know if this is a
+  one-off problem or something bigger about how we're spending across channels."
+business_context: >
+  Finance is reviewing next quarter's marketing budget and has asked Renee to identify any campaign
+  that should be cut or reduced. She does not want to guess or go on gut feel — she needs a specific
+  campaign named, with the reasoning that would hold up if finance pushes back.
+objective: >
+  Determine which marketing campaign (if any) is underperforming relative to its spend, using the
+  available session and campaign data, and be explicit about what the data can and cannot actually
+  prove about return on that spend.
+initial_information: >
+  You have access to marketing_campaigns (campaign_id, campaign_name, channel, start_date, end_date,
+  budget), sessions (session_id, customer_id, session_start, session_end, device, landing_page,
+  marketing_campaign_id, converted), and the rest of the e-commerce schema (orders, order_items,
+  products, categories, customers, payments). Not every session is attributed to a campaign.
+constraints:
+  - "sessions.converted is a boolean flag on the session itself — there is no session_id or order_id linkage that cleanly traces a specific converted session to a specific dollar amount of revenue."
+  - "Not all sessions are attributed to a campaign — some have no marketing_campaign_id at all."
+  - "Renee needs a specific campaign identified, not a channel-level generalization only."
+available_datasets: ["ecommerce"]
+expected_deliverables:
+  - "A conversion-rate and/or cost-efficiency metric computed per campaign, not just per channel"
+  - "A specific campaign identified as the weakest, with the reasoning and numbers behind that call"
+  - "An honest statement of what the data can and cannot support regarding true revenue-based ROI"
+  - "A view of whether the issue is isolated to one campaign or reflects a broader channel-level pattern"
+learning_objectives:
+  - "Choose a defensible performance metric when a clean revenue-attribution join isn't available"
+  - "Distinguish 'lowest conversion rate' from 'worst return on money actually spent' as two different, both-valid ways to define an underperforming campaign"
+  - "Evaluate performance at both the campaign level and the channel level, and recognize when they tell different stories"
+  - "State the limits of a dataset honestly rather than overstating what a boolean conversion flag can prove about revenue"
+stages: [CLARIFY, FRAME, EXPLORE, ANALYZE, INSIGHTS, RECOMMEND, SUBMIT]
+required_exercise_slugs: []
+tags: [e-commerce, marketing, business-analytics, case-study, real-world, intermediate]
+skills: [business-metrics, exploratory-data-analysis, data-interpretation, root-cause-analysis, decision-making]
+
+clarification_guidance:
+  - "A good clarifying question asks what 'isn't paying for itself' should mean here — the lowest conversion rate, or the worst return relative to how much was actually spent on it?"
+  - "A good clarifying question asks whether the comparison should happen at the individual-campaign level or the channel level, since a channel can contain both strong and weak campaigns."
+  - "A good clarifying question asks what sessions.converted actually represents, and whether it can be tied to an actual order or revenue amount, before assuming a dollar-based ROI is computable."
+  - "A good clarifying question asks what should count as the baseline for comparison — other campaigns, or the performance of unattributed (organic/direct) traffic."
+rubric:
+  - category: "Problem Framing & Clarification"
+    weight: 15
+    criteria:
+      - criterion: "Clarifies what 'not paying for itself' should be measured by (conversion rate vs. cost-per-conversion vs. some other defensible metric) before computing anything"
+        points: 8
+      - criterion: "Recognizes upfront that sessions.converted is a flag, not a traced revenue amount, and that this limits what can be proven about true ROI"
+        points: 7
+  - category: "Technical Analysis"
+    weight: 35
+    is_technical: true
+    criteria:
+      - criterion: "Correctly joins sessions to marketing_campaigns and computes sessions and conversions per individual campaign, not just per channel"
+        points: 12
+      - criterion: "Computes a cost-efficiency metric (e.g., cost per session and/or cost per conversion) using each campaign's budget, not conversion rate alone"
+        points: 13
+      - criterion: "Also rolls the analysis up to the channel level and compares it to the campaign-level view"
+        points: 10
+  - category: "Insight Quality"
+    weight: 20
+    criteria:
+      - criterion: "Identifies a specific, defensible weakest campaign and correctly distinguishes whether it is weak on conversion rate, cost-efficiency, or both"
+        points: 12
+      - criterion: "Notes how campaign-attributed sessions perform relative to unattributed (organic) sessions as useful context"
+        points: 8
+  - category: "Recommendation & Business Judgment"
+    weight: 20
+    criteria:
+      - criterion: "Gives a specific, actionable recommendation (e.g., cut, pause, or re-evaluate a named campaign) rather than a vague 'monitor performance' statement"
+        points: 12
+      - criterion: "Addresses whether the issue is isolated to one campaign or reflects a broader pattern at the channel level"
+        points: 8
+  - category: "Communication"
+    weight: 10
+    criteria:
+      - criterion: "Clearly and honestly states what the analysis can and cannot prove about actual revenue-based ROI, given the available schema"
+        points: 10
+hints:
+  - "Start by joining sessions to marketing_campaigns on marketing_campaign_id, then compute sessions and conversions grouped by individual campaign — not just by channel — since the weak link could be one campaign within an otherwise fine channel."
+  - "Conversion rate alone tells you how effective a campaign's traffic was; combine it with the campaign's budget to see how much was spent per session and per conversion — a campaign can have a middling conversion rate and still be the worst offender once you weigh in how much was actually spent to get there."
+  - "Check what fraction of all sessions even have a marketing_campaign_id attached, and compare the conversion rate of attributed sessions to unattributed ones — that comparison is useful context for how much of the picture paid campaigns actually explain."
+  - "Before claiming a dollar ROI, check whether sessions can actually be tied to a specific order and revenue amount in the schema — if not, be upfront that conversion rate and cost-per-conversion are the most honest metrics available, not a true return-on-spend figure."
+reference_solution:
+  summary: >
+    Of 12,000 total sessions, 4,830 (40.25%) are attributed to one of 15 campaigns across four
+    channels (6 display, 5 social, 3 email, 1 search); the remaining 7,170 (59.75%) are unattributed
+    organic/direct traffic. Campaign-attributed sessions convert slightly worse overall (14.29%) than
+    unattributed sessions (15.86%) — a useful piece of context, though not the focus of Renee's
+    question. Looking at individual campaigns, the lowest conversion rate belongs to Email Campaign
+    14 (11.42%, 37 conversions of 324 sessions). However, the campaign that best matches "isn't
+    paying for itself" as a cost-efficiency question is Display Campaign 1: it carries the single
+    largest budget of all 15 campaigns ($19,829.92), a below-campaign-average conversion rate
+    (13.53%, below both the 14.29% campaign-attributed average and the 15.86% organic baseline),
+    and by far the worst cost-per-conversion of any campaign (~$483.66 per conversion — about 1.8x
+    the next-worst campaign, Social Campaign 15 at ~$330.71, and roughly 10x the most efficient
+    campaign, Email Campaign 7 at ~$44.72 per conversion). No single channel is uniformly weak —
+    display, social, and email each contain both efficient and inefficient individual campaigns
+    (e.g., Display Campaign 10 converts at 15.66% with a cost-per-conversion of only ~$80.99), so
+    this reads as a campaign-level problem, not a channel-level one.
+  key_insights:
+    - "Only 40.25% of all sessions (4,830 of 12,000) are attributed to any marketing campaign at all; the rest are unattributed, and unattributed sessions actually convert slightly better (15.86%) than campaign-attributed ones (14.29%)."
+    - "By raw conversion rate alone, Email Campaign 14 is the weakest individual campaign (11.42%)."
+    - "By cost-efficiency (cost per conversion given actual budget spent), Display Campaign 1 is the clearest standout problem: it has the largest budget of all 15 campaigns ($19,829.92) combined with a below-average conversion rate and the highest cost-per-conversion of any campaign (~$483.66), roughly 1.8x the second-worst campaign and about 10x the most efficient one."
+    - "Performance varies within every channel (display, social, and email each contain both strong and weak individual campaigns), so the underperformance is concentrated in specific campaigns rather than being a whole-channel problem."
+  recommendation: >
+    Recommend flagging Display Campaign 1 as the primary candidate for budget reduction or pause:
+    it is the single largest budget commitment of the 15 campaigns yet delivers a below-average
+    conversion rate and by far the worst cost-per-conversion, meaning a disproportionate share of
+    total marketing spend is going toward the least efficient outcome. If a pure lowest-conversion
+    read is what finance wants instead, Email Campaign 14 is the alternative answer, though it
+    represents a smaller absolute budget at stake. Recommend re-testing or reallocating Display
+    Campaign 1's budget toward higher-efficiency campaigns (e.g., Email Campaign 7 or Display
+    Campaign 10) rather than cutting paid marketing broadly, since the problem is isolated to
+    specific campaigns, not a whole channel.
+  acceptable_alternatives:
+    - "A recommendation naming Email Campaign 14 as the primary answer (lowest conversion rate), provided the analysis also acknowledges Display Campaign 1's much larger cost-inefficiency and budget size as a comparably important, alternative framing of 'isn't paying for itself.'"
+    - "A recommendation that proposes A/B re-testing the flagged campaign before fully cutting its budget, given the acknowledged limitation that conversion rate/cost-per-conversion is a proxy, not a directly traced revenue figure."
+version: 1

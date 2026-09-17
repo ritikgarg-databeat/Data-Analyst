@@ -1,0 +1,102 @@
+slug: left-and-right-joins
+module_slug: sql-joins
+title: LEFT and RIGHT JOIN
+description: Keeping every row from one side of a join even when there's no match, and where NULLs come from.
+difficulty: INTERMEDIATE
+estimated_minutes: 12
+display_order: 2
+objectives:
+  - Write a LEFT JOIN that keeps every row from the left table, matched or not
+  - Explain where the NULL values in a LEFT JOIN's result come from and what they mean
+  - Use "IS NULL on the right-hand table" as the standard pattern for finding rows with no match
+prerequisites: [inner-joins]
+skills: [sql-fundamentals]
+datasets: [ecommerce]
+tags: [sql, intermediate]
+key_takeaways:
+  - "LEFT JOIN keeps every row from the left (first-listed) table no matter what — when a row has no match on the right, the right-hand columns come back as NULL instead of the row disappearing."
+  - "RIGHT JOIN is the mirror image: every row from the right table is kept, and unmatched left-hand columns come back NULL. Anything RIGHT JOIN can express, swapping the table order and using LEFT JOIN expresses identically — most style guides prefer LEFT JOIN for that reason."
+  - "Filtering WHERE right_table.some_column IS NULL after a LEFT JOIN is the standard way to isolate rows from the left table that have no counterpart at all — customers with zero orders, products that have never been ordered, and so on."
+common_mistakes:
+  - "Filtering on a right-hand table's column in WHERE without accounting for NULL (e.g. WHERE o.status = 'completed' after a LEFT JOIN) — this silently discards every unmatched left-hand row too, because NULL = 'completed' is never true. That specific trap gets its own lesson later in this module (join-pitfalls)."
+  - "Reaching for RIGHT JOIN out of habit when the tables could just be swapped and written as a LEFT JOIN — not wrong, but it reads against the grain for most SQL written in practice, where LEFT JOIN is far more common."
+blocks:
+  - type: heading
+    text: Keeping unmatched rows on purpose
+  - type: text
+    body: >
+      INNER JOIN drops any row with no match on the other side. LEFT JOIN changes that rule for one
+      side: every row from the left (first-listed) table is kept in the result regardless of whether
+      it matches anything, and if it doesn't, the columns coming from the right table are simply
+      filled in with NULL instead of the row vanishing.
+  - type: code
+    language: sql
+    caption: Every customer, whether or not they've ordered
+    code: |
+      SELECT
+        c.customer_id,
+        c.first_name,
+        c.last_name,
+        o.order_id
+      FROM customers c
+      LEFT JOIN orders o ON o.customer_id = c.customer_id;
+  - type: text
+    body: >
+      A customer with three orders appears three times here (once per matching order row), same as an
+      INNER JOIN would show them. A customer with zero orders appears once, with o.order_id showing
+      NULL — INNER JOIN would have dropped that customer completely. The left table (customers)
+      dictates who's guaranteed to appear; the right table (orders) only fills in when it can.
+  - type: heading
+    text: Finding the unmatched rows specifically
+  - type: example
+    title: Customers who have never placed an order
+    body: >
+      Since every unmatched row from customers gets NULL in place of o.order_id, filtering for exactly
+      that condition isolates the customers with zero orders — a question an INNER JOIN alone could
+      never answer, because it would have already thrown those customers away before WHERE even runs.
+    code: |
+      SELECT
+        c.customer_id,
+        c.first_name,
+        c.last_name
+      FROM customers c
+      LEFT JOIN orders o ON o.customer_id = c.customer_id
+      WHERE o.order_id IS NULL;
+      -- 138 of the 1,500 customers have never ordered
+    language: sql
+  - type: callout
+    variant: tip
+    title: Why o.order_id and not some other column?
+    body: >
+      IS NULL is checked against a column from the right-hand table that's guaranteed to be non-NULL
+      whenever a real match exists — a primary key like order_id is the safest choice. Checking a
+      column that could itself legitimately be NULL on a matched row (like a nullable comment field)
+      would misclassify some real matches as "no match."
+  - type: heading
+    text: RIGHT JOIN is the mirror image
+  - type: text
+    body: >
+      RIGHT JOIN keeps every row from the right-hand table instead, filling in NULLs on the left when
+      there's no match. It's used far less often in practice, because anything expressed with RIGHT
+      JOIN can be rewritten as a LEFT JOIN by swapping which table is listed first — and most people
+      find a query easier to scan when the "keep everything from this table" side is consistently the
+      one closest to FROM.
+  - type: comparison
+    title: "Two ways to write the exact same result"
+    columns: ["", "RIGHT JOIN version", "LEFT JOIN version"]
+    rows:
+      - ["Query", "FROM orders o RIGHT JOIN customers c ON ...", "FROM customers c LEFT JOIN orders o ON ..."]
+      - ["Table guaranteed to appear in full", "customers (the right-hand table)", "customers (now the left-hand table)"]
+      - ["Result", "Identical rows either way", "Identical rows either way"]
+  - type: question
+    prompt: "FROM customers c LEFT JOIN orders o ON o.customer_id = c.customer_id returns a row for customer 42 with o.order_id showing NULL. What does that tell you?"
+    choices:
+      - "Customer 42 has an order, but its order_id happens to be missing in the data"
+      - "Customer 42 has no matching row in orders at all — LEFT JOIN kept them anyway and filled the order columns with NULL"
+      - "The query has a syntax error, since LEFT JOIN can't return NULL values"
+    correct_index: 1
+    explanation: >
+      LEFT JOIN guarantees every row from the left table (customers) appears in the result. When a
+      customer has no matching row in orders, the join has nothing real to put in the order-side
+      columns, so it fills them with NULL rather than dropping the customer. It's not saying an order
+      exists with missing data — it's saying no order matched at all.

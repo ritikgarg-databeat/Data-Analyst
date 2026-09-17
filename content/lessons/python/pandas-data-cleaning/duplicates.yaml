@@ -1,0 +1,137 @@
+slug: duplicates
+module_slug: pandas-data-cleaning
+title: Duplicates
+description: "Finding duplicate rows with .duplicated(), removing them with .drop_duplicates(), and how bad joins are a common source of them."
+difficulty: BEGINNER
+estimated_minutes: 10
+display_order: 2
+objectives:
+  - Detect duplicate rows with .duplicated() and remove them with .drop_duplicates()
+  - "Control what counts as a duplicate with subset, and which copy survives with keep"
+  - Recognize a bad join as a common real-world source of duplicate rows
+prerequisites: [missing-values]
+skills: [pandas]
+datasets: [ecommerce]
+tags: [python, beginner, real-world]
+key_takeaways:
+  - ".duplicated() flags every row that's a repeat of an earlier one (by default, the first occurrence is left False and only later copies are True) — .drop_duplicates() then removes the flagged rows."
+  - "subset restricts which columns count toward 'duplicate' — two rows can differ in every column except order_id and product_id and still be a duplicate order line if that's the pair you care about."
+  - "keep controls which copy survives: 'first' (default), 'last', or False to drop every copy of anything duplicated, keeping none of them."
+  - "A sudden spike in duplicate rows after a merge is one of the most common real signs that a join matched more broadly than intended — worth checking row counts before and after every join."
+common_mistakes:
+  - "Checking .duplicated() on the whole row when the real question is about a specific key — two order_items rows are fully identical only if every column matches, but a duplicated (order_id, product_id) pair is the more meaningful problem even if quantity differs."
+  - "Assuming drop_duplicates() with no arguments is always safe — it only catches rows that are duplicates across every single column, which misses near-duplicates that differ in one incidental column."
+blocks:
+  - type: text
+    body: >
+      A duplicate row is data counted twice — an order line inserted by a retried API call, a customer
+      record imported from two overlapping source systems, a join that matched a row against more than
+      one partner on the other side. Duplicates inflate sums, skew averages, and are worth actively
+      checking for rather than assuming away.
+  - type: heading
+    text: ".duplicated() — flagging repeats"
+  - type: code
+    language: python
+    code: |
+      import pandas as pd
+
+      order_items = pd.read_csv("data/sample/ecommerce/order_items.csv")
+
+      # Simulating a retried write — the same order_item row inserted twice
+      sample = order_items.head(4).copy()
+      sample_with_dup = pd.concat([sample, sample.iloc[[0]]], ignore_index=True)
+      print(sample_with_dup)
+    caption: "Row 4 is an exact copy of row 0 — a realistic stand-in for a double-inserted record"
+  - type: output
+    body: |
+         order_item_id  order_id  product_id  quantity  unit_price  discount
+         0               1         1          28         1       75.89       0.0
+         1               2         2          60         4      353.64       0.0
+         2               3         3          97         3      322.01       0.0
+         3               4         3         146         2      429.95       0.0
+         4               1         1          28         1       75.89       0.0
+  - type: code
+    language: python
+    code: |
+      print(sample_with_dup.duplicated())
+      print()
+      print(sample_with_dup.duplicated().sum())
+    caption: "The FIRST occurrence of a repeated row stays False — only later copies are flagged True"
+  - type: output
+    body: |
+      0    False
+      1    False
+      2    False
+      3    False
+      4     True
+      dtype: bool
+
+      1
+  - type: heading
+    text: ".drop_duplicates() — removing them"
+  - type: code
+    language: python
+    code: |
+      print(sample_with_dup.drop_duplicates())
+    caption: "Row 4 is gone — its identical earlier copy (row 0) is kept"
+  - type: output
+    body: |
+         order_item_id  order_id  product_id  quantity  unit_price  discount
+         0               1         1          28         1       75.89       0.0
+         1               2         2          60         4      353.64       0.0
+         2               3         3          97         3      322.01       0.0
+         3               4         3         146         2      429.95       0.0
+  - type: heading
+    text: "subset and keep"
+  - type: code
+    language: python
+    code: |
+      print(sample_with_dup.duplicated(subset=["order_id", "product_id"]))
+      print()
+      print(sample_with_dup.drop_duplicates(subset=["order_id", "product_id"], keep="last"))
+    caption: "Duplicate defined by (order_id, product_id) only; keep='last' keeps the most recent copy instead of the first"
+  - type: output
+    body: |
+      0    False
+      1    False
+      2    False
+      3    False
+      4     True
+      dtype: bool
+
+         order_item_id  order_id  product_id  quantity  unit_price  discount
+      1               2         2          60         4      353.64       0.0
+      2               3         3          97         3      322.01       0.0
+      3               4         3         146         2      429.95       0.0
+      4               1         1          28         1       75.89       0.0
+  - type: text
+    body: >
+      Notice row 4 (order_item_id 1) survived this time and row 0 didn't — same underlying duplicate pair,
+      opposite choice of which copy to keep. `keep='first'` is the default; `keep='last'` keeps the most
+      recently seen row instead; `keep=False` drops every row involved in a duplicate, keeping none of
+      them — useful when you'd rather lose a duplicated record entirely than guess which copy is correct.
+  - type: table
+    headers: ["Parameter", "Values", "Effect"]
+    rows:
+      - ["subset", "list of column names (default: all columns)", "Only these columns are compared when deciding what counts as a duplicate"]
+      - ["keep", "'first' (default) / 'last' / False", "Which copy of a duplicate group survives — or, with False, none of them"]
+  - type: callout
+    variant: important
+    title: Duplicates are often a join gone wrong
+    body: >
+      One of the most common real sources of duplicate rows isn't a data-entry mistake at all — it's a
+      merge or join where one side matched more than one row on the other side (a one-to-many
+      relationship treated as one-to-one). If a row count jumps unexpectedly right after a join, checking
+      .duplicated() on the join keys is one of the first diagnostics worth running. You'll see this
+      pattern directly in the Combining Data module.
+  - type: question
+    prompt: "sample_with_dup.duplicated(subset=['order_id', 'product_id'], keep='last') marks a row True when..."
+    choices:
+      - "It has the same order_id AND product_id as a row that appears LATER in the DataFrame"
+      - "It has the same order_id AND product_id as a row that appears EARLIER in the DataFrame"
+      - "Every column in the row matches some other row exactly"
+    correct_index: 0
+    explanation: >
+      With keep='last', the LAST occurrence of a duplicate group is treated as the one to keep (False),
+      so every earlier occurrence — the ones followed by a later match — gets flagged True. subset also
+      narrows the comparison to just the listed columns rather than the whole row.

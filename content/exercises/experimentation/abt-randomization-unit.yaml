@@ -1,0 +1,22 @@
+slug: abt-randomization-unit
+skill: experimentation
+title: Choosing the Randomization Unit
+description: You're testing a change to a feature that a single logged-in user might interact with across multiple
+  sessions and devices. What's the most appropriate randomization unit?
+exercise_type: MULTIPLE_CHOICE
+difficulty: ADVANCED
+points: 5
+tags:
+- ab-testing
+- experiment-design
+prompt: You're testing a change to a feature that a single logged-in user might interact with across multiple sessions
+  and devices. What's the most appropriate randomization unit?
+correct_answer: User ID, so the same user consistently sees the same variant across sessions/devices
+explanation: Randomizing by session or device would let the same person bounce between control and treatment across
+  visits, contaminating their experience and biasing the measured effect -- randomizing by a stable identity (user
+  ID) keeps each person's experience consistent for the duration of the test.
+choices:
+- User ID, so the same user consistently sees the same variant across sessions/devices
+- Session ID, so each visit is independently randomized
+- Device ID only, ignoring login state
+- IP address

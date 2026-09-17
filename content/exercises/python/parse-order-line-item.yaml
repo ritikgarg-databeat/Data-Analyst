@@ -1,0 +1,66 @@
+slug: parse-order-line-item
+lesson_slug: strings
+skill: python-fundamentals
+dataset: ecommerce
+title: Parse a Pipe-Delimited Order Line Item
+description: Parse a raw pipe-delimited order line string into its fields and compute the line total.
+exercise_type: PYTHON
+difficulty: BEGINNER
+points: 15
+tags: [python, beginner, foundations]
+business_context: >
+  A legacy warehouse system exports order line items as flat pipe-delimited text rows instead of a
+  structured file, and the fulfillment team needs those rows turned into usable numbers before they
+  can total up what a customer actually owes for the line.
+prompt: >
+  Given the raw string `line = "PROD-042|3|19.99|2.50"`, formatted as
+  `product_code|quantity|unit_price|discount_per_unit`, parse it and compute the line's total cost
+  after discount. Store your answer in a variable named `result`: a dict with keys `"product_code"`
+  (str), `"quantity"` (int), and `"line_total"` (float) where `line_total = (unit_price -
+  discount_per_unit) * quantity`, rounded to 2 decimal places.
+python_datasets: []
+python_starter_code: |
+  line = "PROD-042|3|19.99|2.50"
+
+  # Split the pipe-delimited string into its four fields, convert quantity/unit_price/discount
+  # to numbers, and compute line_total = (unit_price - discount) * quantity, rounded to 2 decimals.
+  # Store the parsed fields in `result` as a dict.
+python_solution_code: |
+  line = "PROD-042|3|19.99|2.50"
+  parts = line.split("|")
+  product_code = parts[0]
+  quantity = int(parts[1])
+  unit_price = float(parts[2])
+  discount = float(parts[3])
+  line_total = round((unit_price - discount) * quantity, 2)
+  result = {"product_code": product_code, "quantity": quantity, "line_total": line_total}
+python_result_variable: result
+python_row_order_matters: false
+python_numeric_tolerance: 0.01
+python_hidden_tests:
+  - name: "Product code and line total are correct"
+    code: |
+      assert result["product_code"] == "PROD-042", f"Expected product_code 'PROD-042', got {result['product_code']!r}"
+      assert abs(result["line_total"] - 52.47) < 0.01, f"Expected line_total 52.47, got {result['line_total']}"
+hints:
+  - "str.split('|') breaks the raw string into its four pieces, but every piece comes back as a string — quantity, unit_price, and discount all need an explicit int()/float() conversion before you can do arithmetic on them."
+  - "After splitting, parts[1] is the quantity string, parts[2] is unit_price, and parts[3] is the per-unit discount. Compute (unit_price - discount) * quantity, then round() the result to 2 decimal places."
+solution: |
+  ```python
+  line = "PROD-042|3|19.99|2.50"
+  parts = line.split("|")
+  product_code = parts[0]
+  quantity = int(parts[1])
+  unit_price = float(parts[2])
+  discount = float(parts[3])
+  line_total = round((unit_price - discount) * quantity, 2)
+  result = {"product_code": product_code, "quantity": quantity, "line_total": line_total}
+  ```
+explanation: >
+  A strong answer splits the string once, then explicitly casts each numeric field with int() or
+  float() before doing arithmetic — every field coming out of str.split() is still a string, so
+  skipping the cast would either raise a TypeError (str - str) or silently do the wrong thing. It
+  also rounds line_total to 2 decimals at the end, matching how a real invoice would display a
+  dollar amount. A common mistake is computing line_total from the raw string fields without
+  casting them first, or forgetting to round, which leaves floating-point noise like
+  52.470000000000006 in the result.

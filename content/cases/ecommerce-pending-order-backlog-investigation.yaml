@@ -1,0 +1,143 @@
+slug: ecommerce-pending-order-backlog-investigation
+title: "How Bad Is the Pending Order Backlog, Really?"
+category: OPERATIONS
+difficulty: ADVANCED
+estimated_minutes: 90
+
+company_context: >
+  Brightcart is a mid-sized direct-to-consumer online retailer selling across ten product
+  categories through its website, mobile app, and a third-party marketplace listing. Orders carry a
+  status of completed, cancelled, refunded, or pending. The orders table records only an order_date
+  — there is no separate field recording when an order's status last changed, how long it has sat
+  in its current status, or a ship/fulfillment date.
+stakeholder_name: "Priya Nair"
+stakeholder_role: "Operations Manager"
+problem_statement: >
+  "There's a growing pile of orders stuck in 'pending' status, and it's making the ops team
+  nervous. Every time we pull the order list, pending orders are just sitting there. I don't know
+  if this is a recent problem, an old problem we never caught until now, or just normal noise given
+  how much bigger we've gotten. Can you figure out how serious this actually is and what's driving
+  it?"
+business_context: >
+  Pending orders tie up inventory allocations and represent orders that have not been fulfilled,
+  cancelled, or refunded. Leadership wants to know whether the pending backlog reflects a genuinely
+  worsening operational bottleneck, or a data/process hygiene issue where some orders simply never
+  get their status updated — since the fix would look very different depending on which it is.
+objective: >
+  Characterize the pending-order backlog using the evidence actually available (order_date is the
+  only date field on orders), determine whether pending orders represent a genuinely growing share
+  of the business or a backlog of old, stale, unresolved orders, and state explicitly what this
+  analysis can and cannot prove given the export's limitations.
+initial_information: >
+  You have access to the full e-commerce schema: orders (order_date, status of completed,
+  cancelled, refunded, or pending; channel of web, mobile, or marketplace), order_items, products,
+  categories, customers, payments, sessions, and marketing_campaigns. Note: orders.csv has no
+  status-change timestamp, ship date, or fulfillment date — order_date is the only date field on
+  the orders table.
+constraints:
+  - "There is no field recording when an order's status last changed or how long it has been pending — only order_date exists. Any 'age' or 'how long has this been pending' metric must be built as a proxy against order_date, and its limitations must be stated explicitly, not glossed over."
+  - "Distinguish the pending-order RATE (share of orders placed in a given period that are still pending) from the pending-order BACKLOG SIZE (the absolute count currently sitting in that status) — a growing backlog can come from a worsening rate, from growing overall order volume, or from very old orders that were never resolved."
+available_datasets: ["ecommerce"]
+expected_deliverables:
+  - "The pending-order rate trend over time (by quarter or year) — is it actually growing, flat, or declining?"
+  - "An age analysis of currently-pending orders, using the most recent order_date in the data as a stand-in for 'today,' to assess whether the backlog is dominated by recent orders (normal processing lag) or old ones (stuck, unresolved)"
+  - "A channel and category breakdown to check whether the backlog is concentrated anywhere"
+  - "An explicit statement of what this analysis can and cannot prove, given the lack of a status-change timestamp"
+  - "A recommendation that addresses both the immediate backlog and the underlying measurement gap"
+learning_objectives:
+  - "Reason carefully about what a single, static snapshot date can and cannot tell you, in the presence of a real data limitation (no status-change timestamp)"
+  - "Distinguish a flow-rate problem (a growing share of new orders getting stuck) from a stock/backlog-age problem (accumulation of old, unresolved orders)"
+  - "Build and use a proxy variable (order age relative to the dataset's own most recent order_date) carefully, stating its assumptions rather than treating it as ground truth"
+  - "Produce a recommendation that addresses both an operational fix and a data-instrumentation gap, not just a single headline number"
+stages: [CLARIFY, FRAME, EXPLORE, ANALYZE, INSIGHTS, RECOMMEND, SUBMIT]
+required_exercise_slugs: []
+tags: [e-commerce, operations, business-analytics, root-cause, data-quality, case-study, real-world, advanced]
+skills: [business-metrics, exploratory-data-analysis, data-interpretation, root-cause-analysis, data-quality-engineering, decision-making]
+
+clarification_guidance:
+  - "A good clarifying question asks whether 'growing pile' refers to the absolute count of pending orders, the rate at which new orders end up pending, or how long individual orders have been stuck."
+  - "A good clarifying question asks what 'as of today' should mean, given the export is a static snapshot with no live status feed — and confirms there is no separate status-change timestamp to rely on."
+  - "A good clarifying question asks whether there's an existing SLA (e.g., 'pending should resolve within X days') to compare against, or whether proposing one is part of the deliverable."
+  - "A good clarifying question asks whether a specific channel or category is already suspected, or whether this should be a fully open-ended investigation."
+rubric:
+  - category: "Problem Framing & Clarification"
+    weight: 15
+    criteria:
+      - criterion: "Separates the pending-order rate (flow) from the pending-order backlog size and age (stock) as distinct questions"
+        points: 8
+      - criterion: "Surfaces the missing status-change timestamp as a real constraint on the investigation, before attempting to analyze 'how long' orders have been pending"
+        points: 7
+  - category: "Technical Analysis"
+    weight: 35
+    is_technical: true
+    criteria:
+      - criterion: "Correctly computes the pending-order rate by quarter or year and compares it to the trend in absolute pending-order count"
+        points: 10
+      - criterion: "Builds a defensible order-age proxy (using the dataset's own maximum order_date as a stand-in for 'today') and correctly buckets/summarizes the age distribution of currently-pending orders"
+        points: 13
+      - criterion: "Correctly breaks the pending backlog down by channel and by category, as a rate rather than raw count"
+        points: 12
+  - category: "Insight Quality"
+    weight: 20
+    criteria:
+      - criterion: "Correctly distinguishes whether the backlog is a flow (worsening new-order pending rate) problem or a stock (accumulated old, unresolved orders) problem"
+        points: 12
+      - criterion: "Correctly identifies whether any channel or category is a meaningful driver of the backlog, or whether it is broadly distributed"
+        points: 8
+  - category: "Recommendation & Business Judgment"
+    weight: 20
+    criteria:
+      - criterion: "Recommends an action proportionate to whether the problem is flow-based, stock-based, or a measurement gap"
+        points: 12
+      - criterion: "Recommends a concrete step to close the underlying data gap (e.g., a status-change timestamp or event log) rather than relying on the order_date proxy indefinitely"
+        points: 8
+  - category: "Communication"
+    weight: 10
+    criteria:
+      - criterion: "Explicitly and clearly states what the analysis cannot prove given a single static snapshot with no status-change history"
+        points: 10
+hints:
+  - "Compute the pending rate (pending orders divided by total orders) by quarter or year, separately from the raw pending count by quarter — once you also look at order age, these two views can tell noticeably different stories."
+  - "Since there's no 'status changed' timestamp, use the most recent order_date in the entire dataset as a stand-in for 'today,' and compute each pending order's age as the gap between that reference date and its own order_date — then look at the shape of that age distribution, not just its average."
+  - "Before concluding the backlog is a fulfillment-capacity problem, check whether most pending orders are recent (normal in-flight lag) or old (stuck) — that distinction changes both the diagnosis and the fix."
+  - "State clearly what you can't know from a static export — for example, whether a given 'pending' order has already quietly changed status since the file was generated, or how many times its status has changed."
+reference_solution:
+  summary: >
+    This is primarily a stock/backlog-age problem, not a worsening flow problem — and it is
+    partly a measurement gap. Overall, 127 of 4,205 orders (3.02%) are pending. By year, the pending
+    rate was 3.92% in 2024 (25 of 638 orders) and 2.86% in 2025 (102 of 3,567 orders) — the RATE has
+    not grown; if anything it has declined slightly, even though the absolute pending count more
+    than quadrupled (25 to 102) simply because total order volume grew about 5.6x over the same
+    span. By quarter, the pending rate has stayed in a fairly narrow band (roughly 2.6%-4.3%) with
+    no sustained upward trend — 2025 Q4, the most recent quarter (45 pending of 1,602 orders), sits
+    at 2.81%, near the low end of that band. The real story is in order age: using the dataset's own
+    maximum order_date (2025-12-31) as a stand-in for "today" (since there is no status-change
+    timestamp), 65.4% of currently-pending orders (83 of 127) have an order_date more than 90 days
+    before that reference point, and 42.5% (54 of 127) are more than 180 days old; the single oldest
+    pending order is 607 days old (about 20 months). Only 6.3% (8 of 127) were placed within the
+    final 7 days of the data's date range. By channel, pending orders split 71 web / 48 mobile / 8
+    marketplace in raw count, but as a rate of each channel's own order volume, marketplace's
+    pending rate (1.92%) is actually the LOWEST of the three (web 3.10%, mobile 3.21%) — marketplace
+    is not a driver. Category distribution of the pending rate is fairly even across all ten
+    categories, with no dramatic outlier. Because the export is a single static snapshot with no
+    status-change log, this analysis cannot confirm whether any specific "pending" order has since
+    resolved, nor distinguish a genuine unresolved-fulfillment issue from a process gap where status
+    updates simply stop happening for some orders — only a live status-change feed or repeated
+    snapshots over time could confirm that.
+  key_insights:
+    - "Overall pending rate is 3.02% (127/4,205 orders), and the rate has not grown over time — it declined slightly from 3.92% (2024) to 2.86% (2025) even as the absolute pending count grew about 4x, driven by overall order-volume growth (about 5.6x)."
+    - "65.4% of currently-pending orders (83/127) are more than 90 days old, and 42.5% (54/127) are more than 180 days old, relative to the most recent order_date in the data — the backlog is dominated by old, stale orders, not recent ones still in normal processing lag."
+    - "Marketplace has the LOWEST pending rate of the three channels (1.92%) versus web (3.10%) and mobile (3.21%) — channel is not the driver of the backlog."
+    - "Because orders.csv has no status-change timestamp, this analysis cannot confirm whether any specific pending order has already resolved since the export was generated, or distinguish a fulfillment problem from a status-update process gap."
+  recommendation: >
+    Do not treat this as a fulfillment-capacity or throughput problem — the rate of new orders
+    becoming pending has not worsened. Instead, prioritize two things: first, a direct audit of the
+    old pending orders (roughly 65% of the backlog is more than 90 days old) to determine their true
+    current state, since many may simply be stale records that were never closed out; second,
+    instrument a real status-change timestamp or event log going forward so backlog age can be
+    measured directly instead of proxied through order_date, and so future "is this getting worse"
+    questions don't require this kind of reconstruction.
+  acceptable_alternatives:
+    - "Recommending an immediate sample-based manual audit of the oldest pending orders (e.g., the >180-day group) as the first concrete step, before or alongside the instrumentation fix."
+    - "Recommending an interim SLA-based alerting rule (e.g., automatically flag any order pending more than 30/60/90 days) as a stopgap process fix while the status-change timestamp gap is addressed."
+version: 1

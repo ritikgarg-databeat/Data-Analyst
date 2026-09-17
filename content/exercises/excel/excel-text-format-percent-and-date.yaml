@@ -1,0 +1,50 @@
+slug: excel-text-format-percent-and-date
+skill: excel-fundamentals
+title: Formatting a Rate and a Date with TEXT
+description: On `Data`, `A2` holds a decimal growth rate and `A3` holds a date. On `Answer`, fill in `B2` with `=TEXT(Data!A2,"0%")`
+  and `B3` with `=TEXT(Data!A3,"yyyy-mm-dd")`.
+exercise_type: EXCEL
+difficulty: BEGINNER
+points: 10
+tags:
+- excel
+business_context: A report needs a raw decimal rate and a raw date serial displayed as readable text, e.g. in a
+  concatenated summary sentence.
+prompt: On `Data`, `A2` holds a decimal growth rate and `A3` holds a date. On `Answer`, fill in `B2` with `=TEXT(Data!A2,"0%")`
+  and `B3` with `=TEXT(Data!A3,"yyyy-mm-dd")`.
+excel_starter_sheets:
+- name: Data
+  cells:
+    A1: Value
+    A2: '0.256'
+    A3: =DATE(2024,3,15)
+- name: Answer
+  cells:
+    A1: Formatted
+    A2: ''
+    A3: ''
+excel_solution_sheets:
+- name: Data
+  cells:
+    A1: Value
+    A2: '0.256'
+    A3: =DATE(2024,3,15)
+- name: Answer
+  cells:
+    A1: Formatted
+    A2: ''
+    A3: ''
+    B2: =TEXT(Data!A2,"0%")
+    B3: =TEXT(Data!A3,"yyyy-mm-dd")
+excel_check_cells:
+- Answer!B2
+- Answer!B3
+hints:
+- TEXT(value, format_string) turns a number into display text -- "0%" multiplies by 100, rounds, and appends a percent
+  sign.
+- '"yyyy-mm-dd" is one of the few date format strings this lab''s formula engine understands literally.'
+solution: '`=TEXT(Data!A2,"0%")` evaluates to "26%"; `=TEXT(Data!A3,"yyyy-mm-dd")` evaluates to "2024-03-15".'
+explanation: 'TEXT applies a display format to a raw value: 0.256 formatted as "0%" becomes "26%" (25.6 rounded
+  to the nearest whole percent), and the date serial for March 15, 2024 formatted as "yyyy-mm-dd" becomes the literal
+  string "2024-03-15" -- useful whenever a formatted value needs to be concatenated into a sentence rather than
+  just displayed in a cell.'
