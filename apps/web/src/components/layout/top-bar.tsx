@@ -1,6 +1,6 @@
 "use client";
 
-import { Search } from "lucide-react";
+import { Code2, Search } from "lucide-react";
 
 import { useCommandPalette } from "./command-palette";
 import { MobileSidebar } from "./mobile-sidebar";
@@ -30,6 +30,10 @@ export function TopBar() {
       >
         <Search className="size-4" aria-hidden="true" />
       </button>
+      <div className="pointer-events-none absolute left-1/2 hidden -translate-x-1/2 items-center gap-2 rounded-full border border-border/70 bg-muted/55 px-3 py-1.5 text-xs font-medium tracking-wide text-muted-foreground lg:flex">
+        <Code2 className="size-3.5 text-section-cyan" aria-hidden="true" />
+        <span>Built and Engineered by Ritik Garg</span>
+      </div>
       <div className="flex-1" />
       <ThemeToggle />
       <UserMenu />

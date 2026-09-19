@@ -139,6 +139,10 @@ export default function LandingPage() {
             <a className="transition-colors hover:text-white" href="#features">Workspace</a>
             <a className="transition-colors hover:text-white" href="#ai">AI guidance</a>
           </nav>
+          <div className="pointer-events-none absolute left-1/2 hidden -translate-x-1/2 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3.5 py-1.5 text-xs font-medium tracking-wide text-white/55 xl:flex">
+            <Code2 className="size-3.5 text-cyan-300" aria-hidden="true" />
+            <span>Built and Engineered by Ritik Garg</span>
+          </div>
           <div className="ml-auto flex items-center gap-2.5">
             <LandingAuthTrigger mode="login" className="rounded-full px-4 py-2 text-sm font-medium text-white/75 transition hover:bg-white/8 hover:text-white">Sign in</LandingAuthTrigger>
             <LandingAuthTrigger mode="signup" className="landing-button hidden items-center rounded-full px-5 py-2.5 text-sm font-semibold sm:inline-flex">Start learning <ArrowRight className="ml-2 size-4" aria-hidden="true" /></LandingAuthTrigger>
