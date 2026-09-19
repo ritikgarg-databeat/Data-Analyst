@@ -9,6 +9,11 @@ describe("authentication proxy", () => {
     expect(response.headers.get("location")).toBeNull();
   });
 
+  it("never redirects the same-origin API gateway", () => {
+    const response = proxy(new NextRequest("http://localhost/api/v1/auth/login", { method: "POST" }));
+    expect(response.headers.get("location")).toBeNull();
+  });
+
   it("redirects a protected learner route when no access cookie exists", () => {
     const response = proxy(new NextRequest("http://localhost/profile"));
     expect(response.headers.get("location")).toBe("http://localhost/login");

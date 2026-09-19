@@ -385,8 +385,9 @@ live instance available there either).
 
 See the frontend engineer's own report in the PR/commit history for exact conventions used; at a high
 level it consumes `@data-analyst-lab/shared` for every API type and the nav structure, fetches through
-TanStack Query against `NEXT_PUBLIC_API_URL`, and renders consistent loading/empty/error states across
-every data-driven page.
+TanStack Query against the same-origin `/api/v1` gateway, and renders consistent
+loading/empty/error states across every data-driven page. The gateway forwards to the private
+`API_PROXY_TARGET`, keeping authentication and CSRF cookies on the web application's host.
 
 ## Why a shared `packages/shared`
 

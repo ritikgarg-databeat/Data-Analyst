@@ -1,12 +1,11 @@
 import type { ApiErrorResponse } from "@data-analyst-lab/shared";
 
 /**
- * Base URL for the FastAPI backend. Configurable via NEXT_PUBLIC_API_URL,
- * falling back to the local default used throughout development.
+ * Keep browser requests on the web application's origin. The Next.js API
+ * gateway forwards them to FastAPI, which lets auth and CSRF cookies belong
+ * to the same host in both localhost and hosted environments.
  */
-export const API_BASE_URL = (
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"
-).replace(/\/+$/, "");
+export const API_BASE_URL = "";
 
 /**
  * Typed error thrown by the API client for any non-2xx response, or when the

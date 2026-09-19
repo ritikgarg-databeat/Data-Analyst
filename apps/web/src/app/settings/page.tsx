@@ -159,7 +159,9 @@ export default function SettingsPage() {
                 </div>
                 <div>
                   <dt className="text-xs font-medium text-muted-foreground uppercase">API URL</dt>
-                  <dd className="text-sm break-all text-foreground">{API_BASE_URL}</dd>
+                  <dd className="text-sm break-all text-foreground">
+                    {API_BASE_URL || "Same origin (/api/v1)"}
+                  </dd>
                 </div>
               </dl>
             </CardContent>
