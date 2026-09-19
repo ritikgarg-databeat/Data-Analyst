@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import re
 from datetime import UTC, datetime
+from threading import Lock
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -22,7 +23,7 @@ from app.content.schema import ExerciseContentFile
 from app.core.config import Settings, get_settings
 from app.core.errors import AppError
 from app.dbt_lab import artifacts
-from app.dbt_lab.paths import DBT_PROJECT_DIR
+from app.dbt_lab.paths import DBT_PROJECT_DIR, resolve_target_dir
 from app.dbt_lab.runner import DbtRunnerError, run_dbt
 from app.models.enums import ExerciseAttemptStatus
 from app.models.exercise import Exercise
@@ -47,6 +48,7 @@ PROJECT_NAME = "personal_data_analyst_lab"
 # closable gap for a "grading" surface that shouldn't need arbitrary-hook
 # privileges to build one model.
 _DBT_HOOK_PATTERN = re.compile(r"\b(pre|post)[-_]hook\b", re.IGNORECASE)
+_DBT_EXERCISE_LOCK = Lock()
 
 
 class DbtExerciseService:
@@ -78,10 +80,20 @@ class DbtExerciseService:
                 "actual transformation logic instead."
             )
 
-        self._write_submission_files(model_name, submitted_sql, content.dbt_schema_yml)
-
         try:
-            result = run_dbt(["build", "--select", model_name], settings=self.settings)
+            with _DBT_EXERCISE_LOCK:
+                self._write_submission_files(model_name, submitted_sql, content.dbt_schema_yml)
+                result = run_dbt(
+                    [
+                        "build",
+                        "--select",
+                        f"+{model_name}",
+                        "--indirect-selection",
+                        "cautious",
+                    ],
+                    settings=self.settings,
+                    user_id=user_id,
+                )
         except DbtRunnerError as exc:
             attempt = self._persist_attempt(
                 user_id, exercise, submitted_sql, ExerciseAttemptStatus.FAILED, 0.0
@@ -97,9 +109,10 @@ class DbtExerciseService:
                 explanation=None,
             )
 
-        model_result = artifacts.get_node_result(f"model.{PROJECT_NAME}.{model_name}")
+        target_dir = resolve_target_dir(user_id)
+        model_result = artifacts.get_node_result(f"model.{PROJECT_NAME}.{model_name}", target_dir)
         model_built = bool(model_result and model_result.get("status") == "success")
-        test_outcomes = self._collect_test_outcomes() if model_built else []
+        test_outcomes = self._collect_test_outcomes(target_dir, model_name) if model_built else []
 
         passed_count = sum(1 for t in test_outcomes if t.passed)
         if not model_built:
@@ -139,13 +152,23 @@ class DbtExerciseService:
             yml_path.unlink(missing_ok=True)
 
     @staticmethod
-    def _collect_test_outcomes() -> list[DbtExerciseTestOutcome]:
+    def _collect_test_outcomes(target_dir, model_name: str) -> list[DbtExerciseTestOutcome]:
         # `dbt build --select <model_name>` only ever touches that one model
         # plus tests attached directly to it, so every test result in this
         # run belongs to this submission — no name-matching needed.
-        results = artifacts.build_test_results() or []
+        manifest = artifacts.get_manifest(target_dir) or {}
+        model_id = f"model.{PROJECT_NAME}.{model_name}"
+        attached_test_ids = {
+            unique_id
+            for unique_id, node in manifest.get("nodes", {}).items()
+            if node.get("resource_type") == "test"
+            and model_id in (node.get("depends_on") or {}).get("nodes", [])
+        }
+        results = artifacts.build_test_results(target_dir) or []
         return [
-            DbtExerciseTestOutcome(name=r.name, passed=r.status == "pass", message=r.message) for r in results
+            DbtExerciseTestOutcome(name=r.name, passed=r.status == "pass", message=r.message)
+            for r in results
+            if r.unique_id in attached_test_ids
         ]
 
     def _persist_attempt(

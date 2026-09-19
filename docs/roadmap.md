@@ -1,6 +1,6 @@
 # Roadmap
 
-Personal Data Analyst Lab is built in 12 phases. Each phase builds on the foundation without requiring
+Data Lab is built in 12 phases. Each phase builds on the foundation without requiring
 a rewrite of prior work.
 
 | Phase | Focus |
@@ -801,7 +801,7 @@ dedicated test-writing pass rather than folded into a bug-fix sweep.
 ## Personalization pass — app identity and removing a placeholder email
 
 At the user's request, the app's identity moved from a generic `APP_NAME`/`APP_TAGLINE`
-("Personal Data Analyst Lab") to "Ritik's Personal Data Analyst Lab" (`packages/shared/src/
+("Data Lab") (`packages/shared/src/
 constants.ts`, the single source both the sidebar brand mark and the dashboard heading/tagline read
 from), the root `<title>`/meta description (`apps/web/src/app/layout.tsx`, now reading the same
 constants instead of a second hardcoded copy), and the AI Mentor's own system preamble (`app/ai/

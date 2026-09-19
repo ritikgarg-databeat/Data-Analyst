@@ -2,7 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends
 
-from app.dependencies.current_user import CurrentUserId
+from app.dependencies.current_user import AdminUser, CurrentUserId
 from app.dependencies.services import get_domain_service, get_module_service
 from app.schemas.domain import CreateDomainRequest, Domain, UpdateDomainRequest
 from app.schemas.module import Module
@@ -21,7 +21,9 @@ def list_domains(
 
 @router.post("", response_model=Domain, status_code=201)
 def create_domain(
-    payload: CreateDomainRequest, service: Annotated[DomainService, Depends(get_domain_service)]
+    payload: CreateDomainRequest,
+    admin: AdminUser,
+    service: Annotated[DomainService, Depends(get_domain_service)],
 ) -> Domain:
     return service.create(payload)
 
@@ -37,6 +39,7 @@ def get_domain(
 def update_domain(
     domain_id: str,
     payload: UpdateDomainRequest,
+    admin: AdminUser,
     service: Annotated[DomainService, Depends(get_domain_service)],
 ) -> Domain:
     return service.update(domain_id, payload)

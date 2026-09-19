@@ -1,8 +1,8 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends
 
-from app.dependencies.current_user import CurrentUserId
+from app.dependencies.current_user import AdminUser, CurrentUserId
 from app.dependencies.services import get_interview_service
 from app.schemas.interview import (
     AnswerInterviewQuestionRequest,
@@ -23,6 +23,7 @@ router = APIRouter(prefix="/interviews", tags=["interviews"])
 # Registered before GET /templates/{slug} so "admin" isn't swallowed by the slug route.
 @router.get("/templates/admin", response_model=list[InterviewTemplateAdminListItemSchema])
 def list_templates_admin(
+    admin: AdminUser,
     service: Annotated[InterviewService, Depends(get_interview_service)],
 ) -> list[InterviewTemplateAdminListItemSchema]:
     return service.list_templates_admin()
@@ -32,6 +33,7 @@ def list_templates_admin(
 def update_template_admin(
     template_id: str,
     payload: UpdateInterviewTemplateAdminRequest,
+    admin: AdminUser,
     service: Annotated[InterviewService, Depends(get_interview_service)],
 ) -> InterviewTemplateAdminListItemSchema:
     return service.update_template_admin(template_id, payload.is_active)

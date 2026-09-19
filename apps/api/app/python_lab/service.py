@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.core.config import Settings, get_settings
@@ -43,10 +43,23 @@ class PythonDatasetFile:
 
 class PythonExecutionService:
     def __init__(
-        self, db: Session, settings: Settings | None = None, backend: PythonRuntimeBackend | None = None
+        self,
+        db: Session,
+        settings: Settings | None = None,
+        backend: PythonRuntimeBackend | None = None,
+        user_id: str | None = None,
     ) -> None:
         self.db = db
         self.settings = settings or get_settings()
+        self.user_id = user_id
+        configured_imports = (
+            Path(self.settings.python_lab_host_datasets_dir)
+            if self.settings.python_lab_host_datasets_dir
+            else DEFAULT_IMPORTED_DATASETS_DIR
+        )
+        private_imports = (
+            configured_imports.parent / "users" / user_id / "datasets" if user_id else configured_imports
+        )
         self.backend = backend or DockerRuntimeBackend(
             # See Settings.python_lab_host_data_dir's docstring: the Docker
             # daemon always resolves a volume-mount spec against the HOST
@@ -55,9 +68,7 @@ class PythonExecutionService:
             datasets_dir=Path(self.settings.python_lab_host_data_dir)
             if self.settings.python_lab_host_data_dir
             else DEFAULT_DATASETS_DIR,
-            extra_datasets_dir=Path(self.settings.python_lab_host_datasets_dir)
-            if self.settings.python_lab_host_datasets_dir
-            else DEFAULT_IMPORTED_DATASETS_DIR,
+            extra_datasets_dir=private_imports,
             mem_limit=self.settings.python_lab_mem_limit,
             nano_cpus=self.settings.python_lab_nano_cpus,
             pids_limit=self.settings.python_lab_pids_limit,
@@ -284,7 +295,7 @@ class PythonExecutionService:
 
     # --- Datasets --------------------------------------------------------
 
-    def list_datasets(self) -> list[PythonDatasetFile]:
+    def list_datasets(self, user_id: str | None = None) -> list[PythonDatasetFile]:
         """Every dataset file a Python Lab session can `pd.read_csv(...)` /
         `pd.read_parquet(...)` off the read-only /data mount — reuses
         `Dataset` (Phase 1/2) and, where present, `SqlTable` (Phase 3)
@@ -292,8 +303,17 @@ class PythonExecutionService:
         covers both of `DockerRuntimeBackend`'s read-only mounts: the
         Phase 1-3 curriculum data under data/sample/ (-> /data/...) and
         Phase 5 user-imported datasets under data/datasets/ (-> /data/datasets/...)."""
+        effective_user_id = user_id or self.user_id
         files: list[PythonDatasetFile] = []
-        datasets = self.db.execute(select(Dataset)).scalars().all()
+        datasets = (
+            self.db.execute(
+                select(Dataset).where(
+                    or_(Dataset.owner_user_id.is_(None), Dataset.owner_user_id == effective_user_id)
+                )
+            )
+            .scalars()
+            .all()
+        )
         for dataset in datasets:
             table_stmt = (
                 select(SqlTable).where(SqlTable.dataset_id == dataset.id).order_by(SqlTable.display_order)
@@ -350,6 +370,9 @@ def _container_path_for(file_path: str) -> str | None:
         return f"/data/{file_path.split('data/sample/', 1)[-1]}"
     if "data/datasets/" in file_path:
         return f"/data/datasets/{file_path.split('data/datasets/', 1)[-1]}"
+    normalized = file_path.replace("\\", "/")
+    if "/datasets/" in normalized and normalized.startswith("data/users/"):
+        return f"/data/datasets/{normalized.split('/datasets/', 1)[-1]}"
     return None
 
 

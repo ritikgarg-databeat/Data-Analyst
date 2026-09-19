@@ -24,7 +24,7 @@ test.describe("Phase 7 dbt Lab", () => {
   test("run the real dbt project, inspect lineage, docs, and test results", async ({ page }) => {
     test.slow(); // real `dbt build`/`dbt test` invocations take several seconds each
 
-    await page.goto("/");
+    await page.goto("/dashboard");
     await page.getByRole("link", { name: "dbt Lab" }).first().click();
     await page.waitForURL("**/dbt-lab");
     await expect(page.getByRole("heading", { name: "dbt Lab" })).toBeVisible();

@@ -42,12 +42,20 @@ def resolve_data_dir(settings: Settings) -> Path:
     return Path(settings.dbt_data_dir) if settings.dbt_data_dir else DEFAULT_DBT_DATA_DIR
 
 
-def resolve_warehouse_path(settings: Settings) -> Path:
+def resolve_warehouse_path(settings: Settings, user_id: str | None = None) -> Path:
+    if user_id:
+        return REPO_ROOT / "data" / "users" / user_id / "warehouse" / "dev.duckdb"
     return Path(settings.dbt_warehouse_path) if settings.dbt_warehouse_path else DEFAULT_DBT_WAREHOUSE_PATH
 
 
-def build_dbt_env(settings: Settings) -> dict[str, str]:
-    warehouse_path = resolve_warehouse_path(settings)
+def resolve_target_dir(user_id: str | None = None) -> Path:
+    if user_id:
+        return REPO_ROOT / "data" / "users" / user_id / "dbt-target"
+    return DBT_TARGET_DIR
+
+
+def build_dbt_env(settings: Settings, user_id: str | None = None) -> dict[str, str]:
+    warehouse_path = resolve_warehouse_path(settings, user_id)
     warehouse_path.parent.mkdir(parents=True, exist_ok=True)
 
     env = os.environ.copy()

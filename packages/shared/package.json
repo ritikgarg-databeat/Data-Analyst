@@ -2,7 +2,7 @@
   "name": "@data-analyst-lab/shared",
   "version": "0.1.0",
   "private": true,
-  "description": "Shared TypeScript types and constants used across the Personal Data Analyst Lab frontend, mirroring the FastAPI API contract.",
+  "description": "Shared TypeScript types and constants used across the Data Lab frontend, mirroring the FastAPI API contract.",
   "main": "src/index.ts",
   "types": "src/index.ts",
   "scripts": {

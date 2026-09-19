@@ -139,16 +139,15 @@ class AISkillDiagnosis(UUIDPrimaryKeyMixin, Base):
 
 
 class AISettings(UUIDPrimaryKeyMixin, TimestampMixin, Base):
-    """Per-user AI preferences (spec section 48) — one row per user. A
-    single-user local app still models this per-user (not a singleton) so the
-    shape is correct if multi-user ever happens; `UniqueConstraint` enforces
-    the single-row-per-user invariant today."""
+    """Per-user AI preferences plus separate administrator entitlement."""
 
     __tablename__ = "ai_settings"
     __table_args__ = (UniqueConstraint("user_id", name="uq_ai_settings_user_id"),)
 
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    admin_access_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    admin_daily_request_limit: Mapped[int] = mapped_column(Integer, default=25)
     provider_override: Mapped[str | None] = mapped_column(String(20), nullable=True)
     model_override: Mapped[str | None] = mapped_column(String(100), nullable=True)
     response_style: Mapped[str] = mapped_column(String(20), default="balanced")  # concise|balanced|detailed

@@ -15,6 +15,7 @@ from __future__ import annotations
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.errors import NotFoundError
 from app.models.career import CareerAssessment, Portfolio, PortfolioItem, TargetRole
 from app.models.enums import CareerReadinessLevel, CareerRubricDimension, PrivacyLevel, SkillCategory
 from app.models.skill import Skill
@@ -34,7 +35,10 @@ DEFAULT_RUBRIC_WEIGHTS: dict[str, float] = {
 }
 
 TECHNICAL_CATEGORIES = [
-    SkillCategory.SQL, SkillCategory.PYTHON, SkillCategory.EXCEL, SkillCategory.DATA_VISUALIZATION,
+    SkillCategory.SQL,
+    SkillCategory.PYTHON,
+    SkillCategory.EXCEL,
+    SkillCategory.DATA_VISUALIZATION,
 ]
 ANALYTICAL_CATEGORIES = [SkillCategory.STATISTICS, SkillCategory.MACHINE_LEARNING]
 DATA_ENGINEERING_CATEGORIES = [
@@ -99,9 +103,7 @@ class CareerReadinessService:
         # behavioral-interviewing) — found by a Phase 12 audit to be the
         # only SkillCategory never feeding any of the 8 rubric dimensions.
         engine_score = InterviewReadinessService(self.db).get_readiness(user_id).overall_score
-        category_score, category_count = self._category_average(
-            user_id, [SkillCategory.INTERVIEW_READINESS]
-        )
+        category_score, category_count = self._category_average(user_id, [SkillCategory.INTERVIEW_READINESS])
         if category_count == 0:
             return engine_score
         return round(0.7 * engine_score + 0.3 * category_score, 1)
@@ -112,9 +114,11 @@ class CareerReadinessService:
         ).scalar_one_or_none()
         if portfolio is None:
             return 0.0
-        items = self.db.execute(
-            select(PortfolioItem).where(PortfolioItem.portfolio_id == portfolio.id)
-        ).scalars().all()
+        items = (
+            self.db.execute(select(PortfolioItem).where(PortfolioItem.portfolio_id == portfolio.id))
+            .scalars()
+            .all()
+        )
         if not items:
             return 0.0
         described = sum(1 for i in items if i.description and i.description.strip())
@@ -169,14 +173,12 @@ class CareerReadinessService:
         if target_role_id is not None:
             target_role = self.db.get(TargetRole, target_role_id)
             if target_role is None or target_role.user_id != user_id:
-                target_role_id = None
+                raise NotFoundError("Target role was not found.")
 
         weights = DEFAULT_RUBRIC_WEIGHTS
         scores = self.compute_rubric_scores(user_id)
         total_weight = sum(weights.values())
-        overall_score = round(
-            sum(scores[dim] * weight for dim, weight in weights.items()) / total_weight, 1
-        )
+        overall_score = round(sum(scores[dim] * weight for dim, weight in weights.items()) / total_weight, 1)
 
         raw_level = self._level_for_score(overall_score)
         gating_passed = all(score >= GATING_MINIMUM_PER_DIMENSION for score in scores.values())
@@ -210,17 +212,25 @@ class CareerReadinessService:
         return CareerAssessmentSchema.model_validate(assessment)
 
     def get_latest(self, user_id: str) -> CareerAssessmentSchema | None:
-        row = self.db.execute(
-            select(CareerAssessment)
-            .where(CareerAssessment.user_id == user_id)
-            .order_by(CareerAssessment.computed_at.desc())
-        ).scalars().first()
+        row = (
+            self.db.execute(
+                select(CareerAssessment)
+                .where(CareerAssessment.user_id == user_id)
+                .order_by(CareerAssessment.computed_at.desc())
+            )
+            .scalars()
+            .first()
+        )
         return CareerAssessmentSchema.model_validate(row) if row else None
 
     def get_history(self, user_id: str) -> list[CareerAssessmentSchema]:
-        rows = self.db.execute(
-            select(CareerAssessment)
-            .where(CareerAssessment.user_id == user_id)
-            .order_by(CareerAssessment.computed_at.asc())
-        ).scalars().all()
+        rows = (
+            self.db.execute(
+                select(CareerAssessment)
+                .where(CareerAssessment.user_id == user_id)
+                .order_by(CareerAssessment.computed_at.asc())
+            )
+            .scalars()
+            .all()
+        )
         return [CareerAssessmentSchema.model_validate(r) for r in rows]

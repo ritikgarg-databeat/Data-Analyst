@@ -40,6 +40,46 @@ export interface ApiRequestOptions extends Omit<RequestInit, "body"> {
   body?: unknown;
 }
 
+let refreshPromise: Promise<boolean> | null = null;
+
+function csrfToken(): string | undefined {
+  if (typeof document === "undefined") return undefined;
+  const value = document.cookie.split("; ").find((part) => part.startsWith("dal_csrf_token="));
+  return value ? decodeURIComponent(value.split("=").slice(1).join("=")) : undefined;
+}
+
+function authHeaders(method: string | undefined, headers?: HeadersInit): Headers {
+  const result = new Headers(headers);
+  if (method && !["GET", "HEAD", "OPTIONS"].includes(method.toUpperCase())) {
+    const csrf = csrfToken();
+    if (csrf) result.set("X-CSRF-Token", csrf);
+  }
+  return result;
+}
+
+async function refreshSession(): Promise<boolean> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/auth/refresh`, {
+    method: "POST",
+    credentials: "include",
+    headers: authHeaders("POST", { Accept: "application/json" }),
+  });
+  return response.ok;
+}
+
+async function authenticatedFetch(url: string, init: RequestInit, retry = true): Promise<Response> {
+  const response = await fetch(url, {
+    ...init,
+    credentials: "include",
+    headers: authHeaders(init.method, init.headers),
+  });
+  const isAuthRequest = url.includes("/auth/login") || url.includes("/auth/signup") ||
+    url.includes("/auth/refresh");
+  if (response.status !== 401 || !retry || isAuthRequest) return response;
+  refreshPromise ??= refreshSession().finally(() => { refreshPromise = null; });
+  if (!(await refreshPromise)) return response;
+  return authenticatedFetch(url, init, false);
+}
+
 async function request<T>(
   path: string,
   options: ApiRequestOptions = {},
@@ -48,7 +88,7 @@ async function request<T>(
 
   let response: Response;
   try {
-    response = await fetch(`${API_BASE_URL}/api/v1${path}`, {
+    response = await authenticatedFetch(`${API_BASE_URL}/api/v1${path}`, {
       ...rest,
       headers: {
         "Content-Type": "application/json",
@@ -61,7 +101,7 @@ async function request<T>(
     throw new ApiError(
       0,
       "NETWORK_ERROR",
-      "Unable to reach the Personal Data Analyst Lab API. Is it running?",
+      "Unable to reach the Data Lab API. Is it running?",
       { cause: cause instanceof Error ? cause.message : String(cause) },
     );
   }
@@ -106,7 +146,7 @@ async function postForm<T>(
 
   let response: Response;
   try {
-    response = await fetch(`${API_BASE_URL}/api/v1${path}`, {
+    response = await authenticatedFetch(`${API_BASE_URL}/api/v1${path}`, {
       method: "POST",
       body: form,
       // No Content-Type header — the browser sets the multipart boundary itself.
@@ -116,7 +156,7 @@ async function postForm<T>(
     throw new ApiError(
       0,
       "NETWORK_ERROR",
-      "Unable to reach the Personal Data Analyst Lab API. Is it running?",
+      "Unable to reach the Data Lab API. Is it running?",
       { cause: cause instanceof Error ? cause.message : String(cause) },
     );
   }
@@ -158,7 +198,7 @@ async function postFile<T>(
 
   let response: Response;
   try {
-    response = await fetch(`${API_BASE_URL}/api/v1${path}`, {
+    response = await authenticatedFetch(`${API_BASE_URL}/api/v1${path}`, {
       method: "POST",
       body: form,
       headers: { Accept: "application/json" },
@@ -167,7 +207,7 @@ async function postFile<T>(
     throw new ApiError(
       0,
       "NETWORK_ERROR",
-      "Unable to reach the Personal Data Analyst Lab API. Is it running?",
+      "Unable to reach the Data Lab API. Is it running?",
       { cause: cause instanceof Error ? cause.message : String(cause) },
     );
   }

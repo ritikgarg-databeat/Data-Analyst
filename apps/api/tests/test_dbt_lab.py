@@ -15,12 +15,14 @@ from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 
 from app.core.config import Settings
-from app.dbt_lab.paths import DBT_TARGET_DIR
+from app.dbt_lab.paths import resolve_target_dir
 from app.dbt_lab.service import DbtLabService
 from app.dependencies.services import get_dbt_lab_service
 from app.main import app
+from app.models.user import User
 from tests.conftest import TestingSessionLocal
 
 _SCRATCH_DIR = Path(__file__).resolve().parent / "_scratch_dbt"
@@ -66,8 +68,12 @@ def test_build_ran_successfully_against_real_duckdb(client: TestClient) -> None:
     build_run = next(r for r in runs if r["command"] == "build")
     assert build_run["status"] == "SUCCESS"
     assert build_run["summary"]["node_count"] > 0
-    assert DBT_TARGET_DIR.joinpath("manifest.json").exists()
-    assert DBT_TARGET_DIR.joinpath("catalog.json").exists()
+    with TestingSessionLocal() as db:
+        user_id = db.scalar(select(User.id).where(User.email == "analyst@example.com"))
+    assert user_id is not None
+    target_dir = resolve_target_dir(user_id)
+    assert target_dir.joinpath("manifest.json").exists()
+    assert target_dir.joinpath("catalog.json").exists()
 
 
 def test_project_tree_lists_real_files_by_layer(client: TestClient) -> None:

@@ -6,6 +6,7 @@ import { ThemeProvider } from "next-themes";
 
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ToastProvider } from "@/components/shared/toast-provider";
+import { AuthProvider } from "@/features/auth/auth-provider";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = React.useState(
@@ -25,7 +26,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
         <TooltipProvider>
-          <ToastProvider>{children}</ToastProvider>
+          <ToastProvider><AuthProvider>{children}</AuthProvider></ToastProvider>
         </TooltipProvider>
       </ThemeProvider>
     </QueryClientProvider>

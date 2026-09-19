@@ -19,7 +19,7 @@ describe("CommandPalette", () => {
     fireEvent.keyDown(window, { key: "k", ctrlKey: true });
 
     expect(await screen.findByLabelText("Command palette search")).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "Go to Dashboard" })).toHaveAttribute("href", "/");
+    expect(screen.getByRole("option", { name: "Go to Dashboard" })).toHaveAttribute("href", "/dashboard");
     expect(screen.getByRole("option", { name: "Go to Search" })).toHaveAttribute("href", "/search");
     expect(screen.getByRole("option", { name: "Ask AI Mentor" })).toHaveAttribute("href", "/ai/mentor");
   });

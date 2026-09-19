@@ -33,6 +33,7 @@ from sqlalchemy import inspect as sa_inspect
 from sqlalchemy.orm import Session
 
 from app.core.config import Settings, get_settings
+from app.core.errors import AppError
 from app.models.ai import AIConversation, AIMessage, AIMistakeMemory, AISettings, AISkillDiagnosis
 from app.models.assessment import AssessmentAnswer, AssessmentAttempt
 from app.models.career import (
@@ -133,6 +134,12 @@ def _serialize_row(obj: object) -> dict:
         elif isinstance(value, Enum):
             value = value.value
         row[attr.key] = value
+    if isinstance(obj, AISettings):
+        # Administrative entitlement is never portable user data. A restore
+        # may recover the user's preference, but cannot grant access or raise
+        # the administrator-controlled quota.
+        row.pop("admin_access_enabled", None)
+        row.pop("admin_daily_request_limit", None)
     return row
 
 
@@ -248,7 +255,58 @@ class BackupService:
                     break
         return RestorePreviewResponse(manifest=bundle.manifest, compatible=not issues, issues=issues)
 
+    def _validate_restore_scope(self, user_id: str, bundle: BackupBundle) -> None:
+        """Reject ids that already belong to a different account or whose
+        child rows do not reference parents contained in the same bundle.
+
+        This check runs before any writes, making a malicious/corrupt bundle
+        an all-or-nothing 400 rather than silently attaching rows to another
+        user's records.
+        """
+        imported_ids: dict[str, set[str]] = {}
+        for entity in ENTITIES:
+            rows = bundle.data.get(entity.name, [])
+            parent_ids = imported_ids.get(entity.parent, set()) if entity.parent else set()
+            entity_ids: set[str] = set()
+            for row in rows:
+                if entity.parent:
+                    parent_id = row.get(entity.filter_field)
+                    if parent_id not in parent_ids:
+                        raise AppError(
+                            f"Restore row in '{entity.name}' references a parent outside this backup."
+                        )
+
+                id_col = _single_id_column(entity.model)
+                if id_col and row.get(id_col):
+                    entity_ids.add(str(row[id_col]))
+                    existing = self.db.get(entity.model, row[id_col])
+                    if existing is not None:
+                        if entity.parent:
+                            if getattr(existing, entity.filter_field) not in parent_ids:
+                                raise AppError(
+                                    f"Restore id collision in '{entity.name}' belongs to another account."
+                                )
+                        elif getattr(existing, entity.filter_field, user_id) != user_id:
+                            raise AppError(
+                                f"Restore id collision in '{entity.name}' belongs to another account."
+                            )
+            imported_ids[entity.name] = entity_ids
+
+        # Dataset files are intentionally not restored. References may point
+        # only to a shared dataset or one already owned by the target account.
+        from app.models.dataset import Dataset
+
+        for entity_name in ("projects", "project_datasets"):
+            for row in bundle.data.get(entity_name, []):
+                dataset_id = row.get("dataset_id")
+                if not dataset_id:
+                    continue
+                dataset = self.db.get(Dataset, dataset_id)
+                if dataset is not None and dataset.owner_user_id not in (None, user_id):
+                    raise AppError("Restore bundle references a dataset owned by another account.")
+
     def restore_bundle(self, user_id: str, bundle: BackupBundle) -> dict[str, int]:
+        self._validate_restore_scope(user_id, bundle)
         restored_counts: dict[str, int] = {}
         for entity in ENTITIES:
             rows = bundle.data.get(entity.name, [])
@@ -257,6 +315,9 @@ class BackupService:
                 payload = dict(row)
                 if entity.remap_user_id:
                     payload["user_id"] = user_id
+                if entity.model is AISettings:
+                    payload.pop("admin_access_enabled", None)
+                    payload.pop("admin_daily_request_limit", None)
 
                 if entity.unique_per_user:
                     # A singleton-per-user row (AISettings/CareerProfile/Portfolio) may
@@ -277,6 +338,11 @@ class BackupService:
                         changed = False
                         for col in entity.model.__table__.columns:
                             if col.name in ("id", "user_id") or col.name not in payload:
+                                continue
+                            if entity.model is AISettings and col.name in {
+                                "admin_access_enabled",
+                                "admin_daily_request_limit",
+                            }:
                                 continue
                             new_value = _coerce_value(col, payload[col.name])
                             if getattr(existing, col.name) != new_value:

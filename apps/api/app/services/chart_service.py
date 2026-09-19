@@ -11,6 +11,7 @@ from app.dataset_hub import chart_engine
 from app.models.chart import Chart as ChartModel
 from app.models.dataset import Dataset, DatasetTable
 from app.models.dataset_profile import DatasetColumnProfile, DatasetProfile
+from app.models.eda import EdaWorkspace
 from app.repositories.dataset import DatasetRepository
 from app.schemas.chart import (
     Chart as ChartSchema,
@@ -26,13 +27,18 @@ from app.sql.paths import resolve_repo_path
 
 
 class ChartService:
-    def __init__(self, db: Session) -> None:
+    def __init__(self, db: Session, user_id: str | None = None) -> None:
         self.db = db
         self.dataset_repo = DatasetRepository(db)
+        self.user_id = user_id
 
     def _find_dataset(self, id_or_slug: str) -> Dataset:
         dataset = self.dataset_repo.get_by_id(id_or_slug) or self.dataset_repo.get_by_slug(id_or_slug)
-        if dataset is None:
+        if dataset is None or (
+            self.user_id is not None
+            and dataset.owner_user_id is not None
+            and dataset.owner_user_id != self.user_id
+        ):
             raise NotFoundError(f"Dataset '{id_or_slug}' was not found.")
         return dataset
 
@@ -79,6 +85,10 @@ class ChartService:
     def create(self, user_id: str, payload: CreateChartRequest) -> ChartSchema:
         dataset = self._find_dataset(payload.dataset_id)
         self._find_table(dataset, payload.table_name)
+        if payload.workspace_id is not None:
+            workspace = self.db.get(EdaWorkspace, payload.workspace_id)
+            if workspace is None or workspace.user_id != user_id or workspace.dataset_id != dataset.id:
+                raise NotFoundError(f"EDA workspace '{payload.workspace_id}' was not found.")
         chart = ChartModel(
             user_id=user_id,
             dataset_id=dataset.id,

@@ -1,4 +1,4 @@
-# Personal Data Analyst Lab — web frontend
+# Data Lab — web frontend
 #
 # This app lives in an npm-workspaces monorepo and depends on the
 # @data-analyst-lab/shared workspace package, so the build context MUST be

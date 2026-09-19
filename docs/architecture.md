@@ -2,7 +2,7 @@
 
 ## Overview
 
-Personal Data Analyst Lab is a monorepo with a clean separation between frontend, backend, database,
+Data Lab is a monorepo with a clean separation between frontend, backend, database,
 content, and infrastructure:
 
 ```
@@ -45,12 +45,13 @@ dialect branching anywhere in the codebase. The same reasoning applies to enum c
 (`native_enum=False` — stored as plain strings) and the `datasets.metadata` JSON column (generic
 `sa.JSON`, not `JSONB`).
 
-### Single-user model
+### Multi-user authentication and isolation
 
-This is a local, single-user application by design (see Prompt 1 constraints — no multi-user auth,
-no sessions). `UserService.get_current_user()` returns the one seeded `User` row rather than reading
-a session/token. The `User` model itself is still a normal, independent table with its own id/email/
-timestamps, so real auth can be layered on top later without a schema rewrite.
+FastAPI resolves the current user from short-lived JWT access cookies backed by rotating database
+refresh sessions. Passwords are Argon2id hashes and never enter tokens. Unsafe authenticated requests
+also require a double-submit CSRF token. User-owned rows are queried with the authenticated user id;
+private datasets and dbt state live under `data/users/{user_id}`. Administrators have a separate,
+audited management API and read-only data views, without impersonation.
 
 ### Content-driven, not hard-coded
 

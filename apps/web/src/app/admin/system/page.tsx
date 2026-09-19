@@ -1,0 +1,3 @@
+"use client";
+import { useQuery } from "@tanstack/react-query";import { Card,CardContent,CardHeader,CardTitle } from "@/components/ui/card";import { apiClient } from "@/lib/api-client";
+export default function AdminSystemPage(){const query=useQuery({queryKey:["health"],queryFn:()=>apiClient.get<Record<string,unknown>>("/health")});return <div className="space-y-5"><h1 className="text-2xl font-semibold">System</h1><Card><CardHeader><CardTitle>API health</CardTitle></CardHeader><CardContent><pre className="overflow-auto text-sm">{query.isLoading?"Checking…":JSON.stringify(query.data??{status:"unavailable"},null,2)}</pre></CardContent></Card></div>}

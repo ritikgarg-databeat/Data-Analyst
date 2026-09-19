@@ -13,7 +13,7 @@ interface BrandMarkProps {
 export function BrandMark({ collapsed = false, className }: BrandMarkProps) {
   return (
     <Link
-      href="/"
+      href="/dashboard"
       className={cn(
         "group flex items-center gap-2.5 rounded-md px-1 py-1 outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
         className,

@@ -2,7 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends
 
-from app.dependencies.current_user import CurrentUserId
+from app.dependencies.current_user import AdminUser, CurrentUserId
 from app.dependencies.services import get_exercise_service
 from app.schemas.exercise import (
     Exercise,
@@ -63,6 +63,7 @@ def reveal_exercise_solution(
 def update_exercise_admin(
     exercise_id: str,
     payload: UpdateExerciseAdminRequest,
+    admin: AdminUser,
     service: Annotated[ExerciseService, Depends(get_exercise_service)],
 ) -> Exercise:
     return service.update_admin(exercise_id, payload)

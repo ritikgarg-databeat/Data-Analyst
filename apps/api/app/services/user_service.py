@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 
-from app.core.errors import NotFoundError
+from app.core.errors import AppError
 from app.models.user import User
 from app.repositories.user import UserRepository
 from app.schemas.user import UpdateUserProfileRequest
@@ -12,23 +12,22 @@ class UserService:
         self.repo = UserRepository(db)
 
     def get_current_user(self) -> User:
-        """Returns the single local user.
+        """Return the legacy/first user for local maintenance code.
 
-        This is a single-user local application (see app.models.user.User), so
-        "current user" simply means the one seeded row rather than anything
-        derived from a request/session/token.
+        Request handlers must use the authenticated ``CurrentUser`` dependency;
+        this helper remains only for older offline services and migration tests.
         """
         user = self.repo.get_first()
         if user is None:
-            raise NotFoundError(
-                "No local user found. Run the seed script to create one.", details={"entity": "User"}
-            )
+            raise AppError("No user account exists yet.")
         return user
 
-    def update_current_user(self, payload: UpdateUserProfileRequest) -> User:
-        user = self.get_current_user()
+    def update_current_user(self, user: User, payload: UpdateUserProfileRequest) -> User:
         if payload.name is not None:
-            user.name = payload.name
+            name = payload.name.strip()
+            if not name:
+                raise AppError("Name is required.")
+            user.name = name
         self.db.commit()
         self.db.refresh(user)
         return user

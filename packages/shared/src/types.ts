@@ -1,5 +1,5 @@
 /**
- * Shared API contract types for Personal Data Analyst Lab.
+ * Shared API contract types for Data Lab.
  * These mirror the FastAPI Pydantic response schemas 1:1 (apps/api/app/schemas).
  * Frontend code should import types from here rather than redefining shapes.
  */
@@ -3888,4 +3888,77 @@ export interface RestoreRequest {
 
 export interface RestoreResponse {
   restored: Record<string, number>;
+}
+export type UserRole = "USER" | "ADMIN";
+export type AccountStatus = "ACTIVE" | "SUSPENDED";
+
+export interface AuthUserProfile {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  status: AccountStatus;
+  must_change_password: boolean;
+  ai_access_enabled: boolean;
+  ai_daily_quota: number;
+  ai_requests_today: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AuthResponse {
+  user: AuthUserProfile;
+}
+
+export interface PaginatedResponse<T> {
+  items: T[];
+  page: number;
+  page_size: number;
+  total: number;
+}
+
+export interface AdminDashboardSummary {
+  users: number;
+  active_users: number;
+  suspended_users: number;
+  locked_users: number;
+  signups_today: number;
+  ai_requests_today: number;
+}
+
+export interface AdminUserSummary {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  status: AccountStatus;
+  must_change_password: boolean;
+  is_locked: boolean;
+  ai_grant_enabled: boolean;
+  ai_daily_quota: number;
+  ai_requests_today: number;
+  created_at: string;
+  last_login_at: string | null;
+}
+
+export interface AdminUserDetail extends AdminUserSummary {
+  failed_login_count: number;
+  locked_until: string | null;
+  temporary_password_expires_at: string | null;
+  ai_preference_enabled: boolean;
+  effective_ai_access_enabled: boolean;
+}
+
+export interface AdminAuditEntry {
+  id: string;
+  actor_user_id: string | null;
+  target_user_id: string | null;
+  action: string;
+  details: Record<string, unknown> | null;
+  created_at: string;
+}
+
+export interface AdminDataRow {
+  type: string;
+  data: Record<string, unknown>;
 }

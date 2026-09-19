@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.core.config import Settings
@@ -59,8 +59,13 @@ def list_engines(settings: Settings) -> list[EngineInfo]:
     return engines
 
 
-def list_duckdb_databases(db: Session) -> list[DatabaseInfo]:
-    stmt = select(Dataset, SqlTable).join(SqlTable, SqlTable.dataset_id == Dataset.id).order_by(Dataset.name)
+def list_duckdb_databases(db: Session, user_id: str | None = None) -> list[DatabaseInfo]:
+    stmt = (
+        select(Dataset, SqlTable)
+        .join(SqlTable, SqlTable.dataset_id == Dataset.id)
+        .where(or_(Dataset.owner_user_id.is_(None), Dataset.owner_user_id == user_id))
+        .order_by(Dataset.name)
+    )
     rows = db.execute(stmt).all()
     grouped: dict[str, DatabaseInfo] = {}
     for dataset, _table in rows:
@@ -78,8 +83,8 @@ def list_duckdb_databases(db: Session) -> list[DatabaseInfo]:
     return list(grouped.values())
 
 
-def list_databases(db: Session, settings: Settings) -> list[DatabaseInfo]:
-    databases = list_duckdb_databases(db)
+def list_databases(db: Session, settings: Settings, user_id: str | None = None) -> list[DatabaseInfo]:
+    databases = list_duckdb_databases(db, user_id)
     if settings.sql_lab_postgres_available:
         databases.append(
             DatabaseInfo(
@@ -93,11 +98,16 @@ def list_databases(db: Session, settings: Settings) -> list[DatabaseInfo]:
     return databases
 
 
-def _duckdb_table_sources(db: Session, dataset_slug: str) -> list[DuckDbTableSource]:
+def _duckdb_table_sources(
+    db: Session, dataset_slug: str, user_id: str | None = None
+) -> list[DuckDbTableSource]:
     stmt = (
         select(SqlTable)
         .join(Dataset, Dataset.id == SqlTable.dataset_id)
-        .where(Dataset.slug == dataset_slug)
+        .where(
+            Dataset.slug == dataset_slug,
+            or_(Dataset.owner_user_id.is_(None), Dataset.owner_user_id == user_id),
+        )
         .order_by(SqlTable.display_order)
     )
     tables = db.execute(stmt).scalars().all()
@@ -111,9 +121,11 @@ def _duckdb_table_sources(db: Session, dataset_slug: str) -> list[DuckDbTableSou
     ]
 
 
-def get_engine(db: Session, settings: Settings, engine_name: str, database_name: str) -> SqlEngine:
+def get_engine(
+    db: Session, settings: Settings, engine_name: str, database_name: str, user_id: str | None = None
+) -> SqlEngine:
     if engine_name == "duckdb":
-        return DuckDBEngine(database_name, _duckdb_table_sources(db, database_name))
+        return DuckDBEngine(database_name, _duckdb_table_sources(db, database_name, user_id))
     if engine_name == "postgres":
         if not settings.sql_lab_postgres_available:
             raise SqlEngineError("PostgreSQL is not configured for this installation.")

@@ -17,7 +17,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from fastapi import BackgroundTasks, UploadFile
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from app.core.config import Settings, get_settings
@@ -59,10 +59,14 @@ class DatasetFilters:
 
 
 class DatasetService:
-    def __init__(self, db: Session, settings: Settings | None = None) -> None:
+    def __init__(self, db: Session, settings: Settings | None = None, user_id: str | None = None) -> None:
         self.db = db
         self.settings = settings or get_settings()
         self.repo = DatasetRepository(db)
+        self.user_id = user_id
+
+    def _visibility(self):
+        return or_(Dataset.owner_user_id.is_(None), Dataset.owner_user_id == self.user_id)
 
     # --- Catalog -----------------------------------------------------------
 
@@ -76,7 +80,7 @@ class DatasetService:
 
     def list_datasets(self, filters: DatasetFilters | None = None) -> list[DatasetSchema]:
         filters = filters or DatasetFilters()
-        stmt = select(Dataset)
+        stmt = select(Dataset).where(self._visibility())
         if filters.business_domain:
             stmt = stmt.where(Dataset.business_domain == filters.business_domain)
         if filters.source_type:
@@ -128,7 +132,20 @@ class DatasetService:
 
     def _find(self, id_or_slug: str) -> Dataset:
         dataset = self.repo.get_by_id(id_or_slug) or self.repo.get_by_slug(id_or_slug)
-        if dataset is None:
+        if dataset is None or (dataset.owner_user_id is not None and dataset.owner_user_id != self.user_id):
+            raise NotFoundError(f"Dataset '{id_or_slug}' was not found.", details={"id_or_slug": id_or_slug})
+        return dataset
+
+    def _find_owned(self, id_or_slug: str) -> Dataset:
+        """Resolve a private dataset for a learner mutation.
+
+        Built-in datasets are visible to everyone, but they are content and
+        therefore read-only outside the administrative content workflow.
+        ``user_id is None`` is retained for direct seed/test service usage;
+        authenticated HTTP requests always construct this service with an id.
+        """
+        dataset = self._find(id_or_slug)
+        if self.user_id is not None and dataset.owner_user_id != self.user_id:
             raise NotFoundError(f"Dataset '{id_or_slug}' was not found.", details={"id_or_slug": id_or_slug})
         return dataset
 
@@ -147,11 +164,7 @@ class DatasetService:
             # Product Analytics table pickers) would see an empty list and have no way to
             # select any table but the implicit default, even though the dataset is fully
             # queryable. `size_bytes` has no SqlTable equivalent, so it's always None here.
-            stmt = (
-                select(SqlTable)
-                .where(SqlTable.dataset_id == dataset.id)
-                .order_by(SqlTable.display_order)
-            )
+            stmt = select(SqlTable).where(SqlTable.dataset_id == dataset.id).order_by(SqlTable.display_order)
             sql_tables = self.db.execute(stmt).scalars().all()
             schema.tables = [
                 DatasetTableSchema(
@@ -213,9 +226,12 @@ class DatasetService:
         # cleanly with nothing left behind, never an orphaned dataset stuck
         # in IMPORTING forever (see tests/test_dataset_import.py's
         # TestValidationErrors).
-        staged = import_service.stage_uploads(files, slug, max_bytes=self.settings.dataset_max_upload_bytes)
+        staged = import_service.stage_uploads(
+            files, slug, max_bytes=self.settings.dataset_max_upload_bytes, owner_user_id=self.user_id
+        )
 
         dataset = Dataset(
+            owner_user_id=self.user_id,
             name=form.name,
             slug=slug,
             description=form.description,
@@ -237,9 +253,12 @@ class DatasetService:
     def reimport(
         self, id_or_slug: str, files: list[UploadFile], background_tasks: BackgroundTasks
     ) -> DatasetSchema:
-        dataset = self._find(id_or_slug)
+        dataset = self._find_owned(id_or_slug)
         staged = import_service.stage_uploads(
-            files, dataset.slug, max_bytes=self.settings.dataset_max_upload_bytes
+            files,
+            dataset.slug,
+            max_bytes=self.settings.dataset_max_upload_bytes,
+            owner_user_id=self.user_id,
         )
         background_tasks.add_task(import_service.process_dataset_import, self.db, dataset.id, staged)
         dataset.status = DatasetStatus.IMPORTING
@@ -247,7 +266,7 @@ class DatasetService:
         return self.to_schema(dataset)
 
     def trigger_reprofile(self, id_or_slug: str, background_tasks: BackgroundTasks) -> DatasetSchema:
-        dataset = self._find(id_or_slug)
+        dataset = self._find_owned(id_or_slug)
         if not dataset.tables:
             raise AppError("This dataset has no tables to profile yet.")
         background_tasks.add_task(import_service.reprofile_dataset, self.db, dataset.id)
@@ -256,7 +275,7 @@ class DatasetService:
         return self.to_schema(dataset)
 
     def archive(self, id_or_slug: str) -> DatasetSchema:
-        dataset = self._find(id_or_slug)
+        dataset = self._find_owned(id_or_slug)
         dataset.status = DatasetStatus.ARCHIVED
         self.db.commit()
         return self.to_schema(dataset)
@@ -271,7 +290,7 @@ class DatasetService:
     def add_relationship(
         self, id_or_slug: str, payload: CreateRelationshipRequest
     ) -> DatasetRelationshipSchema:
-        dataset = self._find(id_or_slug)
+        dataset = self._find_owned(id_or_slug)
         table_names = {t.table_name for t in dataset.tables}
         if payload.from_table not in table_names or payload.to_table not in table_names:
             raise AppError(
@@ -291,7 +310,7 @@ class DatasetService:
         return DatasetRelationshipSchema.model_validate(rel)
 
     def delete_relationship(self, id_or_slug: str, relationship_id: str) -> None:
-        dataset = self._find(id_or_slug)
+        dataset = self._find_owned(id_or_slug)
         rel = self.db.get(DatasetRelationship, relationship_id)
         if rel is None or rel.dataset_id != dataset.id:
             raise NotFoundError(f"Relationship '{relationship_id}' was not found.")
@@ -304,7 +323,7 @@ class DatasetService:
         dataset = self._find(id_or_slug)
         stmt = (
             select(DatasetNote)
-            .where(DatasetNote.dataset_id == dataset.id)
+            .where(DatasetNote.dataset_id == dataset.id, DatasetNote.user_id == self.user_id)
             .order_by(DatasetNote.created_at.desc())
         )
         return [DatasetNoteSchema.model_validate(n) for n in self.db.execute(stmt).scalars().all()]
@@ -349,6 +368,12 @@ class DatasetService:
             select(func.count()).select_from(model).where(model.dataset_id == dataset_id)
         ).scalar_one()
 
+    def _count_user_resource(self, model, dataset_id: str) -> int:
+        stmt = select(func.count()).select_from(model).where(model.dataset_id == dataset_id)
+        if self.user_id is not None:
+            stmt = stmt.where(model.user_id == self.user_id)
+        return self.db.execute(stmt).scalar_one()
+
     def get_usage(self, id_or_slug: str) -> DatasetUsageSchema:
         dataset = self._find(id_or_slug)
         exercises = list(
@@ -360,9 +385,9 @@ class DatasetService:
             sql_exercises=sql_count,
             python_exercises=python_count,
             other_exercises=len(exercises) - sql_count - python_count,
-            eda_workspaces=self._count(EdaWorkspace, dataset.id),
-            charts=self._count(Chart, dataset.id),
-            projects=self._count(Project, dataset.id),
+            eda_workspaces=self._count_user_resource(EdaWorkspace, dataset.id),
+            charts=self._count_user_resource(Chart, dataset.id),
+            projects=self._count_user_resource(Project, dataset.id),
         )
 
     # --- Kaggle finalize (used by app/services/kaggle_service.py) ----------
@@ -378,6 +403,7 @@ class DatasetService:
     ) -> Dataset:
         slug = self._unique_slug(name)
         dataset = Dataset(
+            owner_user_id=self.user_id,
             name=name,
             slug=slug,
             description=description,

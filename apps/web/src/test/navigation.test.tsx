@@ -10,9 +10,13 @@ vi.mock("next/navigation", () => ({
   usePathname: vi.fn(),
 }));
 
+vi.mock("@/features/auth/auth-provider", () => ({
+  useAuth: () => ({ user: { ai_access_enabled: true } }),
+}));
+
 describe("SidebarNav", () => {
   it("highlights the active route and updates when the route changes", () => {
-    vi.mocked(navigation.usePathname).mockReturnValue("/");
+    vi.mocked(navigation.usePathname).mockReturnValue("/dashboard");
     const { rerender } = renderWithProviders(<SidebarNav />);
 
     expect(screen.getByRole("link", { name: "Dashboard" })).toHaveAttribute("aria-current", "page");
@@ -26,10 +30,10 @@ describe("SidebarNav", () => {
     expect(screen.getByRole("link", { name: "Dashboard" })).not.toHaveAttribute("aria-current");
   });
 
-  it("treats nested routes (e.g. /admin/content) as active for their nav item", () => {
+  it("does not expose administrator navigation in the learner sidebar", () => {
     vi.mocked(navigation.usePathname).mockReturnValue("/admin/content");
     renderWithProviders(<SidebarNav />);
 
-    expect(screen.getByRole("link", { name: "Content Admin" })).toHaveAttribute("aria-current", "page");
+    expect(screen.queryByRole("link", { name: "Content Admin" })).not.toBeInTheDocument();
   });
 });

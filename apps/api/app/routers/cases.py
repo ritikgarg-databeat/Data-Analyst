@@ -2,7 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
 
-from app.dependencies.current_user import CurrentUserId
+from app.dependencies.current_user import AdminUser, CurrentUserId
 from app.dependencies.services import get_case_service
 from app.models.enums import CaseCategory
 from app.schemas.case import (
@@ -31,6 +31,7 @@ router = APIRouter(prefix="/cases", tags=["cases"])
 # Registered before GET /{slug} so "admin" isn't swallowed by the slug route.
 @router.get("/admin", response_model=list[CaseAdminListItemSchema])
 def list_cases_admin(
+    admin: AdminUser,
     service: Annotated[CaseService, Depends(get_case_service)],
 ) -> list[CaseAdminListItemSchema]:
     return [CaseAdminListItemSchema.model_validate(c) for c in service.list_cases_admin()]
@@ -40,6 +41,7 @@ def list_cases_admin(
 def update_case_admin(
     case_id: str,
     payload: UpdateCaseAdminRequest,
+    admin: AdminUser,
     service: Annotated[CaseService, Depends(get_case_service)],
 ) -> CaseAdminListItemSchema:
     return CaseAdminListItemSchema.model_validate(service.update_case_admin(case_id, payload.is_active))
@@ -86,9 +88,7 @@ def get_attempt(
 
 
 @router.get("/{slug}", response_model=CaseSchema)
-def get_case(
-    slug: str, service: Annotated[CaseService, Depends(get_case_service)]
-) -> CaseSchema:
+def get_case(slug: str, service: Annotated[CaseService, Depends(get_case_service)]) -> CaseSchema:
     return to_case_schema(service.get_case_by_slug(slug))
 
 
@@ -195,9 +195,7 @@ def submit_attempt(
     user_id: CurrentUserId,
     service: Annotated[CaseService, Depends(get_case_service)],
 ) -> CaseAttemptSchema:
-    return _to_attempt_schema(
-        service, service.submit_attempt(user_id, attempt_id, payload.rubric_selections)
-    )
+    return _to_attempt_schema(service, service.submit_attempt(user_id, attempt_id, payload.rubric_selections))
 
 
 @router.post("/attempts/{attempt_id}/reveal-solution", response_model=RevealCaseSolutionResponse)

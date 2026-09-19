@@ -16,8 +16,8 @@ test.describe("Phase 2 core learning loop", () => {
   test.describe.configure({ mode: "serial" });
 
   test("open dashboard, drill into a lesson, read it, and complete it", async ({ page }) => {
-    await page.goto("/");
-    await expect(page.getByRole("heading", { name: "Ritik's Personal Data Analyst Lab" })).toBeVisible();
+    await page.goto("/dashboard");
+    await expect(page.getByRole("heading", { name: /Personal Data Lab/ })).toBeVisible();
 
     // Phase 12 grouped the nav under section headings — "Learn" is a heading now,
     // "Curriculum" is the actual link into /learn.
@@ -75,7 +75,7 @@ test.describe("Phase 2 core learning loop", () => {
   });
 
   test("completed lesson appears in Recently Completed on the dashboard", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/dashboard");
 
     await expect(page.getByText("Recently Completed")).toBeVisible();
     await expect(page.getByText("SELECT", { exact: true }).first()).toBeVisible({ timeout: 10_000 });

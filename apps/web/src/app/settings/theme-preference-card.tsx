@@ -22,7 +22,7 @@ export function ThemePreferenceCard() {
     <Card className="max-w-2xl">
       <CardHeader>
         <CardTitle>Appearance</CardTitle>
-        <CardDescription>Choose how Personal Data Analyst Lab looks on this device.</CardDescription>
+        <CardDescription>Choose how Data Lab looks on this device.</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Theme preference">

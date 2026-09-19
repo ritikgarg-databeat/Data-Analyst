@@ -34,6 +34,21 @@ class ConflictError(AppError):
     code = "conflict"
 
 
+class AuthenticationError(AppError):
+    status_code = status.HTTP_401_UNAUTHORIZED
+    code = "authentication_required"
+
+
+class ForbiddenError(AppError):
+    status_code = status.HTTP_403_FORBIDDEN
+    code = "forbidden"
+
+
+class RateLimitError(AppError):
+    status_code = status.HTTP_429_TOO_MANY_REQUESTS
+    code = "rate_limited"
+
+
 def _sanitize_pydantic_errors(errors: Any) -> list[dict[str, Any]]:
     """Pydantic's `ValidationError.errors()` puts the raw exception object in
     `ctx.error` whenever a `@model_validator`/`@field_validator` raises a

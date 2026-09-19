@@ -4,7 +4,7 @@ DataQualityRun), mirroring app/sql/service.py's shape."""
 
 from __future__ import annotations
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.core.config import Settings, get_settings
@@ -18,9 +18,21 @@ from app.sql.engines.base import SqlEngineError
 
 
 class DataQualityService:
-    def __init__(self, db: Session, settings: Settings | None = None) -> None:
+    def __init__(self, db: Session, settings: Settings | None = None, user_id: str | None = None) -> None:
         self.db = db
         self.settings = settings or get_settings()
+        self.user_id = user_id
+
+    def _find_dataset(self, dataset_id: str) -> Dataset:
+        dataset = self.db.scalar(
+            select(Dataset).where(
+                Dataset.id == dataset_id,
+                or_(Dataset.owner_user_id.is_(None), Dataset.owner_user_id == self.user_id),
+            )
+        )
+        if dataset is None:
+            raise NotFoundError(f"Dataset '{dataset_id}' not found.")
+        return dataset
 
     # --- Rule CRUD -------------------------------------------------------
 
@@ -48,9 +60,7 @@ class DataQualityService:
         config: dict,
         name: str | None,
     ) -> DataQualityRule:
-        dataset = self.db.get(Dataset, dataset_id)
-        if dataset is None:
-            raise NotFoundError(f"Dataset '{dataset_id}' not found.")
+        self._find_dataset(dataset_id)
         rule = DataQualityRule(
             user_id=user_id,
             dataset_id=dataset_id,
@@ -74,9 +84,7 @@ class DataQualityService:
 
     def run_rule(self, user_id: str, rule_id: str) -> DataQualityRun:
         rule = self.get_rule(user_id, rule_id)
-        dataset = self.db.get(Dataset, rule.dataset_id)
-        if dataset is None:
-            raise NotFoundError(f"Dataset '{rule.dataset_id}' not found.")
+        dataset = self._find_dataset(rule.dataset_id)
 
         try:
             sql = build_check_sql(
@@ -92,7 +100,7 @@ class DataQualityService:
             )
 
         try:
-            engine = registry.get_engine(self.db, self.settings, "duckdb", dataset.slug)
+            engine = registry.get_engine(self.db, self.settings, "duckdb", dataset.slug, user_id=self.user_id)
         except SqlEngineError as exc:
             return self._save_run(
                 rule,

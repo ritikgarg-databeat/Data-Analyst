@@ -26,9 +26,10 @@ from app.sql.paths import resolve_repo_path
 
 
 class EdaService:
-    def __init__(self, db: Session) -> None:
+    def __init__(self, db: Session, user_id: str | None = None) -> None:
         self.db = db
         self.dataset_repo = DatasetRepository(db)
+        self.user_id = user_id
 
     # --- Workspaces -----------------------------------------------------
 
@@ -42,7 +43,11 @@ class EdaService:
 
     def _find_dataset(self, dataset_id: str) -> Dataset:
         dataset = self.dataset_repo.get_by_id(dataset_id) or self.dataset_repo.get_by_slug(dataset_id)
-        if dataset is None:
+        if dataset is None or (
+            self.user_id is not None
+            and dataset.owner_user_id is not None
+            and dataset.owner_user_id != self.user_id
+        ):
             raise NotFoundError(f"Dataset '{dataset_id}' was not found.")
         return dataset
 

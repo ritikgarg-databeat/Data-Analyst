@@ -5,6 +5,22 @@ treated as an automatic safety guarantee — every layer below is real, verified
 code, not a policy statement. Facts here were confirmed against the current codebase during Phase 12's
 security audit (not carried forward from earlier phases' own descriptions).
 
+## Local multi-user authentication and authorization
+
+- Passwords are Argon2id hashes and never appear in JWTs, API responses, audit rows, or logs.
+- A 15-minute access token and rotating seven-day refresh token are stored in HTTP-only cookies;
+  refresh tokens are stored server-side only as SHA-256 hashes. Reuse revokes every session.
+- Unsafe authenticated requests require a matching double-submit CSRF token and, when a browser sends
+  an `Origin`, it must match `AUTH_TRUSTED_ORIGIN`.
+- Accounts lock for 15 minutes after five failed logins. Suspension, password/email changes, role
+  changes, resets, and explicit logout-all revoke sessions.
+- Every non-health/auth route is authenticated. Administrator routes have a separate role dependency,
+  last-admin/self-action safeguards, current-password confirmation for critical operations, and an
+  audit trail. Administrators can inspect data but cannot impersonate users.
+- Private rows and files are scoped by authenticated user ID. Shared curriculum datasets remain
+  read-only; uploaded files, notes, SQL/Python access, dbt warehouses/artifacts, and backups are
+  isolated per user.
+
 ## Python sandbox (`apps/api/app/python_lab/docker_backend.py`)
 
 Every Python Lab execution runs inside a fresh Docker container with:
@@ -50,9 +66,10 @@ deliberate, documented tradeoff, not an oversight — see `docker_backend.py`'s 
   platform's prompt-injection defense.
 - Provider calls carry a real timeout (`AI_REQUEST_TIMEOUT_SECONDS`, default 30s) and bounded retries
   (`AI_MAX_RETRIES`, default 2, only on 5xx/timeout, with exponential backoff).
-- A daily request limit (`AI_DAILY_REQUEST_LIMIT`, default 200, per-user) is enforced before every
-  dispatch, and every call is written to an append-only `AIAuditLog` (feature/provider/model/tokens/
-  latency/success — never the full prompt, only a redacted preview).
+- Effective AI access requires both an administrator grant/quota and the user's own preference. The
+  per-user quota is enforced atomically before every dispatch and is capped by
+  `AI_DAILY_REQUEST_LIMIT` (default 200). Every call is written to an append-only `AIAuditLog`
+  (feature/provider/model/tokens/latency/success — never the full prompt, only a redacted preview).
 - Provider API keys never reach the frontend — confirmed by inspection: the only occurrences of
   `AI_API_KEY`/`OPENAI`/`ANTHROPIC` anywhere under `apps/web` are UI label text, never a key value.
 
@@ -75,6 +92,7 @@ deliberate, documented tradeoff, not an oversight — see `docker_backend.py`'s 
 
 `CORS_ORIGINS` defaults to `["http://localhost:3000"]` only — both locally and in `docker-compose.yml`.
 Methods/headers are wide open (`*`) for that one allowed origin, which is the frontend's own origin.
+Browser mutations additionally enforce `AUTH_TRUSTED_ORIGIN` and CSRF independently of CORS.
 
 ## File uploads
 
@@ -86,10 +104,10 @@ Methods/headers are wide open (`*`) for that one allowed origin, which is the fr
   content client-side and submits it through the same paste endpoint, never sending raw file bytes to
   the backend.
 
-## What's explicitly out of scope for a local-first single-user app
+## What's explicitly out of scope for this localhost phase
 
-- No general HTTP rate-limiting middleware exists (only the AI daily-request-limit and a Python Lab
-  per-user concurrent-container cap). For a single local user with no exposed public endpoint, this is
-  an accepted tradeoff, not an oversight — revisit before ever exposing this API beyond localhost.
-- No authentication/authorization layer — the whole platform models exactly one local user
-  (`UserService.get_current_user()`), consistent with every phase's design.
+- No general HTTP rate-limiting middleware exists (only the AI daily request limit and a Python Lab
+  per-user concurrent-container cap). Account login lockout is implemented, but broader rate limiting
+  should be added before exposing the API beyond localhost.
+- Email verification, email-based reset, SSO, MFA, and production deployment are intentionally
+  deferred. Forgotten-password recovery is an administrator-issued, 24-hour temporary password.

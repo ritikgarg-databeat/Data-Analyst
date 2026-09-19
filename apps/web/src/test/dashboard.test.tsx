@@ -1,9 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { screen } from "@testing-library/react";
-import { APP_NAME, APP_TAGLINE } from "@data-analyst-lab/shared";
 import type { ProgressSummary, RecommendationItem } from "@data-analyst-lab/shared";
 
-import DashboardPage from "@/app/page";
+import DashboardPage from "@/app/dashboard/page";
 import { apiClient } from "@/lib/api-client";
 
 import { renderWithProviders } from "./test-utils";
@@ -18,6 +17,10 @@ vi.mock("@/lib/api-client", () => ({
   },
   API_BASE_URL: "http://localhost:8000",
   ApiError: class ApiError extends Error {},
+}));
+
+vi.mock("@/features/auth/auth-provider", () => ({
+  useAuth: () => ({ user: { name: "Jordan Lee" } }),
 }));
 
 const baseSummary: ProgressSummary = {
@@ -61,12 +64,8 @@ describe("DashboardPage", () => {
 
     renderWithProviders(<DashboardPage />);
 
-    expect(
-      screen.getByRole("heading", { name: APP_NAME }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(APP_TAGLINE),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Jordan's Personal Data Lab" })).toBeInTheDocument();
+    expect(screen.getByText("Your focused space to learn, practice, build, and grow.")).toBeInTheDocument();
 
     expect(await screen.findByText("Overall Progress")).toBeInTheDocument();
     expect(screen.getByText("Current Level")).toBeInTheDocument();

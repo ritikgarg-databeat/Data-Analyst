@@ -12,10 +12,10 @@ from sqlalchemy.orm import Session
 
 from app.core.errors import NotFoundError
 from app.interview_engine.spaced_review import ReviewItem, due_reviews
-from app.models.enums import ExerciseAttemptStatus
+from app.models.enums import ExerciseAttemptStatus, InterviewTargetType
 from app.models.exercise import Exercise
 from app.models.exercise_attempt import ExerciseAttempt
-from app.models.interview import InterviewBookmark, InterviewNote, InterviewQuestion
+from app.models.interview import Interview, InterviewBookmark, InterviewNote, InterviewQuestion
 from app.models.tag import ExerciseTag, Tag
 from app.schemas.interview import (
     CreateBookmarkRequest,
@@ -85,7 +85,10 @@ class InterviewQuestionService:
                 continue
             if search:
                 needle = search.strip().lower()
-                if needle not in exercise.title.lower() and needle not in (exercise.description or "").lower():
+                if (
+                    needle not in exercise.title.lower()
+                    and needle not in (exercise.description or "").lower()
+                ):
                     continue
             if bookmarked_only and question.id not in bookmarked_ids:
                 continue
@@ -149,7 +152,9 @@ class InterviewQuestionService:
             for question, exercise in rows
         ]
 
-    def update_question_admin(self, question_id: str, is_active: bool) -> InterviewQuestionAdminListItemSchema:
+    def update_question_admin(
+        self, question_id: str, is_active: bool
+    ) -> InterviewQuestionAdminListItemSchema:
         question = self.db.get(InterviewQuestion, question_id)
         if question is None:
             raise NotFoundError(f"Interview question '{question_id}' not found.")
@@ -240,6 +245,10 @@ class InterviewQuestionService:
         return [InterviewBookmarkSchema.model_validate(b) for b in self.db.execute(stmt).scalars().all()]
 
     def create_bookmark(self, user_id: str, payload: CreateBookmarkRequest) -> InterviewBookmarkSchema:
+        if payload.target_type == InterviewTargetType.INTERVIEW:
+            interview = self.db.get(Interview, payload.target_id)
+            if interview is None or interview.user_id != user_id:
+                raise NotFoundError(f"Interview '{payload.target_id}' not found.")
         existing = self.db.execute(
             select(InterviewBookmark).where(
                 InterviewBookmark.user_id == user_id,
@@ -279,6 +288,10 @@ class InterviewQuestionService:
         return [InterviewNoteSchema.model_validate(n) for n in self.db.execute(stmt).scalars().all()]
 
     def create_note(self, user_id: str, payload: CreateNoteRequest) -> InterviewNoteSchema:
+        if payload.target_type == InterviewTargetType.INTERVIEW:
+            interview = self.db.get(Interview, payload.target_id)
+            if interview is None or interview.user_id != user_id:
+                raise NotFoundError(f"Interview '{payload.target_id}' not found.")
         note = InterviewNote(
             user_id=user_id, target_type=payload.target_type, target_id=payload.target_id, note=payload.note
         )

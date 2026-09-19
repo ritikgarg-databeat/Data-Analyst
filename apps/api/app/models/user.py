@@ -1,21 +1,31 @@
-from sqlalchemy import String
+from datetime import datetime
+
+from sqlalchemy import Boolean, DateTime, Enum, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
 from app.models.base import TimestampMixin, UUIDPrimaryKeyMixin
+from app.models.enums import AccountStatus, UserRole
 
 
 class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
-    """The local application user.
-
-    This is a single-user local application, so there is no auth/session
-    machinery here — the app operates against one seeded user row. The model
-    is still shaped like a normal `users` table (distinct id, email, audit
-    timestamps) so multi-user support can be layered on later without a
-    schema rewrite.
-    """
+    """A local learner or administrator account."""
 
     __tablename__ = "users"
 
     name: Mapped[str] = mapped_column(String(255))
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    password_hash: Mapped[str] = mapped_column(String(255), default="!unusable")
+    role: Mapped[UserRole] = mapped_column(
+        Enum(UserRole, native_enum=False, length=20), default=UserRole.USER, index=True
+    )
+    status: Mapped[AccountStatus] = mapped_column(
+        Enum(AccountStatus, native_enum=False, length=20), default=AccountStatus.ACTIVE, index=True
+    )
+    must_change_password: Mapped[bool] = mapped_column(Boolean, default=False)
+    failed_login_count: Mapped[int] = mapped_column(Integer, default=0)
+    locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    temporary_password_expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )

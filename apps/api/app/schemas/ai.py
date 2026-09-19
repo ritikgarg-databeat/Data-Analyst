@@ -229,6 +229,8 @@ class AISettingsSchema(ORMSchema):
     privacy_preference: str
     max_context_chars: int | None
     daily_request_limit: int | None
+    admin_access_enabled: bool
+    effective_access_enabled: bool
     effective_provider: str
     ai_configured: bool
 
@@ -241,7 +243,6 @@ class UpdateAISettingsRequest(BaseModel):
     learning_mode: str | None = None
     privacy_preference: str | None = None
     max_context_chars: int | None = None
-    daily_request_limit: int | None = None
 
 
 class AIUsageResponse(BaseModel):

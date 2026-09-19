@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.core.config import Settings, get_settings
@@ -22,19 +22,20 @@ class TableSummary:
 
 
 class SqlExecutionService:
-    def __init__(self, db: Session, settings: Settings | None = None) -> None:
+    def __init__(self, db: Session, settings: Settings | None = None, user_id: str | None = None) -> None:
         self.db = db
         self.settings = settings or get_settings()
+        self.user_id = user_id
 
     def list_engines(self) -> list[registry.EngineInfo]:
         return registry.list_engines(self.settings)
 
     def list_databases(self) -> list[registry.DatabaseInfo]:
-        return registry.list_databases(self.db, self.settings)
+        return registry.list_databases(self.db, self.settings, self.user_id)
 
     def _get_engine(self, engine_name: str, database_name: str):
         try:
-            return registry.get_engine(self.db, self.settings, engine_name, database_name)
+            return registry.get_engine(self.db, self.settings, engine_name, database_name, self.user_id)
         except SqlEngineError as exc:
             raise NotFoundError(str(exc)) from exc
 
@@ -45,7 +46,10 @@ class SqlExecutionService:
             stmt = (
                 select(SqlTable)
                 .join(Dataset, Dataset.id == SqlTable.dataset_id)
-                .where(Dataset.slug == database_name)
+                .where(
+                    Dataset.slug == database_name,
+                    or_(Dataset.owner_user_id.is_(None), Dataset.owner_user_id == self.user_id),
+                )
                 .order_by(SqlTable.display_order)
             )
             rows = self.db.execute(stmt).scalars().all()

@@ -4,7 +4,7 @@ a preview and requires an explicit `--yes` flag before writing anything —
 never destructive by default.
 
 Usage:
-    uv run --project apps/api python -m app.db.restore_cli <path-to-backup.json> [--yes]
+    uv run --project apps/api python -m app.db.restore_cli <account-email> <path-to-backup.json> [--yes]
 """
 
 from __future__ import annotations
@@ -12,19 +12,25 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+from sqlalchemy import select
+
 from app.core.database import SessionLocal
+from app.models.user import User
 from app.schemas.platform import BackupBundle
 from app.services.backup_service import BackupService
-from app.services.user_service import UserService
 
 
 def main() -> int:
-    if len(sys.argv) < 2:
-        print("Usage: python -m app.db.restore_cli <path-to-backup.json> [--yes]", file=sys.stderr)
+    if len(sys.argv) < 3:
+        print(
+            "Usage: python -m app.db.restore_cli <account-email> <path-to-backup.json> [--yes]",
+            file=sys.stderr,
+        )
         return 1
 
-    backup_path = Path(sys.argv[1])
-    confirmed = "--yes" in sys.argv[2:]
+    account_email = sys.argv[1].strip().lower()
+    backup_path = Path(sys.argv[2])
+    confirmed = "--yes" in sys.argv[3:]
     if not backup_path.exists():
         print(f"Backup file not found: {backup_path}", file=sys.stderr)
         return 1
@@ -46,7 +52,10 @@ def main() -> int:
             print("\nThis was a DRY RUN. Re-run with --yes to actually restore.")
             return 0
 
-        user = UserService(session).get_current_user()
+        user = session.scalar(select(User).where(User.email == account_email))
+        if not user:
+            print("Account not found.", file=sys.stderr)
+            return 1
         restored = service.restore_bundle(user.id, bundle)
         total = sum(restored.values())
         print(f"\nRestored {total} new row(s) (rows already present were left untouched):")

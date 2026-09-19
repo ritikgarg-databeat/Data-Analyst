@@ -37,7 +37,7 @@ async function expectEditorContains(page: Page, editorLabel: string, token: stri
 
 test.describe("Phase 3 SQL Lab", () => {
   test("explore the schema, run/sort/save queries, and see errors + history in the playground", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/dashboard");
     await page.getByRole("link", { name: "SQL Lab" }).first().click();
     await page.waitForURL("**/sql-lab");
     await expect(page.getByRole("heading", { name: "SQL Lab" })).toBeVisible();

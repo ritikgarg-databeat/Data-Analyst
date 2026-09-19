@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.data_modeling.service import DataModelService
 from app.data_quality.service import DataQualityService
 from app.dbt_lab.service import DbtLabService
+from app.dependencies.current_user import CurrentUserId
 from app.dependencies.db import get_db
 from app.python_lab.service import PythonExecutionService
 from app.services.achievement_service import AchievementService
@@ -91,8 +92,8 @@ def get_exercise_service(db: DbSession) -> ExerciseService:
     return ExerciseService(db)
 
 
-def get_dataset_service(db: DbSession) -> DatasetService:
-    return DatasetService(db)
+def get_dataset_service(db: DbSession, user_id: CurrentUserId) -> DatasetService:
+    return DatasetService(db, user_id=user_id)
 
 
 def get_tag_service(db: DbSession) -> TagService:
@@ -111,8 +112,8 @@ def get_recommendation_service(db: DbSession) -> RecommendationService:
     return RecommendationService(db)
 
 
-def get_sql_execution_service(db: DbSession) -> SqlExecutionService:
-    return SqlExecutionService(db)
+def get_sql_execution_service(db: DbSession, user_id: CurrentUserId) -> SqlExecutionService:
+    return SqlExecutionService(db, user_id=user_id)
 
 
 def get_sql_exercise_service(db: DbSession) -> SqlExerciseService:
@@ -123,40 +124,40 @@ def get_sql_workspace_service(db: DbSession) -> SqlWorkspaceService:
     return SqlWorkspaceService(db)
 
 
-def get_python_execution_service(db: DbSession) -> PythonExecutionService:
-    return PythonExecutionService(db)
+def get_python_execution_service(db: DbSession, user_id: CurrentUserId) -> PythonExecutionService:
+    return PythonExecutionService(db, user_id=user_id)
 
 
-def get_python_exercise_service(db: DbSession) -> PythonExerciseService:
-    return PythonExerciseService(db)
+def get_python_exercise_service(db: DbSession, user_id: CurrentUserId) -> PythonExerciseService:
+    return PythonExerciseService(db, user_id=user_id)
 
 
 def get_python_workspace_service(db: DbSession) -> PythonWorkspaceService:
     return PythonWorkspaceService(db)
 
 
-def get_dataset_analysis_service(db: DbSession) -> DatasetAnalysisService:
-    return DatasetAnalysisService(db)
+def get_dataset_analysis_service(db: DbSession, user_id: CurrentUserId) -> DatasetAnalysisService:
+    return DatasetAnalysisService(db, user_id=user_id)
 
 
-def get_kaggle_service(db: DbSession) -> KaggleService:
-    return KaggleService(db)
+def get_kaggle_service(db: DbSession, user_id: CurrentUserId) -> KaggleService:
+    return KaggleService(db, user_id=user_id)
 
 
-def get_eda_service(db: DbSession) -> EdaService:
-    return EdaService(db)
+def get_eda_service(db: DbSession, user_id: CurrentUserId) -> EdaService:
+    return EdaService(db, user_id=user_id)
 
 
-def get_chart_service(db: DbSession) -> ChartService:
-    return ChartService(db)
+def get_chart_service(db: DbSession, user_id: CurrentUserId) -> ChartService:
+    return ChartService(db, user_id=user_id)
 
 
 def get_project_service(db: DbSession) -> ProjectService:
     return ProjectService(db)
 
 
-def get_statistics_service(db: DbSession) -> StatisticsService:
-    return StatisticsService(db)
+def get_statistics_service(db: DbSession, user_id: CurrentUserId) -> StatisticsService:
+    return StatisticsService(db, user_id=user_id)
 
 
 def get_experiment_service(db: DbSession) -> ExperimentService:
@@ -171,16 +172,16 @@ def get_analytics_case_service(db: DbSession) -> AnalyticsCaseService:
     return AnalyticsCaseService(db)
 
 
-def get_dbt_lab_service(db: DbSession) -> DbtLabService:
-    return DbtLabService(db)
+def get_dbt_lab_service(db: DbSession, user_id: CurrentUserId) -> DbtLabService:
+    return DbtLabService(db, user_id=user_id)
 
 
 def get_dbt_exercise_service(db: DbSession) -> DbtExerciseService:
     return DbtExerciseService(db)
 
 
-def get_data_quality_service(db: DbSession) -> DataQualityService:
-    return DataQualityService(db)
+def get_data_quality_service(db: DbSession, user_id: CurrentUserId) -> DataQualityService:
+    return DataQualityService(db, user_id=user_id)
 
 
 def get_data_model_service(db: DbSession) -> DataModelService:

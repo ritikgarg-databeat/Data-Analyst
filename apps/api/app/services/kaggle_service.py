@@ -46,11 +46,16 @@ def _default_client_factory(username: str, key: str) -> KaggleClientProtocol:
 
 class KaggleService:
     def __init__(
-        self, db: Session, settings: Settings | None = None, client_factory: _ClientFactory | None = None
+        self,
+        db: Session,
+        settings: Settings | None = None,
+        client_factory: _ClientFactory | None = None,
+        user_id: str | None = None,
     ) -> None:
         self.db = db
         self.settings = settings or get_settings()
         self._client_factory = client_factory or _default_client_factory
+        self.user_id = user_id
 
     def is_configured(self) -> bool:
         return self.settings.kaggle_configured
@@ -86,7 +91,7 @@ class KaggleService:
             raise AppError("Select at least one file to import.")
         client = self._client()
 
-        dataset_service = DatasetService(self.db, self.settings)
+        dataset_service = DatasetService(self.db, self.settings, self.user_id)
         dataset = dataset_service.create_kaggle_dataset_shell(
             payload.name,
             description=payload.description,
@@ -95,7 +100,7 @@ class KaggleService:
             kaggle_ref=ref,
         )
 
-        dest_dir = raw_dir_for(dataset.slug)
+        dest_dir = raw_dir_for(dataset.slug, self.user_id)
         staged = []
         for file_name in payload.files:
             downloaded = client.download_file(ref, file_name, dest_dir)

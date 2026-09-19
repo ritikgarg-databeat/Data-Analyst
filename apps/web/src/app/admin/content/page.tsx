@@ -37,29 +37,19 @@ export default function ContentAdminPage() {
     <div>
       <PageHeader
         title="Content Admin"
-        subtitle="Manage the structural taxonomy (domains, modules, skills, tags) and reorder/activate lessons and exercises. Lesson and exercise content itself is authored as files in content/ — see the note in each tab."
+        subtitle="Manage the shared taxonomy and activate or reorder authored learning content."
       />
-
-      <div role="tablist" aria-label="Content admin sections" className="mb-6 flex flex-wrap gap-1.5 border-b border-border pb-3">
-        {TABS.map((t) => (
-          <button
-            key={t.value}
-            type="button"
-            role="tab"
-            aria-selected={tab === t.value}
-            onClick={() => setTab(t.value)}
-            className={cn(
+      <div role="tablist" aria-label="Content admin sections"
+        className="mb-6 flex flex-wrap gap-1.5 border-b border-border pb-3">
+        {TABS.map((item) => (
+          <button key={item.value} type="button" role="tab" aria-selected={tab === item.value}
+            onClick={() => setTab(item.value)} className={cn(
               "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-              tab === t.value
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
-            )}
-          >
-            {t.label}
-          </button>
+              tab === item.value ? "bg-primary text-primary-foreground" :
+                "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+            )}>{item.label}</button>
         ))}
       </div>
-
       {tab === "domains" ? <DomainAdminPanel /> : null}
       {tab === "modules" ? <ModuleAdminPanel /> : null}
       {tab === "lessons" ? <LessonAdminPanel /> : null}

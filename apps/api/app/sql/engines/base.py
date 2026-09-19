@@ -36,7 +36,7 @@ class ColumnInfo:
 class SqlError:
     message: str
     """The raw, unmodified error message from the database engine — never
-    fabricated. `hint` (below) is Personal Data Analyst Lab's own derived,
+    fabricated. `hint` (below) is Data Lab's own derived,
     best-effort guidance and is None when we don't have anything useful to add."""
     hint: str | None = None
 

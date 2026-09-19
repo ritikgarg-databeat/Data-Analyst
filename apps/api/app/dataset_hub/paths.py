@@ -28,20 +28,24 @@ PROCESSED_DIR = DATA_ROOT / "processed"
 DATASETS_DIR = DATA_ROOT / "datasets"
 
 
-def raw_dir_for(slug: str) -> Path:
-    path = RAW_DIR / slug
+def _private_base(kind: str, owner_user_id: str | None) -> Path:
+    return DATA_ROOT / "users" / owner_user_id / kind if owner_user_id else DATA_ROOT / kind
+
+
+def raw_dir_for(slug: str, owner_user_id: str | None = None) -> Path:
+    path = _private_base("raw", owner_user_id) / slug
     path.mkdir(parents=True, exist_ok=True)
     return path
 
 
-def processed_dir_for(slug: str) -> Path:
-    path = PROCESSED_DIR / slug
+def processed_dir_for(slug: str, owner_user_id: str | None = None) -> Path:
+    path = _private_base("processed", owner_user_id) / slug
     path.mkdir(parents=True, exist_ok=True)
     return path
 
 
-def datasets_dir_for(slug: str) -> Path:
-    path = DATASETS_DIR / slug
+def datasets_dir_for(slug: str, owner_user_id: str | None = None) -> Path:
+    path = _private_base("datasets", owner_user_id) / slug
     path.mkdir(parents=True, exist_ok=True)
     return path
 

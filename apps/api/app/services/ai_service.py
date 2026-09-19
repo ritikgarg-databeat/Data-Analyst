@@ -35,7 +35,7 @@ from app.ai.retrieval import search as retrieval_search
 from app.ai.security import PRIVACY_NOTICE, redact_secrets
 from app.ai.tools import AIToolbox
 from app.core.config import Settings, get_settings
-from app.core.errors import AppError, NotFoundError
+from app.core.errors import AppError, ForbiddenError, NotFoundError, RateLimitError
 from app.models.ai import (
     AIAuditLog,
     AIConversation,
@@ -73,13 +73,9 @@ class AIService:
         self.db = db
         self.settings = settings or get_settings()
         self.exercises = ExerciseService(db)
-        self.datasets = DatasetAnalysisService(db)
         self.skills = SkillService(db)
         self.metrics = MetricsService(db)
         self.cases = CaseService(db)
-        from app.sql.service import SqlExecutionService
-
-        self.sql = SqlExecutionService(db, self.settings)
 
     # --- Settings ------------------------------------------------------
 
@@ -98,7 +94,8 @@ class AIService:
     def update_settings(self, user_id: str, payload: UpdateAISettingsRequest) -> AISettingsSchema:
         row = self._settings_row(user_id)
         for field, value in payload.model_dump(exclude_unset=True).items():
-            setattr(row, field, value)
+            if field != "daily_request_limit":
+                setattr(row, field, value)
         self.db.commit()
         self.db.refresh(row)
         return self._to_settings_schema(row)
@@ -116,7 +113,9 @@ class AIService:
             learning_mode=row.learning_mode,
             privacy_preference=row.privacy_preference,
             max_context_chars=row.max_context_chars,
-            daily_request_limit=row.daily_request_limit,
+            daily_request_limit=self._resolve_limit(row, self.settings),
+            admin_access_enabled=row.admin_access_enabled,
+            effective_access_enabled=row.admin_access_enabled and row.enabled,
             effective_provider=effective_provider,
             ai_configured=self.settings.ai_configured or effective_provider == "local",
         )
@@ -151,9 +150,7 @@ class AIService:
     def _resolve_limit(ai_settings: AISettings, settings: Settings) -> int:
         # `or` would treat an explicit `daily_request_limit=0` (meaning "block
         # everything") as falsy and silently fall back to the global default.
-        if ai_settings.daily_request_limit is not None:
-            return ai_settings.daily_request_limit
-        return settings.ai_daily_request_limit
+        return min(ai_settings.admin_daily_request_limit, settings.ai_daily_request_limit)
 
     def get_usage_today(self, user_id: str) -> AIUsageResponse:
         ai_settings = self._settings_row(user_id)
@@ -185,9 +182,8 @@ class AIService:
             .values(request_count=AIUsageCounter.request_count + 1)
         )
         if result.rowcount == 0:
-            raise AppError(
-                f"Daily AI request limit ({limit}) reached. Try again tomorrow, or raise the limit "
-                "in AI Settings.",
+            raise RateLimitError(
+                f"Daily AI request limit ({limit}) reached. Try again tomorrow.",
                 details={"code": "ai_daily_limit_reached"},
             )
         self.db.refresh(counter)
@@ -307,8 +303,12 @@ class AIService:
         context_type: str | None = None,
     ):
         ai_settings = self._settings_row(user_id)
+        if not ai_settings.admin_access_enabled:
+            raise ForbiddenError(
+                "AI access has not been enabled by an administrator.", details={"code": "ai_access_denied"}
+            )
         if not ai_settings.enabled:
-            raise AppError("AI is disabled in your AI Settings.", details={"code": "ai_disabled"})
+            raise ForbiddenError("AI is disabled in your preferences.", details={"code": "ai_disabled"})
         counter = self._enforce_and_increment_usage(user_id, ai_settings)
 
         provider = build_provider(self.settings, provider_override=ai_settings.provider_override)
@@ -518,17 +518,20 @@ class AIService:
 
     # --- SQL ---------------------------------------------------------------
 
-    def _sql_schema_context(self, engine: str, database: str | None) -> list:
+    def _sql_schema_context(self, user_id: str, engine: str, database: str | None) -> list:
         if not database:
             return []
         try:
-            tables = self.sql.list_tables(engine, database)
+            from app.sql.service import SqlExecutionService
+
+            sql = SqlExecutionService(self.db, self.settings, user_id)
+            tables = sql.list_tables(engine, database)
         except Exception:  # noqa: BLE001 — schema context is best-effort, never fatal
             return []
         schemas = []
         for t in tables[:15]:
             try:
-                schemas.append(self.sql.get_table_schema(engine, database, t.table_name))
+                schemas.append(sql.get_table_schema(engine, database, t.table_name))
             except Exception:  # noqa: BLE001
                 continue
         return schemas
@@ -536,7 +539,7 @@ class AIService:
     def review_sql(
         self, user_id: str, *, query: str, question: str | None, engine: str, database: str | None
     ) -> AIStructuredResponse:
-        schemas = self._sql_schema_context(engine, database)
+        schemas = self._sql_schema_context(user_id, engine, database)
         context_payload = ai_context.build_sql_context(query=query, table_schemas=schemas)
         return self._structured_dispatch(
             user_id=user_id,
@@ -549,7 +552,7 @@ class AIService:
     def debug_sql(
         self, user_id: str, *, query: str, error_message: str, engine: str, database: str | None
     ) -> AIStructuredResponse:
-        schemas = self._sql_schema_context(engine, database)
+        schemas = self._sql_schema_context(user_id, engine, database)
         context_payload = ai_context.build_sql_context(
             query=query, table_schemas=schemas, error_message=error_message
         )
@@ -564,7 +567,7 @@ class AIService:
     def optimize_sql(
         self, user_id: str, *, query: str, engine: str, database: str | None, execution_time_ms: int | None
     ) -> AIStructuredResponse:
-        schemas = self._sql_schema_context(engine, database)
+        schemas = self._sql_schema_context(user_id, engine, database)
         context_payload = ai_context.build_sql_context(
             query=query, table_schemas=schemas, execution_time_ms=execution_time_ms
         )
@@ -577,7 +580,7 @@ class AIService:
         )
 
     def nl_to_sql(self, user_id: str, *, request: str, database: str, engine: str) -> AIStructuredResponse:
-        schemas = self._sql_schema_context(engine, database)
+        schemas = self._sql_schema_context(user_id, engine, database)
         if not schemas:
             raise AppError(f"No known tables in database '{database}' to generate SQL against.")
         context_payload = {"schema": [_dump_schema(s) for s in schemas]}
@@ -599,7 +602,7 @@ class AIService:
         database: str | None,
         conversation_id: str | None,
     ) -> AIChatResponse:
-        schemas = self._sql_schema_context(engine, database)
+        schemas = self._sql_schema_context(user_id, engine, database)
         context_payload = ai_context.build_sql_context(query=query, table_schemas=schemas)
         return self._chat_dispatch(
             user_id=user_id,
@@ -640,7 +643,11 @@ class AIService:
         datasets_context = []
         for slug in dataset_slugs[:5]:
             try:
-                datasets_context.append(self.datasets.get_raw_schema(slug, None).model_dump(mode="json"))
+                datasets_context.append(
+                    DatasetAnalysisService(self.db, user_id)
+                    .get_raw_schema(slug, None)
+                    .model_dump(mode="json")
+                )
             except Exception:  # noqa: BLE001 — best-effort context
                 continue
         context_payload = {"datasets": datasets_context}
@@ -692,9 +699,11 @@ class AIService:
         context_payload: dict = {"business_question": business_question}
         if dataset_slug:
             with contextlib.suppress(Exception):
-                context_payload["dataset_metadata"] = self.datasets.get_raw_schema(
-                    dataset_slug, None
-                ).model_dump(mode="json")
+                context_payload["dataset_metadata"] = (
+                    DatasetAnalysisService(self.db, user_id)
+                    .get_raw_schema(dataset_slug, None)
+                    .model_dump(mode="json")
+                )
         if code:
             context_payload["code"] = code
         if findings:
@@ -733,7 +742,7 @@ class AIService:
         explore: bool = False,
         user_goal: str | None = None,
     ) -> AIStructuredResponse:
-        profile = self.datasets.get_profile(dataset_id)
+        profile = DatasetAnalysisService(self.db, user_id).get_profile(dataset_id)
         context_payload = ai_context.build_dataset_profile_context(profile)
         feature = AIFeature.DATA_EXPLORATION if explore else AIFeature.EDA_ASSISTANT
         if explore and user_goal:
@@ -915,10 +924,12 @@ class AIService:
         return row
 
     def build_toolbox(self, user_id: str) -> AIToolbox:
+        from app.sql.service import SqlExecutionService
+
         return AIToolbox(
             user_id=user_id,
-            dataset_analysis_service=self.datasets,
-            sql_execution_service=self.sql,
+            dataset_analysis_service=DatasetAnalysisService(self.db, user_id),
+            sql_execution_service=SqlExecutionService(self.db, self.settings, user_id),
             skill_service=self.skills,
             case_service=self.cases,
             metrics_service=self.metrics,

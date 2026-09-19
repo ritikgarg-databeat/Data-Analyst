@@ -2,7 +2,7 @@
   "name": "data-analyst-lab",
   "version": "0.1.0",
   "private": true,
-  "description": "Personal Data Analyst Lab — a local-first, single-user platform for becoming and staying job-ready as a modern Data Analyst.",
+  "description": "Data Lab — an AI-powered, multi-user platform for modern data learning and practice.",
   "workspaces": [
     "apps/web",
     "packages/shared"

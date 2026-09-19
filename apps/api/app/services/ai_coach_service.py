@@ -18,7 +18,7 @@ from app.core.errors import NotFoundError
 from app.models.enums import AIFeature
 from app.models.exercise import Exercise
 from app.models.exercise_attempt import ExerciseAttempt
-from app.models.interview import InterviewQuestion, InterviewQuestionAttempt
+from app.models.interview import Interview, InterviewQuestion, InterviewQuestionAttempt
 from app.schemas.ai import (
     AIChatResponse,
     AIExecSummaryResult,
@@ -114,7 +114,8 @@ class AICoachService:
         self, user_id: str, *, interview_question_attempt_id: str, message: str, conversation_id: str | None
     ) -> AIChatResponse:
         attempt = self.db.get(InterviewQuestionAttempt, interview_question_attempt_id)
-        if attempt is None:
+        interview = self.db.get(Interview, attempt.interview_id) if attempt else None
+        if attempt is None or interview is None or interview.user_id != user_id:
             raise NotFoundError(
                 f"Interview question attempt '{interview_question_attempt_id}' was not found."
             )

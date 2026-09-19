@@ -1,7 +1,7 @@
 .PHONY: help validate-content sync-content migrate seed setup test-api test-web test-e2e test dev-api dev-web build-python-sandbox test-python-kernel start stop restart lint format health backup restore
 
 help:
-	@echo "Ritik's Personal Data Analyst Lab"
+	@echo "Data Lab"
 	@echo ""
 	@echo "  make start                  One-command start: docker compose up --build -d"
 	@echo "  make stop                   Stop everything started by 'make start'"
@@ -65,7 +65,7 @@ test-python-kernel:
 start:
 	docker compose up --build -d
 	@echo ""
-	@echo "Ritik's Personal Data Analyst Lab is starting. Open http://localhost:3000 once containers are healthy"
+	@echo "Data Lab is starting. Open http://localhost:3000 once containers are healthy"
 	@echo "('docker compose ps' to check, or 'make health' once the API responds)."
 
 stop:

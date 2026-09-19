@@ -14,7 +14,7 @@ import { expect, test } from "@playwright/test";
 
 test.describe("Phase 6 Statistics/Experimentation/Analytics", () => {
   test("compute summary statistics and run a hypothesis test", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/dashboard");
     await page.getByRole("link", { name: "Statistics" }).first().click();
     await page.waitForURL("**/statistics");
     await expect(page.getByRole("heading", { name: "Statistics" })).toBeVisible();

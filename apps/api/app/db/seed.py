@@ -1,10 +1,10 @@
 """Idempotent seed script.
 
 Loads foundational taxonomy from `database/seeds/*.yaml` (domains, skills,
-modules, datasets, tags) plus the single local user, then syncs lesson and
+modules, datasets, tags), then syncs lesson and
 exercise *content* from `content/**/*.yaml` (see app.content.sync — that is
 the source of truth for lessons/exercises, not a YAML seed file). Safe to
-run repeatedly — re-running upserts by natural key (slug / email).
+run repeatedly — re-running upserts by natural key (slug).
 
 Usage:
     uv run python -m app.db.seed
@@ -31,7 +31,6 @@ from app.models.metric import MetricDefinition
 from app.models.module import Module
 from app.models.skill import Skill
 from app.models.tag import Tag
-from app.models.user import User
 from app.sql.sync import sync as sync_sql_tables
 
 logger = logging.getLogger(__name__)
@@ -39,27 +38,11 @@ logger = logging.getLogger(__name__)
 REPO_ROOT = Path(__file__).resolve().parents[4]
 SEEDS_DIR = REPO_ROOT / "database" / "seeds"
 
-SEED_USER_NAME = "Analyst"
-SEED_USER_EMAIL = ""
-
 
 def _load_yaml(filename: str) -> list[dict[str, Any]]:
     path = SEEDS_DIR / filename
     with path.open(encoding="utf-8") as f:
         return yaml.safe_load(f) or []
-
-
-def _seed_user(db: Session) -> None:
-    # Matched on "does a user row already exist" rather than by email: this is
-    # a single-user local app (see app.models.user.User) with exactly one
-    # seeded row, and email is user-editable-adjacent (left blank by default,
-    # see SEED_USER_EMAIL) rather than a stable natural key — matching by
-    # email would create a second row the moment it differs from whatever
-    # value was seeded originally.
-    user = db.query(User).first()
-    if user is None:
-        db.add(User(name=SEED_USER_NAME, email=SEED_USER_EMAIL))
-        logger.info("Created local user")
 
 
 def _seed_domains(db: Session) -> None:
@@ -234,7 +217,6 @@ def seed(db: Session | None = None) -> None:
     owns_session = db is None
     session = db or SessionLocal()
     try:
-        _seed_user(session)
         _seed_domains(session)
         _seed_skills(session)
         session.flush()  # domains/skills need ids before modules reference them

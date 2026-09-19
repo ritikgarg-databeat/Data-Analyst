@@ -2,7 +2,7 @@ import { APP_NAME, APP_TAGLINE } from "@data-analyst-lab/shared";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
-import { AppShell } from "@/components/layout/app-shell";
+import { AppFrame } from "@/components/layout/app-frame";
 
 import { Providers } from "./providers";
 import "./globals.css";
@@ -20,7 +20,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="en" suppressHydrationWarning>
       <body className="antialiased">
         <Providers>
-          <AppShell>{children}</AppShell>
+          <AppFrame>{children}</AppFrame>
         </Providers>
       </body>
     </html>

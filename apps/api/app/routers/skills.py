@@ -2,7 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends
 
-from app.dependencies.current_user import CurrentUserId
+from app.dependencies.current_user import AdminUser, CurrentUserId
 from app.dependencies.services import get_skill_service
 from app.schemas.skill import CreateSkillRequest, Skill, UpdateSkillRequest, UserSkill
 from app.services.skill_service import SkillService
@@ -17,7 +17,9 @@ def list_skills(service: Annotated[SkillService, Depends(get_skill_service)]) ->
 
 @router.post("", response_model=Skill, status_code=201)
 def create_skill(
-    payload: CreateSkillRequest, service: Annotated[SkillService, Depends(get_skill_service)]
+    payload: CreateSkillRequest,
+    admin: AdminUser,
+    service: Annotated[SkillService, Depends(get_skill_service)],
 ) -> Skill:
     return service.create(payload)
 
@@ -36,6 +38,9 @@ def get_skill(slug: str, service: Annotated[SkillService, Depends(get_skill_serv
 
 @router.patch("/{skill_id}", response_model=Skill)
 def update_skill(
-    skill_id: str, payload: UpdateSkillRequest, service: Annotated[SkillService, Depends(get_skill_service)]
+    skill_id: str,
+    payload: UpdateSkillRequest,
+    admin: AdminUser,
+    service: Annotated[SkillService, Depends(get_skill_service)],
 ) -> Skill:
     return service.update(skill_id, payload)

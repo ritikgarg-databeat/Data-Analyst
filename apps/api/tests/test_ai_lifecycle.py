@@ -54,7 +54,8 @@ class TestAIUsage:
         assert "may send selected" in after["privacy_notice"]
 
     def test_daily_request_limit_is_enforced(self, client: TestClient) -> None:
-        client.patch("/api/v1/ai/settings", json={"daily_request_limit": 1})
+        user_id = client.get("/api/v1/users/me").json()["id"]
+        client.put(f"/api/v1/admin/users/{user_id}/ai", json={"enabled": True, "daily_quota": 1})
         try:
             usage = client.get("/api/v1/ai/usage").json()
             # Reaching the limit fails the very next request regardless of how
@@ -63,24 +64,23 @@ class TestAIUsage:
                 first = client.post("/api/v1/ai/mentor", json={"message": "one", "context_type": "general"})
                 assert first.status_code == 200
             blocked = client.post("/api/v1/ai/mentor", json={"message": "two", "context_type": "general"})
-            assert blocked.status_code == 400
+            assert blocked.status_code == 429
             assert "limit" in blocked.json()["error"]["message"].lower()
         finally:
-            client.patch("/api/v1/ai/settings", json={"daily_request_limit": None})
+            client.put(f"/api/v1/admin/users/{user_id}/ai", json={"enabled": True, "daily_quota": 200})
 
-    def test_a_daily_request_limit_of_zero_blocks_every_request(self, client: TestClient) -> None:
+    def test_admin_can_disable_every_ai_request(self, client: TestClient) -> None:
         """Regression test — `ai_settings.daily_request_limit or default` used
         to treat an explicit `0` (falsy in Python) as "not set" and silently
         fall back to the global default, so a user who deliberately set the
         limit to 0 could still make requests up to the default limit."""
-        client.patch("/api/v1/ai/settings", json={"daily_request_limit": 0})
+        user_id = client.get("/api/v1/users/me").json()["id"]
+        client.put(f"/api/v1/admin/users/{user_id}/ai", json={"enabled": False, "daily_quota": 25})
         try:
-            usage = client.get("/api/v1/ai/usage").json()
-            assert usage["daily_request_limit"] == 0
             blocked = client.post("/api/v1/ai/mentor", json={"message": "hi", "context_type": "general"})
-            assert blocked.status_code == 400
+            assert blocked.status_code == 403
         finally:
-            client.patch("/api/v1/ai/settings", json={"daily_request_limit": None})
+            client.put(f"/api/v1/admin/users/{user_id}/ai", json={"enabled": True, "daily_quota": 200})
 
 
 class TestConversationHistoryRedaction:
@@ -160,7 +160,7 @@ class TestAIMentorAndConversations:
         client.patch("/api/v1/ai/settings", json={"enabled": False})
         try:
             response = client.post("/api/v1/ai/mentor", json={"message": "hi", "context_type": "general"})
-            assert response.status_code == 400
+            assert response.status_code == 403
             assert "disabled" in response.json()["error"]["message"].lower()
         finally:
             client.patch("/api/v1/ai/settings", json={"enabled": True})

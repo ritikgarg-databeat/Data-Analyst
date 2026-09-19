@@ -7,7 +7,20 @@ import { AppShell } from "@/components/layout/app-shell";
 import { renderWithProviders } from "./test-utils";
 
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/",
+  usePathname: () => "/dashboard",
+}));
+
+vi.mock("@/features/auth/auth-provider", () => ({
+  useAuth: () => ({
+    user: {
+      id: "user-1",
+      name: "Test User",
+      email: "test@example.com",
+      role: "USER",
+      ai_access_enabled: true,
+    },
+    logout: vi.fn(),
+  }),
 }));
 
 vi.mock("@/lib/api-client", () => ({
@@ -35,6 +48,21 @@ vi.mock("@/lib/api-client", () => ({
           ai_configured: true,
         };
       }
+      if (path === "/users/me") {
+        return {
+          id: "user-1",
+          name: "Test User",
+          email: "test@example.com",
+          role: "USER",
+          status: "ACTIVE",
+          must_change_password: false,
+          ai_access_enabled: true,
+          ai_daily_quota: 25,
+          ai_requests_today: 0,
+          created_at: "2026-01-01T00:00:00Z",
+          updated_at: "2026-01-01T00:00:00Z",
+        };
+      }
       return undefined;
     }),
     post: vi.fn(),
@@ -48,7 +76,7 @@ vi.mock("@/lib/api-client", () => ({
 
 describe("AppShell", () => {
   it(
-    "renders the app name and every NAV_SECTIONS item as a link",
+    "renders the app name and learner navigation without admin links",
     async () => {
       renderWithProviders(
         <AppShell>
@@ -71,6 +99,10 @@ describe("AppShell", () => {
         const heading = screen.getByRole("heading", { name: section.label, level: 2 });
         const sectionContainer = heading.parentElement as HTMLElement;
         for (const item of section.items) {
+          if (item.href.startsWith("/admin")) {
+            expect(within(sectionContainer).queryByRole("link", { name: item.label })).not.toBeInTheDocument();
+            continue;
+          }
           expect(within(sectionContainer).getByRole("link", { name: item.label })).toBeInTheDocument();
         }
       }

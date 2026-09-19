@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from threading import Lock
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -14,7 +15,7 @@ from sqlalchemy.orm import Session
 from app.core.config import Settings, get_settings
 from app.core.errors import AppError, NotFoundError
 from app.dbt_lab import artifacts
-from app.dbt_lab.paths import DBT_PROJECT_DIR
+from app.dbt_lab.paths import DBT_PROJECT_DIR, resolve_target_dir
 from app.dbt_lab.runner import DbtCliResult, DbtRunnerError, run_dbt
 from app.models.dbt import DbtRun
 from app.models.enums import DbtCommand, DbtRunStatus
@@ -30,6 +31,7 @@ _COMMAND_ARGS: dict[DbtCommand, list[str]] = {
 # `docs generate` doesn't take a --select the same way the others do, so a
 # selector is silently ignored for it rather than passed through.
 _SELECTABLE_COMMANDS = {DbtCommand.RUN, DbtCommand.TEST, DbtCommand.BUILD, DbtCommand.COMPILE}
+_USER_LOCKS: dict[str, Lock] = {}
 
 _PROJECT_TREE_DIRS: list[tuple[str, str]] = [
     ("staging", "models/staging"),
@@ -51,9 +53,11 @@ class ProjectTreeItem:
 
 
 class DbtLabService:
-    def __init__(self, db: Session, settings: Settings | None = None) -> None:
+    def __init__(self, db: Session, settings: Settings | None = None, user_id: str | None = None) -> None:
         self.db = db
         self.settings = settings or get_settings()
+        self.user_id = user_id
+        self.target_dir = resolve_target_dir(user_id)
 
     # --- Execution -----------------------------------------------------
 
@@ -68,7 +72,9 @@ class DbtLabService:
 
         started_at = datetime.now(UTC)
         try:
-            result = run_dbt(args, settings=self.settings)
+            lock = _USER_LOCKS.setdefault(user_id, Lock())
+            with lock:
+                result = run_dbt(args, settings=self.settings, user_id=user_id)
         except DbtRunnerError as exc:
             return self._save_run(
                 user_id=user_id,
@@ -85,7 +91,7 @@ class DbtLabService:
             command=command,
             selector=selector,
             status=DbtRunStatus.SUCCESS if result.success else DbtRunStatus.FAILED,
-            summary=self._summarize(result),
+            summary=self._summarize(result, user_id),
             log=(result.stdout + ("\n" + result.stderr if result.stderr else "")).strip(),
             started_at=started_at,
         )
@@ -116,13 +122,12 @@ class DbtLabService:
         self.db.refresh(run)
         return run
 
-    @staticmethod
-    def _summarize(result: DbtCliResult) -> dict:
+    def _summarize(self, result: DbtCliResult, user_id: str) -> dict:
         summary: dict = {
             "returncode": result.returncode,
             "duration_seconds": round(result.duration_seconds, 3),
         }
-        run_results = artifacts.get_run_results()
+        run_results = artifacts.get_run_results(resolve_target_dir(user_id))
         if run_results is not None:
             counts: dict[str, int] = {}
             for r in run_results.get("results", []):
@@ -146,22 +151,22 @@ class DbtLabService:
 
     # --- Project introspection (dbt's own artifacts, not app state) ------
 
-    def get_lineage(self) -> artifacts.LineageGraph:
-        graph = artifacts.build_lineage_graph()
+    def get_lineage(self, user_id: str | None = None) -> artifacts.LineageGraph:
+        graph = artifacts.build_lineage_graph(resolve_target_dir(user_id or self.user_id))
         if graph is None:
             raise AppError(
                 "No dbt lineage available yet — run the dbt Lab (Run/Build/Docs) at least once first."
             )
         return graph
 
-    def get_docs(self) -> list[artifacts.NodeDoc]:
-        docs = artifacts.build_docs()
+    def get_docs(self, user_id: str | None = None) -> list[artifacts.NodeDoc]:
+        docs = artifacts.build_docs(resolve_target_dir(user_id or self.user_id))
         if docs is None:
             raise AppError("No dbt docs available yet — run the dbt Lab at least once first.")
         return docs
 
-    def get_test_results(self) -> list[artifacts.TestResult]:
-        results = artifacts.build_test_results()
+    def get_test_results(self, user_id: str | None = None) -> list[artifacts.TestResult]:
+        results = artifacts.build_test_results(resolve_target_dir(user_id or self.user_id))
         if results is None:
             raise AppError("No dbt test results available yet — run `dbt test` or `dbt build` first.")
         return results

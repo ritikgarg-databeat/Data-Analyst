@@ -21,7 +21,7 @@ test.describe("Phase 10 AI Layer", () => {
     test.slow();
 
     // 1. The AI Mentor launcher is present on every route.
-    await page.goto("/");
+    await page.goto("/dashboard");
     await expect(page.getByRole("button", { name: "AI Mentor" })).toBeVisible();
     await page.getByRole("button", { name: "AI Mentor" }).click();
 

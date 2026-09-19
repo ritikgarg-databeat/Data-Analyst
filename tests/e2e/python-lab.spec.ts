@@ -40,7 +40,7 @@ test.describe("Phase 4 Python Lab", () => {
   test("browse datasets, run cells with persisted state, render a chart, inspect a DataFrame, and restart the runtime", async ({
     page,
   }) => {
-    await page.goto("/");
+    await page.goto("/dashboard");
     await page.getByRole("link", { name: "Python Lab" }).first().click();
     await page.waitForURL("**/python-lab");
     await expect(page.getByRole("heading", { name: "Python Lab" })).toBeVisible();

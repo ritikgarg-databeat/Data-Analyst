@@ -1,6 +1,6 @@
-# Personal Data Analyst Lab
+# Data Lab
 
-A local-first, single-user, production-quality personal learning and practice platform for becoming
+A local-first, multi-user learning and practice platform for becoming
 and staying job-ready as a modern Data Analyst — roughly the 2-year experience level, aimed at strong
 product/business/data analytics roles.
 
@@ -70,6 +70,7 @@ See [`docs/architecture.md`](docs/architecture.md) for a deeper walkthrough of e
 ```bash
 git clone <this-repo>
 cd data-analyst-lab
+# Docker Compose reads the root .env; local FastAPI reads apps/api/.env.
 cp .env.example .env
 ```
 
@@ -84,6 +85,7 @@ healthy:
 
 ```bash
 docker compose exec api uv run python -m app.db.seed   # first run only — populates seed data
+docker compose exec api uv run python -m app.db.bootstrap_admin  # first run only — creates/converts admin
 docker compose build python-sandbox                     # once — the Python Lab's execution image (not auto-built by `up`)
 ```
 
@@ -95,11 +97,16 @@ docker compose build python-sandbox                     # once — the Python La
 Requires a running PostgreSQL instance reachable at the `DATABASE_URL` in your `.env`.
 
 ```bash
+cp .env.example apps/api/.env
+```
+
+```bash
 npm install                                  # installs apps/web + packages/shared (npm workspaces)
 uv sync --project apps/api --extra dev       # installs the backend virtualenv
 
 ./scripts/migrate.sh                         # apply migrations
 ./scripts/seed.sh                            # seed foundational content
+uv run --project apps/api python -m app.db.bootstrap_admin
 
 npm run dev:web                              # frontend dev server → http://localhost:3000
 uv run --project apps/api uvicorn app.main:app --reload --app-dir apps/api  # API → http://localhost:8000
@@ -108,6 +115,14 @@ uv run --project apps/api uvicorn app.main:app --reload --app-dir apps/api  # AP
 `scripts/setup.sh` runs the install + migrate + seed steps above in one shot (assumes Postgres is
 already reachable).
 
+For authentication, set `AUTH_JWT_SECRET`, `INITIAL_ADMIN_EMAIL`, and
+`INITIAL_ADMIN_PASSWORD` in the ignored `.env`, then run
+`uv run --project apps/api python -m app.db.bootstrap_admin`. The initial administrator must replace
+that password at first sign-in. For an existing single-user database, use
+`scripts/migrate-multi-user.ps1`; it backs up the configured SQLite database (or PostgreSQL via
+`pg_dump`) and `data/` before changing either. Emergency local recovery is available with
+`uv run --project apps/api python -m app.db.recover_admin`.
+
 ## Database
 
 Migrations live at `database/migrations` (Alembic), configured via the **repo-root** `alembic.ini` —
@@ -115,7 +130,7 @@ always run Alembic from the repo root (the provided scripts do this for you):
 
 ```bash
 ./scripts/migrate.sh      # apply all pending migrations
-./scripts/seed.sh         # idempotent — safe to re-run; upserts by slug/email
+./scripts/seed.sh         # idempotent — safe to re-run; upserts content by slug
 ```
 
 To create a new migration after changing a model in `apps/api/app/models/`:
@@ -347,15 +362,9 @@ the existing preferences — see [`docs/security.md`](docs/security.md) and
 ## Development
 
 - Backend hot-reload: `uv run --project apps/api uvicorn app.main:app --reload --app-dir apps/api`
-  - **Always run backend commands from `apps/api`, or set `DATABASE_URL` explicitly.** `app/core/config.py`
-    resolves `.env` relative to the process's current working directory, not relative to `config.py`
-    itself. `apps/api/.env` holds the correct local `DATABASE_URL` (a SQLite file); the repo root has no
-    `.env` (only `.env.example`). Any DB-touching command launched from the repo root without an explicit
-    `DATABASE_URL` silently falls back to `Settings`'s hardcoded Postgres default and then hangs
-    indefinitely trying to connect to a Postgres server that isn't running — `/api/v1/health` still
-    responds instantly because it never opens a DB connection, which is what makes this look like a
-    request-specific hang rather than a config issue. Fix: `cd apps/api` first, or pass
-    `DATABASE_URL="sqlite:///$(pwd)/data/dev.db"` explicitly.
+  - `app/core/config.py` anchors environment loading to the ignored `apps/api/.env`, so backend and
+    Alembic commands use the same database regardless of the shell's working directory. A process-level
+    `DATABASE_URL` can still override it for tests or one-off maintenance.
 - Frontend hot-reload: `npm run dev:web`
 - API interactive docs: http://localhost:8000/docs (Swagger) once the API is running
 - Lint/format backend: `uv run --project apps/api ruff check .` / `ruff format .`

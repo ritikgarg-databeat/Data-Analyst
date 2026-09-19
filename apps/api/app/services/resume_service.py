@@ -29,8 +29,23 @@ from app.schemas.resume import (
 from app.services.ai_career_service import AICareerService
 
 _ACTION_VERBS = {
-    "led", "built", "designed", "analyzed", "developed", "created", "managed", "improved", "reduced",
-    "increased", "automated", "implemented", "optimized", "launched", "delivered", "drove", "owned",
+    "led",
+    "built",
+    "designed",
+    "analyzed",
+    "developed",
+    "created",
+    "managed",
+    "improved",
+    "reduced",
+    "increased",
+    "automated",
+    "implemented",
+    "optimized",
+    "launched",
+    "delivered",
+    "drove",
+    "owned",
 }
 _MAX_CLEAR_LINE_LENGTH = 160
 
@@ -50,7 +65,8 @@ def _impact_score(lines: list[str]) -> float:
     if not lines:
         return 0.0
     with_evidence = sum(
-        1 for line in lines
+        1
+        for line in lines
         if re.search(r"\d", line) or line.split()[0].lower().strip(".,:-") in _ACTION_VERBS
     )
     return round(100 * with_evidence / len(lines), 1)
@@ -63,9 +79,13 @@ class ResumeService:
     # --- Resume + version CRUD ---------------------------------------------------
 
     def list_resumes(self, user_id: str) -> list[ResumeSchema]:
-        rows = self.db.execute(
-            select(Resume).where(Resume.user_id == user_id).order_by(Resume.created_at.desc())
-        ).scalars().all()
+        rows = (
+            self.db.execute(
+                select(Resume).where(Resume.user_id == user_id).order_by(Resume.created_at.desc())
+            )
+            .scalars()
+            .all()
+        )
         return [ResumeSchema.model_validate(r) for r in rows]
 
     def create_resume(self, user_id: str, payload: CreateResumeRequest) -> ResumeSchema:
@@ -108,7 +128,9 @@ class ResumeService:
                 select(ResumeVersion.version_number)
                 .where(ResumeVersion.resume_id == resume_id)
                 .order_by(ResumeVersion.version_number.desc())
-            ).scalars().first()
+            )
+            .scalars()
+            .first()
             or 0
         ) + 1
         version = ResumeVersion(
@@ -158,7 +180,9 @@ class ResumeService:
             if match_line:
                 evidence.append(
                     ResumeEvidence(
-                        resume_version_id=version_id, skill_slug=skill.slug, evidence_text=match_line,
+                        resume_version_id=version_id,
+                        skill_slug=skill.slug,
+                        evidence_text=match_line,
                         confidence=1.0,
                     )
                 )
@@ -177,9 +201,11 @@ class ResumeService:
         impact = _impact_score(lines)
         quality = round((clarity + impact) / 2, 1)
 
-        evidence_rows = self.db.execute(
-            select(ResumeEvidence).where(ResumeEvidence.resume_version_id == version_id)
-        ).scalars().all()
+        evidence_rows = (
+            self.db.execute(select(ResumeEvidence).where(ResumeEvidence.resume_version_id == version_id))
+            .scalars()
+            .all()
+        )
         ai_response = AICareerService(self.db).review_resume(
             user_id,
             resume_text=version.raw_text,
@@ -193,8 +219,13 @@ class ResumeService:
             suggestions = ai_response.structured.get("suggestions", [])
 
         review = ResumeReview(
-            resume_version_id=version_id, quality_score=quality, clarity_score=clarity, impact_score=impact,
-            issues=issues, suggestions=suggestions, ai_generated=True,
+            resume_version_id=version_id,
+            quality_score=quality,
+            clarity_score=clarity,
+            impact_score=impact,
+            issues=issues,
+            suggestions=suggestions,
+            ai_generated=True,
         )
         self.db.add(review)
         self.db.commit()
@@ -211,17 +242,17 @@ class ResumeService:
             e.skill_slug
             for e in self.db.execute(
                 select(ResumeEvidence).where(ResumeEvidence.resume_version_id == version_id)
-            ).scalars().all()
+            )
+            .scalars()
+            .all()
         }
 
         target_skills: set[str] = set()
         if target_role_id:
             target_role = self.db.get(TargetRole, target_role_id)
-            if (
-                target_role is not None
-                and target_role.user_id == user_id
-                and target_role.role_template is not None
-            ):
+            if target_role is None or target_role.user_id != user_id:
+                raise NotFoundError("Target role was not found.")
+            if target_role.role_template is not None:
                 target_skills = set(target_role.role_template.core_skills) | set(
                     target_role.role_template.preferred_skills
                 )

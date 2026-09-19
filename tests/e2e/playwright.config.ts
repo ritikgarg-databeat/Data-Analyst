@@ -1,7 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 /**
- * E2E smoke tests for Personal Data Analyst Lab.
+ * E2E smoke tests for Data Lab.
  *
  * Assumes the API (http://localhost:8000) is already running and seeded —
  * see README.md "Testing" section. `webServer` below only boots the Next.js

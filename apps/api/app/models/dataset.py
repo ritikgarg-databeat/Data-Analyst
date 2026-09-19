@@ -27,6 +27,12 @@ class Dataset(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     __tablename__ = "datasets"
 
+    # NULL identifies a built-in shared dataset. Imported datasets belong to
+    # exactly one user and are never visible to another learner.
+    owner_user_id: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+
     name: Mapped[str] = mapped_column(String(255))
     slug: Mapped[str] = mapped_column(String(150), unique=True, index=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)

@@ -6,6 +6,7 @@ import { Sparkles } from "lucide-react";
 
 import { AIMentorPanel } from "@/components/features/ai/ai-mentor-panel";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/features/auth/auth-provider";
 
 /**
  * Globally-accessible AI Mentor launcher (spec section 6) — rendered once in
@@ -15,11 +16,12 @@ import { Button } from "@/components/ui/button";
 export function AIMentorLauncher() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+  const { user } = useAuth();
   // /ai/mentor already embeds the full chat inline — the floating launcher
   // would open a second, entirely independent AIMentorChat instance stacked
   // on top of it (separate message/conversation state, confusing duplicate
   // surfaces).
-  if (pathname === "/ai/mentor") return null;
+  if (pathname === "/ai/mentor" || !user?.ai_access_enabled) return null;
 
   return (
     <>

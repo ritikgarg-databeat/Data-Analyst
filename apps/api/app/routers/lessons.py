@@ -2,7 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends
 
-from app.dependencies.current_user import CurrentUserId
+from app.dependencies.current_user import AdminUser, CurrentUserId
 from app.dependencies.services import get_lesson_service, get_progress_service
 from app.schemas.content import LessonContentResponse
 from app.schemas.lesson import Lesson, UpdateLessonAdminRequest
@@ -29,6 +29,7 @@ def get_lesson_content(
 def update_lesson_admin(
     lesson_id: str,
     payload: UpdateLessonAdminRequest,
+    admin: AdminUser,
     service: Annotated[LessonService, Depends(get_lesson_service)],
 ) -> Lesson:
     return service.update_admin(lesson_id, payload)

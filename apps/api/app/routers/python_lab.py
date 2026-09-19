@@ -48,9 +48,10 @@ def get_availability(
 
 @router.get("/datasets", response_model=list[PythonDatasetFileSchema])
 def list_datasets(
+    user_id: CurrentUserId,
     service: Annotated[PythonExecutionService, Depends(get_python_execution_service)],
 ) -> list[PythonDatasetFileSchema]:
-    return [PythonDatasetFileSchema(**vars(f)) for f in service.list_datasets()]
+    return [PythonDatasetFileSchema(**vars(f)) for f in service.list_datasets(user_id)]
 
 
 # --- Runtimes --------------------------------------------------------------

@@ -10,7 +10,13 @@ import time
 from dataclasses import dataclass
 
 from app.core.config import Settings
-from app.dbt_lab.paths import DBT_PROFILES_DIR, DBT_PROJECT_DIR, build_dbt_env, dbt_executable
+from app.dbt_lab.paths import (
+    DBT_PROFILES_DIR,
+    DBT_PROJECT_DIR,
+    build_dbt_env,
+    dbt_executable,
+    resolve_target_dir,
+)
 
 
 class DbtRunnerError(Exception):
@@ -32,7 +38,9 @@ class DbtCliResult:
         return self.returncode == 0
 
 
-def run_dbt(args: list[str], *, settings: Settings, timeout_seconds: float | None = None) -> DbtCliResult:
+def run_dbt(
+    args: list[str], *, settings: Settings, timeout_seconds: float | None = None, user_id: str | None = None
+) -> DbtCliResult:
     """Runs `dbt <args> --project-dir dbt/ --profiles-dir dbt/profiles` for real."""
     executable = dbt_executable()
     if not executable.exists():
@@ -49,6 +57,8 @@ def run_dbt(args: list[str], *, settings: Settings, timeout_seconds: float | Non
         str(DBT_PROJECT_DIR),
         "--profiles-dir",
         str(DBT_PROFILES_DIR),
+        "--target-path",
+        str(resolve_target_dir(user_id)),
     ]
     timeout = timeout_seconds if timeout_seconds is not None else settings.dbt_command_timeout_seconds
 
@@ -57,7 +67,7 @@ def run_dbt(args: list[str], *, settings: Settings, timeout_seconds: float | Non
         completed = subprocess.run(
             full_args,
             cwd=DBT_PROJECT_DIR,
-            env=build_dbt_env(settings),
+            env=build_dbt_env(settings, user_id),
             capture_output=True,
             text=True,
             timeout=timeout,

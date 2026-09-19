@@ -13,6 +13,7 @@ from app.models.assessment import (
     AssessmentAttempt,
     AssessmentQuestion,
 )
+from app.models.auth import AdminAuditLog, AuthSession
 from app.models.career import (
     Achievement,
     BehavioralStory,
@@ -104,6 +105,8 @@ __all__ = [
     "AssessmentAnswer",
     "AssessmentAttempt",
     "AssessmentQuestion",
+    "AdminAuditLog",
+    "AuthSession",
     "BehavioralStory",
     "Case",
     "CaseAttempt",

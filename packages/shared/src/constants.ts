@@ -4,9 +4,9 @@
  */
 import type { SkillCategory } from "./types";
 
-export const APP_NAME = "Ritik's Personal Data Analyst Lab";
+export const APP_NAME = "Data Lab";
 export const APP_TAGLINE =
-  "Ritik's end-to-end environment for becoming a modern Data Analyst.";
+  "AI-powered personal learning with a modern, practical data curriculum.";
 
 export const DOMAIN_SLUGS = [
   "data-analyst-foundations",
@@ -72,7 +72,7 @@ export interface NavSection {
 export const NAV_SECTIONS: NavSection[] = [
   {
     label: "Main",
-    items: [{ label: "Dashboard", href: "/", icon: "LayoutDashboard" }],
+    items: [{ label: "Dashboard", href: "/dashboard", icon: "LayoutDashboard" }],
   },
   {
     label: "Learn",

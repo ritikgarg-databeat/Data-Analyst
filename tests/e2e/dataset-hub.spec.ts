@@ -29,7 +29,7 @@ test.describe("Phase 5 Dataset Hub", () => {
     test.setTimeout(90_000);
     const datasetName = `E2E Products ${Date.now()}`;
 
-    await page.goto("/");
+    await page.goto("/dashboard");
     await page.getByRole("link", { name: "Datasets" }).first().click();
     await page.waitForURL("**/datasets");
     await expect(page.getByRole("heading", { name: "Dataset Hub" })).toBeVisible();

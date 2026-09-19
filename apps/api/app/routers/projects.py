@@ -2,7 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends
 
-from app.dependencies.current_user import CurrentUserId
+from app.dependencies.current_user import AdminUser, CurrentUserId
 from app.dependencies.services import get_project_service
 from app.schemas.project import (
     AddProjectDatasetRequest,
@@ -37,15 +37,19 @@ ProjectServiceDep = Annotated[ProjectService, Depends(get_project_service)]
 
 # Registered before GET /templates/{slug} so "admin" isn't swallowed by the slug route.
 @router.get("/templates/admin", response_model=list[ProjectTemplateAdminSchema])
-def list_project_templates_admin(service: ProjectServiceDep) -> list[ProjectTemplateAdminSchema]:
+def list_project_templates_admin(
+    admin: AdminUser, service: ProjectServiceDep
+) -> list[ProjectTemplateAdminSchema]:
     return [ProjectTemplateAdminSchema.model_validate(t) for t in service.list_templates_admin()]
 
 
 @router.patch("/templates/admin/{template_id}", response_model=ProjectTemplateAdminSchema)
 def update_project_template_admin(
-    template_id: str, payload: UpdateProjectTemplateAdminRequest, service: ProjectServiceDep
+    template_id: str, payload: UpdateProjectTemplateAdminRequest, admin: AdminUser, service: ProjectServiceDep
 ) -> ProjectTemplateAdminSchema:
-    return ProjectTemplateAdminSchema.model_validate(service.update_template_admin(template_id, payload.is_active))
+    return ProjectTemplateAdminSchema.model_validate(
+        service.update_template_admin(template_id, payload.is_active)
+    )
 
 
 @router.get("/templates", response_model=list[ProjectTemplateSchema])

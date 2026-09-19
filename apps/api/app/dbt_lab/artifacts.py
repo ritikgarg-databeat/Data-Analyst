@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 from app.dbt_lab.paths import DBT_TARGET_DIR
@@ -15,30 +16,30 @@ from app.dbt_lab.paths import DBT_TARGET_DIR
 _MODEL_RESOURCE_TYPES = {"model", "seed", "snapshot"}
 
 
-def _load_json(name: str) -> dict[str, Any] | None:
-    path = DBT_TARGET_DIR / name
+def _load_json(name: str, target_dir: Path = DBT_TARGET_DIR) -> dict[str, Any] | None:
+    path = target_dir / name
     if not path.exists():
         return None
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def get_manifest() -> dict[str, Any] | None:
-    return _load_json("manifest.json")
+def get_manifest(target_dir: Path = DBT_TARGET_DIR) -> dict[str, Any] | None:
+    return _load_json("manifest.json", target_dir)
 
 
-def get_catalog() -> dict[str, Any] | None:
-    return _load_json("catalog.json")
+def get_catalog(target_dir: Path = DBT_TARGET_DIR) -> dict[str, Any] | None:
+    return _load_json("catalog.json", target_dir)
 
 
-def get_run_results() -> dict[str, Any] | None:
-    return _load_json("run_results.json")
+def get_run_results(target_dir: Path = DBT_TARGET_DIR) -> dict[str, Any] | None:
+    return _load_json("run_results.json", target_dir)
 
 
-def get_node_result(unique_id: str) -> dict[str, Any] | None:
+def get_node_result(unique_id: str, target_dir: Path = DBT_TARGET_DIR) -> dict[str, Any] | None:
     """One node's outcome from the most recent run_results.json — used by
     dbt exercise grading (app/services/dbt_exercise_service.py) to check
     whether a submitted model actually built."""
-    run_results = get_run_results()
+    run_results = get_run_results(target_dir)
     if run_results is None:
         return None
     return next((r for r in run_results.get("results", []) if r.get("unique_id") == unique_id), None)
@@ -62,12 +63,12 @@ class LineageGraph:
     generated_at: str | None
 
 
-def build_lineage_graph() -> LineageGraph | None:
+def build_lineage_graph(target_dir: Path = DBT_TARGET_DIR) -> LineageGraph | None:
     """Builds the full project DAG (models + seeds + snapshots + the sources
     they read from) from manifest.json's own `depends_on`/`parent_map`
     fields — no duplicated dependency logic, just a reshape for the frontend
     DAG viewer."""
-    manifest = get_manifest()
+    manifest = get_manifest(target_dir)
     if manifest is None:
         return None
 
@@ -131,14 +132,14 @@ class NodeDoc:
     test_unique_ids: list[str]
 
 
-def build_docs() -> list[NodeDoc] | None:
+def build_docs(target_dir: Path = DBT_TARGET_DIR) -> list[NodeDoc] | None:
     """Combines manifest.json (descriptions, which tests attach to which
     node) with catalog.json (actual column types, as executed) — the same
     join `dbt docs generate`'s own UI performs."""
-    manifest = get_manifest()
+    manifest = get_manifest(target_dir)
     if manifest is None:
         return None
-    catalog = get_catalog() or {}
+    catalog = get_catalog(target_dir) or {}
     catalog_nodes: dict[str, Any] = catalog.get("nodes", {}) | catalog.get("sources", {})
 
     tests_by_upstream: dict[str, list[str]] = {}
@@ -203,7 +204,7 @@ class TestResult:
     execution_time: float | None
 
 
-def build_test_results() -> list[TestResult] | None:
+def build_test_results(target_dir: Path = DBT_TARGET_DIR) -> list[TestResult] | None:
     """From the most recent run_results.json — but ONLY when that artifact
     was actually written by `dbt test`/`dbt build`. Every dbt subcommand
     overwrites run_results.json, including `docs generate` and `compile` —
@@ -211,8 +212,8 @@ def build_test_results() -> list[TestResult] | None:
     generic "success" compile status that would otherwise look
     indistinguishable from a real test pass. `args.which` (dbt's own record
     of which command produced this file) is what disambiguates."""
-    manifest = get_manifest()
-    run_results = get_run_results()
+    manifest = get_manifest(target_dir)
+    run_results = get_run_results(target_dir)
     if run_results is None:
         return None
     if (run_results.get("args") or {}).get("which") not in {"test", "build"}:

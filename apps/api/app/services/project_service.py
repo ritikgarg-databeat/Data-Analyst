@@ -19,9 +19,14 @@ from sqlalchemy.orm import Session
 from app.case_engine.feedback import Feedback, build_feedback
 from app.case_engine.grading import ScoreResult, score_rubric
 from app.core.errors import AppError, NotFoundError
+from app.models.chart import Chart
+from app.models.data_model import DataModel
+from app.models.dataset import Dataset
 from app.models.enums import CaseAttemptStatus, ProjectArtifactType
 from app.models.project import Project as ProjectModel
 from app.models.project import ProjectArtifact, ProjectDataset, ProjectMilestone, ProjectTemplate
+from app.models.python_lab import PythonExecution
+from app.models.sql_lab import SqlQueryHistory
 from app.repositories.dataset import DatasetRepository
 from app.schemas.project import (
     CreateProjectFromDatasetRequest,
@@ -37,6 +42,12 @@ class ProjectService:
         self.db = db
         self.dataset_repo = DatasetRepository(db)
 
+    def _find_dataset(self, user_id: str, dataset_id: str) -> Dataset:
+        dataset = self.dataset_repo.get_by_id(dataset_id) or self.dataset_repo.get_by_slug(dataset_id)
+        if dataset is None or (dataset.owner_user_id is not None and dataset.owner_user_id != user_id):
+            raise NotFoundError(f"Dataset '{dataset_id}' was not found.")
+        return dataset
+
     # --- Phase 5: free-form project shell -----------------------------------
 
     def list_projects(self, user_id: str) -> list[Project]:
@@ -48,8 +59,11 @@ class ProjectService:
         return [Project.model_validate(p) for p in self.db.execute(stmt).scalars().all()]
 
     def create(self, user_id: str, payload: CreateProjectRequest) -> Project:
+        dataset_id = None
+        if payload.dataset_id is not None:
+            dataset_id = self._find_dataset(user_id, payload.dataset_id).id
         project = ProjectModel(
-            user_id=user_id, dataset_id=payload.dataset_id, name=payload.name, description=payload.description
+            user_id=user_id, dataset_id=dataset_id, name=payload.name, description=payload.description
         )
         self.db.add(project)
         self.db.commit()
@@ -59,9 +73,7 @@ class ProjectService:
     def create_from_dataset(
         self, user_id: str, dataset_id: str, payload: CreateProjectFromDatasetRequest
     ) -> Project:
-        dataset = self.dataset_repo.get_by_id(dataset_id) or self.dataset_repo.get_by_slug(dataset_id)
-        if dataset is None:
-            raise NotFoundError(f"Dataset '{dataset_id}' was not found.")
+        dataset = self._find_dataset(user_id, dataset_id)
         project = ProjectModel(
             user_id=user_id,
             dataset_id=dataset.id,
@@ -104,7 +116,9 @@ class ProjectService:
     # --- Phase 8: templates --------------------------------------------------
 
     def list_templates(self) -> list[ProjectTemplateSchema]:
-        stmt = select(ProjectTemplate).where(ProjectTemplate.is_active.is_(True)).order_by(ProjectTemplate.title)
+        stmt = (
+            select(ProjectTemplate).where(ProjectTemplate.is_active.is_(True)).order_by(ProjectTemplate.title)
+        )
         return [ProjectTemplateSchema.model_validate(t) for t in self.db.execute(stmt).scalars().all()]
 
     def list_templates_admin(self) -> list[ProjectTemplate]:
@@ -193,6 +207,20 @@ class ProjectService:
         notes: str | None,
     ) -> ProjectArtifact:
         project = self._find(user_id, project_id)
+        # Existing projects historically allowed descriptive, dangling ref
+        # ids. Keep that compatibility, but never let a real row owned by a
+        # different account be attached through a raw id.
+        referenced_models = {
+            ProjectArtifactType.SQL_QUERY: SqlQueryHistory,
+            ProjectArtifactType.PYTHON_EXECUTION: PythonExecution,
+            ProjectArtifactType.CHART: Chart,
+            ProjectArtifactType.DATA_MODEL: DataModel,
+        }
+        model = referenced_models.get(artifact_type)
+        if ref_id and model is not None:
+            referenced = self.db.get(model, ref_id)
+            if referenced is not None and referenced.user_id != user_id:
+                raise NotFoundError(f"Artifact reference '{ref_id}' not found.")
         artifact = ProjectArtifact(
             project_id=project.id,
             artifact_type=artifact_type,
@@ -216,11 +244,11 @@ class ProjectService:
 
     # --- Dataset usage ----------------------------------------------------------
 
-    def add_dataset(self, user_id: str, project_id: str, dataset_id: str, reason: str | None) -> ProjectDataset:
+    def add_dataset(
+        self, user_id: str, project_id: str, dataset_id: str, reason: str | None
+    ) -> ProjectDataset:
         project = self._find(user_id, project_id)
-        dataset = self.dataset_repo.get_by_id(dataset_id) or self.dataset_repo.get_by_slug(dataset_id)
-        if dataset is None:
-            raise NotFoundError(f"Dataset '{dataset_id}' was not found.")
+        dataset = self._find_dataset(user_id, dataset_id)
         project_dataset = ProjectDataset(project_id=project.id, dataset_id=dataset.id, reason=reason)
         self.db.add(project_dataset)
         self.db.commit()
@@ -253,6 +281,10 @@ class ProjectService:
 
     def link_data_model(self, user_id: str, project_id: str, data_model_id: str | None) -> Project:
         project = self._find(user_id, project_id)
+        if data_model_id is not None:
+            data_model = self.db.get(DataModel, data_model_id)
+            if data_model is not None and data_model.user_id != user_id:
+                raise NotFoundError(f"Data model '{data_model_id}' not found.")
         project.data_model_id = data_model_id
         self.db.commit()
         self.db.refresh(project)

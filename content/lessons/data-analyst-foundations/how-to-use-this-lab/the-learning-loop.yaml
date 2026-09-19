@@ -24,7 +24,7 @@ blocks:
     text: The loop
   - type: text
     body: >
-      Personal Data Analyst Lab is built around a different loop: **LEARN → PRACTICE → APPLY → GET
+      Data Lab is built around a different loop: **LEARN → PRACTICE → APPLY → GET
       EVALUATED → IDENTIFY WEAKNESS → REVIEW → REATTEMPT → MASTER → INTERVIEW**.
   - type: checklist
     title: Walking the loop

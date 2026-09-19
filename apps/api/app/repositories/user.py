@@ -8,7 +8,7 @@ class UserRepository(BaseRepository[User]):
     model = User
 
     def get_first(self) -> User | None:
-        """Returns the single local user. This is a single-user application."""
+        """Legacy helper used only by migration/maintenance code."""
         return self.db.execute(select(User).limit(1)).scalar_one_or_none()
 
     def get_by_email(self, email: str) -> User | None:

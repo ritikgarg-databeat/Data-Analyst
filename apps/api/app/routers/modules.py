@@ -2,7 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends
 
-from app.dependencies.current_user import CurrentUserId
+from app.dependencies.current_user import AdminUser, CurrentUserId
 from app.dependencies.services import get_assessment_service, get_lesson_service, get_module_service
 from app.schemas.assessment import Assessment
 from app.schemas.lesson import Lesson
@@ -16,7 +16,9 @@ router = APIRouter(prefix="/modules", tags=["modules"])
 
 @router.post("", response_model=Module, status_code=201)
 def create_module(
-    payload: CreateModuleRequest, service: Annotated[ModuleService, Depends(get_module_service)]
+    payload: CreateModuleRequest,
+    admin: AdminUser,
+    service: Annotated[ModuleService, Depends(get_module_service)],
 ) -> Module:
     return service.create(payload)
 
@@ -32,6 +34,7 @@ def get_module(
 def update_module(
     module_id: str,
     payload: UpdateModuleRequest,
+    admin: AdminUser,
     service: Annotated[ModuleService, Depends(get_module_service)],
 ) -> Module:
     return service.update(module_id, payload)

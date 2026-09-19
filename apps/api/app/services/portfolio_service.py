@@ -63,6 +63,14 @@ class PortfolioService:
 
     def add_item(self, user_id: str, payload: CreatePortfolioItemRequest) -> PortfolioSchema:
         portfolio = self.get_or_create(user_id)
+        if payload.ref_id and payload.item_type == PortfolioItemType.PROJECT:
+            project = self.db.get(Project, payload.ref_id)
+            if project is not None and project.user_id != user_id:
+                raise NotFoundError("Portfolio project was not found.")
+        if payload.ref_id and payload.item_type == PortfolioItemType.CASE_STUDY:
+            attempt = self.db.get(CaseAttempt, payload.ref_id)
+            if attempt is not None and attempt.user_id != user_id:
+                raise NotFoundError("Portfolio case study was not found.")
         item = PortfolioItem(
             portfolio_id=portfolio.id,
             item_type=payload.item_type,
@@ -99,12 +107,17 @@ class PortfolioService:
 
     def quality_score(self, user_id: str) -> PortfolioQualityScoreResponse:
         portfolio = self.get_or_create(user_id)
-        items = self.db.execute(
-            select(PortfolioItem).where(PortfolioItem.portfolio_id == portfolio.id)
-        ).scalars().all()
+        items = (
+            self.db.execute(select(PortfolioItem).where(PortfolioItem.portfolio_id == portfolio.id))
+            .scalars()
+            .all()
+        )
         if not items:
             return PortfolioQualityScoreResponse(
-                score=0.0, item_count=0, items_with_description=0, portfolio_ready_item_count=0,
+                score=0.0,
+                item_count=0,
+                items_with_description=0,
+                portfolio_ready_item_count=0,
                 suggestions=["Add at least one project, case study, or skill highlight to your portfolio."],
             )
 
@@ -131,24 +144,31 @@ class PortfolioService:
             suggestions.append("Consider adding a case study to show end-to-end business reasoning.")
 
         return PortfolioQualityScoreResponse(
-            score=score, item_count=len(items), items_with_description=described,
-            portfolio_ready_item_count=ready, suggestions=suggestions,
+            score=score,
+            item_count=len(items),
+            items_with_description=described,
+            portfolio_ready_item_count=ready,
+            suggestions=suggestions,
         )
 
     # --- AI review wrapper ---------------------------------------------------------------
 
     def ai_review(self, user_id: str) -> AIStructuredResponse:
         portfolio = self.get_or_create(user_id)
-        items = self.db.execute(
-            select(PortfolioItem).where(PortfolioItem.portfolio_id == portfolio.id)
-        ).scalars().all()
+        items = (
+            self.db.execute(select(PortfolioItem).where(PortfolioItem.portfolio_id == portfolio.id))
+            .scalars()
+            .all()
+        )
         return AICareerService(self.db).review_portfolio(
             user_id,
             headline=portfolio.headline,
             items=[
                 {
-                    "title": i.title, "description": i.description,
-                    "item_type": i.item_type.value, "privacy": i.privacy.value,
+                    "title": i.title,
+                    "description": i.description,
+                    "item_type": i.item_type.value,
+                    "privacy": i.privacy.value,
                 }
                 for i in items
             ],
@@ -157,9 +177,11 @@ class PortfolioService:
     # --- Gap detection -------------------------------------------------------------------
 
     def _covered_skill_slugs(self, user_id: str, portfolio_id: str) -> set[str]:
-        items = self.db.execute(
-            select(PortfolioItem).where(PortfolioItem.portfolio_id == portfolio_id)
-        ).scalars().all()
+        items = (
+            self.db.execute(select(PortfolioItem).where(PortfolioItem.portfolio_id == portfolio_id))
+            .scalars()
+            .all()
+        )
 
         # Batch-fetch every referenced Project/CaseAttempt (with its
         # template/case eager-loaded) in one query per type, instead of a
@@ -173,7 +195,9 @@ class PortfolioService:
                     select(Project)
                     .options(selectinload(Project.template))
                     .where(Project.id.in_(project_ref_ids))
-                ).scalars().all()
+                )
+                .scalars()
+                .all()
             }
             if project_ref_ids
             else {}
@@ -185,7 +209,9 @@ class PortfolioService:
                     select(CaseAttempt)
                     .options(selectinload(CaseAttempt.case))
                     .where(CaseAttempt.id.in_(case_ref_ids))
-                ).scalars().all()
+                )
+                .scalars()
+                .all()
             }
             if case_ref_ids
             else {}
@@ -215,9 +241,11 @@ class PortfolioService:
             if target_role and target_role.user_id == user_id and target_role.role_template is not None:
                 target_skills = set(target_role.role_template.core_skills)
 
-        templates = self.db.execute(
-            select(ProjectTemplate).where(ProjectTemplate.is_active.is_(True))
-        ).scalars().all()
+        templates = (
+            self.db.execute(select(ProjectTemplate).where(ProjectTemplate.is_active.is_(True)))
+            .scalars()
+            .all()
+        )
         gaps = []
         for skill_slug in sorted(target_skills - covered):
             recommended = [t.slug for t in templates if skill_slug in (t.required_skills or [])][:3]

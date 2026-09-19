@@ -1,17 +1,17 @@
 import { expect, test } from "@playwright/test";
 
-test.describe("Ritik's Personal Data Analyst Lab — smoke test", () => {
+test.describe("Data Lab — smoke test", () => {
   test("the application opens and the dashboard loads", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/dashboard");
 
-    await expect(page.getByRole("heading", { name: "Ritik's Personal Data Analyst Lab" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Personal Data Lab/ })).toBeVisible();
     await expect(
-      page.getByText("Ritik's end-to-end environment for becoming a modern Data Analyst."),
+      page.getByText("Your focused space to learn, practice, build, and grow."),
     ).toBeVisible();
   });
 
   test("the desktop navigation is present and links to Learn", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/dashboard");
 
     // Phase 12 grouped the nav under section headings ("Learn", "Analyze", ...);
     // "Learn" is now a heading, not a link — the actual link into /learn is "Curriculum".

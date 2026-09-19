@@ -36,11 +36,13 @@ data/processed/*
 data/datasets/*
 data/warehouse/*
 data/backups/*
+data/users/*
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 !data/datasets/.gitkeep
 !data/warehouse/.gitkeep
 !data/backups/.gitkeep
+!data/users/.gitkeep
 
 # --- dbt ---
 dbt/target/
@@ -58,6 +60,9 @@ test-results/
 coverage/
 dist/
 build/
+/backups/
+/apps/api/tests/_scratch_dbt*/
+/.pytest-tmp/
 
 # --- Editor / OS ---
 .vscode/

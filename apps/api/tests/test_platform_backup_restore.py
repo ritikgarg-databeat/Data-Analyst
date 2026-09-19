@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.models.ai import AISettings
 from app.models.lesson import Lesson
 from app.models.lesson_progress import LessonProgress
 
@@ -21,6 +22,33 @@ class TestBackupExport:
         serialized = str(bundle).lower()
         for forbidden in ("api_key", "ai_api_key", "openai_api_key", "anthropic_api_key", "database_url"):
             assert forbidden not in serialized
+
+    def test_backup_cannot_export_or_restore_admin_ai_entitlement(
+        self, client: TestClient, db_session: Session
+    ) -> None:
+        user_id = client.get("/api/v1/users/me").json()["id"]
+        settings = db_session.scalar(select(AISettings).where(AISettings.user_id == user_id))
+        original_enabled = settings.admin_access_enabled
+        original_quota = settings.admin_daily_request_limit
+        settings.admin_access_enabled = False
+        settings.admin_daily_request_limit = 7
+        db_session.commit()
+        try:
+            bundle = client.get("/api/v1/platform/backup").json()
+            row = bundle["data"]["ai_settings"][0]
+            assert "admin_access_enabled" not in row
+            assert "admin_daily_request_limit" not in row
+            row["admin_access_enabled"] = True
+            row["admin_daily_request_limit"] = 200
+            response = client.post("/api/v1/platform/restore", json={"bundle": bundle, "confirm": True})
+            assert response.status_code == 200, response.text
+            db_session.refresh(settings)
+            assert settings.admin_access_enabled is False
+            assert settings.admin_daily_request_limit == 7
+        finally:
+            settings.admin_access_enabled = original_enabled
+            settings.admin_daily_request_limit = original_quota
+            db_session.commit()
 
     def test_manifest_reports_real_counts(self, client: TestClient) -> None:
         bundle = client.get("/api/v1/platform/backup").json()

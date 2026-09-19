@@ -2,7 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
 
-from app.dependencies.current_user import CurrentUserId
+from app.dependencies.current_user import AdminUser, CurrentUserId
 from app.dependencies.services import get_interview_question_service
 from app.schemas.interview import (
     CreateBookmarkRequest,
@@ -24,6 +24,7 @@ router = APIRouter(prefix="/interview/questions", tags=["interview-questions"])
 # Registered before GET /{slug} so "admin" isn't swallowed by the slug route.
 @router.get("/admin", response_model=list[InterviewQuestionAdminListItemSchema])
 def list_questions_admin(
+    admin: AdminUser,
     service: Annotated[InterviewQuestionService, Depends(get_interview_question_service)],
 ) -> list[InterviewQuestionAdminListItemSchema]:
     return service.list_questions_admin()
@@ -33,6 +34,7 @@ def list_questions_admin(
 def update_question_admin(
     question_id: str,
     payload: UpdateInterviewQuestionAdminRequest,
+    admin: AdminUser,
     service: Annotated[InterviewQuestionService, Depends(get_interview_question_service)],
 ) -> InterviewQuestionAdminListItemSchema:
     return service.update_question_admin(question_id, payload.is_active)

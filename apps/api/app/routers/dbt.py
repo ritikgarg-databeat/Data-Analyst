@@ -64,9 +64,10 @@ def get_dbt_run(
 
 @router.get("/lineage", response_model=LineageGraphSchema)
 def get_lineage(
+    user_id: CurrentUserId,
     service: Annotated[DbtLabService, Depends(get_dbt_lab_service)],
 ) -> LineageGraphSchema:
-    graph = service.get_lineage()
+    graph = service.get_lineage(user_id)
     return LineageGraphSchema(
         nodes=[LineageNodeSchema(**vars(n)) for n in graph.nodes],
         edges=[LineageEdgeSchema(from_unique_id=f, to_unique_id=t) for f, t in graph.edges],
@@ -76,9 +77,10 @@ def get_lineage(
 
 @router.get("/docs", response_model=list[NodeDocSchema])
 def get_docs(
+    user_id: CurrentUserId,
     service: Annotated[DbtLabService, Depends(get_dbt_lab_service)],
 ) -> list[NodeDocSchema]:
-    docs = service.get_docs()
+    docs = service.get_docs(user_id)
     return [
         NodeDocSchema(
             unique_id=d.unique_id,
@@ -96,9 +98,10 @@ def get_docs(
 
 @router.get("/test-results", response_model=list[TestResultSchema])
 def get_test_results(
+    user_id: CurrentUserId,
     service: Annotated[DbtLabService, Depends(get_dbt_lab_service)],
 ) -> list[TestResultSchema]:
-    return [TestResultSchema(**vars(r)) for r in service.get_test_results()]
+    return [TestResultSchema(**vars(r)) for r in service.get_test_results(user_id)]
 
 
 @router.get("/exercises/{slug}", response_model=DbtExerciseContent)

@@ -31,13 +31,18 @@ from app.stats_engine import descriptive, inference, regression
 
 
 class StatisticsService:
-    def __init__(self, db: Session) -> None:
+    def __init__(self, db: Session, user_id: str | None = None) -> None:
         self.db = db
         self.repo = DatasetRepository(db)
+        self.user_id = user_id
 
     def _find_dataset(self, id_or_slug: str) -> Dataset:
         dataset = self.repo.get_by_id(id_or_slug) or self.repo.get_by_slug(id_or_slug)
-        if dataset is None:
+        if dataset is None or (
+            self.user_id is not None
+            and dataset.owner_user_id is not None
+            and dataset.owner_user_id != self.user_id
+        ):
             raise NotFoundError(f"Dataset '{id_or_slug}' was not found.")
         return dataset
 

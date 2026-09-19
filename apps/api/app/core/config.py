@@ -25,7 +25,7 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(env_file=_ENV_FILE, extra="ignore")
 
-    app_name: str = "Personal Data Analyst Lab API"
+    app_name: str = "Data Lab API"
     app_version: str = "0.1.0"
     environment: str = "development"  # development | test | production
 
@@ -34,6 +34,19 @@ class Settings(BaseSettings):
     api_v1_prefix: str = "/api/v1"
 
     cors_origins: list[str] = ["http://localhost:3000"]
+
+    # Local authentication/session configuration.
+    auth_jwt_secret: str = "local-development-only-secret-change-before-production"
+    auth_access_token_minutes: int = 15
+    auth_refresh_token_days: int = 7
+    auth_cookie_secure: bool = False
+    auth_signup_enabled: bool = True
+    auth_lockout_attempts: int = 5
+    auth_lockout_minutes: int = 15
+    auth_trusted_origin: str = "http://localhost:3000"
+    auth_default_ai_quota: int = 25
+    initial_admin_email: str = "admin@dataanalyst.com"
+    initial_admin_password: str | None = None
 
     # Placeholders for future phases — no logic depends on these yet.
     kaggle_username: str | None = None

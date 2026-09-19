@@ -84,9 +84,13 @@ def stage_upload(
 
 
 def stage_uploads(
-    files: list[UploadFile], slug: str, *, max_bytes: int = DEFAULT_MAX_UPLOAD_BYTES
+    files: list[UploadFile],
+    slug: str,
+    *,
+    max_bytes: int = DEFAULT_MAX_UPLOAD_BYTES,
+    owner_user_id: str | None = None,
 ) -> list[StagedFile]:
-    dest_dir = raw_dir_for(slug)
+    dest_dir = raw_dir_for(slug, owner_user_id)
     staged: list[StagedFile] = []
     try:
         for upload in files:
@@ -265,8 +269,8 @@ def process_dataset_import(db: Session, dataset_id: str, staged_files: list[Stag
         db.commit()
 
         slug = dataset.slug
-        datasets_dir = datasets_dir_for(slug)
-        processed_dir = processed_dir_for(slug)
+        datasets_dir = datasets_dir_for(slug, dataset.owner_user_id)
+        processed_dir = processed_dir_for(slug, dataset.owner_user_id)
 
         db.query(DatasetTable).filter(DatasetTable.dataset_id == dataset.id).delete()
         db.query(SqlTable).filter(SqlTable.dataset_id == dataset.id).delete()

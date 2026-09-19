@@ -45,9 +45,9 @@ def _to_outcome_schema(outcome: TestOutcome) -> PythonTestOutcomeSchema:
 
 
 class PythonExerciseService:
-    def __init__(self, db: Session) -> None:
+    def __init__(self, db: Session, user_id: str | None = None) -> None:
         self.db = db
-        self.execution_service = PythonExecutionService(db)
+        self.execution_service = PythonExecutionService(db, user_id=user_id)
         self.mastery_service = MasteryService(db)
 
     def get_exercise_content(self, exercise: Exercise, content: ExerciseContentFile) -> PythonExerciseContent:

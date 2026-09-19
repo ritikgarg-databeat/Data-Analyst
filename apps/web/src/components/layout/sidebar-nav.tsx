@@ -8,6 +8,7 @@ import { motion } from "framer-motion";
 import { getLucideIcon } from "@/lib/icons";
 import { sectionColorClasses } from "@/lib/section-colors";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/features/auth/auth-provider";
 
 interface SidebarNavProps {
   /** Icon-only mode for the collapsed desktop sidebar. */
@@ -31,6 +32,7 @@ function isRouteActive(pathname: string, href: string): boolean {
 
 export function SidebarNav({ collapsed = false, onNavigate, instanceId = "desktop" }: SidebarNavProps) {
   const pathname = usePathname();
+  const { user } = useAuth();
 
   return (
     <nav aria-label="Primary" className="flex flex-col gap-5">
@@ -46,7 +48,11 @@ export function SidebarNav({ collapsed = false, onNavigate, instanceId = "deskto
               </h2>
             ) : null}
             <ul className="flex flex-col gap-0.5">
-              {section.items.map((item) => {
+              {section.items.filter((item) => {
+                if (item.href.startsWith("/ai")) return user?.ai_access_enabled;
+                if (item.href.startsWith("/admin")) return false;
+                return true;
+              }).map((item) => {
                 const Icon = getLucideIcon(item.icon);
                 const active = isRouteActive(pathname, item.href);
                 return (

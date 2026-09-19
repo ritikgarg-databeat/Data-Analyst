@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Settings, UserRound, WifiOff } from "lucide-react";
+import { LogOut, Settings, ShieldCheck, UserRound, WifiOff } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useCurrentUser } from "@/features/users/use-current-user";
+import { useAuth } from "@/features/auth/auth-provider";
 
 function getInitials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -25,6 +26,7 @@ function getInitials(name: string): string {
 /** Top-bar user avatar + profile menu. Falls back gracefully when the API is unreachable. */
 export function UserMenu() {
   const { data: user, isError } = useCurrentUser();
+  const { logout } = useAuth();
   const displayName = user?.name ?? "Guest analyst";
   const initials = user ? getInitials(user.name) : "?";
 
@@ -63,10 +65,16 @@ export function UserMenu() {
             Settings
           </Link>
         </DropdownMenuItem>
-        <DropdownMenuItem disabled>
+        <DropdownMenuItem asChild>
+          <Link href="/profile">
           <UserRound className="size-4" />
-          Profile (coming soon)
+          Profile
+          </Link>
         </DropdownMenuItem>
+        {user?.role === "ADMIN" ? <DropdownMenuItem asChild><Link href="/admin"><ShieldCheck className="size-4" />Admin portal</Link></DropdownMenuItem> : null}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onSelect={() => logout()}><LogOut className="size-4" />Log out</DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => logout(true)}><LogOut className="size-4" />Log out all devices</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
