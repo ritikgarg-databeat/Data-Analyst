@@ -2,16 +2,15 @@
 # Entrypoint for the `api` container: applies pending Alembic migrations
 # (idempotent — no-op if already at head) before starting the API, so a
 # fresh `docker compose up` always boots against an up-to-date schema. The
-# shared curriculum seed and administrator bootstrap are both idempotent, so
-# running them here also makes a fresh Render database immediately usable.
+# administrator bootstrap is idempotent, so it is safe on every deploy. The
+# larger curriculum seed is intentionally not run here because it can exceed
+# hosted platforms' port-binding startup window; seed/sync it as a separate
+# release operation when provisioning an empty database.
 set -euo pipefail
 
 cd /app
 echo "[api-entrypoint] Applying database migrations..."
 alembic -c alembic.ini upgrade head
-
-echo "[api-entrypoint] Syncing shared curriculum content..."
-python -m app.db.seed
 
 if [[ -n "${INITIAL_ADMIN_PASSWORD:-}" ]]; then
   echo "[api-entrypoint] Ensuring the initial administrator exists..."
