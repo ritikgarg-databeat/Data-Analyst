@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import Depends
 from sqlalchemy.orm import Session
@@ -32,7 +32,6 @@ from app.services.domain_service import DomainService
 from app.services.eda_service import EdaService
 from app.services.excel_exercise_service import ExcelExerciseService
 from app.services.exercise_service import ExerciseService
-from app.services.experiment_service import ExperimentService
 from app.services.finding_service import FindingService
 from app.services.interview_question_service import InterviewQuestionService
 from app.services.interview_readiness_service import InterviewReadinessService
@@ -55,7 +54,6 @@ from app.services.search import SearchService
 from app.services.skill_service import SkillService
 from app.services.sql_exercise_service import SqlExerciseService
 from app.services.sql_workspace_service import SqlWorkspaceService
-from app.services.statistics_service import StatisticsService
 from app.services.system_health_service import SystemHealthService
 from app.services.tag_service import TagService
 from app.services.user_service import UserService
@@ -156,11 +154,15 @@ def get_project_service(db: DbSession) -> ProjectService:
     return ProjectService(db)
 
 
-def get_statistics_service(db: DbSession, user_id: CurrentUserId) -> StatisticsService:
+def get_statistics_service(db: DbSession, user_id: CurrentUserId) -> Any:
+    from app.services.statistics_service import StatisticsService
+
     return StatisticsService(db, user_id=user_id)
 
 
-def get_experiment_service(db: DbSession) -> ExperimentService:
+def get_experiment_service(db: DbSession) -> Any:
+    from app.services.experiment_service import ExperimentService
+
     return ExperimentService(db)
 
 

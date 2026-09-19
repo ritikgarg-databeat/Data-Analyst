@@ -39,7 +39,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/features/auth/auth-provider";
-import { apiClient } from "@/lib/api-client";
+import { apiClient, ApiError } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 
 export type LandingAuthMode = "login" | "signup";
@@ -49,6 +49,24 @@ interface LandingAuthContextValue {
 }
 
 const LandingAuthContext = createContext<LandingAuthContextValue | null>(null);
+const WORKSPACE_START_TIMEOUT_MS = 180_000;
+
+function sleep(milliseconds: number) {
+  return new Promise(resolve => window.setTimeout(resolve, milliseconds));
+}
+
+async function waitForWorkspace(): Promise<boolean> {
+  const deadline = Date.now() + WORKSPACE_START_TIMEOUT_MS;
+  while (Date.now() < deadline) {
+    try {
+      await apiClient.get("/health");
+      return true;
+    } catch {
+      await sleep(3_000);
+    }
+  }
+  return false;
+}
 
 const visionMetrics = [
   [BarChart3, "Progress", "Visible"],
@@ -81,6 +99,12 @@ export function LandingAuthExperience({ children }: { children: ReactNode }) {
         setOpen(true);
       }, 0);
       return () => window.clearTimeout(timer);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof fetch === "function") {
+      void fetch("/api/v1/health", { cache: "no-store" }).catch(() => undefined);
     }
   }, []);
 
@@ -143,6 +167,7 @@ function LandingAuthModal({ open, mode, setMode, setOpen }: LandingAuthModalProp
   const [busy, setBusy] = useState(false);
   const [unlocking, setUnlocking] = useState(false);
   const [error, setError] = useState("");
+  const [startupMessage, setStartupMessage] = useState("");
   const redirectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => () => {
@@ -152,6 +177,7 @@ function LandingAuthModal({ open, mode, setMode, setOpen }: LandingAuthModalProp
   function changeMode(nextMode: LandingAuthMode) {
     setMode(nextMode);
     setError("");
+    setStartupMessage("");
     const url = new URL(window.location.href);
     url.searchParams.set("auth", nextMode);
     window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
@@ -161,18 +187,34 @@ function LandingAuthModal({ open, mode, setMode, setOpen }: LandingAuthModalProp
     event.preventDefault();
     setBusy(true);
     setError("");
+    setStartupMessage("");
 
     try {
-      const result = mode === "login"
-        ? await apiClient.post<AuthResponse>("/auth/login", { email, password })
-        : await apiClient.post<AuthResponse>("/auth/signup", { name, email, password });
+      const authenticate = () => mode === "login"
+        ? apiClient.post<AuthResponse>("/auth/login", { email, password })
+        : apiClient.post<AuthResponse>("/auth/signup", { name, email, password });
+      let result: AuthResponse;
+      try {
+        result = await authenticate();
+      } catch (reason) {
+        const starting = reason instanceof ApiError && [0, 502, 503].includes(reason.status);
+        if (!starting) throw reason;
+        setStartupMessage("Starting your secure workspace. This can take a minute on the free service…");
+        if (!await waitForWorkspace()) {
+          throw new Error("Your workspace is taking longer than expected to start. Please try again shortly.");
+        }
+        setStartupMessage("Workspace ready. Signing you in…");
+        result = await authenticate();
+      }
 
       setAuthenticatedUser(result);
+      setStartupMessage("");
       setUnlocking(true);
       const destination = result.user.must_change_password ? "/change-password" : "/dashboard";
       redirectTimer.current = setTimeout(() => router.replace(destination), 1650);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "We could not open your workspace.");
+      setStartupMessage("");
       setBusy(false);
     }
   }
@@ -184,6 +226,7 @@ function LandingAuthModal({ open, mode, setMode, setOpen }: LandingAuthModalProp
       setBusy(false);
       setUnlocking(false);
       setError("");
+      setStartupMessage("");
       setPassword("");
     }
     setOpen(nextOpen);
@@ -310,11 +353,12 @@ function LandingAuthModal({ open, mode, setMode, setOpen }: LandingAuthModalProp
                   </span>
                 </label>
 
+                {startupMessage ? <p role="status" className="rounded-xl border border-cyan-300/16 bg-cyan-300/8 px-4 py-3 text-sm text-cyan-100">{startupMessage}</p> : null}
                 {error ? <p role="alert" className="rounded-xl border border-rose-400/16 bg-rose-400/8 px-4 py-3 text-sm text-rose-200">{error}</p> : null}
 
                 <button type="submit" disabled={busy} className="auth-submit group relative flex h-13 w-full items-center justify-center overflow-hidden rounded-xl font-semibold text-white disabled:cursor-wait">
                   <span className="auth-submit-shine" aria-hidden="true" />
-                  {busy ? <><LoaderCircle className="mr-2 size-4 animate-spin" /> Opening your path…</> : <>{login ? "Enter your workspace" : "Begin your journey"}<ArrowRight className="ml-2 size-4 transition-transform group-hover:translate-x-1" /></>}
+                  {busy ? <><LoaderCircle className="mr-2 size-4 animate-spin" /> {startupMessage ? "Starting workspace…" : "Opening your path…"}</> : <>{login ? "Enter your workspace" : "Begin your journey"}<ArrowRight className="ml-2 size-4 transition-transform group-hover:translate-x-1" /></>}
                 </button>
               </form>
 

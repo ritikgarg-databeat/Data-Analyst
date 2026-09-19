@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated, Any
 
 from fastapi import APIRouter, Depends
 
@@ -12,7 +12,11 @@ from app.schemas.statistics import (
     SummaryStatsResponse,
     TestResultResponse,
 )
-from app.services.statistics_service import StatisticsService
+
+if TYPE_CHECKING:
+    from app.services.statistics_service import StatisticsService
+else:
+    StatisticsService = Any
 
 router = APIRouter(prefix="/statistics", tags=["statistics"])
 

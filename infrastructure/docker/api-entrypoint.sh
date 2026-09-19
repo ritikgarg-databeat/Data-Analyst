@@ -12,9 +12,11 @@ cd /app
 echo "[api-entrypoint] Applying database migrations..."
 alembic -c alembic.ini upgrade head
 
-if [[ -n "${INITIAL_ADMIN_PASSWORD:-}" ]]; then
+if [[ "${BOOTSTRAP_ADMIN_ON_START:-true}" == "true" && -n "${INITIAL_ADMIN_PASSWORD:-}" ]]; then
   echo "[api-entrypoint] Ensuring the initial administrator exists..."
   python -m app.db.bootstrap_admin
+elif [[ "${BOOTSTRAP_ADMIN_ON_START:-true}" != "true" ]]; then
+  echo "[api-entrypoint] Administrator bootstrap disabled for this established environment."
 else
   echo "[api-entrypoint] INITIAL_ADMIN_PASSWORD is not set; skipping administrator bootstrap."
 fi

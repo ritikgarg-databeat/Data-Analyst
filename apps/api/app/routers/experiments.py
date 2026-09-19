@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated, Any
 
 from fastapi import APIRouter, Depends
 
@@ -13,7 +13,11 @@ from app.schemas.experiments import (
     SimulateABTestRequest,
     SimulateABTestResponse,
 )
-from app.services.experiment_service import ExperimentService
+
+if TYPE_CHECKING:
+    from app.services.experiment_service import ExperimentService
+else:
+    ExperimentService = Any
 
 router = APIRouter(prefix="/experiments", tags=["experiments"])
 

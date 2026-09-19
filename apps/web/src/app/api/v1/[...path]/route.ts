@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 type RouteContext = { params: Promise<{ path: string[] }> };
+const CONTROL_PATHS = new Set(["auth", "health", "users"]);
 
 const HOP_BY_HOP_HEADERS = new Set([
   "connection",
@@ -62,6 +63,10 @@ async function forward(request: NextRequest, context: RouteContext): Promise<Res
     redirect: "manual",
     cache: "no-store",
   };
+  if (CONTROL_PATHS.has(path[0])) {
+    const timeout = Number(process.env.API_PROXY_CONTROL_TIMEOUT_MS ?? 15_000);
+    init.signal = AbortSignal.timeout(Number.isFinite(timeout) ? timeout : 15_000);
+  }
   if (request.method !== "GET" && request.method !== "HEAD" && request.body) {
     init.body = request.body;
     init.duplex = "half";
@@ -81,9 +86,22 @@ async function forward(request: NextRequest, context: RouteContext): Promise<Res
       error instanceof Error ? error.message : "Unknown upstream error",
       cause instanceof Error ? cause.message : "",
     );
+    const errorName = typeof error === "object" && error && "name" in error ? String(error.name) : "";
+    const causeName = typeof cause === "object" && cause && "name" in cause ? String(cause.name) : "";
+    const timedOut = [errorName, causeName].some(name => name === "TimeoutError" || name === "AbortError");
     return Response.json(
-      { error: { code: "API_UNAVAILABLE", message: "Unable to reach the Data Lab API." } },
-      { status: 502, headers: { "Cache-Control": "no-store" } },
+      {
+        error: {
+          code: timedOut ? "API_STARTING" : "API_UNAVAILABLE",
+          message: timedOut
+            ? "Your Data Lab workspace is starting. Please retry shortly."
+            : "Unable to reach the Data Lab API.",
+        },
+      },
+      {
+        status: timedOut ? 503 : 502,
+        headers: { "Cache-Control": "no-store", ...(timedOut ? { "Retry-After": "5" } : {}) },
+      },
     );
   }
 }
