@@ -134,12 +134,12 @@ export default function LandingPage() {
             </span>
             <span className="text-lg">Data Lab</span>
           </Link>
-          <nav className="ml-12 hidden items-center gap-8 text-sm text-white/60 md:flex" aria-label="Landing page">
+          <nav className="ml-12 hidden items-center gap-8 text-sm text-white/60 md:flex lg:hidden xl:flex" aria-label="Landing page">
             <a className="transition-colors hover:text-white" href="#curriculum">Curriculum</a>
             <a className="transition-colors hover:text-white" href="#features">Workspace</a>
             <a className="transition-colors hover:text-white" href="#ai">AI guidance</a>
           </nav>
-          <div className="pointer-events-none absolute left-1/2 hidden -translate-x-1/2 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3.5 py-1.5 text-xs font-medium tracking-wide text-white/55 xl:flex">
+          <div className="pointer-events-none absolute left-1/2 hidden -translate-x-1/2 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3.5 py-1.5 text-xs font-medium tracking-wide text-white/55 lg:flex">
             <Code2 className="size-3.5 text-cyan-300" aria-hidden="true" />
             <span>Built and Engineered by Ritik Garg</span>
           </div>
