@@ -1,6 +1,25 @@
 from fastapi.testclient import TestClient
 
 
+def test_service_root_identifies_a_healthy_api(client: TestClient) -> None:
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "service": "Data Lab API",
+        "status": "ok",
+        "health": "/api/v1/health",
+        "version": response.json()["version"],
+    }
+
+
+def test_service_root_accepts_platform_head_probe(client: TestClient) -> None:
+    response = client.head("/")
+
+    assert response.status_code == 200
+    assert response.content == b""
+
+
 def test_health_returns_ok_status(client: TestClient) -> None:
     response = client.get("/api/v1/health")
 

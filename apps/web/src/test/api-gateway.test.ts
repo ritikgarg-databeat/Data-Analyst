@@ -10,6 +10,7 @@ describe("same-origin API gateway", () => {
 
   it("returns a retryable response while the API is cold-starting", async () => {
     vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const timeout = vi.spyOn(AbortSignal, "timeout");
     vi.spyOn(globalThis, "fetch").mockRejectedValue(new DOMException("Timed out", "TimeoutError"));
 
     const response = await GET(
@@ -18,6 +19,7 @@ describe("same-origin API gateway", () => {
     );
 
     expect(response.status).toBe(503);
+    expect(timeout).toHaveBeenCalledWith(90_000);
     expect(response.headers.get("retry-after")).toBe("5");
     await expect(response.json()).resolves.toMatchObject({
       error: { code: "API_STARTING" },

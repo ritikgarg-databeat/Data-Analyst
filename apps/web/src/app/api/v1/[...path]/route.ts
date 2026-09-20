@@ -5,6 +5,10 @@ export const runtime = "nodejs";
 
 type RouteContext = { params: Promise<{ path: string[] }> };
 const CONTROL_PATHS = new Set(["auth", "health", "users"]);
+// Render's free instances can need about a minute to wake. Authentication and
+// health requests are the control plane for the UI, so keep them open long
+// enough to bridge a normal cold start instead of surfacing a false outage.
+const DEFAULT_CONTROL_TIMEOUT_MS = 90_000;
 
 const HOP_BY_HOP_HEADERS = new Set([
   "connection",
@@ -64,8 +68,11 @@ async function forward(request: NextRequest, context: RouteContext): Promise<Res
     cache: "no-store",
   };
   if (CONTROL_PATHS.has(path[0])) {
-    const timeout = Number(process.env.API_PROXY_CONTROL_TIMEOUT_MS ?? 15_000);
-    init.signal = AbortSignal.timeout(Number.isFinite(timeout) ? timeout : 15_000);
+    const configuredTimeout = Number(process.env.API_PROXY_CONTROL_TIMEOUT_MS);
+    const timeout = Number.isFinite(configuredTimeout) && configuredTimeout >= 1_000
+      ? configuredTimeout
+      : DEFAULT_CONTROL_TIMEOUT_MS;
+    init.signal = AbortSignal.timeout(timeout);
   }
   if (request.method !== "GET" && request.method !== "HEAD" && request.body) {
     init.body = request.body;

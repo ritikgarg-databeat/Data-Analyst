@@ -81,6 +81,17 @@ app.add_middleware(RequestContextMiddleware)
 
 register_exception_handlers(app)
 
+
+@app.api_route("/", methods=["GET", "HEAD"], include_in_schema=False)
+def service_root() -> dict[str, str]:
+    """Give platform probes and direct visitors an unambiguous service status."""
+    return {
+        "service": "Data Lab API",
+        "status": "ok",
+        "health": f"{settings.api_v1_prefix}/health",
+        "version": settings.app_version,
+    }
+
 api_v1 = APIRouter(prefix=settings.api_v1_prefix)
 api_v1.include_router(health.router)
 api_v1.include_router(auth.router)

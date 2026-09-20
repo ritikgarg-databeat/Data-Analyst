@@ -100,7 +100,7 @@ async function request<T>(
     throw new ApiError(
       0,
       "NETWORK_ERROR",
-      "Unable to reach the Data Lab API. Is it running?",
+      "Unable to reach the Data Lab API. Please try again shortly.",
       { cause: cause instanceof Error ? cause.message : String(cause) },
     );
   }
@@ -155,7 +155,7 @@ async function postForm<T>(
     throw new ApiError(
       0,
       "NETWORK_ERROR",
-      "Unable to reach the Data Lab API. Is it running?",
+      "Unable to reach the Data Lab API. Please try again shortly.",
       { cause: cause instanceof Error ? cause.message : String(cause) },
     );
   }
@@ -206,7 +206,7 @@ async function postFile<T>(
     throw new ApiError(
       0,
       "NETWORK_ERROR",
-      "Unable to reach the Data Lab API. Is it running?",
+      "Unable to reach the Data Lab API. Please try again shortly.",
       { cause: cause instanceof Error ? cause.message : String(cause) },
     );
   }

@@ -50,6 +50,7 @@ interface LandingAuthContextValue {
 
 const LandingAuthContext = createContext<LandingAuthContextValue | null>(null);
 const WORKSPACE_START_TIMEOUT_MS = 180_000;
+const SLOW_START_MESSAGE_DELAY_MS = 1_000;
 
 function sleep(milliseconds: number) {
   return new Promise(resolve => window.setTimeout(resolve, milliseconds));
@@ -189,7 +190,22 @@ function LandingAuthModal({ open, mode, setMode, setOpen }: LandingAuthModalProp
     setError("");
     setStartupMessage("");
 
+    let slowStartMessageShown = false;
+    const slowStartTimer = window.setTimeout(() => {
+      slowStartMessageShown = true;
+      setStartupMessage("Starting your secure workspace. The free service can take about a minute to wake up…");
+    }, SLOW_START_MESSAGE_DELAY_MS);
+
     try {
+      const workspaceReady = await waitForWorkspace();
+      window.clearTimeout(slowStartTimer);
+      if (!workspaceReady) {
+        throw new Error("Your workspace is taking longer than expected to start. Please try again shortly.");
+      }
+      if (slowStartMessageShown) {
+        setStartupMessage("Workspace ready. Signing you in…");
+      }
+
       const authenticate = () => mode === "login"
         ? apiClient.post<AuthResponse>("/auth/login", { email, password })
         : apiClient.post<AuthResponse>("/auth/signup", { name, email, password });
@@ -213,6 +229,7 @@ function LandingAuthModal({ open, mode, setMode, setOpen }: LandingAuthModalProp
       const destination = result.user.must_change_password ? "/change-password" : "/dashboard";
       redirectTimer.current = setTimeout(() => router.replace(destination), 1650);
     } catch (reason) {
+      window.clearTimeout(slowStartTimer);
       setError(reason instanceof Error ? reason.message : "We could not open your workspace.");
       setStartupMessage("");
       setBusy(false);
