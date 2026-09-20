@@ -45,7 +45,7 @@ export function ProjectDatasetsTab({ project }: { project: Project }) {
           <Select
             value={selectedDatasetId}
             onChange={(event) => setSelectedDatasetId(event.target.value)}
-            className="w-56"
+            className="w-full sm:w-56"
           >
             <option value="">Select a dataset…</option>
             {availableDatasets.map((dataset) => (
@@ -58,7 +58,7 @@ export function ProjectDatasetsTab({ project }: { project: Project }) {
             value={reason}
             onChange={(event) => setReason(event.target.value)}
             placeholder="Why does this project need it? (optional)"
-            className="w-64"
+            className="w-full sm:w-64"
           />
           <Button size="sm" onClick={handleAdd} disabled={!selectedDatasetId || addDataset.isPending}>
             <Plus className="size-4" aria-hidden="true" />

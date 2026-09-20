@@ -47,6 +47,12 @@ describe("LandingPage", () => {
     expect(screen.getByRole("heading", { name: /A complete path from first query to career-ready/i })).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: /create/i }).length).toBeGreaterThan(0);
 
+    const curriculum = document.querySelector("#curriculum");
+    expect(curriculum).not.toBeNull();
+    expect(curriculum?.querySelectorAll("article")).toHaveLength(5);
+    expect(curriculum?.querySelector(".landing-curriculum-shell")).toHaveClass("min-w-0");
+    expect(curriculum?.querySelector("pre")).toHaveClass("whitespace-pre-wrap", "sm:whitespace-pre");
+
     await user.click(screen.getAllByRole("button", { name: "Sign in" })[0]);
     expect(screen.getByRole("heading", { name: "Sign in to Data Lab" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Enter your workspace" })).toBeInTheDocument();

@@ -45,7 +45,7 @@ export function ModelListPage({ modelKind, basePath, emptyDescription }: ModelLi
             value={name}
             onChange={(event) => setName(event.target.value)}
             placeholder="e.g. Ecommerce Star Schema"
-            className="w-64"
+            className="w-full sm:w-64"
             onKeyDown={(event) => event.key === "Enter" && handleCreate()}
           />
           <Button onClick={handleCreate} disabled={!name.trim() || createModel.isPending}>

@@ -263,7 +263,7 @@ export function PortfolioPage() {
           <CardTitle>Portfolio Gap Detection</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
-          <Select value={gapTargetRoleId} onChange={(event) => setGapTargetRoleId(event.target.value)} className="w-64" aria-label="Target role for portfolio gaps">
+          <Select value={gapTargetRoleId} onChange={(event) => setGapTargetRoleId(event.target.value)} className="w-full sm:w-64" aria-label="Target role for portfolio gaps">
             <option value="">Choose a target role (optional)...</option>
             {(targetRolesQuery.data ?? []).map((role) => (
               <option key={role.id} value={role.id}>

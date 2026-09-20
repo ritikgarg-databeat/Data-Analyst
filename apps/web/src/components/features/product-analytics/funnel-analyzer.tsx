@@ -56,9 +56,9 @@ export function FunnelAnalyzer({ datasetId, tableName, columns }: FunnelAnalyzer
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-end gap-3 rounded-xl border border-border bg-card p-3">
-        <div className="flex flex-col gap-1">
+        <div className="flex w-full flex-col gap-1 sm:w-auto">
           <Label htmlFor="funnel-user-col">User column</Label>
-          <Select id="funnel-user-col" value={userCol} onChange={(e) => setUserCol(e.target.value)} className="w-40">
+          <Select id="funnel-user-col" value={userCol} onChange={(e) => setUserCol(e.target.value)} className="w-full sm:w-40">
             {columns.map((c) => (
               <option key={c.column_name} value={c.column_name}>
                 {c.column_name}
@@ -66,9 +66,9 @@ export function FunnelAnalyzer({ datasetId, tableName, columns }: FunnelAnalyzer
             ))}
           </Select>
         </div>
-        <div className="flex flex-col gap-1">
+        <div className="flex w-full flex-col gap-1 sm:w-auto">
           <Label htmlFor="funnel-event-col">Event column</Label>
-          <Select id="funnel-event-col" value={eventCol} onChange={(e) => setEventCol(e.target.value)} className="w-40">
+          <Select id="funnel-event-col" value={eventCol} onChange={(e) => setEventCol(e.target.value)} className="w-full sm:w-40">
             {columns.map((c) => (
               <option key={c.column_name} value={c.column_name}>
                 {c.column_name}
@@ -76,7 +76,7 @@ export function FunnelAnalyzer({ datasetId, tableName, columns }: FunnelAnalyzer
             ))}
           </Select>
         </div>
-        <div className="flex flex-1 flex-col gap-1">
+        <div className="flex w-full flex-1 flex-col gap-1 sm:min-w-64">
           <Label htmlFor="funnel-steps">Steps (in order, comma-separated)</Label>
           <Input id="funnel-steps" value={stepsRaw} onChange={(e) => setStepsRaw(e.target.value)} />
         </div>

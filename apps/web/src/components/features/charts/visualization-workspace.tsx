@@ -66,7 +66,7 @@ export function VisualizationWorkspace({ initialDatasetId }: { initialDatasetId?
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-end gap-3 rounded-xl border border-border bg-card p-3">
-        <div className="flex flex-col gap-1">
+        <div className="flex w-full flex-col gap-1 sm:w-auto">
           <label htmlFor="viz-dataset" className="text-xs font-medium text-muted-foreground">
             Dataset
           </label>
@@ -78,7 +78,7 @@ export function VisualizationWorkspace({ initialDatasetId }: { initialDatasetId?
               setTableName(undefined);
               setActiveChartId(null);
             }}
-            className="w-56"
+            className="w-full sm:w-56"
           >
             {readyDatasets.map((d) => (
               <option key={d.id} value={d.id}>
@@ -88,7 +88,7 @@ export function VisualizationWorkspace({ initialDatasetId }: { initialDatasetId?
           </Select>
         </div>
         {dataset && dataset.tables.length > 1 ? (
-          <div className="flex flex-col gap-1">
+          <div className="flex w-full flex-col gap-1 sm:w-auto">
             <label htmlFor="viz-table" className="text-xs font-medium text-muted-foreground">
               Table
             </label>
@@ -99,7 +99,7 @@ export function VisualizationWorkspace({ initialDatasetId }: { initialDatasetId?
                 setTableName(e.target.value);
                 setActiveChartId(null);
               }}
-              className="w-44"
+              className="w-full sm:w-44"
             >
               {dataset.tables.map((t) => (
                 <option key={t.table_name} value={t.table_name}>

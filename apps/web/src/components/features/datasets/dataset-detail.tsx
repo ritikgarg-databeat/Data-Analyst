@@ -281,7 +281,7 @@ export function DatasetDetail({ slug }: { slug: string }) {
             id="table-select"
             value={activeTable}
             onChange={(event) => setSelectedTable(event.target.value)}
-            className="w-48"
+            className="w-full sm:w-48"
           >
             {dataset.tables.map((t) => (
               <option key={t.table_name} value={t.table_name}>

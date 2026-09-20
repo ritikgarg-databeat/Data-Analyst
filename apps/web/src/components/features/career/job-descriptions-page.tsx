@@ -188,7 +188,7 @@ export function JobDescriptionsPage() {
               setSource(event.target.value as "PASTED" | "UPLOADED");
               setRawText("");
             }}
-            className="w-48"
+            className="w-full sm:w-48"
             aria-label="Source"
           >
             <option value="PASTED">Pasted</option>

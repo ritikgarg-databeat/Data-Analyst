@@ -115,7 +115,7 @@ export function HypothesisTestTool({ onJumpToCorrelation }: HypothesisTestToolPr
                   type="number"
                   value={populationMean}
                   onChange={(e) => setPopulationMean(e.target.value)}
-                  className="w-40"
+                  className="w-full sm:w-40"
                 />
               </div>
             </>

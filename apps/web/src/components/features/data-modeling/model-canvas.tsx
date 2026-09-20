@@ -197,15 +197,15 @@ export function ModelCanvas({ modelId, modelKind, basePath }: ModelCanvasProps) 
   }
 
   return (
-    <div className="flex h-[calc(100vh-8rem)] min-h-[36rem] flex-col gap-3">
+    <div className="flex min-w-0 flex-col gap-3 lg:h-[calc(100dvh-8rem)] lg:min-h-[36rem]">
       <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card px-4 py-3">
         <Link href={basePath} className="text-muted-foreground hover:text-foreground">
           <ArrowLeft className="size-4" aria-hidden="true" />
         </Link>
-        <p className="text-sm font-semibold text-foreground">{modelQuery.data.name}</p>
+        <p className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground sm:flex-none">{modelQuery.data.name}</p>
         <Badge variant="outline">{modelKind}</Badge>
 
-        <div className="ml-auto flex items-center gap-2">
+        <div className="flex w-full flex-wrap items-center gap-2 sm:ml-auto sm:w-auto">
           <Button variant="outline" size="sm" onClick={addTable}>
             <Plus className="size-4" aria-hidden="true" />
             Add table
@@ -221,8 +221,8 @@ export function ModelCanvas({ modelId, modelKind, basePath }: ModelCanvasProps) 
         </div>
       </div>
 
-      <div className="flex min-h-0 flex-1 gap-3">
-        <div className="min-w-0 flex-1 overflow-hidden rounded-xl border border-border">
+      <div className="flex min-h-0 flex-1 flex-col gap-3 lg:flex-row">
+        <div className="min-h-[30rem] min-w-0 flex-1 overflow-hidden rounded-xl border border-border lg:min-h-0">
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -247,7 +247,7 @@ export function ModelCanvas({ modelId, modelKind, basePath }: ModelCanvasProps) 
         </div>
 
         {validationResult ? (
-          <div className="w-80 shrink-0 overflow-y-auto rounded-xl border border-border bg-card p-3">
+          <div className="w-full shrink-0 overflow-y-auto rounded-xl border border-border bg-card p-3 lg:w-80">
             <p className="mb-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">Validation</p>
             <ValidationPanel result={validationResult} />
           </div>

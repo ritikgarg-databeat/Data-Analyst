@@ -320,7 +320,7 @@ export function JobDescriptionDetail({ jobDescriptionId }: { jobDescriptionId: s
                   onChange={(event) =>
                     updateWorkspace.mutate({ id: workspace.id, status: event.target.value as JobPrepStatus })
                   }
-                  className="w-40"
+                  className="w-full sm:w-40"
                 >
                   {JOB_PREP_STATUS_ORDER.map((status) => (
                     <option key={status} value={status}>{JOB_PREP_STATUS_LABELS[status]}</option>

@@ -68,7 +68,7 @@ export function CaseSidebar({ caseData, attempt }: { caseData: Case; attempt: Ca
   }
 
   return (
-    <aside className="flex w-full max-w-xs flex-shrink-0 flex-col gap-4 text-sm">
+    <aside className="flex w-full flex-shrink-0 flex-col gap-4 text-sm lg:max-w-xs">
       <div className="rounded-xl border border-border bg-card p-4">
         <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Context</p>
         <p className="mt-1 font-medium text-foreground">

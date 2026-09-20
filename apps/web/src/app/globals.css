@@ -188,6 +188,11 @@
 }
 
 @layer base {
+  html,
+  body {
+    max-width: 100%;
+    overflow-x: clip;
+  }
   * {
     @apply border-border outline-ring/50;
   }
@@ -773,7 +778,29 @@
 
 @media (max-width: 640px) {
   .landing-data-signal { opacity: .45; }
-  .auth-dialog-shell { width: calc(100% - 1rem); border-radius: 1rem; }
+  .landing-window {
+    transform: none;
+  }
+
+  .landing-curriculum-shell {
+    border-radius: 1.25rem;
+  }
+
+  .landing-curriculum-route::before {
+    top: 3.75rem;
+    bottom: 3.75rem;
+    left: 2.7rem;
+  }
+
+  .landing-curriculum-card:hover {
+    transform: translateY(-2px);
+  }
+
+  .auth-dialog-shell {
+    width: calc(100% - 1rem);
+    max-height: calc(100dvh - 1rem);
+    border-radius: 1rem;
+  }
 }
 
 @media (min-width: 640px) {

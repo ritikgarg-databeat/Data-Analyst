@@ -11,6 +11,7 @@ import { LoadingState } from "@/components/shared/loading-state";
 import { useCreatePythonWorkspace, usePythonWorkspaces } from "@/features/python/use-python-workspaces";
 import { usePythonAvailability } from "@/features/python/use-python-availability";
 import { cn } from "@/lib/utils";
+import { useMediaQuery } from "@/lib/use-media-query";
 
 import { DatasetBrowser } from "./dataset-browser";
 import { PythonHistoryPanel } from "./python-history-panel";
@@ -32,6 +33,7 @@ type RightTab = "workspaces" | "history";
  * one *engine option* can be unavailable — here the entire feature can be).
  */
 export function PythonLabPage() {
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
   const availabilityQuery = usePythonAvailability();
   const workspacesQuery = usePythonWorkspaces();
   const createWorkspace = useCreatePythonWorkspace();
@@ -61,6 +63,53 @@ export function PythonLabPage() {
   function handleSelectWorkspace(workspaceId: string) {
     setActiveWorkspaceId(workspaceId);
     setLatestResult(null);
+  }
+
+  function renderWorkspacePanel() {
+    return (
+      <>
+        <div role="tablist" className="flex overflow-x-auto border-b border-border px-1 scrollbar-thin">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={rightTab === "workspaces"}
+            onClick={() => setRightTab("workspaces")}
+            className={cn(
+              "shrink-0 border-b-2 px-3 py-2 text-sm font-medium transition-colors",
+              rightTab === "workspaces"
+                ? "border-primary text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground",
+            )}
+          >
+            Workspaces
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={rightTab === "history"}
+            onClick={() => setRightTab("history")}
+            className={cn(
+              "shrink-0 border-b-2 px-3 py-2 text-sm font-medium transition-colors",
+              rightTab === "history"
+                ? "border-primary text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground",
+            )}
+          >
+            History
+          </button>
+        </div>
+        <div role="tabpanel" className="p-3">
+          {rightTab === "workspaces" ? (
+            <PythonWorkspacesPanel activeWorkspaceId={resolvedActiveWorkspaceId} onSelect={handleSelectWorkspace} />
+          ) : (
+            <PythonHistoryPanel
+              workspaceId={resolvedActiveWorkspaceId ?? undefined}
+              onSelect={(code) => insertCodeRef.current?.(code)}
+            />
+          )}
+        </div>
+      </>
+    );
   }
 
   if (availabilityQuery.isLoading || workspacesQuery.isLoading) {
@@ -102,8 +151,8 @@ export function PythonLabPage() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-8rem)] min-h-[32rem] flex-col gap-3">
-      <Group orientation="horizontal" className="min-h-0 flex-1 overflow-hidden rounded-xl border border-border">
+    <div className={cn("flex min-w-0 flex-col gap-3", isDesktop && "h-[calc(100dvh-8rem)] min-h-[32rem]")}>
+      {isDesktop ? <Group orientation="horizontal" className="min-h-0 flex-1 overflow-hidden rounded-xl border border-border">
         <Panel defaultSize="18" minSize="14" maxSize="30" className="min-w-0 overflow-y-auto bg-card p-3">
           <DatasetBrowser onInsertCode={(code) => insertCodeRef.current?.(code)} />
         </Panel>
@@ -138,48 +187,38 @@ export function PythonLabPage() {
         <Separator className={HORIZONTAL_HANDLE} />
 
         <Panel defaultSize="24" minSize="16" maxSize="35" className="min-w-0 overflow-y-auto bg-card">
-          <div role="tablist" className="flex border-b border-border px-1">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={rightTab === "workspaces"}
-              onClick={() => setRightTab("workspaces")}
-              className={cn(
-                "border-b-2 px-3 py-2 text-sm font-medium transition-colors",
-                rightTab === "workspaces"
-                  ? "border-primary text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground",
-              )}
-            >
-              Workspaces
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={rightTab === "history"}
-              onClick={() => setRightTab("history")}
-              className={cn(
-                "border-b-2 px-3 py-2 text-sm font-medium transition-colors",
-                rightTab === "history"
-                  ? "border-primary text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground",
-              )}
-            >
-              History
-            </button>
-          </div>
-          <div role="tabpanel" className="p-3">
-            {rightTab === "workspaces" ? (
-              <PythonWorkspacesPanel activeWorkspaceId={resolvedActiveWorkspaceId} onSelect={handleSelectWorkspace} />
+          {renderWorkspacePanel()}
+        </Panel>
+      </Group> : (
+        <div className="flex min-w-0 flex-col gap-3">
+          <section className="max-h-72 overflow-y-auto rounded-xl border border-border bg-card p-3" aria-label="Python datasets">
+            <DatasetBrowser onInsertCode={(code) => insertCodeRef.current?.(code)} />
+          </section>
+
+          <section className="h-[70dvh] min-h-[36rem] min-w-0 overflow-hidden rounded-xl border border-border bg-card p-3" aria-label="Python notebook">
+            {!resolvedActiveWorkspaceId ? (
+              <div className="flex h-full items-center justify-center p-3">
+                <LoadingState count={1} itemClassName="h-64 w-full" />
+              </div>
             ) : (
-              <PythonHistoryPanel
-                workspaceId={resolvedActiveWorkspaceId ?? undefined}
-                onSelect={(code) => insertCodeRef.current?.(code)}
+              <PythonNotebook
+                workspaceId={resolvedActiveWorkspaceId}
+                onInsertCodeRef={handleInsertCodeRef}
+                onLatestResult={setLatestResult}
               />
             )}
-          </div>
-        </Panel>
-      </Group>
+          </section>
+
+          <section className="max-h-72 overflow-y-auto rounded-xl border border-border bg-card p-3" aria-label="Python variables">
+            <p className="mb-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">Variables</p>
+            <VariableExplorer variables={latestResult?.variables ?? []} />
+          </section>
+
+          <section className="min-w-0 overflow-hidden rounded-xl border border-border bg-card" aria-label="Python workspaces and history">
+            {renderWorkspacePanel()}
+          </section>
+        </div>
+      )}
     </div>
   );
 }

@@ -13,6 +13,7 @@ import { useSqlDatabases } from "@/features/sql/use-sql-databases";
 import { useSqlEngines } from "@/features/sql/use-sql-engines";
 import { useSqlExecute } from "@/features/sql/use-sql-execute";
 import { cn } from "@/lib/utils";
+import { useMediaQuery } from "@/lib/use-media-query";
 
 import { QueryHistoryPanel } from "./query-history-panel";
 import { ResultsGrid } from "./results-grid";
@@ -40,6 +41,7 @@ interface SqlPlaygroundProps {
 
 /** Top-level SQL Lab composition: engine/database pickers, schema explorer, editor, results, and history/saved sidebar. */
 export function SqlPlayground({ initialDatabase }: SqlPlaygroundProps = {}) {
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
   const enginesQuery = useSqlEngines();
   const databasesQuery = useSqlDatabases();
   const executeMutation = useSqlExecute();
@@ -71,10 +73,93 @@ export function SqlPlayground({ initialDatabase }: SqlPlaygroundProps = {}) {
     setWorkspaceId(undefined);
   }
 
+  function renderResults() {
+    return executeMutation.isPending ? (
+      <LoadingState count={1} itemClassName="h-48" />
+    ) : result ? (
+      <div className="space-y-3">
+        <SqlErrorPanel error={result.error} />
+        {result.error ? (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setAskAiMode("debug");
+              setAskAiOpen(true);
+            }}
+          >
+            <Sparkles className="size-4" aria-hidden="true" />
+            Ask AI about this error
+          </Button>
+        ) : null}
+        {result.status === "success" ? (
+          <ResultsGrid
+            columns={result.columns}
+            rows={result.rows}
+            rowCount={result.row_count}
+            truncated={result.truncated}
+          />
+        ) : null}
+      </div>
+    ) : (
+      <ResultsGrid columns={[]} rows={[]} rowCount={0} />
+    );
+  }
+
+  function renderSavedWork() {
+    return (
+      <>
+        <div role="tablist" className="flex overflow-x-auto border-b border-border px-1 scrollbar-thin">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={rightTab === "history"}
+            onClick={() => setRightTab("history")}
+            className={cn(
+              "shrink-0 border-b-2 px-3 py-2 text-sm font-medium transition-colors",
+              rightTab === "history"
+                ? "border-primary text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground",
+            )}
+          >
+            History
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={rightTab === "saved"}
+            onClick={() => setRightTab("saved")}
+            className={cn(
+              "shrink-0 border-b-2 px-3 py-2 text-sm font-medium transition-colors",
+              rightTab === "saved"
+                ? "border-primary text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground",
+            )}
+          >
+            Saved
+          </button>
+        </div>
+        <div role="tabpanel" className="p-3">
+          {rightTab === "history" ? (
+            <QueryHistoryPanel onSelect={handleSelectQuery} />
+          ) : (
+            <SavedQueriesPanel
+              engine={engine}
+              database={database}
+              workspaceId={workspaceId}
+              currentQuery={query}
+              onSelect={handleSelectQuery}
+            />
+          )}
+        </div>
+      </>
+    );
+  }
+
   return (
-    <div className="flex h-[calc(100vh-8rem)] min-h-[32rem] flex-col gap-3">
+    <div className={cn("flex min-w-0 flex-col gap-3", isDesktop && "h-[calc(100dvh-8rem)] min-h-[32rem]")}>
       <div className="flex flex-wrap items-end gap-3 rounded-xl border border-border bg-card px-4 py-3">
-        <div className="flex flex-col gap-1">
+        <div className="flex w-full flex-col gap-1 sm:w-auto">
           <Label htmlFor="sql-lab-engine">Engine</Label>
           <Select
             id="sql-lab-engine"
@@ -83,7 +168,7 @@ export function SqlPlayground({ initialDatabase }: SqlPlaygroundProps = {}) {
               setEngine(event.target.value);
               setWorkspaceId(undefined);
             }}
-            className="w-40"
+            className="w-full sm:w-40"
           >
             {(enginesQuery.data ?? [{ name: DEFAULT_ENGINE, label: "DuckDB", is_available: true, reason: null }]).map(
               (item) => (
@@ -96,7 +181,7 @@ export function SqlPlayground({ initialDatabase }: SqlPlaygroundProps = {}) {
           </Select>
         </div>
 
-        <div className="flex flex-col gap-1">
+        <div className="flex w-full flex-col gap-1 sm:w-auto">
           <Label htmlFor="sql-lab-database">Database</Label>
           <Select
             id="sql-lab-database"
@@ -105,7 +190,7 @@ export function SqlPlayground({ initialDatabase }: SqlPlaygroundProps = {}) {
               setDatabase(event.target.value);
               setWorkspaceId(undefined);
             }}
-            className="w-48"
+            className="w-full sm:w-48"
           >
             {(databasesQuery.data ?? [{ name: DEFAULT_DATABASE, label: "Ecommerce", engine: DEFAULT_ENGINE, description: null, table_count: 0 }]).map(
               (item) => (
@@ -119,7 +204,7 @@ export function SqlPlayground({ initialDatabase }: SqlPlaygroundProps = {}) {
 
         <WorkspaceSelector engine={engine} database={database} workspaceId={workspaceId} onChange={setWorkspaceId} />
 
-        <p className="ml-auto text-xs text-muted-foreground">
+        <p className="w-full text-xs text-muted-foreground lg:ml-auto lg:w-auto">
           {executeMutation.isPending
             ? "Running query..."
             : result
@@ -140,7 +225,7 @@ export function SqlPlayground({ initialDatabase }: SqlPlaygroundProps = {}) {
         </Button>
       </div>
 
-      <Group orientation="horizontal" className="min-h-0 flex-1 overflow-hidden rounded-xl border border-border">
+      {isDesktop ? <Group orientation="horizontal" className="min-h-0 flex-1 overflow-hidden rounded-xl border border-border">
         <Panel defaultSize="20" minSize="14" maxSize="35" className="min-w-0 overflow-y-auto bg-card p-3">
           <SchemaExplorer database={database} engine={engine} onPreview={setPreviewTable} />
         </Panel>
@@ -162,36 +247,7 @@ export function SqlPlayground({ initialDatabase }: SqlPlaygroundProps = {}) {
             <Separator className={VERTICAL_HANDLE} />
 
             <Panel defaultSize="55" minSize="20" className="min-h-0 overflow-y-auto bg-card p-3">
-              {executeMutation.isPending ? (
-                <LoadingState count={1} itemClassName="h-48" />
-              ) : result ? (
-                <div className="space-y-3">
-                  <SqlErrorPanel error={result.error} />
-                  {result.error ? (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setAskAiMode("debug");
-                        setAskAiOpen(true);
-                      }}
-                    >
-                      <Sparkles className="size-4" aria-hidden="true" />
-                      Ask AI about this error
-                    </Button>
-                  ) : null}
-                  {result.status === "success" ? (
-                    <ResultsGrid
-                      columns={result.columns}
-                      rows={result.rows}
-                      rowCount={result.row_count}
-                      truncated={result.truncated}
-                    />
-                  ) : null}
-                </div>
-              ) : (
-                <ResultsGrid columns={[]} rows={[]} rowCount={0} />
-              )}
+              {renderResults()}
             </Panel>
           </Group>
         </Panel>
@@ -199,51 +255,28 @@ export function SqlPlayground({ initialDatabase }: SqlPlaygroundProps = {}) {
         <Separator className={HORIZONTAL_HANDLE} />
 
         <Panel defaultSize="22" minSize="16" maxSize="35" className="min-w-0 overflow-y-auto bg-card">
-          <div role="tablist" className="flex border-b border-border px-1">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={rightTab === "history"}
-              onClick={() => setRightTab("history")}
-              className={cn(
-                "border-b-2 px-3 py-2 text-sm font-medium transition-colors",
-                rightTab === "history"
-                  ? "border-primary text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground",
-              )}
-            >
-              History
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={rightTab === "saved"}
-              onClick={() => setRightTab("saved")}
-              className={cn(
-                "border-b-2 px-3 py-2 text-sm font-medium transition-colors",
-                rightTab === "saved"
-                  ? "border-primary text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground",
-              )}
-            >
-              Saved
-            </button>
-          </div>
-          <div role="tabpanel" className="p-3">
-            {rightTab === "history" ? (
-              <QueryHistoryPanel onSelect={handleSelectQuery} />
-            ) : (
-              <SavedQueriesPanel
-                engine={engine}
-                database={database}
-                workspaceId={workspaceId}
-                currentQuery={query}
-                onSelect={handleSelectQuery}
-              />
-            )}
-          </div>
+          {renderSavedWork()}
         </Panel>
-      </Group>
+      </Group> : (
+        <div className="flex min-w-0 flex-col gap-3">
+          <section className="max-h-72 overflow-y-auto rounded-xl border border-border bg-card p-3" aria-label="Database schema">
+            <SchemaExplorer database={database} engine={engine} onPreview={setPreviewTable} />
+          </section>
+          <section className="min-w-0 overflow-hidden rounded-xl border border-border bg-card" aria-label="SQL editor and results">
+            <SqlEditor
+              value={query}
+              onChange={setQuery}
+              onRun={handleRun}
+              isRunning={executeMutation.isPending}
+              className="h-80 rounded-none border-0 border-b border-border"
+            />
+            <div className="min-w-0 p-3">{renderResults()}</div>
+          </section>
+          <section className="min-w-0 overflow-hidden rounded-xl border border-border bg-card" aria-label="Query history and saved queries">
+            {renderSavedWork()}
+          </section>
+        </div>
+      )}
 
       <TablePreviewPanel
         database={database}

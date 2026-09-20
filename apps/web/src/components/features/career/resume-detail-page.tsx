@@ -119,7 +119,7 @@ export function ResumeDetail({ resumeId }: { resumeId: string }) {
               setNewVersionSource(event.target.value as ResumeSource);
               setNewVersionText("");
             }}
-            className="w-48"
+            className="w-full sm:w-48"
             aria-label="Source"
           >
             <option value="PASTED">Pasted</option>
@@ -279,7 +279,7 @@ export function ResumeDetail({ resumeId }: { resumeId: string }) {
               <Select
                 value={gapTargetRoleId}
                 onChange={(event) => setGapTargetRoleId(event.target.value)}
-                className="w-64"
+                className="w-full sm:w-64"
                 aria-label="Target role for gap analysis"
               >
                 <option value="">Choose a target role...</option>

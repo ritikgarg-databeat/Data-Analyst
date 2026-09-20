@@ -207,7 +207,7 @@ export function CareerAnalyticsPage() {
           <CardTitle>Career Knowledge Base</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
-          <div className="relative w-64">
+          <div className="relative w-full sm:w-64">
             <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
             <Input value={noteSearch} onChange={(event) => setNoteSearch(event.target.value)} placeholder="Search notes..." className="pl-8" aria-label="Search notes" />
           </div>

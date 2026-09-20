@@ -46,7 +46,7 @@ export function PageHeader({ title, subtitle, action, icon, color, className }: 
       transition={{ duration: 0.35, ease: "easeOut" }}
       className={cn("mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between", className)}
     >
-      <div className="flex items-start gap-3.5">
+      <div className="flex min-w-0 items-start gap-3 sm:gap-3.5">
         <span
           className={cn(
             "flex size-11 shrink-0 items-center justify-center rounded-xl shadow-sm",
@@ -55,12 +55,12 @@ export function PageHeader({ title, subtitle, action, icon, color, className }: 
         >
           <Icon className="size-5.5" aria-hidden="true" />
         </span>
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">{title}</h1>
+        <div className="min-w-0">
+          <h1 className="text-xl font-semibold tracking-tight break-words text-foreground min-[380px]:text-2xl">{title}</h1>
           {subtitle ? <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{subtitle}</p> : null}
         </div>
       </div>
-      {action ? <div className="flex shrink-0 items-center gap-2">{action}</div> : null}
+      {action ? <div className="flex w-full flex-wrap items-center gap-2 [&>*]:max-w-full [&>*]:flex-wrap sm:w-auto sm:shrink-0 sm:justify-end">{action}</div> : null}
     </motion.div>
   );
 }

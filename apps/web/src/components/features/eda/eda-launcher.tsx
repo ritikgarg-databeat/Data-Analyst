@@ -51,7 +51,7 @@ export function EdaLauncher() {
           <p className="text-sm text-muted-foreground">Import a dataset first, then come back here to explore it.</p>
         ) : (
           <div className="flex flex-wrap items-center gap-2">
-            <Select value={selectedDataset} onChange={(e) => setSelectedDataset(e.target.value)} className="w-64">
+            <Select value={selectedDataset} onChange={(e) => setSelectedDataset(e.target.value)} className="w-full sm:w-64">
               <option value="">Choose a dataset…</option>
               {readyDatasets.map((d) => (
                 <option key={d.id} value={d.id}>

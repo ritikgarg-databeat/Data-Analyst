@@ -114,7 +114,7 @@ export function DbtLineageGraph() {
       </ReactFlow>
 
       <Sheet open={Boolean(selectedNode)} onOpenChange={(open) => !open && setSelectedId(null)}>
-        <SheetContent side="right" className="w-96">
+        <SheetContent side="right" className="w-full sm:w-96">
           {selectedNode ? (
             <>
               <SheetHeader>

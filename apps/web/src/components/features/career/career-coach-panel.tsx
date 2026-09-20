@@ -79,7 +79,7 @@ export function CareerCoachPanel({ open, onOpenChange }: { open: boolean; onOpen
               setTopic(event.target.value as CareerCoachTopic);
               setConversationId(undefined);
             }}
-            className="w-48"
+            className="w-full sm:w-48"
           >
             {TOPIC_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>

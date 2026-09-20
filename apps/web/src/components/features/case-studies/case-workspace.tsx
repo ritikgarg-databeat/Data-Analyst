@@ -103,7 +103,7 @@ export function CaseWorkspace({ attemptId }: { attemptId: string }) {
         <CaseSidebar caseData={caseData} attempt={attempt} />
 
         <div className="flex min-w-0 flex-1 flex-col gap-4">
-          <div className="flex flex-wrap gap-1.5 border-b border-border" role="tablist" aria-label="Case workspace sections">
+          <div className="flex max-w-full gap-1.5 overflow-x-auto border-b border-border scrollbar-thin" role="tablist" aria-label="Case workspace sections">
             {TABS.map((t) => (
               <button
                 key={t.key}
@@ -112,7 +112,7 @@ export function CaseWorkspace({ attemptId }: { attemptId: string }) {
                 aria-selected={tab === t.key}
                 onClick={() => setTab(t.key)}
                 className={cn(
-                  "rounded-t-md px-3 py-2 text-sm font-medium transition-colors",
+                  "shrink-0 rounded-t-md px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors",
                   tab === t.key
                     ? "border-b-2 border-primary text-foreground"
                     : "text-muted-foreground hover:text-foreground",

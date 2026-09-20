@@ -52,7 +52,7 @@ export function RelationshipEditorSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-96">
+      <SheetContent side="right" className="w-full sm:w-96">
         <SheetHeader>
           <SheetTitle>
             {fromTableName} → {toTableName}

@@ -67,17 +67,17 @@ export function InterviewQuestionCatalog() {
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-wrap items-center gap-2">
-        <div className="relative">
+        <div className="relative w-full sm:w-auto">
           <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search questions..."
-            className="w-56 pl-8"
+            className="w-full pl-8 sm:w-56"
             aria-label="Search interview questions"
           />
         </div>
-        <Select value={interviewType} onChange={(e) => setInterviewType(e.target.value as InterviewQuestionType | "")} className="w-52" aria-label="Filter by type">
+        <Select value={interviewType} onChange={(e) => setInterviewType(e.target.value as InterviewQuestionType | "")} className="w-full sm:w-52" aria-label="Filter by type">
           <option value="">All types</option>
           {INTERVIEW_QUESTION_TYPE_ORDER.map((value) => (
             <option key={value} value={value}>
@@ -85,7 +85,7 @@ export function InterviewQuestionCatalog() {
             </option>
           ))}
         </Select>
-        <Select value={difficulty} onChange={(e) => setDifficulty(e.target.value)} className="w-40" aria-label="Filter by difficulty">
+        <Select value={difficulty} onChange={(e) => setDifficulty(e.target.value)} className="w-full sm:w-40" aria-label="Filter by difficulty">
           <option value="">All difficulties</option>
           {DIFFICULTIES.map((value) => (
             <option key={value} value={value}>

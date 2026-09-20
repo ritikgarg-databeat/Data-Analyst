@@ -236,14 +236,14 @@ function LandingAuthModal({ open, mode, setMode, setOpen }: LandingAuthModalProp
     <Dialog open={open} onOpenChange={unlocking ? undefined : handleOpenChange}>
       <DialogContent
         size="xl"
-        className="auth-dialog-shell max-h-[94vh] max-w-5xl gap-0 overflow-y-auto border-white/12 bg-[#090b17] p-0 text-white shadow-[0_40px_140px_-25px_rgba(76,29,149,.75)] lg:overflow-hidden [&>[data-slot=dialog-close]]:top-5 [&>[data-slot=dialog-close]]:right-5 [&>[data-slot=dialog-close]]:z-50 [&>[data-slot=dialog-close]]:text-white"
+        className="auth-dialog-shell max-h-[94dvh] max-w-5xl gap-0 overflow-y-auto border-white/12 bg-[#090b17] p-0 text-white shadow-[0_40px_140px_-25px_rgba(76,29,149,.75)] lg:overflow-hidden [&>[data-slot=dialog-close]]:top-4 [&>[data-slot=dialog-close]]:right-4 [&>[data-slot=dialog-close]]:z-50 [&>[data-slot=dialog-close]]:text-white sm:[&>[data-slot=dialog-close]]:top-5 sm:[&>[data-slot=dialog-close]]:right-5"
       >
         <DialogTitle className="sr-only">{login ? "Sign in to Data Lab" : "Create your Data Lab account"}</DialogTitle>
         <DialogDescription className="sr-only">
           {login ? "Continue to your private learning workspace." : "Start your private learning workspace."}
         </DialogDescription>
 
-        <div className="grid min-h-150 lg:grid-cols-[.92fr_1.08fr]">
+        <div className="grid min-h-0 lg:min-h-150 lg:grid-cols-[.92fr_1.08fr]">
           <section className="auth-vision-panel relative hidden overflow-hidden border-r border-white/8 p-9 lg:flex lg:flex-col">
             <div className="auth-portal-grid absolute inset-0 opacity-50" aria-hidden="true" />
             <div className="auth-orbit auth-orbit-one" aria-hidden="true" />
@@ -300,18 +300,18 @@ function LandingAuthModal({ open, mode, setMode, setOpen }: LandingAuthModalProp
             </div>
           </section>
 
-          <section className="relative flex flex-col justify-center p-6 sm:p-10 lg:p-12">
+          <section className="relative flex min-w-0 flex-col justify-center px-4 py-6 min-[380px]:px-6 sm:p-10 lg:p-12">
             <div className="auth-form-glow absolute top-0 right-0 size-72" aria-hidden="true" />
             <div className="relative z-10 mx-auto w-full max-w-md">
-              <div className="mb-8 inline-flex rounded-full border border-white/8 bg-white/4 p-1" role="tablist" aria-label="Authentication mode">
-                <button type="button" role="tab" aria-selected={login} onClick={() => changeMode("login")} className={cn("rounded-full px-4 py-2 text-xs font-medium transition-all", login ? "bg-white text-[#0a0b13] shadow-lg" : "text-white/45 hover:text-white")}>Sign in</button>
-                <button type="button" role="tab" aria-selected={!login} onClick={() => changeMode("signup")} className={cn("rounded-full px-4 py-2 text-xs font-medium transition-all", !login ? "bg-white text-[#0a0b13] shadow-lg" : "text-white/45 hover:text-white")}>Create account</button>
+              <div className="mb-7 grid w-full max-w-60 grid-cols-2 rounded-full border border-white/8 bg-white/4 p-1 sm:mb-8" role="tablist" aria-label="Authentication mode">
+                <button type="button" role="tab" aria-selected={login} onClick={() => changeMode("login")} className={cn("rounded-full px-2 py-2 text-xs font-medium transition-all min-[380px]:px-4", login ? "bg-white text-[#0a0b13] shadow-lg" : "text-white/45 hover:text-white")}>Sign in</button>
+                <button type="button" role="tab" aria-selected={!login} onClick={() => changeMode("signup")} className={cn("rounded-full px-2 py-2 text-xs font-medium transition-all min-[380px]:px-4", !login ? "bg-white text-[#0a0b13] shadow-lg" : "text-white/45 hover:text-white")}>Create account</button>
               </div>
 
               <p className="text-xs font-medium tracking-[.18em] text-violet-300 uppercase">
                 {login ? "Welcome back" : "Your future workspace"}
               </p>
-              <h2 className="mt-3 text-3xl font-semibold tracking-[-0.035em] sm:text-4xl">
+              <h2 className="mt-3 pr-6 text-2xl font-semibold tracking-[-0.035em] min-[380px]:text-3xl sm:pr-0 sm:text-4xl">
                 {login ? "Continue your momentum." : "Open the door to what’s next."}
               </h2>
               <p className="mt-3 text-sm leading-6 text-white/45">
@@ -362,8 +362,8 @@ function LandingAuthModal({ open, mode, setMode, setOpen }: LandingAuthModalProp
                 </button>
               </form>
 
-              <div className="mt-6 flex items-center justify-center gap-2 text-xs text-white/34">
-                <LockKeyhole className="size-3.5 text-emerald-300/70" />
+              <div className="mt-6 flex items-start justify-center gap-2 text-center text-[11px] leading-5 text-white/34 sm:items-center sm:text-xs">
+                <LockKeyhole className="mt-0.5 size-3.5 shrink-0 text-emerald-300/70 sm:mt-0" />
                 Private account · Isolated data · Your progress
               </div>
 

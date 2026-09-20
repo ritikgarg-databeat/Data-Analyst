@@ -67,7 +67,7 @@ export function EdaAssistPanel({ datasetId, tableName }: { datasetId: string; ta
           value={goal}
           onChange={(event) => setGoal(event.target.value)}
           placeholder='Optional goal, e.g. "find drivers of churn"'
-          className="w-64"
+          className="w-full sm:w-64"
         />
         <Button
           size="sm"

@@ -52,7 +52,7 @@ export function DbtLabWorkspace() {
   const lastRun = runMutation.data;
 
   return (
-    <div className="flex h-[calc(100vh-8rem)] min-h-[36rem] flex-col gap-3">
+    <div className="flex min-w-0 flex-col gap-3 lg:h-[calc(100dvh-8rem)] lg:min-h-[36rem]">
       <div className="flex flex-wrap items-end gap-3 rounded-xl border border-border bg-card px-4 py-3">
         <div className="flex flex-wrap gap-2">
           {COMMANDS.map(({ command, label }) => (
@@ -68,7 +68,7 @@ export function DbtLabWorkspace() {
           ))}
         </div>
 
-        <div className="flex flex-col gap-1">
+        <div className="flex w-full flex-col gap-1 sm:w-auto">
           <label htmlFor="dbt-selector" className="text-xs font-medium text-muted-foreground">
             --select (optional)
           </label>
@@ -77,11 +77,11 @@ export function DbtLabWorkspace() {
             value={selector}
             onChange={(event) => setSelector(event.target.value)}
             placeholder="e.g. stg_orders"
-            className="h-8 w-48 font-mono text-xs"
+            className="h-8 w-full font-mono text-xs sm:w-48"
           />
         </div>
 
-        <p className="ml-auto text-xs text-muted-foreground">
+        <p className="w-full text-xs text-muted-foreground lg:ml-auto lg:w-auto">
           {runMutation.isPending
             ? "Running dbt for real — this can take a few seconds…"
             : lastRun
@@ -90,13 +90,13 @@ export function DbtLabWorkspace() {
         </p>
       </div>
 
-      <div className="flex min-h-0 flex-1 gap-3 overflow-hidden">
-        <div className="w-56 shrink-0 overflow-y-auto rounded-xl border border-border bg-card p-3">
+      <div className="flex min-h-0 flex-1 flex-col gap-3 lg:flex-row lg:overflow-hidden">
+        <div className="max-h-72 w-full shrink-0 overflow-y-auto rounded-xl border border-border bg-card p-3 lg:max-h-none lg:w-56">
           <DbtProjectTree selected={selector || null} onSelect={handleSelectTreeItem} />
         </div>
 
-        <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-border bg-card">
-          <div role="tablist" className="flex border-b border-border px-1">
+        <div className="flex min-h-[34rem] min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-border bg-card lg:min-h-0">
+          <div role="tablist" className="flex overflow-x-auto border-b border-border px-1 scrollbar-thin">
             {TABS.map(({ id, label }) => (
               <button
                 key={id}
@@ -105,7 +105,7 @@ export function DbtLabWorkspace() {
                 aria-selected={tab === id}
                 onClick={() => setTab(id)}
                 className={cn(
-                  "border-b-2 px-3 py-2 text-sm font-medium transition-colors",
+                  "shrink-0 border-b-2 px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors",
                   tab === id
                     ? "border-primary text-foreground"
                     : "border-transparent text-muted-foreground hover:text-foreground",

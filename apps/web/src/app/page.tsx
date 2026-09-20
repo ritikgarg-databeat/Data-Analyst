@@ -125,7 +125,7 @@ const careerProof = [
 export default function LandingPage() {
   return (
     <LandingAuthExperience>
-    <main className="landing-page min-h-svh overflow-hidden bg-[#070914] text-white">
+    <main className="landing-page min-h-svh overflow-x-clip bg-[#070914] text-white">
       <header className="fixed inset-x-0 top-0 z-50 border-b border-white/8 bg-[#070914]/75 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-7xl items-center px-5 sm:px-8">
           <Link href="/" className="flex items-center gap-2.5 font-semibold tracking-tight" aria-label="Data Lab home">
@@ -169,7 +169,7 @@ export default function LandingPage() {
               <span className="relative flex size-2"><span className="absolute inline-flex size-full animate-ping rounded-full bg-fuchsia-400 opacity-60" /><span className="relative inline-flex size-2 rounded-full bg-fuchsia-400" /></span>
               AI-powered learning. Real career momentum.
             </div>
-            <h1 className="landing-reveal landing-delay-1 mt-7 text-5xl leading-[0.98] font-semibold tracking-[-0.055em] text-balance sm:text-7xl lg:text-[5.75rem]">
+            <h1 className="landing-reveal landing-delay-1 mt-7 text-[clamp(2.65rem,12vw,4.5rem)] leading-[0.98] font-semibold tracking-[-0.055em] text-balance lg:text-[5.75rem]">
               Learn real data skills. <span className="landing-gradient-text block">Build proof. Walk in ready.</span>
             </h1>
             <p className="landing-reveal landing-delay-2 mx-auto mt-7 max-w-2xl text-lg leading-8 text-white/60 sm:text-xl">
@@ -207,7 +207,7 @@ export default function LandingPage() {
                   {["Overview", "Learn", "Practice", "Datasets", "Projects"].map((item, index) => <div key={item} className={`mb-1 rounded-md px-2.5 py-2 text-[11px] ${index === 0 ? "bg-violet-400/12 text-violet-200" : "text-white/35"}`}>{item}</div>)}
                 </aside>
                 <div className="p-5 sm:p-7">
-                  <div className="flex items-start justify-between"><div><p className="text-xs text-violet-300">Welcome back</p><h2 className="mt-1 text-xl font-semibold">Your Personal Data Lab</h2></div><span className="rounded-full bg-emerald-400/10 px-2.5 py-1 text-[10px] text-emerald-300">5 day streak</span></div>
+                  <div className="flex flex-col items-start gap-3 min-[430px]:flex-row min-[430px]:justify-between"><div className="min-w-0"><p className="text-xs text-violet-300">Welcome back</p><h2 className="mt-1 text-lg font-semibold sm:text-xl">Your Personal Data Lab</h2></div><span className="shrink-0 rounded-full bg-emerald-400/10 px-2.5 py-1 text-[10px] text-emerald-300">5 day streak</span></div>
                   <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
                     {dashboardMetrics.map(([label, value, Icon]) => <div key={label} className="rounded-xl border border-white/7 bg-white/[0.035] p-3.5"><Icon className="size-3.5 text-violet-300" /><p className="mt-4 text-lg font-semibold">{value}</p><p className="text-[10px] text-white/35">{label}</p></div>)}
                   </div>
@@ -237,20 +237,20 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section id="curriculum" className="landing-curriculum-section relative isolate overflow-hidden border-y border-white/7 px-5 py-24 sm:px-8 lg:py-32">
+      <section id="curriculum" className="landing-curriculum-section relative isolate overflow-x-clip border-y border-white/7 px-3 py-20 min-[380px]:px-5 sm:px-8 sm:py-24 lg:py-32">
         <div className="landing-grid absolute inset-0 -z-20 opacity-20" aria-hidden="true" />
         <div className="landing-curriculum-glow absolute top-24 left-1/2 -z-10 h-96 w-3/4 -translate-x-1/2 rounded-full bg-violet-600/12 blur-[110px]" aria-hidden="true" />
         <div className="mx-auto max-w-7xl">
           <div className="mx-auto max-w-4xl text-center">
             <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/18 bg-cyan-300/7 px-3.5 py-1.5 text-xs font-medium text-cyan-200"><Sparkles className="size-3.5" /> The heart of Data Lab</div>
-            <h2 className="mt-6 text-4xl leading-[1.02] font-semibold tracking-[-0.045em] text-balance sm:text-6xl">A complete path from <span className="landing-gradient-text">first query to career-ready.</span></h2>
-            <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-white/52">No guessing what to learn next. Every lesson leads into practice, every practice builds judgment, and every project becomes proof.</p>
+            <h2 className="mt-6 text-3xl leading-[1.02] font-semibold tracking-[-0.045em] text-balance min-[380px]:text-4xl sm:text-6xl">A complete path from <span className="landing-gradient-text">first query to career-ready.</span></h2>
+            <p className="mx-auto mt-6 max-w-2xl text-base leading-7 text-white/52 sm:text-lg sm:leading-8">No guessing what to learn next. Every lesson leads into practice, every practice builds judgment, and every project becomes proof.</p>
             <div className="mt-8 flex flex-wrap justify-center gap-2.5">
               {["Guided lessons", "Hands-on labs", "Real datasets", "Portfolio projects", "Interview practice"].map(item => <span key={item} className="rounded-full border border-white/9 bg-white/4 px-3.5 py-2 text-xs text-white/58"><Check className="mr-1.5 inline size-3 text-emerald-300" />{item}</span>)}
             </div>
           </div>
 
-          <div className="landing-curriculum-shell relative mt-16 overflow-hidden rounded-[2rem] border border-white/10 bg-[#0a0d1a]/94 shadow-2xl shadow-violet-950/35">
+          <div className="landing-curriculum-shell relative mt-12 min-w-0 overflow-hidden rounded-[2rem] border border-white/10 bg-[#0a0d1a]/94 shadow-2xl shadow-violet-950/35 sm:mt-16">
             <div className="landing-curriculum-beam absolute inset-x-0 top-0 h-px" aria-hidden="true" />
             <div className="border-b border-white/8 px-5 py-5 sm:px-8">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -259,17 +259,17 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <div className="grid lg:grid-cols-[1.08fr_.92fr]">
-              <div className="landing-curriculum-route p-4 sm:p-7 lg:border-r lg:border-white/8">
+            <div className="grid min-w-0 lg:grid-cols-[minmax(0,1.08fr)_minmax(0,.92fr)]">
+              <div className="landing-curriculum-route min-w-0 p-2.5 min-[380px]:p-4 sm:p-7 lg:border-r lg:border-white/8">
                 {curriculumStages.map(({ number, label, title, description, skills, icon: Icon, tone }, index) => (
-                  <article key={number} data-tone={tone} className="landing-curriculum-card group relative mb-3 grid gap-4 rounded-2xl border border-white/7 bg-white/[0.025] p-4 last:mb-0 sm:grid-cols-[auto_1fr] sm:p-5">
-                    <div className="relative flex items-start gap-3 sm:block">
-                      <span className="landing-curriculum-node relative z-10 flex size-12 items-center justify-center rounded-2xl border bg-[#111526] shadow-lg"><Icon className="size-5" /></span>
-                      <span className="mt-1 font-mono text-[10px] tracking-[0.18em] text-white/28 sm:block sm:text-center">{number}</span>
+                  <article key={number} data-tone={tone} className="landing-curriculum-card group relative mb-3 grid min-w-0 grid-cols-[2.75rem_minmax(0,1fr)] gap-3 rounded-2xl border border-white/7 bg-white/[0.025] p-3 last:mb-0 min-[380px]:grid-cols-[3rem_minmax(0,1fr)] min-[380px]:gap-4 min-[380px]:p-4 sm:p-5">
+                    <div className="relative flex min-w-0 flex-col items-center">
+                      <span className="landing-curriculum-node relative z-10 flex size-11 items-center justify-center rounded-2xl border bg-[#111526] shadow-lg min-[380px]:size-12"><Icon className="size-5" /></span>
+                      <span className="mt-2 block font-mono text-[10px] tracking-[0.18em] text-white/28">{number}</span>
                     </div>
                     <div className="min-w-0">
-                      <div className="flex flex-wrap items-center justify-between gap-2"><p className="text-[10px] font-semibold tracking-[0.17em] text-white/36 uppercase">{label}</p>{index === 0 && <span className="rounded-full border border-emerald-300/15 bg-emerald-300/7 px-2 py-1 text-[9px] font-medium text-emerald-200">Start here</span>}</div>
-                      <h3 className="mt-1.5 text-lg font-semibold text-white/88">{title}</h3>
+                      <div className="flex min-w-0 flex-col items-start gap-2 min-[430px]:flex-row min-[430px]:items-center min-[430px]:justify-between"><p className="min-w-0 text-[9px] font-semibold tracking-[0.14em] text-white/36 uppercase min-[380px]:text-[10px] min-[380px]:tracking-[0.17em]">{label}</p>{index === 0 && <span className="shrink-0 rounded-full border border-emerald-300/15 bg-emerald-300/7 px-2 py-1 text-[9px] font-medium text-emerald-200">Start here</span>}</div>
+                      <h3 className="mt-1.5 text-base font-semibold text-white/88 min-[380px]:text-lg">{title}</h3>
                       <p className="mt-2 max-w-xl text-sm leading-6 text-white/42">{description}</p>
                       <div className="mt-3 flex flex-wrap gap-1.5">{skills.map(skill => <span key={skill} className="landing-skill-chip rounded-md border border-white/7 bg-black/15 px-2 py-1 text-[10px] text-white/46">{skill}</span>)}</div>
                     </div>
@@ -277,13 +277,13 @@ export default function LandingPage() {
                 ))}
               </div>
 
-              <aside className="landing-curriculum-preview relative flex flex-col p-5 sm:p-8" aria-label="Curriculum practice preview">
-                <div className="flex items-center justify-between"><div><p className="text-xs font-medium text-cyan-300">Practice, not passive watching</p><h3 className="mt-2 text-2xl font-semibold">See a skill become evidence.</h3></div><span className="hidden size-11 items-center justify-center rounded-2xl border border-cyan-300/14 bg-cyan-300/7 text-cyan-200 sm:flex"><ChartNoAxesCombined className="size-5" /></span></div>
+              <aside className="landing-curriculum-preview relative flex min-w-0 flex-col border-t border-white/8 p-4 min-[380px]:p-5 sm:p-8 lg:border-t-0" aria-label="Curriculum practice preview">
+                <div className="flex min-w-0 items-center justify-between gap-3"><div className="min-w-0"><p className="text-xs font-medium text-cyan-300">Practice, not passive watching</p><h3 className="mt-2 text-xl font-semibold sm:text-2xl">See a skill become evidence.</h3></div><span className="hidden size-11 shrink-0 items-center justify-center rounded-2xl border border-cyan-300/14 bg-cyan-300/7 text-cyan-200 sm:flex"><ChartNoAxesCombined className="size-5" /></span></div>
                 <p className="mt-3 text-sm leading-6 text-white/42">A concept moves straight into a realistic lab, feedback, and something worth showing.</p>
 
-                <div className="mt-7 overflow-hidden rounded-2xl border border-white/9 bg-[#070914] shadow-xl">
-                  <div className="flex h-10 items-center border-b border-white/7 px-4"><span className="size-2 rounded-full bg-rose-400/70" /><span className="ml-1.5 size-2 rounded-full bg-amber-400/70" /><span className="ml-1.5 size-2 rounded-full bg-emerald-400/70" /><span className="ml-auto font-mono text-[9px] text-white/25">retention_analysis.sql</span></div>
-                  <pre className="overflow-x-auto p-5 font-mono text-[11px] leading-6 text-white/56"><code><span className="text-fuchsia-300">WITH</span> cohorts <span className="text-fuchsia-300">AS</span> ({"\n"}  <span className="text-violet-300">SELECT</span> customer_id,{"\n"}    <span className="text-cyan-300">DATE_TRUNC</span>(&apos;month&apos;, joined_at) cohort{"\n"}  <span className="text-violet-300">FROM</span> customers{"\n"}){"\n"}<span className="text-violet-300">SELECT</span> cohort, <span className="text-cyan-300">COUNT</span>(*) retained_users</code></pre>
+                <div className="mt-7 min-w-0 overflow-hidden rounded-2xl border border-white/9 bg-[#070914] shadow-xl">
+                  <div className="flex h-10 min-w-0 items-center border-b border-white/7 px-3 sm:px-4"><span className="size-2 shrink-0 rounded-full bg-rose-400/70" /><span className="ml-1.5 size-2 shrink-0 rounded-full bg-amber-400/70" /><span className="ml-1.5 size-2 shrink-0 rounded-full bg-emerald-400/70" /><span className="ml-auto min-w-0 truncate pl-3 font-mono text-[9px] text-white/25">retention_analysis.sql</span></div>
+                  <pre className="max-w-full overflow-x-auto p-3 font-mono text-[10px] leading-5 whitespace-pre-wrap text-white/56 min-[380px]:p-4 sm:p-5 sm:text-[11px] sm:leading-6 sm:whitespace-pre"><code><span className="text-fuchsia-300">WITH</span> cohorts <span className="text-fuchsia-300">AS</span> ({"\n"}  <span className="text-violet-300">SELECT</span> customer_id,{"\n"}    <span className="text-cyan-300">DATE_TRUNC</span>(&apos;month&apos;, joined_at) cohort{"\n"}  <span className="text-violet-300">FROM</span> customers{"\n"}){"\n"}<span className="text-violet-300">SELECT</span> cohort, <span className="text-cyan-300">COUNT</span>(*) retained_users</code></pre>
                   <div className="grid grid-cols-3 border-t border-white/7 bg-white/[0.025]">
                     {[['Rows', '12.4k'], ['Insight', '+18%'], ['Checks', 'Passed']].map(([label, value]) => <div key={label} className="border-r border-white/7 px-3 py-3 text-center last:border-0"><strong className="block text-xs text-white/78">{value}</strong><span className="mt-0.5 block text-[9px] text-white/28">{label}</span></div>)}
                   </div>

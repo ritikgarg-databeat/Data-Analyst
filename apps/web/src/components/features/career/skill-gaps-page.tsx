@@ -56,7 +56,7 @@ export function SkillGapsPage() {
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search skills..."
-              className="w-56"
+              className="w-full sm:w-56"
               aria-label="Search skills"
             />
           </div>

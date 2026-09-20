@@ -47,14 +47,14 @@ export function WorkspaceSelector({ engine, database, workspaceId, onChange }: W
   }
 
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex w-full flex-col gap-1 sm:w-auto">
       <Label htmlFor="sql-lab-workspace">Workspace</Label>
       <div className="flex items-center gap-1.5">
         <Select
           id="sql-lab-workspace"
           value={workspaceId ?? ""}
           onChange={(event) => onChange(event.target.value || undefined)}
-          className="w-40"
+          className="min-w-0 flex-1 sm:w-40 sm:flex-none"
         >
           <option value="">No workspace</option>
           {workspaces.map((w) => (
@@ -83,7 +83,7 @@ export function WorkspaceSelector({ engine, database, workspaceId, onChange }: W
             value={name}
             onChange={(event) => setName(event.target.value)}
             placeholder="Workspace name"
-            className="h-8 w-40 text-sm"
+            className="h-8 min-w-0 flex-1 text-sm sm:w-40 sm:flex-none"
             autoFocus
             onKeyDown={(event) => {
               if (event.key === "Enter") handleCreate();
